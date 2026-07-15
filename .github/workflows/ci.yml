@@ -45,6 +45,12 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      # Owner decision: the TypeScript pin must not drift silently.
+      # Runs before lint, because a pin outside ts-eslint's supported range
+      # makes every type-aware lint result untrustworthy.
+      - name: TypeScript pin compatibility
+        run: bash scripts/check-typescript-pin.sh
+
       - name: Format check
         run: pnpm format:check
 

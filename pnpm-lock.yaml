@@ -41,6 +41,9 @@ importers:
       prettier:
         specifier: 3.9.5
         version: 3.9.5
+      semver:
+        specifier: 7.8.5
+        version: 7.8.5
       turbo:
         specifier: 2.10.5
         version: 2.10.5
