@@ -131,26 +131,22 @@ Per the brief and the CONTRIBUTING standard: no test is reported as passing unle
 
 Phase 2 cannot begin until:
 
-1. The Pro organization `Herman Legacy Software Ventures` **exists and is reachable**. It is not (see §9).
-2. The new project is created in it, and confirmed greenfield: 0 user tables, 0 migrations, 0 Edge Functions.
-3. Its project ref is recorded (ref only — refs are not secrets; keys are, and go in Vault/GitHub secrets).
+1. ~~The Pro organization `Herman Legacy Software Ventures` exists and is reachable.~~ ✅ **Resolved 2026-07-15.** `ihtsbcxtvkbfkkpmforp`, plan `pro`.
+2. ~~The new project is created and confirmed greenfield.~~ ✅ **Resolved 2026-07-15.** `ywrzgursvdowzyhipsmt` — 0 user tables, 0 functions, 0 migrations, 0 Edge Functions, 0 auth users, 0 advisories. Evidence in `environments.md` §2.
+3. ~~Its project ref is recorded.~~ ✅ Recorded in `environments.md` §1. Ref only; no keys.
 4. The Phase 1 PR is merged.
 5. This plan is approved.
 
-## 9. Blocker
+## 9. Blockers
 
-**The specified Pro organization is not visible to my Supabase token.**
+**RESOLVED — the Pro organization and greenfield project are confirmed.** The connection was re-scoped on 2026-07-15 and now reaches `Herman Legacy Software Ventures` (`ihtsbcxtvkbfkkpmforp`, plan `pro`) containing exactly one empty project, `ywrzgursvdowzyhipsmt`. Full evidence in `environments.md`.
 
-Verified 2026-07-15:
+Remaining, none of which block authoring this plan:
 
-```
-list_organizations -> exactly one:
-  { name: "Herman Supply Chain Solutions", plan: "free" }
-```
-
-There is no `Herman Legacy Software Ventures` organization, and the only visible org is **free**, not Pro. This also contradicts the original brief's claim that a Pro organization had been created.
-
-I will not work around this by creating the project in the free org — that would silently violate the decision. Resolution options are in the accompanying report.
+1. **Phase 1 PR not merged.** The branch is not pushed; the sandbox has no GitHub credentials.
+2. **Project name is the Supabase default** (`keith@venuewise.net's Project`) and collides in spirit with the brownfield project's name. See `environments.md` §4. Dashboard action; cannot be done from here.
+3. **This plan is not yet approved.**
+4. ⚠️ **The legacy project is now unreachable from this connection**, so the SEC-1/SEC-2 remediation workstream cannot be executed here. SEC-1 remains live: 2,481 rows anon-writable. See `environments.md` §3.
 
 ## 10. Naming collision — needs a decision
 
