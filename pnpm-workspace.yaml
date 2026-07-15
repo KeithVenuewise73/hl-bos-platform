@@ -12,9 +12,9 @@ packages:
   - "apps/*"
   - "packages/*"
 
-# Centrally pinned versions. Referenced from package.json via "catalog:".
-# Rationale for the important pins is documented in
-# docs/architecture/dependency-policy.md -- read it before bumping anything.
+# Centrally pinned versions, referenced from package.json via "catalog:".
+# Rationale for the important pins is in docs/architecture/dependency-policy.md
+# -- read it before bumping anything.
 catalog:
   # --- Language / build ---------------------------------------------------
   # TypeScript is pinned to the 6.0 line, NOT latest (7.0.2).
@@ -26,8 +26,8 @@ catalog:
   next: "16.2.10"
   react: "19.2.7"
   react-dom: "19.2.7"
-  "@types/react": "19.2.7"
-  "@types/react-dom": "19.2.2"
+  "@types/react": "19.2.17"
+  "@types/react-dom": "19.2.3"
 
   # --- Validation ---------------------------------------------------------
   zod: "4.4.3"
@@ -41,4 +41,8 @@ catalog:
   "@vitest/coverage-v8": "4.1.10"
 
   # --- Node ---------------------------------------------------------------
-  "@types/node": "24.10.1"
+  # Pinned to the 22 line to match engines.node (>=22) and the CI runtime.
+  # Satisfies vitest's peer range (^20 || ^22 || >=24). Deliberately not 26
+  # (latest): the @types major should track the Node runtime major, or you
+  # get types for APIs that do not exist at runtime.
+  "@types/node": "22.20.1"

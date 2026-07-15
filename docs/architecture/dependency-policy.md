@@ -7,7 +7,7 @@
 
 ## 1. Principle
 
-The brief requires: *"Use current stable versions that are mutually compatible. Pin important versions rather than relying on uncontrolled latest-version behavior."*
+The brief requires: _"Use current stable versions that are mutually compatible. Pin important versions rather than relying on uncontrolled latest-version behavior."_
 
 Those two requirements are in tension, and **compatibility wins**. "Latest" is not a version — it is a moving target that changes the build under you. Every important dependency is pinned to an exact version in the `catalog:` block of `pnpm-workspace.yaml`, in one place, and bumped deliberately.
 
@@ -28,6 +28,7 @@ typescript-eslint@8.64.0 peers = { typescript: ">=4.8.4 <6.1.0",
 `typescript-eslint` — which provides all type-aware linting — **does not support TypeScript 7.** The newest stable TypeScript inside its supported range is **6.0.3**.
 
 Taking `typescript@latest` would mean:
+
 - `strict-peer-dependencies=true` fails the install (the intended outcome), or
 - with that guard disabled, type-aware lint rules silently degrade or crash
 
@@ -35,7 +36,7 @@ There is no `typescript-eslint` v9/v10 release. `8.64.0` is `latest`; the only n
 
 ### Bump criteria
 
-Move to TypeScript 7 only when *all* hold:
+Move to TypeScript 7 only when _all_ hold:
 
 1. `npm view typescript-eslint peerDependencies` admits `typescript@>=7`
 2. That release is on the `latest` dist-tag, not `canary`
@@ -46,20 +47,21 @@ Move to TypeScript 7 only when *all* hold:
 
 ## 3. Pinned matrix (2026-07-15)
 
-| Dependency | Pin | `latest` | Notes |
-|---|---|---|---|
-| `typescript` | **6.0.3** | 7.0.2 | ⚠️ Held back. See §2. |
-| `typescript-eslint` | 8.64.0 | 8.64.0 | Constrains TypeScript. |
-| `eslint` | 10.7.0 | 10.7.0 | Flat config. Supported by ts-eslint 8.64. |
-| `next` | 16.2.10 | 16.2.10 | Peers: react `^19.0.0`. App Router. |
-| `react` / `react-dom` | 19.2.7 | 19.2.7 | Satisfies Next 16 peer range. |
-| `zod` | 4.4.3 | 4.4.3 | Validation. |
-| `vitest` | 4.1.10 | 4.1.10 | Peers: `@types/node` `^20 \|\| ^22 \|\| >=24`. |
-| `@types/node` | 24.10.1 | — | Satisfies vitest `>=24`. Node runtime `>=22`. |
-| `@supabase/supabase-js` | 2.110.6 | 2.110.6 | |
-| `@supabase/ssr` | 0.12.3 | 0.12.3 | Cookie-based auth for App Router. |
-| `turbo` | 2.10.5 | 2.10.5 | Task orchestration. |
-| `prettier` | 3.9.5 | 3.9.5 | |
+| Dependency              | Pin       | `latest` | Notes                                                    |
+| ----------------------- | --------- | -------- | -------------------------------------------------------- |
+| `typescript`            | **6.0.3** | 7.0.2    | ⚠️ Held back. See §2.                                    |
+| `typescript-eslint`     | 8.64.0    | 8.64.0   | Constrains TypeScript.                                   |
+| `eslint`                | 10.7.0    | 10.7.0   | Flat config. Supported by ts-eslint 8.64.                |
+| `@eslint/js`            | 10.0.1    | 10.0.1   | Versioned independently of `eslint`. Peers `eslint@^10`. |
+| `next`                  | 16.2.10   | 16.2.10  | Peers: react `^19.0.0`. App Router.                      |
+| `react` / `react-dom`   | 19.2.7    | 19.2.7   | Satisfies Next 16 peer range.                            |
+| `zod`                   | 4.4.3     | 4.4.3    | Validation.                                              |
+| `vitest`                | 4.1.10    | 4.1.10   | Peers: `@types/node` `^20 \|\| ^22 \|\| >=24`.           |
+| `@types/node`           | 22.20.1   | 26.1.1   | Tracks the Node 22 runtime major, not latest.            |
+| `@supabase/supabase-js` | 2.110.6   | 2.110.6  |                                                          |
+| `@supabase/ssr`         | 0.12.3    | 0.12.3   | Cookie-based auth for App Router.                        |
+| `turbo`                 | 2.10.5    | 2.10.5   | Task orchestration.                                      |
+| `prettier`              | 3.9.5     | 3.9.5    |                                                          |
 
 `next@16` requires `node >=20.9.0`; we set `engines.node >= 22`.
 
