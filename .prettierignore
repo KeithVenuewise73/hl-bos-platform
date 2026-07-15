@@ -1,0 +1,9 @@
+node_modules
+dist
+.next
+coverage
+pnpm-lock.yaml
+*.tsbuildinfo
+
+# Supabase-generated database types
+packages/database/src/generated/**
