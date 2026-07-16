@@ -19,6 +19,8 @@ export interface Approval {
   action: string;
   /** Where to go, if anywhere. */
   href?: string;
+  /** Present when this approval can be executed in the console. */
+  mergeable?: { number: number; title: string };
   urgency: "now" | "soon" | "whenever";
 }
 
@@ -57,8 +59,9 @@ export function approvalQueue(args: {
       out.push({
         title: `Approve and merge: ${pr.title}`,
         why: "Every automated check passed. This is a business decision: do you want this change in the product?",
-        action: `Review pull request #${pr.number}`,
+        action: `Approve pull request #${pr.number}`,
         href: pr.url,
+        mergeable: { number: pr.number, title: pr.title },
         urgency: "now",
       });
     }

@@ -6,6 +6,12 @@ import { approvalQueue } from "@/lib/approvals";
 import { PORTFOLIO, PORTFOLIO_NOTE } from "@/lib/registry";
 import { Card, Dot, Row, Empty, LABEL } from "@/components/ui";
 import { ActionsIsland } from "@/components/ActionsIsland";
+import { MergeButton } from "@/components/MergeButton";
+import { supabaseState } from "@/lib/supabase";
+import { connectionStatus } from "@/lib/secrets";
+import { readdir } from "node:fs/promises";
+import path from "node:path";
+import { REPO_ROOT } from "@/lib/shell";
 
 export const dynamic = "force-dynamic";
 
@@ -17,13 +23,27 @@ export default async function Page() {
   const health = overallHealth(gh, gates);
   const milestone = await milestoneState();
   const approvals = approvalQueue({ gh, health: health.health, milestone });
+  const conn = await connectionStatus();
+
+  let repoMigrations: string[] = [];
+  try {
+    repoMigrations = (await readdir(path.join(REPO_ROOT, "supabase", "migrations")))
+      .filter((f) => f.endsWith(".sql"))
+      .sort();
+  } catch {
+    repoMigrations = [];
+  }
+  const sb = await supabaseState(repoMigrations);
 
   return (
     <main style={{ maxWidth: 1100, margin: "0 auto", padding: "28px 24px 64px" }}>
       <header style={{ marginBottom: 22 }}>
         <h1 style={{ margin: 0, fontSize: 22 }}>Development Control Center</h1>
         <p style={{ margin: "4px 0 0", color: "#8b949e", fontSize: 13 }}>
-          Herman Legacy Software Ventures — internal. Runs on this machine only.
+          Herman Legacy Software Ventures — internal. Runs on this machine only.{" "}
+          <a href="/connect" style={{ color: "#58a6ff" }}>
+            {conn.github && conn.supabase ? "Connections" : "Connect accounts"}
+          </a>
         </p>
       </header>
 
@@ -161,6 +181,53 @@ export default async function Page() {
           </Card>
         </div>
       </div>
+
+      {/* ---- SUPABASE ---- */}
+      <Card title="Database" sub="The HL-BOS Core project.">
+        {!sb.connected ? (
+          <>
+            <Empty>{sb.reason}</Empty>
+            <p style={{ marginTop: 10 }}>
+              <a href="/connect" style={{ color: "#58a6ff", fontSize: 13 }}>
+                Connect Supabase →
+              </a>
+            </p>
+          </>
+        ) : (
+          <>
+            <Row k="Project" v={sb.project.name} />
+            <Row k="Reference" v={sb.project.ref} mono />
+            <Row k="Region" v={sb.project.region} />
+            <Row
+              k="Status"
+              v={sb.project.status === "ACTIVE_HEALTHY" ? "Healthy" : sb.project.status}
+            />
+            <Row k="Postgres" v={sb.project.pgVersion} />
+            <Row
+              k="Changes applied"
+              v={
+                sb.applied.length === 0
+                  ? "None — the database is empty"
+                  : `${sb.applied.length}`
+              }
+            />
+            <Row
+              k="Changes waiting"
+              v={sb.pending.length === 0 ? "None" : `${sb.pending.length}`}
+            />
+            <p
+              style={{
+                margin: "12px 0 0",
+                fontSize: 12.5,
+                color: "#8b949e",
+                lineHeight: 1.6,
+              }}
+            >
+              {sb.summary}
+            </p>
+          </>
+        )}
+      </Card>
 
       {/* ---- 5. ACTIVE DEVELOPMENT ---- */}
       <Card title="Active development" sub="What is being built right now.">

@@ -116,3 +116,82 @@ export async function saveWork(message: string): Promise<ActionResult> {
 export async function refresh(): Promise<void> {
   revalidatePath("/");
 }
+
+/**
+ * Approve and merge.
+ *
+ * This IS the CEO's approval. So it re-checks GitHub immediately before acting
+ * rather than trusting what the page said when it rendered -- a dashboard can
+ * be minutes stale, and "it was green when I looked" is not a good reason to
+ * have merged something red.
+ */
+export async function approveMerge(
+  number: number,
+  title: string,
+): Promise<ActionResult> {
+  const { pullRequestIsMergeable, mergePullRequest } = await import("@/lib/github");
+  const status = await repoStatus();
+  if (!status.slug) {
+    return {
+      ok: false,
+      headline: "This folder is not linked to GitHub.",
+      meaning: "Nothing to merge.",
+      detail: "",
+    };
+  }
+
+  const check = await pullRequestIsMergeable(status.slug, number);
+  if (!check.ready) {
+    return {
+      ok: false,
+      headline: "Not ready to merge yet.",
+      meaning: check.reason,
+      detail: check.reason,
+    };
+  }
+
+  const merged = await mergePullRequest(status.slug, number, title);
+  revalidatePath("/");
+  if (!merged.ok) {
+    return {
+      ok: false,
+      headline: "GitHub would not complete the merge.",
+      meaning: merged.reason,
+      detail: merged.reason,
+    };
+  }
+  return ok(
+    "Merged. It is part of the product now.",
+    "The change is on the main line. Nothing is deployed to customers by this — releasing is a separate decision.",
+    `merge commit ${merged.sha}`,
+  );
+}
+
+/** Save connection tokens. The console writes the file; no editor, no terminal. */
+export async function saveConnection(form: FormData): Promise<ActionResult> {
+  const { writeEnvValues } = await import("@/lib/secrets");
+  const values: Record<string, string> = {};
+  const gh = String(form.get("github") ?? "").trim();
+  const sb = String(form.get("supabase") ?? "").trim();
+  const ref = String(form.get("ref") ?? "").trim();
+  if (gh) values["HLBOS_GITHUB_TOKEN"] = gh;
+  if (sb) values["SUPABASE_ACCESS_TOKEN"] = sb;
+  if (ref) values["HLBOS_SUPABASE_PROJECT_REF"] = ref;
+
+  if (Object.keys(values).length === 0) {
+    return {
+      ok: false,
+      headline: "Nothing to save.",
+      meaning: "No token was entered.",
+      detail: "",
+    };
+  }
+  await writeEnvValues(values);
+  revalidatePath("/");
+  revalidatePath("/connect");
+  return ok(
+    "Connected.",
+    "The console can now see your builds. This is stored on this machine only and is never committed.",
+    Object.keys(values).join(", ") + " saved",
+  );
+}

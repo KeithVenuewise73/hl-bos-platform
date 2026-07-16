@@ -1,7 +1,7 @@
 {
   "$comment": "Live milestone state. Version-controlled so it is auditable, and updated by the AI engineer as work lands. The Control Center reads this -- it does not guess progress.",
   "milestone": "2.5 \u2014 CEO Development Control Center",
-  "phase": "Console built; connecting it to GitHub",
+  "phase": "Console complete; awaiting connection",
   "engineer": "Claude (AI engineer)",
   "startedOn": "2026-07-16",
   "tasks": [
@@ -26,45 +26,48 @@
       "done": true
     },
     {
-      "title": "Control Center is the only entry point (push script retired)",
+      "title": "Control Center is the only entry point",
       "done": true
     },
     {
-      "title": "Operating contract written so future sessions honour it",
+      "title": "Operating contract so future sessions honour it",
       "done": true
-    },
-    {
-      "title": "Connect GitHub so build results are visible",
-      "done": false
     },
     {
       "title": "Approve-and-merge from inside the console",
+      "done": true
+    },
+    {
+      "title": "Supabase status panel",
+      "done": true
+    },
+    {
+      "title": "In-console connection setup (no text editor, no terminal)",
+      "done": true
+    },
+    {
+      "title": "Connect GitHub and Supabase (needs your tokens)",
       "done": false
     },
     {
-      "title": "Apply Phase 2 database to a preview environment",
+      "title": "Deploy Preview (needs Supabase branching switched on)",
       "done": false
     },
     {
-      "title": "Apply Phase 2 database to production",
+      "title": "Deploy Production (needs a preview to test against first)",
       "done": false
     }
   ],
   "blockers": [
     {
-      "title": "GitHub is not connected to this console",
-      "meaning": "Build results and pull requests cannot be shown until a GitHub token is added. It takes about two minutes and the instructions are in the console's README. Everything on this machine still works without it.",
+      "title": "Accounts not connected yet",
+      "meaning": "Open Connect accounts in the console and paste a GitHub token and a Supabase token. Two minutes, once. Until then the console cannot show your builds or the database.",
       "owner": "ceo"
     },
     {
-      "title": "Merging still happens on github.com",
-      "meaning": "The console can show you that everything passed, but the approve-and-merge button is not built yet, so it links you out. That is an engineering gap, not something for you to work around.",
+      "title": "Deploy buttons are not built yet",
+      "meaning": "Deploying needs a preview environment to test against, and Supabase branching is not switched on. Building a Deploy button before then would be a button that cannot deploy.",
       "owner": "ai-engineer"
-    },
-    {
-      "title": "The database has never been applied anywhere",
-      "meaning": "Phase 2 is built and tested but not live. It needs a preview environment first, which needs Supabase branching switched on.",
-      "owner": "ceo"
     }
   ]
 }
