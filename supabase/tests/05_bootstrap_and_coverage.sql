@@ -21,10 +21,15 @@ select throws_ok($$ select platform.bootstrap_first_platform_owner('nobody@examp
 select throws_ok($$ select platform.bootstrap_first_platform_owner('unconfirmed@example.test') $$,
   '42501', null, 't_bootstrap_rejects_unconfirmed_user: refuses to grant on an unproven address');
 
--- ambiguity: two auth.users rows sharing an address
-insert into auth.users (id, email, email_confirmed_at)
-values (tests.uid('dupe1'), 'dupe@example.test', now()),
-       (tests.uid('dupe2'), 'dupe@example.test', now());
+-- Ambiguity: two auth.users rows sharing an address.
+--
+-- auth.users has a PARTIAL unique index -- users_email_partial_key, unique on
+-- email WHERE is_sso_user = false -- so two password users cannot share an
+-- address. One SSO user and one password user CAN. That is the only shape this
+-- state takes in production, so it is the shape the test must build.
+insert into auth.users (id, email, email_confirmed_at, is_sso_user)
+values (tests.uid('dupe1'), 'dupe@example.test', now(), false),
+       (tests.uid('dupe2'), 'dupe@example.test', now(), true);
 select throws_ok($$ select platform.bootstrap_first_platform_owner('dupe@example.test') $$,
   '21000', null, 't_bootstrap_rejects_ambiguous_user: raises rather than picking one');
 

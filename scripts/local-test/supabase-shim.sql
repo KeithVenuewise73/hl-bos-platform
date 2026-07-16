@@ -40,9 +40,25 @@ create table if not exists auth.users (
   email               text,
   encrypted_password  text,
   email_confirmed_at  timestamptz,
+  is_sso_user         boolean not null default false,
   created_at          timestamptz not null default now(),
   updated_at          timestamptz not null default now()
 );
+
+-- Mirrors real Supabase exactly. Verified against the live project:
+--   CREATE UNIQUE INDEX users_email_partial_key
+--     ON auth.users USING btree (email) WHERE (is_sso_user = false)
+--
+-- It is PARTIAL: an SSO user and a password user MAY share an address, which
+-- is why bootstrap_first_platform_owner's "ambiguous user" branch is reachable
+-- in production rather than merely defensive.
+--
+-- This index was missing from the shim, and that omission is what let a test
+-- pass locally and fail in CI: the test created two non-SSO users with the same
+-- email, which real Supabase rejects. The shim is emulation, and this is
+-- precisely the drift it is capable of hiding.
+create unique index if not exists users_email_partial_key
+  on auth.users (email) where (is_sso_user = false);
 
 -- Supabase's auth.uid(): the 'sub' claim of the request JWT.
 -- Tests impersonate a user by setting request.jwt.claims, exactly as PostgREST
