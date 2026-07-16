@@ -5,5 +5,14 @@ coverage
 pnpm-lock.yaml
 *.tsbuildinfo
 
+# Turbo's local cache. Build artifacts must never reach a formatting gate --
+# CI runs format:check before build today, so this only bites when someone
+# runs them in the other order locally. That is exactly the kind of
+# order-dependent failure that wastes an afternoon.
+.turbo
+
+# psql include fragments. Prettier has no SQL parser, and this is SQL.
+*.sql.inc
+
 # Supabase-generated database types
 packages/database/src/generated/**

@@ -8,13 +8,13 @@ Implements the owner-approved Phase 2 design. **6 migrations, 77 tests, all exec
 
 HL-BOS can now provision tenants atomically, enforce tenant isolation, accept invitations by token, and keep an audit log that users cannot write to or tamper with.
 
-| | |
-|---|---:|
-| Tables | 11 — RLS enabled **and FORCED 11/11** |
-| Policies | 21 |
+|           |                                                                    |
+| --------- | -----------------------------------------------------------------: |
+| Tables    |                              11 — RLS enabled **and FORCED 11/11** |
+| Policies  |                                                                 21 |
 | Functions | 20 (13 `SECURITY DEFINER`, **all 13** with explicit `search_path`) |
-| Triggers | 17 |
-| Seed | 8 roles / 17 permissions / 46 grants |
+| Triggers  |                                                                 17 |
+| Seed      |                               8 roles / 17 permissions / 46 grants |
 
 **Invariants (all zero):** RLS coverage violations · `USING(true)` on tenant tables · secdef functions without `search_path` · grants to `anon` · grants to `service_role`.
 
@@ -50,7 +50,7 @@ Root cause: nothing enforced that you cannot grant a role more powerful than you
 
 ### Known limitation — needs a decision
 
-**Denials are not audited in-database.** Successful paths audit correctly. Denied paths raise, and the raise destroys any audit row written first. Options: API layer (Phase 6) · `dblink` autonomous txn (needs credentials *inside* the DB, one connection per denial) · `pg_cron` sweep. **Recommend accepting the limitation and logging at the API layer.**
+**Denials are not audited in-database.** Successful paths audit correctly. Denied paths raise, and the raise destroys any audit row written first. Options: API layer (Phase 6) · `dblink` autonomous txn (needs credentials _inside_ the DB, one connection per denial) · `pg_cron` sweep. **Recommend accepting the limitation and logging at the API layer.**
 
 ### Rollback
 
