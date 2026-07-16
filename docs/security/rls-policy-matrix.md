@@ -88,7 +88,7 @@ The trigger has no parameters a caller can influence. Fabricating a privileged a
 
 🔴 **`audit.emit()` is `REVOKE EXECUTE ... FROM PUBLIC, anon, authenticated`.** This is the exact defect found in the legacy project (SEC-3), where `hscs_glp.enforce_los_legal_review()` and `sync_bid_los_flags()` — both trigger functions — are callable by `anon` via `/rest/v1/rpc/`. A trigger function exposed as RPC is a trigger anyone can fire out of band. Not repeating it.
 
-🔴 **Redaction:** `before`/`after` strip `invitations.token_hash` via `- 'token_hash'`. Even the hash is a credential verifier and must not land in a log that `tenant_admin` can read.
+🔴 **Redaction:** `before`/`after` strip `invitations.token_verifier_hash` via `- 'token_verifier_hash'`. Even the hash is a credential verifier and must not land in a log that `tenant_admin` can read. `token_selector` is not secret (it is a lookup key, useless without the verifier) and is retained, because redacting it would make invitation audit rows untraceable.
 
 **`audit.security_events`** is written only by internal `SECURITY DEFINER` paths (permission denials, auth failures, platform-admin actions). No trigger on a user-writable table targets it, and `authenticated` has no grant. Readable only with `platform.audit.read`.
 

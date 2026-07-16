@@ -1,7 +1,7 @@
 # Phase 2 — Proposed Migration Set (REVISED)
 
 **Status:** 🔴 PROPOSED. **No SQL authored. Nothing applied. Supabase not modified.**
-**Revised:** 2026-07-15, per owner review. Corrections 1–3 applied.
+**Revised:** 2026-07-15, per owner review + owner ruling on invitation acceptance. Corrections 1–3 applied.
 **Target:** `ywrzgursvdowzyhipsmt` (HL-BOS Core, Herman Legacy Software Ventures — Pro)
 **Excluded:** `bkfsjhhclbqrhaolvhmz` (legacy). Unreachable from this connection; not accessed.
 **Branch:** `feat/phase-2-identity-tenancy` off `main` @ `345cc71`
@@ -85,10 +85,51 @@ PK **is** `auth.users.id`. No second password system.
 
 ### `identity.invitations`
 
-`id uuid PK` · `tenant_id → platform.tenants ON DELETE CASCADE` · `email citext NOT NULL` (CHECK format) · `role_key citext → identity.roles(key)` · **`token_hash text NOT NULL UNIQUE`** · `status` (default `pending`) · `expires_at timestamptz NOT NULL` (CHECK `> created_at`) · `invited_by` · `accepted_by` · `accepted_at`
-`UNIQUE (tenant_id, email) WHERE status='pending'` · `CHECK ((status='accepted') = (accepted_at IS NOT NULL))`
+`id uuid PK` · `tenant_id → platform.tenants ON DELETE CASCADE` · `email citext NOT NULL` (CHECK format) · `role_key citext → identity.roles(key)` · **`token_selector text NOT NULL UNIQUE`** · **`token_verifier_hash text NOT NULL`** · `status` (default `pending`) · `expires_at timestamptz NOT NULL` (CHECK `> created_at`) · `invited_by` · `accepted_by` · `accepted_at`
 
-🔴 **`token_hash`, never the token.** Raw token generated in the application, emailed once, never stored. Only `encode(digest(token,'sha256'),'hex')` persists. If this table leaks, no invitation can be accepted. Storing raw tokens makes the table a set of bearer credentials granting tenant access — precisely the kind of thing that ends up in a support export.
+`UNIQUE (tenant_id, email) WHERE status='pending'` · `CHECK ((status='accepted') = (accepted_at IS NOT NULL))`
+`CHECK (length(token_verifier_hash) = 64)` — SHA-256 hex, fixed width. Load-bearing; see §8.
+
+🔴 **The raw token is never stored.** Generated in the application, emailed once, never persisted. If this table leaks, no invitation can be accepted. Storing raw tokens would make the table a set of bearer credentials granting tenant access — precisely the kind of thing that ends up in a support export.
+
+#### Selector/verifier split — how "constant-time" is made real
+
+The owner review requires _constant-time comparison against the stored token hash_. **A single `token_hash` column cannot deliver that**, and it is worth being precise about why rather than bolting a constant-time function onto a design that defeats it.
+
+With one column, the only way to find the invitation is:
+
+```sql
+SELECT ... FROM identity.invitations WHERE token_hash = sha256(p_token)   -- index lookup
+```
+
+The **B-tree lookup is the comparison**. Wrapping a constant-time `ct_eq()` around a row you already found by an index scan on the secret is theatre: the timing signal has already leaked from the index traversal, before your constant-time code runs.
+
+So the token is split — the standard **selector/verifier** pattern (Django, Rails, and most password-reset implementations use it):
+
+```
+token sent to the invitee:   "<selector>.<verifier>"
+                                  |          |
+                                  |          └─ 32 random bytes. SECRET. Never stored.
+                                  |             Only sha256(verifier) is stored.
+                                  └─ 16 random bytes. NOT secret. Indexed. Used to find the row.
+```
+
+`accept_invitation()` then:
+
+1. splits the token on `.`
+2. `WHERE token_selector = <selector>` — an index lookup on a **non-secret**. Its timing reveals only whether _a_ selector exists, which is not the secret.
+3. `identity.ct_eq(sha256(<verifier>), token_verifier_hash)` — constant-time, over two fixed-width 64-char hex strings.
+
+The selector/verifier split is what actually removes the timing oracle. `ct_eq()` is defence in depth on top of it.
+
+**Honest limitation:** PL/pgSQL is an interpreted language on a JIT-capable engine. `ct_eq()` accumulates XOR differences with **no early exit**, which is the correct algorithm, but true constant-time execution cannot be _guaranteed_ in-database the way it can in C. I am not going to claim a guarantee the runtime cannot provide. The structural defence — never indexing on the secret — is the control that does not depend on that guarantee.
+
+```sql
+-- identity.ct_eq(text, text) -> boolean   [IMMUTABLE, no early exit]
+--   length is compared first; both inputs are fixed-width sha256 hex (64), so
+--   the length branch carries no information about the secret.
+--   The loop XOR-accumulates every byte and never short-circuits.
+```
 
 ---
 
@@ -215,14 +256,14 @@ Every field derived, none accepted:
 | `tenant_id`      | `NEW/OLD.tenant_id` (`NEW/OLD.id` for `platform.tenants`) |
 | `action`         | `TG_TABLE_SCHEMA.TG_TABLE_NAME.lower(TG_OP)`              |
 | `resource_id`    | `NEW/OLD.id`                                              |
-| `before`/`after` | `to_jsonb(OLD/NEW) - 'token_hash'`                        |
+| `before`/`after` | `to_jsonb(OLD/NEW) - 'token_verifier_hash'`               |
 
 The trigger takes no caller input. Forging an actor, a system event, or another tenant's event is not blocked by a check — **there is no parameter to forge.**
 
 🔴 `REVOKE EXECUTE ON FUNCTION audit.emit() FROM PUBLIC, anon, authenticated;`
 This is the legacy SEC-3 defect exactly: `hscs_glp.enforce_los_legal_review()` and `sync_bid_los_flags()` are trigger functions callable by `anon` via `/rest/v1/rpc/`. A trigger function exposed as RPC is a trigger anyone can fire out of band. Not repeating it.
 
-🔴 **Redaction:** `- 'token_hash'` on `before`/`after`. Even a hash is a credential verifier and must not sit in a log `tenant_admin` can read.
+🔴 **Redaction:** `- 'token_verifier_hash'` on `before`/`after`. Even a hash is a credential verifier and must not sit in a log `tenant_admin` can read. `token_selector` is retained — it is a non-secret lookup key, useless without the verifier, and redacting it would make invitation audit rows untraceable.
 
 **`audit.log_security_event(...)`** — `SECURITY DEFINER`, **no `EXECUTE` grant to `authenticated`**. Called only from within other definer functions (`provision_tenant`, `accept_invitation`) to record denials. Not reachable from the API.
 
@@ -236,62 +277,99 @@ Triggers fire regardless of RLS **and regardless of `BYPASSRLS`**. Verified: `se
 
 ## 8. Correction 3 — invitation lifecycle
 
-### Permissions
+**Owner ruling 2026-07-15: option (a). Binding.**
 
-`identity.invitation.read` · `.create` · **`.revoke`** (was `.delete`)
+### Permissions — three, final
 
-`.delete` was wrong twice: it guarded an **UPDATE**, and it implied destruction. Revocation sets `status='revoked'`; the row survives. Who invited whom, and who withdrew it, is exactly what the audit trail is for. There is no DELETE policy on invitations at all.
+`identity.invitation.read` · `.create` · **`.revoke`**
 
-### 🔴 `identity.invitation.accept` — flagged, not implemented
+`.delete` was wrong twice: it guarded an **UPDATE**, and it implied destruction. Revocation sets `status='revoked'`; the row survives, because who invited whom and who withdrew it is what the audit trail is for. No DELETE policy exists on invitations.
 
-The review requires four permissions. **I implemented three.** `has_permission()` requires an **active membership**; the invitee has none — that is what an invitation _is_. So `has_permission(t,'identity.invitation.accept')` is `false` by construction, forever, for every invitee.
-
-The options are dead vocabulary (a control that looks real and enforces nothing) or weakening `has_permission()` to accept non-active memberships — which would let suspended and removed members start resolving permissions across **every table in the platform**. Categorically not doing the second.
-
-Acceptance is authorized by **possession of a secret sent to the invited address** — a stronger proof than a permission bit. Full reasoning: `permission-model.md` §7. **Requesting a ruling.**
+**`identity.invitation.accept` is NOT in the vocabulary** — the invitee has no active membership, so the check would be `false` by construction. Vocabulary confirmed at **17** (13 tenant + 4 platform); the count already excluded it, so no downward revision. Reasoning: `permission-model.md` §7.
 
 ### `identity.accept_invitation(p_token text) RETURNS uuid`
 
 `SECURITY DEFINER` · owner `postgres` · `VOLATILE` · `SET search_path = ''` · `GRANT EXECUTE TO authenticated`
 
+**Signature carries no authorization surface.** No `actor_user_id` parameter — the user is derived from `auth.uid()`. No tenant id parameter — the tenant is derived from the invitation row. Both requirements hold _structurally_: there is no parameter to forge.
+
 ```
-1.  v_actor := auth.uid(); IF NULL -> RAISE 'authentication required'
-2.  v_email := (SELECT email FROM auth.users WHERE id = v_actor)
-3.  v_hash  := encode(digest(p_token, 'sha256'), 'hex')
-4.  SELECT * INTO v_inv FROM identity.invitations
-      WHERE token_hash = v_hash FOR UPDATE;         -- row lock: no double-accept race
-    IF NOT FOUND -> log_security_event('denied'); RAISE 'invalid or expired invitation'
-5.  IF v_inv.status <> 'pending'          -> RAISE 'invalid or expired invitation'
-6.  IF v_inv.expires_at <= now()          -> UPDATE status='expired';
-                                             RAISE 'invalid or expired invitation'
-7.  IF v_inv.email <> v_email             -> log_security_event('denied');
-                                             RAISE 'invalid or expired invitation'
-8.  IF NOT platform.tenant_is_operable(v_inv.tenant_id) -> RAISE 'tenant unavailable'
-9.  INSERT INTO identity.memberships (tenant_id, user_id, status, created_by)
-      VALUES (v_inv.tenant_id, v_actor, 'active', v_actor)
+ 1. v_actor := auth.uid();
+      IF NULL -> RAISE 'invalid or expired invitation'
+ 2. v_email := (SELECT email FROM auth.users WHERE id = v_actor)
+
+ 3. -- split "<selector>.<verifier>"; malformed input takes the same path as a
+    -- wrong token, so shape is not distinguishable from validity
+    v_selector := split_part(p_token, '.', 1);
+    v_verifier := split_part(p_token, '.', 2);
+    IF v_selector = '' OR v_verifier = '' -> RAISE 'invalid or expired invitation'
+
+ 4. SELECT * INTO v_inv FROM identity.invitations
+      WHERE token_selector = v_selector           -- index lookup on a NON-SECRET
+      FOR UPDATE;                                 -- row lock: replay + concurrency
+    IF NOT FOUND -> audit.log_security_event('denied','invitation.accept');
+                    RAISE 'invalid or expired invitation'
+
+ 5. -- CONSTANT-TIME verifier check. The lookup above did not touch the secret.
+    IF NOT identity.ct_eq(encode(digest(v_verifier,'sha256'),'hex'),
+                          v_inv.token_verifier_hash)
+      -> audit.log_security_event('denied','invitation.accept');
+         RAISE 'invalid or expired invitation'
+
+ 6. IF v_inv.status <> 'pending'  -> RAISE 'invalid or expired invitation'   -- replay/revoked
+ 7. IF v_inv.expires_at <= now()  -> UPDATE status='expired';
+                                     RAISE 'invalid or expired invitation'
+ 8. IF v_inv.email <> v_email     -> audit.log_security_event('denied', ...);
+                                     RAISE 'invalid or expired invitation'
+ 9. IF NOT platform.tenant_is_operable(v_inv.tenant_id)
+                                  -> RAISE 'invalid or expired invitation'
+
+10. INSERT INTO identity.memberships (tenant_id, user_id, status, created_by)
+      VALUES (v_inv.tenant_id, v_actor, 'active', v_actor)   -- tenant from the ROW
       ON CONFLICT (tenant_id, user_id)
-      DO UPDATE SET status = 'active', updated_by = v_actor
-      RETURNING id INTO v_membership;               -- duplicate membership: reactivate
-10. INSERT INTO identity.membership_roles (membership_id, role_key, granted_by)
+      DO UPDATE SET status='active', updated_by=v_actor      -- reactivate a removed member
+      RETURNING id INTO v_membership;
+11. INSERT INTO identity.membership_roles (membership_id, role_key, granted_by)
       VALUES (v_membership, v_inv.role_key, v_actor)
       ON CONFLICT DO NOTHING;
-11. UPDATE identity.invitations
+12. UPDATE identity.invitations
       SET status='accepted', accepted_by=v_actor, accepted_at=now()
       WHERE id = v_inv.id;
-12. RETURN v_membership;
+13. -- audit events emitted automatically by the 0004 triggers on
+    -- identity.memberships, identity.membership_roles and identity.invitations
+14. RETURN v_membership;
 ```
 
-**Verified:** token hash (4) · pending status (5) · expiration (6) · intended email (7) · tenant status (8) · authenticated user (1) · duplicate membership (9).
+**Every required check, mapped:**
 
-**Uniform error message.** Steps 4–7 all raise _"invalid or expired invitation"_. Distinct messages would let an attacker with a token probe whether it exists, whether it is expired, and which address it belongs to. The denial detail goes to `audit.security_events`, which the attacker cannot read.
+| Requirement                                 | Step           |
+| ------------------------------------------- | -------------- |
+| Authenticated Supabase user                 | 1              |
+| Possession of a valid token                 | 3–5            |
+| **Constant-time** comparison vs stored hash | **5**          |
+| Email matches invitation                    | 8              |
+| Status = `pending`                          | 6              |
+| Not expired                                 | 7              |
+| Tenant allows activation                    | 9              |
+| Duplicate-membership handling               | 10             |
+| Row locking vs replay/concurrency           | 4              |
+| No `actor_user_id` parameter                | signature      |
+| Derives user from `auth.uid()`              | 1              |
+| No tenant id as authorization               | signature + 10 |
+| Derives tenant from the invitation row      | 10             |
+| Atomic membership create/activate           | 10             |
+| Atomic initial role assignment              | 11             |
+| Atomic invitation marked accepted           | 12             |
+| Emits an audit event                        | 13             |
+| Uniform failure messages                    | all            |
 
-**`FOR UPDATE`** in step 4 locks the row: two concurrent accepts serialize, and the second sees `status='accepted'` and fails at step 5.
+**Uniform failure.** Steps 1, 3, 4, 5, 6, 7, 8 and 9 all raise the identical string _"invalid or expired invitation"_. Distinct messages would let a holder of any token probe whether a selector exists, whether it is expired, whether it was revoked, and which address it belongs to. The discriminating detail goes to `audit.security_events` — which the attacker cannot read, since it requires `platform.audit.read`.
 
-**Atomic.** Membership, role and invitation status move together or not at all.
+**Replay.** Step 4 takes a row lock; step 6 rejects anything not `pending`. A replayed token finds `status='accepted'` and fails identically to a forged one. Two concurrent accepts serialize on the lock: the first commits, the second re-reads `accepted` and fails. **Exactly one membership results** — proven by test 34.
 
-**Re-invitation of a removed member** is handled by the `ON CONFLICT DO UPDATE` in step 9: the existing membership reactivates rather than the call failing on the `UNIQUE (tenant_id, user_id)` constraint.
+**Atomicity.** A PL/pgSQL exception rolls back every effect of the call. Steps 10–12 commit together or not at all; there is no state in which a membership exists but the invitation still reads `pending`.
 
----
+**`has_permission()` is never called.** Acceptance does not consult tenant permissions at any step — it cannot, and it must not. Test 36 proves acceptance succeeds for a user with zero permissions in the target tenant, which also proves we did not weaken `has_permission()` to make this path work.
 
 ## 9. Object inventory
 
@@ -330,7 +408,7 @@ Full rollback = `DROP SCHEMA platform, identity, audit CASCADE`. Nothing outside
 
 ---
 
-## 11. pgTAP test inventory — 22 tests
+## 11. pgTAP test inventory — 40 tests
 
 `supabase/tests/`. Fixtures: 2 tenants, 6 users spanning every role.
 
@@ -365,7 +443,7 @@ Full rollback = `DROP SCHEMA platform, identity, audit CASCADE`. Nothing outside
 | 15  | 🔴 `t_user_cannot_call_audit_emit_as_rpc` — `EXECUTE audit.emit()` as `authenticated`/`anon` → denied               |
 | 16  | `t_user_cannot_write_security_events`                                                                               |
 | 17  | `t_audit_is_append_only` — UPDATE/DELETE → exception, **including as `service_role`**                               |
-| 18  | `t_audit_redacts_token_hash` — `before`/`after` never contain `token_hash`                                          |
+| 18  | `t_audit_redacts_token_material` — `before`/`after` never contain `token_verifier_hash`                             |
 
 ### Correction 2 — bootstrap
 
@@ -377,25 +455,32 @@ Full rollback = `DROP SCHEMA platform, identity, audit CASCADE`. Nothing outside
 | 22  | `t_duplicate_provisioning_is_rejected` — same slug twice → exception, exactly 1 tenant                            |
 | 23  | `t_no_one_can_insert_tenant_directly` — `INSERT INTO platform.tenants` as `authenticated` → denied                |
 
-### Correction 3 — invitations
+### Correction 3 — invitations (owner ruling 2026-07-15)
 
-| #   | Test                                                                       |
-| --- | -------------------------------------------------------------------------- |
-| 24  | `t_accept_requires_valid_token`                                            |
-| 25  | `t_accept_rejects_wrong_email` — valid token, wrong account → denied       |
-| 26  | `t_accept_rejects_expired`                                                 |
-| 27  | `t_accept_rejects_non_pending` — revoked / already accepted                |
-| 28  | `t_accept_rejects_suspended_tenant`                                        |
-| 29  | `t_accept_is_atomic` — membership + role + status together                 |
-| 30  | `t_duplicate_accept_is_safe` — second call fails, membership count stays 1 |
-| 31  | `t_invitation_token_is_never_plaintext`                                    |
+| #   | Test                                                                | Proves                                                                                                                                           |
+| --- | ------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
+| 24  | 🔴 `t_cannot_accept_without_token`                                  | Authenticated user, no token / garbage token → denied, **0 memberships created**                                                                 |
+| 25  | 🔴 `t_cannot_accept_valid_token_for_another_email`                  | Valid token, but `auth.users.email` ≠ `invitations.email` → denied. **The stolen-link case.**                                                    |
+| 26  | `t_cannot_accept_expired_token`                                     | `expires_at <= now()` → denied; invitation flips to `expired`                                                                                    |
+| 27  | `t_cannot_accept_revoked_token`                                     | `status='revoked'` → denied                                                                                                                      |
+| 28  | 🔴 `t_token_cannot_be_replayed`                                     | Accept once (succeeds), accept again with the same token → denied. Membership count stays **1**                                                  |
+| 29  | 🔴 `t_concurrent_acceptance_yields_one_membership`                  | Two sessions accept the same token concurrently → one succeeds, one denied, `count(memberships) = 1`. Exercises the `FOR UPDATE` lock.           |
+| 30  | `t_accept_rejects_suspended_tenant`                                 | Tenant `suspended` → denied                                                                                                                      |
+| 31  | `t_accept_is_atomic`                                                | Membership + role + `status='accepted'` all present, or none                                                                                     |
+| 32  | `t_accept_reactivates_removed_member`                               | Re-invited `removed` member → membership reactivates, no unique violation                                                                        |
+| 33  | 🔴 `t_accept_failures_are_indistinguishable`                        | Wrong token, expired, revoked, wrong email → **byte-identical SQLERRM**. No enumeration oracle.                                                  |
+| 34  | `t_raw_token_is_never_stored`                                       | No column anywhere equals the raw token; `token_verifier_hash` ≠ verifier                                                                        |
+| 35  | 🔴 `t_suspended_and_removed_memberships_do_not_resolve_permissions` | `has_permission()` → `false` for `suspended` and `removed`. **Guards the check the ruling forbids weakening.**                                   |
+| 36  | 🔴 `t_accept_does_not_consult_tenant_permissions`                   | Acceptance succeeds for a user with **zero** permissions in the target tenant — proves `has_permission()` was not relaxed to make this path work |
+| 37  | `t_accept_derives_actor_from_auth_uid`                              | Resulting membership `user_id` = `auth.uid()`, never a caller-supplied value                                                                     |
+| 38  | `t_ct_eq_has_no_early_exit`                                         | `ct_eq()` returns `false` for equal-length hashes differing at byte 1 **and** at byte 64; both compare all 64 bytes                              |
 
 ### Coverage
 
 | #   | Test                                                                                                 |
 | --- | ---------------------------------------------------------------------------------------------------- |
-| 32  | `t_rls_coverage_is_complete` — every table: `relrowsecurity` AND `relforcerowsecurity` AND ≥1 policy |
-| 33  | `t_helpers_are_not_anon_executable`                                                                  |
+| 39  | `t_rls_coverage_is_complete` — every table: `relrowsecurity` AND `relforcerowsecurity` AND ≥1 policy |
+| 40  | `t_helpers_are_not_anon_executable`                                                                  |
 
 **No test is reported as passing unless it was executed and the real output shown.**
 
@@ -490,7 +575,7 @@ Production stays untouched until all three gates are satisfied.
 ## 14. Blockers
 
 1. 🔴 **This revision is not approved.** No SQL authored.
-2. 🔴 **Ruling needed on `identity.invitation.accept`** (§8, `permission-model.md` §7). I implemented 3 of the 4 required invitation permissions and am flagging the 4th rather than shipping a dead control.
+2. ~~Ruling needed on `identity.invitation.accept`~~ ✅ **RESOLVED** — owner ruling 2026-07-15, option (a). Not in the vocabulary; acceptance is token-authorized. Vocabulary confirmed at 17.
 3. 🟠 **Branching not enabled.** Needs the GitHub integration connected in the dashboard — an owner action I cannot perform.
 4. 🟡 **First `platform_owner` runbook** (§6) needs a named human and a recorded execution.
 5. 🟡 **Project still named** `keith@venuewise.net's Project`.

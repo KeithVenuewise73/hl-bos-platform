@@ -3,7 +3,7 @@
 **Status:** REVISED per owner review 2026-07-15. Awaiting approval. **Nothing implemented.**
 **Target:** greenfield project `ywrzgursvdowzyhipsmt` only.
 
-Revision: Correction 3 applied — `identity.invitation.delete` removed, `identity.invitation.revoke` added. See §7 for a flagged issue with `identity.invitation.accept`.
+Revision: Correction 3 applied. Owner ruling 2026-07-15 (option **a**) applied — `identity.invitation.accept` is **not** in the vocabulary. See §7.
 
 ---
 
@@ -144,20 +144,53 @@ Two permissions are **not** enforced by any RLS policy:
 
 `platform.tenants` has **no INSERT policy at all** (Correction 2: the policy is not weakened to solve bootstrap — it is removed). Nobody inserts a tenant directly. The only path is `provision_tenant()`, which checks `platform.tenant.create` itself and creates tenant + owner membership + owner role atomically.
 
-## 7. 🔴 Flagged: `identity.invitation.accept` cannot be a permission
+## 7. `identity.invitation.accept` is deliberately NOT a permission
 
-The review requires four invitation permissions: `read`, `create`, `revoke`, `accept`. **I have implemented three and am flagging the fourth rather than shipping it broken.**
+**Owner ruling 2026-07-15 — option (a). Binding.**
 
-`has_permission(p_tenant, 'identity.invitation.accept')` resolves through `identity.memberships` filtered on `status='active'`. **The invitee has no active membership — that is the entire point of an invitation.** So the check is `false` by construction, for every invitee, always.
+Invitation acceptance is **not** tenant-permission-authorized, because the invitee has no active tenant membership at the moment of acceptance — that is definitionally what an invitation is. `has_permission(p_tenant, 'identity.invitation.accept')` would be `false` by construction, for every invitee, always.
 
-That leaves two options, both bad:
+The three invitation permissions are therefore final:
 
-1. **Grant it to roles anyway.** It never evaluates true for anyone who needs it. Dead vocabulary that looks like a control and enforces nothing — worse than absent, because a reviewer sees `accept` in the matrix and assumes acceptance is gated.
-2. **Make `has_permission` accept non-active memberships.** This weakens the single check every policy on every table in the platform depends on, to serve one function. A suspended or removed member would begin resolving permissions. **Categorically unacceptable.**
+- `identity.invitation.read`
+- `identity.invitation.create`
+- `identity.invitation.revoke`
 
-**Acceptance is authorized by the token, not by a permission.** The invitee proves identity by (a) being authenticated, and (b) presenting a secret only the invitation email received. `identity.accept_invitation(p_token)` verifies token hash, email match, expiry, pending status and tenant status — a stronger check than a permission bit, because it proves possession of a secret rather than membership in a set.
+### Vocabulary count: 17, confirmed
 
-**Requesting a ruling.** My recommendation: 13 tenant permissions as listed; acceptance stays token-authorized. If you want `accept` in the vocabulary for completeness, I will add it as a documented no-op with a comment saying it is never checked — but I would rather not, because dead controls are how real controls get ignored.
+The approved count **already excludes** `invitation.accept`. Verified by enumerating §3:
+
+| Scope           | Count  |
+| --------------- | ------ |
+| Tenant-scoped   | 13     |
+| Platform-scoped | 4      |
+| **Total**       | **17** |
+
+No downward revision needed.
+
+### What authorizes acceptance instead
+
+`identity.accept_invitation(p_token)` is authorized by **possession of a secret sent to the invited address**, not by a permission bit. It verifies:
+
+| Check                        | Mechanism                                           |
+| ---------------------------- | --------------------------------------------------- |
+| Authenticated Supabase user  | `auth.uid()` non-null                               |
+| Valid invitation token       | selector/verifier split, see below                  |
+| Token matches stored hash    | **constant-time** comparison                        |
+| Email matches the invitation | `auth.users.email` = `invitations.email` (`citext`) |
+| Status is `pending`          |                                                     |
+| Not expired                  | `expires_at > now()`                                |
+| Tenant allows activation     | `platform.tenant_is_operable()`                     |
+| Duplicate membership         | `ON CONFLICT DO UPDATE` → reactivate                |
+| Replay / concurrency         | `FOR UPDATE` row lock + status transition           |
+
+This is a **stronger** proof than a permission bit: it demonstrates possession of a high-entropy secret delivered out-of-band to a specific address, rather than membership in a set.
+
+### `identity.has_permission()` is unchanged — binding
+
+It continues to require an **active** membership **and** a `trial`/`active` tenant. It is not relaxed, not special-cased, and not parameterised for the invitation path. Acceptance does not call it.
+
+Test 36 (`t_accept_does_not_consult_tenant_permissions`) proves acceptance succeeds for a user holding **zero** permissions in the target tenant — which is the whole point, and also proves we did not quietly weaken the check to make acceptance work.
 
 ## 8. Resolution path
 
