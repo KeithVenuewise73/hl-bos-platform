@@ -54,6 +54,20 @@ const conn = () =>
   );
   await check.end();
 
+  // This test MUST commit (that is the point -- two real sessions), so unlike
+  // the pgTAP files it cannot roll back. It therefore has to clean up after
+  // itself, or its committed rows leak into later runs. They did: 04 saw two
+  // invitations for the same address and failed on a scalar subquery.
+  // TRUNCATE, not DELETE: audit.events has a BEFORE DELETE trigger that
+  // rejects row deletion. TRUNCATE does not fire row triggers, and this
+  // connection is the table owner.
+  const clean = conn(); await clean.connect();
+  await clean.query(`truncate audit.security_events, audit.events,
+    identity.membership_roles, identity.platform_admins, identity.invitations,
+    identity.memberships, identity.profiles, platform.tenants cascade`);
+  await clean.query('delete from auth.users');
+  await clean.end();
+
   const succeeded = [a, b].filter((x) => x.ok).length;
   const failed = [a, b].filter((x) => !x.ok).length;
   const n = cnt.rows[0].n;

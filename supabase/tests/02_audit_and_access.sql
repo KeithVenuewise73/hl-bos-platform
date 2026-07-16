@@ -1,5 +1,5 @@
 begin;
-select plan(15);
+select plan(17);
 select tests.seed();
 
 -- === anon has zero reach ==================================================
@@ -85,7 +85,20 @@ select throws_ok($$ delete from audit.events where id = (select min(id) from aud
 set local role service_role;
 select throws_ok($$ update audit.events set action = 'tampered' where id = (select min(id) from audit.events) $$,
   '42501', null, 't_audit_is_append_only: UPDATE rejected even for service_role (BYPASSRLS)');
+
+-- TRUNCATE does NOT fire BEFORE DELETE row triggers, so it would bypass
+-- audit.reject_mutation(). It is blocked by PRIVILEGE instead: service_role
+-- holds nothing in these schemas -- not even USAGE. Pinned, because if a later
+-- phase grants service_role access for workflows, this stops being true and
+-- the trigger becomes the only control.
+select throws_ok($$ truncate audit.events $$, '42501', null,
+  't_audit_cannot_be_truncated: service_role has no privilege in schema audit');
 reset role;
+
+select tests.login_as(tests.uid('owner_a'));
+select throws_ok($$ truncate audit.events $$, '42501', null,
+  't_audit_cannot_be_truncated: authenticated cannot TRUNCATE (would bypass the trigger)');
+select tests.logout();
 
 select * from finish();
 rollback;
