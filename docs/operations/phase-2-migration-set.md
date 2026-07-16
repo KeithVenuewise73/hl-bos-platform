@@ -387,7 +387,7 @@ Triggers fire regardless of RLS **and regardless of `BYPASSRLS`**. Verified: `se
 | Utility            | 1       | `set_updated_at()`                                                     |
 | **RLS policies**   | **~24** | ⬇ from ~28 (3 INSERT policies removed)                                 |
 | Triggers           | 16      | `updated_at` ×5, scope guards ×3, audit emit ×4, audit immutability ×4 |
-| Seed rows          | 70      | 8 roles + 17 permissions + 45 grants                                   |
+| Seed rows          | 71      | 8 roles + 17 permissions + 46 grants (counted against the live DB)     |
 
 RLS enabled **11/11** · `FORCE` **11/11** · `USING(true)` count **0** · destructive operations **0**.
 
