@@ -12,6 +12,8 @@
 --         docs/security/rls-policy-matrix.md
 --
 -- rollback:
+--   DROP FUNCTION IF EXISTS identity.assert_invitation_role_scope();
+--   DROP FUNCTION IF EXISTS identity.can_grant_role(uuid, extensions.citext);
 --   DROP FUNCTION IF EXISTS identity.has_platform_permission(extensions.citext);
 --   DROP FUNCTION IF EXISTS identity.is_platform_admin();
 --   DROP FUNCTION IF EXISTS identity.has_permission(uuid, extensions.citext);
@@ -227,6 +229,63 @@ returns boolean language sql stable security definer set search_path = '' as $$
   );
 $$;
 
+-- ---------------------------------------------------------------------------
+-- THE NO-ESCALATION RULE
+--
+-- You may only grant a role whose permissions are a SUBSET of your own, in
+-- that tenant. Without this, identity.role.assign is a superuser bit:
+--
+--   * tenant_admin deliberately lacks tenancy.tenant.manage -- but could
+--     self-grant tenant_owner and obtain it. (Found by review, empirically.)
+--   * manager deliberately lacks role.assign so they cannot confer authority
+--     -- but could invite someone as tenant_owner, conferring it anyway.
+--
+-- Both defeated the intent of the grant matrix. A permission you can grant
+-- yourself is a permission you have.
+--
+-- Enforced in the RLS POLICIES rather than a trigger, deliberately:
+-- provision_tenant() and accept_invitation() are SECURITY DEFINER owned by
+-- postgres (BYPASSRLS), so they are unaffected -- which is required, since the
+-- first owner and the invitee legitimately hold nothing at the moment their
+-- role is assigned. A trigger would block those internal paths and would have
+-- to be defeated with a session flag.
+-- ---------------------------------------------------------------------------
+create or replace function identity.can_grant_role(p_tenant uuid, p_role extensions.citext)
+returns boolean language sql stable security definer set search_path = '' as $$
+  select not exists (
+    select 1
+    from identity.role_permissions rp
+    where rp.role_key = p_role
+      and not identity.has_permission(p_tenant, rp.permission_key)
+  );
+$$;
+comment on function identity.can_grant_role(uuid, extensions.citext) is
+  'True when the caller holds every permission the target role holds, in this tenant. Prevents granting authority you do not have. Bypassed by SECURITY DEFINER flows (provision/accept), which is intended.';
+
+revoke all on function identity.can_grant_role(uuid, extensions.citext) from public;
+grant execute on function identity.can_grant_role(uuid, extensions.citext) to authenticated;
+
+-- Invitations must carry a TENANT role. Checked at INSERT rather than left to
+-- fail at accept time -- an invitation that can never be accepted is a bug the
+-- inviter should learn about immediately, not a trap for the invitee.
+create or replace function identity.assert_invitation_role_scope()
+returns trigger language plpgsql security invoker set search_path = '' as $$
+declare v_scope identity.role_scope;
+begin
+  select scope into v_scope from identity.roles where key = new.role_key;
+  if v_scope is distinct from 'tenant' then
+    raise exception 'invitation role % is %-scoped; invitations may only carry tenant roles',
+      new.role_key, coalesce(v_scope::text, 'unknown')
+      using errcode = 'check_violation';
+  end if;
+  return new;
+end; $$;
+
+drop trigger if exists invitations_role_scope_guard on identity.invitations;
+create trigger invitations_role_scope_guard
+  before insert or update on identity.invitations
+  for each row execute function identity.assert_invitation_role_scope();
+
 -- Constant-time string equality. No early exit.
 -- Used only for the invitation verifier (0006). Both inputs are fixed-width
 -- sha256 hex (CHECK-enforced on the column), so the length branch carries no
@@ -410,7 +469,13 @@ create policy invitations_select on identity.invitations
 drop policy if exists invitations_insert on identity.invitations;
 create policy invitations_insert on identity.invitations
   for insert to authenticated
-  with check (identity.has_permission(tenant_id, 'identity.invitation.create'));
+  with check (
+    identity.has_permission(tenant_id, 'identity.invitation.create')
+    -- no-escalation: an invitation is a deferred role grant, so it is held to
+    -- the same rule. Without this, manager (which has invitation.create but
+    -- deliberately not role.assign) could confer tenant_owner.
+    and identity.can_grant_role(tenant_id, role_key)
+  );
 
 -- Revocation is an UPDATE (status -> 'revoked'). The row survives: who invited
 -- whom, and who withdrew it, is what the audit trail is for.
@@ -440,6 +505,8 @@ create policy membership_roles_insert on identity.membership_roles
     select 1 from identity.memberships m
     where m.id = membership_id
       and identity.has_permission(m.tenant_id, 'identity.role.assign')
+      -- no-escalation: cannot grant a role you do not fully hold yourself
+      and identity.can_grant_role(m.tenant_id, role_key)
   ));
 
 drop policy if exists membership_roles_delete on identity.membership_roles;
@@ -449,6 +516,9 @@ create policy membership_roles_delete on identity.membership_roles
     select 1 from identity.memberships m
     where m.id = membership_id
       and identity.has_permission(m.tenant_id, 'identity.role.assign')
+      -- symmetric: you cannot strip a role you could not grant. Otherwise a
+      -- tenant_admin could revoke the tenant_owner's role and take the tenant.
+      and identity.can_grant_role(m.tenant_id, role_key)
   ));
 
 -- --- identity.platform_admins ----------------------------------------------
