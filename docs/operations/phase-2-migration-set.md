@@ -1,36 +1,26 @@
-# Phase 2 — Proposed Migration Set
+# Phase 2 — Proposed Migration Set (REVISED)
 
-**Status:** 🔴 PROPOSED. **Not implemented. Not applied. No SQL authored yet.**
+**Status:** 🔴 PROPOSED. **No SQL authored. Nothing applied. Supabase not modified.**
+**Revised:** 2026-07-15, per owner review. Corrections 1–3 applied.
 **Target:** `ywrzgursvdowzyhipsmt` (HL-BOS Core, Herman Legacy Software Ventures — Pro)
-**Excluded:** `bkfsjhhclbqrhaolvhmz` (legacy HSCS/HLVS). Unreachable from this connection by design.
-**Branch:** `feat/phase-2-identity-tenancy` (off `main` @ `345cc71`)
+**Excluded:** `bkfsjhhclbqrhaolvhmz` (legacy). Unreachable from this connection; not accessed.
+**Branch:** `feat/phase-2-identity-tenancy` off `main` @ `345cc71`
 
-Target verified immediately before writing this: **0 user tables, 0 migrations, 0 auth users.** Postgres 17.6.
+Target re-verified before revising: **0 user tables, 0 migrations, 0 auth users.** PG 17.6.
 
 ---
 
-## 1. Scope
+## 1. What changed
 
-Phase 2 per the brief: tenants, memberships, roles, permissions, invitations, tenant context, RLS foundation, audit foundation, admin authorization.
+| #   | Correction           | Change                                                                       |
+| --- | -------------------- | ---------------------------------------------------------------------------- |
+| 1   | Audit writes         | INSERT revoked from `authenticated`. Trigger-only, all fields derived. §7    |
+| 2   | Tenant bootstrap     | `platform.tenants` INSERT policy **removed**. `provision_tenant()` added. §6 |
+| 3   | Invitation lifecycle | `.delete` → `.revoke`. `accept_invitation()` added. §8                       |
+| —   | Migration count      | 5 → **6** (`0006_provisioning_and_invitation_flow`)                          |
+| —   | CI                   | New `database-tests` job. §12                                                |
 
-**Not in Phase 2:** module registry, entitlements, billing, AI, communications, workflows, reputation, storage, the Salon vertical. No table below anticipates them.
-
-## 2. Revision to the migration numbering
-
-`migration-plan.md` §4 put audit at `0011`. **That is wrong for Phase 2** and I am proposing a change rather than quietly deviating.
-
-Audit is a Phase 2 deliverable ("Audit foundation"). Identity tables must be audited _from birth_ — a tenant created before the audit log exists has no creation record, permanently. So audit moves into Phase 2, and the module registry shifts to Phase 3.
-
-| Migration                           | Was        | Now                                          |
-| ----------------------------------- | ---------- | -------------------------------------------- |
-| `0001_extensions_and_schemas`       | Phase 2    | Phase 2 ✅                                   |
-| `0002_identity_and_tenancy`         | Phase 2    | Phase 2 ✅                                   |
-| `0003_roles_and_permissions`        | Phase 2    | Phase 2 ✅                                   |
-| `0004_audit_foundation`             | was `0011` | **Phase 2** ⬅ moved                          |
-| `0005_seed_platform_reference_data` | was `0015` | **Phase 2** ⬅ moved (roles/permissions only) |
-| `0006_module_registry`              | was `0004` | Phase 3                                      |
-
-## 3. The five migrations
+## 2. Revised migration list
 
 ```
 20260716HHMMSS_hlbos_0001_extensions_and_schemas.sql
@@ -38,326 +28,470 @@ Audit is a Phase 2 deliverable ("Audit foundation"). Identity tables must be aud
 20260716HHMMSS_hlbos_0003_roles_and_permissions.sql
 20260716HHMMSS_hlbos_0004_audit_foundation.sql
 20260716HHMMSS_hlbos_0005_seed_platform_reference_data.sql
+20260716HHMMSS_hlbos_0006_provisioning_and_invitation_flow.sql
 ```
 
-All satisfy `scripts/check-migrations.sh`: `hlbos_` prefix, unique ordinals, mandatory `-- rollback:` block, no secrets, no destructive DDL (so no `-- approved-destructive:` marker appears anywhere in this set).
+`0006` is new. Provisioning and acceptance depend on **every** other object — tenants, memberships, roles, permissions, audit triggers, and the seeded `tenant_owner` role. Folding them into `0002` would force a table into existence before its guard rails. They ship last, on a complete foundation.
 
-### How the RLS ordering problem is solved
+**RLS ordering** (owner-approved): `0002` enables RLS + `FORCE` with **zero policies**. Postgres denies all access to a table with RLS on and no policy, so the state between `0002` and `0003` fails closed. `0003` adds every policy at once against a complete permission model. This satisfies "RLS policies must ship with the protected tables" — via deny-by-default, which is stronger than policy-per-file: there is no window in which a table is reachable unprotected.
 
-There is a genuine circular dependency: `0002`'s policies need `has_permission()`, which needs the role tables from `0003`; but `0003`'s tables need `platform.tenants` from `0002`.
-
-**Resolution: `0002` enables RLS with `FORCE` and defines _zero_ policies.**
-
-In Postgres, **RLS enabled with no policy denies all access** to non-superuser, non-owner roles. So between `0002` and `0003` the tables exist and are _completely inaccessible_ to `anon` and `authenticated`. The intermediate state fails closed. `0003` then adds every policy at once, against a complete permission model.
-
-This also answers the deviation I flagged earlier ("RLS with tables, not deferred to 0014"). The principle holds — a table is never reachable without a policy protecting it — and the mechanism is deny-by-default rather than policy-in-the-same-file.
+All six satisfy `scripts/check-migrations.sh`: `hlbos_` prefix, unique ordinals, `-- rollback:` block, no secrets, no destructive DDL.
 
 ---
 
-## 4. `0001_extensions_and_schemas`
-
-**Extensions** (into `extensions` schema, never `public`):
+## 3. `0001_extensions_and_schemas`
 
 | Extension  | Version | Why                                                          |
 | ---------- | ------- | ------------------------------------------------------------ |
-| `pgcrypto` | 1.3     | `gen_random_uuid()`, invitation token hashing                |
-| `citext`   | 1.6     | Case-insensitive emails, slugs, permission keys              |
-| `pgtap`    | 1.3.3   | In-database RLS tests. **Verified available on the target.** |
+| `pgcrypto` | 1.3     | `gen_random_uuid()`, `digest()` for invitation token hashing |
+| `citext`   | 1.6     | Case-insensitive email, slug, permission keys                |
+| `pgtap`    | 1.3.3   | In-database tests. **Verified available on target.**         |
 
-`pg_cron` and `pg_net` are available but **not installed** — nothing in Phase 2 uses them. They arrive with workflows (Phase 4).
+`pg_cron` / `pg_net` available but **not installed** — nothing in Phase 2 uses them.
 
-**Schemas** (2 of the 11; the rest arrive with their phase — an empty schema is the same anti-pattern as an empty package):
-
-| Schema     | Owner                                     | API-exposed? |
-| ---------- | ----------------------------------------- | ------------ |
-| `platform` | tenants, lifecycle                        | ❌ No        |
-| `identity` | profiles, memberships, roles, permissions | ❌ No        |
-| `audit`    | append-only event log                     | ❌ No        |
-
-**Grants — the security spine of the whole phase:**
+Schemas: `platform`, `identity`, `audit`. (3 of 11; the rest arrive with their phase.)
 
 ```
 REVOKE ALL ON SCHEMA platform, identity, audit FROM PUBLIC, anon, authenticated;
 GRANT USAGE ON SCHEMA platform, identity, audit TO authenticated;
--- anon gets USAGE on nothing. anon has zero reach into HL-BOS.
-ALTER DEFAULT PRIVILEGES ... REVOKE ALL ON TABLES FROM PUBLIC, anon;
+-- anon gets USAGE on nothing.
+ALTER DEFAULT PRIVILEGES IN SCHEMA ... REVOKE ALL ON TABLES FROM PUBLIC, anon;
 ```
 
-`supabase/config.toml` already sets `api.schemas = ["public"]`, so PostgREST does not publish these schemas and the helper functions are not reachable as RPC. That is the fix for the SEC-3 class of defect found in the legacy project, applied preventively.
+`config.toml` already sets `api.schemas = ["public"]`, so PostgREST never publishes these schemas and no helper is reachable as RPC.
 
 ---
 
-## 5. `0002_identity_and_tenancy` — 4 tables, 3 enums
+## 4. `0002_identity_and_tenancy` — 4 tables, 3 enums
 
-### Enums
-
-| Type                         | Values                                        |
-| ---------------------------- | --------------------------------------------- |
-| `platform.tenant_status`     | `trial`, `active`, `suspended`, `deactivated` |
-| `identity.membership_status` | `invited`, `active`, `suspended`, `removed`   |
-| `identity.invitation_status` | `pending`, `accepted`, `revoked`, `expired`   |
+**Enums:** `platform.tenant_status` (`trial`,`active`,`suspended`,`deactivated`) · `identity.membership_status` (`invited`,`active`,`suspended`,`removed`) · `identity.invitation_status` (`pending`,`accepted`,`revoked`,`expired`)
 
 ### `platform.tenants`
 
-| Column                      | Type                     | Notes                                                            |
-| --------------------------- | ------------------------ | ---------------------------------------------------------------- |
-| `id`                        | `uuid` PK                | `default gen_random_uuid()`                                      |
-| `slug`                      | `citext`                 | **UNIQUE**, `CHECK (slug ~ '^[a-z0-9][a-z0-9-]{1,61}[a-z0-9]$')` |
-| `name`                      | `text`                   | `NOT NULL`, `CHECK (length(btrim(name)) > 0)`                    |
-| `status`                    | `platform.tenant_status` | `NOT NULL DEFAULT 'trial'`                                       |
-| `branding`                  | `jsonb`                  | `NOT NULL DEFAULT '{}'`                                          |
-| `settings`                  | `jsonb`                  | `NOT NULL DEFAULT '{}'`                                          |
-| `created_at` / `updated_at` | `timestamptz`            | `NOT NULL DEFAULT now()`, trigger maintains `updated_at`         |
-| `created_by` / `updated_by` | `uuid`                   | → `auth.users(id)` `ON DELETE SET NULL`                          |
-| `deactivated_at`            | `timestamptz`            |                                                                  |
-
-`CHECK ((status = 'deactivated') = (deactivated_at IS NOT NULL))` — status and timestamp cannot disagree.
-
-**Soft-deactivation only. No `DELETE` policy exists for any role.**
+`id uuid PK` (`gen_random_uuid()`) · `slug citext UNIQUE` (CHECK `^[a-z0-9][a-z0-9-]{1,61}[a-z0-9]$`) · `name text NOT NULL` · `status` (default `trial`) · `branding jsonb` · `settings jsonb` · `created_at`/`updated_at`/`created_by`/`updated_by` · `deactivated_at`
+`CHECK ((status='deactivated') = (deactivated_at IS NOT NULL))`
+Soft-deactivation only; no DELETE policy.
 
 ### `identity.profiles`
 
-| Column                      | Type          | Notes                                                                  |
-| --------------------------- | ------------- | ---------------------------------------------------------------------- |
-| `id`                        | `uuid` PK     | → `auth.users(id)` `ON DELETE CASCADE`                                 |
-| `display_name`              | `text`        |                                                                        |
-| `avatar_url`                | `text`        |                                                                        |
-| `default_tenant_id`         | `uuid`        | → `platform.tenants(id)` `ON DELETE SET NULL`. Backs tenant switching. |
-| `created_at` / `updated_at` | `timestamptz` |                                                                        |
-
-PK **is** `auth.users.id`. No parallel user table, no second password system — per the brief.
-
-⚠️ `default_tenant_id` is a **UI convenience, not an authorization input.** No policy reads it. It is not "the current tenant" — see §9.
+`id uuid PK → auth.users(id) ON DELETE CASCADE` · `display_name` · `avatar_url` · `default_tenant_id uuid → platform.tenants ON DELETE SET NULL` · timestamps.
+PK **is** `auth.users.id`. No second password system.
+⚠️ `default_tenant_id` is a **UI hint, not an authorization input.** No policy reads it.
 
 ### `identity.memberships`
 
-| Column                                              | Type                         | Notes                                                   |
-| --------------------------------------------------- | ---------------------------- | ------------------------------------------------------- |
-| `id`                                                | `uuid` PK                    |                                                         |
-| `tenant_id`                                         | `uuid`                       | `NOT NULL` → `platform.tenants(id)` `ON DELETE CASCADE` |
-| `user_id`                                           | `uuid`                       | `NOT NULL` → `auth.users(id)` `ON DELETE CASCADE`       |
-| `status`                                            | `identity.membership_status` | `NOT NULL DEFAULT 'invited'`                            |
-| `created_at`/`updated_at`/`created_by`/`updated_by` |                              |                                                         |
-
-- **`UNIQUE (tenant_id, user_id)`** — one membership per user per tenant.
-- Indexes: `(user_id) WHERE status='active'`, `(tenant_id)`.
-
-The first index is load-bearing: **every RLS check on every table in the platform traverses it.**
+`id uuid PK` · `tenant_id → platform.tenants ON DELETE CASCADE` · `user_id → auth.users ON DELETE CASCADE` · `status` (default `invited`) · timestamps.
+**`UNIQUE (tenant_id, user_id)`** · index `(user_id) WHERE status='active'` — **every RLS check in the platform traverses this index** · index `(tenant_id)`.
 
 ### `identity.invitations`
 
-| Column                       | Type                         | Notes                                                      |
-| ---------------------------- | ---------------------------- | ---------------------------------------------------------- |
-| `id`                         | `uuid` PK                    |                                                            |
-| `tenant_id`                  | `uuid`                       | `NOT NULL` → `platform.tenants(id)` `ON DELETE CASCADE`    |
-| `email`                      | `citext`                     | `NOT NULL`, `CHECK (email ~ '^[^@\s]+@[^@\s]+\.[^@\s]+$')` |
-| `role_key`                   | `citext`                     | → `identity.roles(key)` (added in `0003`)                  |
-| **`token_hash`**             | `text`                       | `NOT NULL`, **UNIQUE**                                     |
-| `status`                     | `identity.invitation_status` | `NOT NULL DEFAULT 'pending'`                               |
-| `expires_at`                 | `timestamptz`                | `NOT NULL`, `CHECK (expires_at > created_at)`              |
-| `invited_by` / `accepted_by` | `uuid`                       | → `auth.users(id)`                                         |
-| `accepted_at`                | `timestamptz`                |                                                            |
+`id uuid PK` · `tenant_id → platform.tenants ON DELETE CASCADE` · `email citext NOT NULL` (CHECK format) · `role_key citext → identity.roles(key)` · **`token_hash text NOT NULL UNIQUE`** · `status` (default `pending`) · `expires_at timestamptz NOT NULL` (CHECK `> created_at`) · `invited_by` · `accepted_by` · `accepted_at`
+`UNIQUE (tenant_id, email) WHERE status='pending'` · `CHECK ((status='accepted') = (accepted_at IS NOT NULL))`
 
-- `UNIQUE (tenant_id, email) WHERE status = 'pending'` — partial index; one live invite per address.
-- `CHECK ((status='accepted') = (accepted_at IS NOT NULL))`
-
-🔴 **`token_hash`, never the token.** The raw invitation token is generated in the application, emailed once, and **never stored**. Only `encode(digest(token,'sha256'),'hex')` is persisted. If this table leaks, an attacker cannot accept a single invitation.
-
-Storing raw tokens would make this table a set of bearer credentials granting tenant access — the invitation table is exactly the kind of thing that ends up in a support export.
+🔴 **`token_hash`, never the token.** Raw token generated in the application, emailed once, never stored. Only `encode(digest(token,'sha256'),'hex')` persists. If this table leaks, no invitation can be accepted. Storing raw tokens makes the table a set of bearer credentials granting tenant access — precisely the kind of thing that ends up in a support export.
 
 ---
 
-## 6. `0003_roles_and_permissions` — 5 tables + 6 functions + all policies
+## 5. `0003_roles_and_permissions` — 5 tables, 6 functions, all policies
 
-### Tables
+**`identity.roles`** `key citext PK` · `name` · `description` · `scope` (`platform`|`tenant`) · `is_system`
+**`identity.permissions`** `key citext PK` · `description` · `scope` · CHECK `^[a-z_]+\.[a-z_]+\.(read|create|update|delete|revoke|assign|manage)$`
+**`identity.role_permissions`** PK `(role_key, permission_key)`. Trigger: `role.scope = permission.scope`. **The anti-escalation constraint** — a tenant role can never hold a platform permission.
+**`identity.membership_roles`** PK `(membership_id, role_key)` · `granted_at`/`granted_by`. Trigger: `role.scope='tenant'`.
+**`identity.platform_admins`** `user_id uuid PK → auth.users` · `role_key` · `granted_at`/`granted_by`. Trigger: `role.scope='platform'`.
+Separate table, **not** a membership with a sentinel tenant — a NULL/magic tenant would need a special case in every tenant-scoped policy, and one missed case is a cross-tenant leak.
 
-**`identity.roles`** — `key citext PK` · `name` · `description` · `scope identity.role_scope` (`platform`|`tenant`) · `is_system boolean NOT NULL DEFAULT true`
+### Functions — `SECURITY DEFINER`, `STABLE`, `SET search_path = ''`, fully qualified
 
-**`identity.permissions`** — `key citext PK` · `description NOT NULL` · `scope identity.role_scope`
-`CHECK (key ~ '^[a-z_]+\.[a-z_]+\.(read|create|update|delete|manage|assign)$')` — the closed action vocabulary, enforced.
+`identity.is_member(uuid)` · `identity.my_tenant_ids()` · `identity.has_permission(uuid, citext)` · `identity.is_platform_admin()` · `identity.has_platform_permission(citext)` · `platform.tenant_is_operable(uuid)`
 
-**`identity.role_permissions`** — `PK (role_key, permission_key)`, both FK `ON DELETE CASCADE`.
-`CHECK` via trigger: role.scope must equal permission.scope. A tenant role cannot hold a platform permission. **This is the anti-privilege-escalation constraint.**
+`search_path = ''` (empty, not `'identity, public'`) with every identifier schema-qualified — stricter than the legacy project, which pins to `'hscs_glp','public'` and so still resolves unqualified names against `public`.
 
-**`identity.membership_roles`** — `PK (membership_id, role_key)` · `granted_at` · `granted_by`
-Trigger enforces `role.scope = 'tenant'`. A platform role can never be attached to a tenant membership.
-
-**`identity.platform_admins`** — `user_id uuid PK` → `auth.users(id)` · `role_key citext` → `roles(key)` · `granted_at` · `granted_by`
-Trigger enforces `role.scope = 'platform'`.
-**Deliberately a separate table, not a membership with a magic tenant_id.** A NULL/sentinel tenant on `memberships` would mean every tenant-scoped policy needs a special case for it, and one missed case is a cross-tenant leak.
-
-### Functions — all `SECURITY DEFINER`, `STABLE`, `SET search_path = ''`, fully-qualified identifiers
-
-| Function                                                      | Returns      |
-| ------------------------------------------------------------- | ------------ |
-| `identity.is_member(p_tenant uuid)`                           | `boolean`    |
-| `identity.my_tenant_ids()`                                    | `setof uuid` |
-| `identity.has_permission(p_tenant uuid, p_permission citext)` | `boolean`    |
-| `identity.is_platform_admin()`                                | `boolean`    |
-| `identity.has_platform_permission(p_permission citext)`       | `boolean`    |
-| `platform.tenant_is_operable(p_tenant uuid)`                  | `boolean`    |
-
-`SET search_path = ''` (empty, not `'identity, public'`) with every identifier schema-qualified. Stricter than the legacy project, which uses `SET search_path TO 'hscs_glp','public'` — correct, but still resolves unqualified names against `public`, which a tenant could write to if `public` ever became writable.
-
-`GRANT EXECUTE ... TO authenticated;` — **never `anon`, never `PUBLIC`.**
-
-Reference shape (`has_permission`):
+`GRANT EXECUTE TO authenticated` only. **Never `anon`, never `PUBLIC`.**
 
 ```
+-- has_permission, reference shape
 SELECT EXISTS (
   SELECT 1
   FROM identity.memberships m
-  JOIN platform.tenants     t  ON t.id = m.tenant_id
+  JOIN platform.tenants          t  ON t.id = m.tenant_id
   JOIN identity.membership_roles mr ON mr.membership_id = m.id
   JOIN identity.role_permissions rp ON rp.role_key = mr.role_key
-  WHERE m.user_id       = auth.uid()      -- <<< identity from the JWT. Not forgeable.
-    AND m.tenant_id     = p_tenant        -- <<< a FILTER. Never proof.
+  WHERE m.user_id       = auth.uid()     -- from the JWT. Not forgeable.
+    AND m.tenant_id     = p_tenant       -- a FILTER. Never proof.
     AND m.status        = 'active'
-    AND t.status IN ('trial','active')    -- <<< suspension is real, for every role
+    AND t.status IN ('trial','active')   -- suspension is real, for every role
     AND rp.permission_key = p_permission
 )
 ```
 
-`auth.uid()` is present in **every** function. `p_tenant` narrows a set the caller already belongs to; it can never widen it.
+---
+
+## 6. Correction 2 — tenant bootstrap
+
+### `platform.provision_tenant(p_slug citext, p_name text, p_owner uuid DEFAULT NULL) RETURNS uuid`
+
+`SECURITY DEFINER` · owner `postgres` · `VOLATILE` · `SET search_path = ''` · `GRANT EXECUTE TO authenticated`
+
+**Takes no tenant id.** There is no parameter through which a caller could supply one, so "a supplied tenant UUID is never accepted as authorization" holds _structurally_, not by validation.
+
+```
+1. v_actor := auth.uid();
+     IF NULL -> RAISE insufficient_privilege 'authentication required'
+2. IF NOT identity.has_platform_permission('platform.tenant.create')
+     -> RAISE insufficient_privilege
+     -> audit.log_security_event('denied', 'platform.tenant.create')
+3. v_owner := coalesce(p_owner, v_actor);
+     verify EXISTS (SELECT 1 FROM auth.users WHERE id = v_owner) ELSE RAISE
+4. v_tenant := gen_random_uuid()            -- generated INTERNALLY
+5. INSERT INTO platform.tenants (id, slug, name, status, created_by)
+     VALUES (v_tenant, p_slug, p_name, 'trial', v_actor)
+     ON CONFLICT (slug) DO NOTHING;
+   IF NOT FOUND -> RAISE unique_violation 'tenant slug already exists'   -- safe rejection
+6. INSERT INTO identity.memberships (tenant_id, user_id, status, created_by)
+     VALUES (v_tenant, v_owner, 'active', v_actor) RETURNING id INTO v_membership
+7. INSERT INTO identity.membership_roles (membership_id, role_key, granted_by)
+     VALUES (v_membership, 'tenant_owner', v_actor)
+8. -- audit rows emitted automatically by the 0004 triggers on all three tables
+9. RETURN v_tenant
+```
+
+**Atomicity.** A PL/pgSQL function runs in the caller's transaction; an exception at any step rolls back every effect of the call. Step 7 failing cannot leave an ownerless tenant from step 5. There is no partial state to clean up.
+
+**Authorization.** `platform.tenant.create` is a _platform_ permission, so only `platform_owner`/`platform_admin` provision tenants. Self-serve signup is a Phase 6 decision, not smuggled in here.
+
+**No escalation risk.** A platform admin can make themselves owner of a **new, empty** tenant. They cannot join an existing one — that needs `identity.membership.create` _in that tenant_, which no platform role holds. The no-blanket-access decision is intact.
+
+**Idempotency:** duplicate slug → deterministic rejection, no partial write. Chosen over silent return-existing, which would mask a bug where two callers race for one slug.
+
+### 🔴 Genuine chicken-and-egg: the first `platform_owner`
+
+`provision_tenant()` requires `platform.tenant.create`, held only via `identity.platform_admins`. `0005` seeds roles and permissions but **no admins** — seeding one would put a known-identity superuser into production.
+
+So on a fresh database **nobody can provision anything** until an operator inserts the first row:
+
+```
+-- RUNBOOK, not a migration. Run once, via SQL editor / service_role, against a
+-- real human's auth.users row. Must be recorded in audit.security_events.
+INSERT INTO identity.platform_admins (user_id, role_key)
+VALUES ('<uuid of the real owner from auth.users>', 'platform_owner');
+```
+
+Not automated on purpose: it is the one irreducibly manual step, it requires a human who has already signed up, and it is the single most privileged grant in the system. It belongs in a deployment checklist with a name attached — not in a migration that runs unattended.
 
 ---
 
-## 7. `0004_audit_foundation` — 2 tables
+## 7. Correction 1 — audit writes
 
-### `audit.events`
+### `0004_audit_foundation` — 2 tables
 
-| Column                          | Type               | Notes                                                      |
-| ------------------------------- | ------------------ | ---------------------------------------------------------- |
-| `id`                            | `bigint`           | `GENERATED ALWAYS AS IDENTITY` PK                          |
-| `tenant_id`                     | `uuid`             | → `platform.tenants(id)`. **NULL = platform-level event.** |
-| `actor_type`                    | `audit.actor_type` | `user`, `service_account`, `system`, `anonymous`           |
-| `actor_id`                      | `uuid`             |                                                            |
-| `action`                        | `text`             | `NOT NULL` — e.g. `identity.membership.created`            |
-| `resource_type` / `resource_id` | `text`             |                                                            |
-| `before` / `after`              | `jsonb`            |                                                            |
-| `correlation_id` / `request_id` | `uuid`             |                                                            |
-| `ip`                            | `inet`             |                                                            |
-| `user_agent`                    | `text`             |                                                            |
-| `occurred_at`                   | `timestamptz`      | `NOT NULL DEFAULT now()`                                   |
+**`audit.events`** — `id bigint GENERATED ALWAYS AS IDENTITY PK` · `tenant_id uuid → platform.tenants` (NULL = platform-level) · `actor_type` (`user`,`service_account`,`system`,`anonymous`) · `actor_id uuid` · `action text NOT NULL` · `resource_type`/`resource_id` · `before`/`after jsonb` · `correlation_id`/`request_id` · `ip inet` · `user_agent` · `occurred_at timestamptz NOT NULL DEFAULT now()`
 
-📌 **`bigint` PK, deviating from "use UUIDs unless documented."** This is the documented reason: `audit.events` is append-only and read in time order. A monotonic identity gives a clustered-friendly, half-width index and a total order that `gen_random_uuid()` cannot. `occurred_at` alone is insufficient — it collides. (PG18's `uuidv7()` would resolve this; the target is 17.6.)
+📌 `bigint` PK deviates from "UUIDs unless documented" — **this is the documentation.** Append-only, read in time order; a monotonic identity gives total ordering and a half-width index `gen_random_uuid()` cannot. `occurred_at` alone collides. PG18's `uuidv7()` would resolve it; target is 17.6. Owner-approved.
 
-**Indexes:** `(tenant_id, occurred_at DESC)`, `(correlation_id)`, `(actor_id, occurred_at DESC)`.
+Indexes: `(tenant_id, occurred_at DESC)` · `(correlation_id)` · `(actor_id, occurred_at DESC)`
 
-### `audit.security_events`
+**`audit.security_events`** — same shape plus `severity` (`info`|`warning`|`critical`) and `outcome` (`allowed`|`denied`).
 
-Same shape, plus `severity` (`info`|`warning`|`critical`) and `outcome` (`allowed`|`denied`). Permission denials, auth failures, platform-admin actions.
+### The write path — nothing user-callable
 
-### 🔒 Append-only — enforced three ways
+```
+REVOKE ALL   ON audit.events, audit.security_events FROM PUBLIC, anon, authenticated;
+GRANT SELECT ON audit.events TO authenticated;   -- security_events: no grant at all
+-- No INSERT policy. No UPDATE policy. No DELETE policy. On either table.
+```
 
-1. **Policy:** `SELECT` and `INSERT` policies only. **No `UPDATE` policy. No `DELETE` policy.** RLS denies what no policy permits.
-2. **Grant:** `REVOKE UPDATE, DELETE ON audit.events FROM authenticated, anon, PUBLIC;`
-3. **Trigger:** `BEFORE UPDATE OR DELETE` → `RAISE EXCEPTION`. This catches `service_role`, which **bypasses RLS entirely** — layers 1 and 2 would not stop it.
+`audit.emit()` — `AFTER INSERT OR UPDATE OR DELETE ... FOR EACH ROW`, `SECURITY DEFINER`, owner `postgres` (`rolbypassrls = true`, **verified on target**), so it inserts despite no policy. `authenticated` has neither grant nor policy: a direct INSERT fails twice.
 
-Layer 3 is the one that matters. The threat model lists "audit tampering," and the most privileged thing in the system is the service-role key.
+Attached to: `platform.tenants`, `identity.memberships`, `identity.membership_roles`, `identity.invitations`.
 
-**PII:** `before`/`after` carry only column names and non-sensitive values. No secrets, no tokens, no credential material — per the brief's "do not put secrets or unnecessary PII into logs."
+Every field derived, none accepted:
 
----
+| Field            | Derivation                                                |
+| ---------------- | --------------------------------------------------------- |
+| `actor_id`       | `auth.uid()`                                              |
+| `actor_type`     | `'user'` if `auth.uid()` non-null else `'system'`         |
+| `occurred_at`    | `now()`                                                   |
+| `tenant_id`      | `NEW/OLD.tenant_id` (`NEW/OLD.id` for `platform.tenants`) |
+| `action`         | `TG_TABLE_SCHEMA.TG_TABLE_NAME.lower(TG_OP)`              |
+| `resource_id`    | `NEW/OLD.id`                                              |
+| `before`/`after` | `to_jsonb(OLD/NEW) - 'token_hash'`                        |
 
-## 8. `0005_seed_platform_reference_data`
+The trigger takes no caller input. Forging an actor, a system event, or another tenant's event is not blocked by a check — **there is no parameter to forge.**
 
-Versioned reference data, **not `seed.sql`** — production needs these rows, so they must be reviewable and reproducible.
+🔴 `REVOKE EXECUTE ON FUNCTION audit.emit() FROM PUBLIC, anon, authenticated;`
+This is the legacy SEC-3 defect exactly: `hscs_glp.enforce_los_legal_review()` and `sync_bid_los_flags()` are trigger functions callable by `anon` via `/rest/v1/rpc/`. A trigger function exposed as RPC is a trigger anyone can fire out of band. Not repeating it.
 
-- 8 rows → `identity.roles`
-- 17 rows → `identity.permissions`
-- 45 rows → `identity.role_permissions` (the grant matrix in `permission-model.md` §4)
+🔴 **Redaction:** `- 'token_hash'` on `before`/`after`. Even a hash is a credential verifier and must not sit in a log `tenant_admin` can read.
 
-All `INSERT ... ON CONFLICT (key) DO UPDATE` — idempotent, re-runnable.
+**`audit.log_security_event(...)`** — `SECURITY DEFINER`, **no `EXECUTE` grant to `authenticated`**. Called only from within other definer functions (`provision_tenant`, `accept_invitation`) to record denials. Not reachable from the API.
 
-**No tenant. No user. No platform admin.** Bootstrapping the first `platform_owner` is an operator action against a real human's `auth.users` row; seeding one would put a known-key superuser into production. Documented as a runbook step, not a migration.
+### Immutability
 
----
+`BEFORE UPDATE OR DELETE ... FOR EACH ROW → RAISE EXCEPTION`, on both tables.
 
-## 9. Notably NOT built
-
-**No `current_tenant()` / `set_tenant()` session function.** Tenant context comes from the `p_tenant` argument at each call, checked against `auth.uid()` every time.
-
-A session-variable current-tenant (`SET app.current_tenant = ...`) is the conventional pattern and it is a **privilege-escalation hazard**: the tenant becomes caller-supplied state that policies trust. Any path that sets it without re-checking membership is a cross-tenant read. Passing `p_tenant` explicitly means it is _never_ trusted — it is re-validated against `auth.uid()` on every single check.
-
-`profiles.default_tenant_id` exists only so the UI can pick a landing tenant. **No policy reads it.**
+Triggers fire regardless of RLS **and regardless of `BYPASSRLS`**. Verified: `service_role` and `postgres` both have `rolbypassrls = true`, so policies and grants do nothing against them. Every server-side write path uses `service_role`. **The trigger is the only layer that actually makes the log immutable.**
 
 ---
 
-## 10. Object inventory — exactly what gets created
+## 8. Correction 3 — invitation lifecycle
 
-| Kind         | Count                                           | Names                                                                                                                                                                                       |
-| ------------ | ----------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Extensions   | 3                                               | `pgcrypto`, `citext`, `pgtap`                                                                                                                                                               |
-| Schemas      | 3                                               | `platform`, `identity`, `audit`                                                                                                                                                             |
-| Enums        | 6                                               | `tenant_status`, `membership_status`, `invitation_status`, `role_scope`, `actor_type`, `severity`                                                                                           |
-| **Tables**   | **11**                                          | `platform.tenants`; `identity.profiles`, `memberships`, `invitations`, `roles`, `permissions`, `role_permissions`, `membership_roles`, `platform_admins`; `audit.events`, `security_events` |
-| Functions    | 6 + `set_updated_at()` + audit guard trigger fn | see §6                                                                                                                                                                                      |
-| RLS policies | **~28**                                         | see `rls-policy-matrix.md`                                                                                                                                                                  |
-| Triggers     | 12                                              | `updated_at` ×5, scope guards ×3, audit immutability ×2, audit emit ×2                                                                                                                      |
-| Seed rows    | 70                                              | 8 roles + 17 permissions + 45 grants                                                                                                                                                        |
+### Permissions
 
-**Tables with RLS enabled: 11 of 11. Tables with `FORCE`: 11 of 11.**
-**Destructive operations: 0.**
+`identity.invitation.read` · `.create` · **`.revoke`** (was `.delete`)
 
----
+`.delete` was wrong twice: it guarded an **UPDATE**, and it implied destruction. Revocation sets `status='revoked'`; the row survives. Who invited whom, and who withdrew it, is exactly what the audit trail is for. There is no DELETE policy on invitations at all.
 
-## 11. Rollback
+### 🔴 `identity.invitation.accept` — flagged, not implemented
 
-Every migration carries `-- rollback:`. Because Phase 2 is purely additive to an empty database, rollback is genuinely clean — there is no data to preserve and nothing pre-existing to restore.
+The review requires four permissions. **I implemented three.** `has_permission()` requires an **active membership**; the invitee has none — that is what an invitation _is_. So `has_permission(t,'identity.invitation.accept')` is `false` by construction, forever, for every invitee.
 
-| Migration | Rollback                                                                                                        |
-| --------- | --------------------------------------------------------------------------------------------------------------- |
-| `0005`    | `DELETE FROM identity.role_permissions; DELETE FROM identity.permissions; DELETE FROM identity.roles;`          |
-| `0004`    | `DROP SCHEMA audit CASCADE;`                                                                                    |
-| `0003`    | Drop 6 functions, 5 tables, all policies, `role_scope` enum                                                     |
-| `0002`    | `DROP TABLE identity.invitations, identity.memberships, identity.profiles, platform.tenants CASCADE;` + 3 enums |
-| `0001`    | `DROP SCHEMA platform, identity, audit CASCADE;` + drop extensions                                              |
+The options are dead vocabulary (a control that looks real and enforces nothing) or weakening `has_permission()` to accept non-active memberships — which would let suspended and removed members start resolving permissions across **every table in the platform**. Categorically not doing the second.
 
-**Full rollback = `DROP SCHEMA platform, identity, audit CASCADE`.** Nothing outside these three schemas is touched, so no legacy or Supabase-managed object is at risk. `auth` and `storage` are never modified.
+Acceptance is authorized by **possession of a secret sent to the invited address** — a stronger proof than a permission bit. Full reasoning: `permission-model.md` §7. **Requesting a ruling.**
 
-⚠️ **Rollback is only this cheap while the tables are empty.** Once a real tenant exists, `0002`'s rollback destroys customer data and becomes an `-- approved-destructive:` operation needing an impact report. The window for a free rollback closes the moment the first tenant is created.
+### `identity.accept_invitation(p_token text) RETURNS uuid`
 
-**Applying to a Supabase preview branch first is what makes this safe to test at all.** Not yet verified as enabled on the target — flagged in §13.
+`SECURITY DEFINER` · owner `postgres` · `VOLATILE` · `SET search_path = ''` · `GRANT EXECUTE TO authenticated`
 
----
+```
+1.  v_actor := auth.uid(); IF NULL -> RAISE 'authentication required'
+2.  v_email := (SELECT email FROM auth.users WHERE id = v_actor)
+3.  v_hash  := encode(digest(p_token, 'sha256'), 'hex')
+4.  SELECT * INTO v_inv FROM identity.invitations
+      WHERE token_hash = v_hash FOR UPDATE;         -- row lock: no double-accept race
+    IF NOT FOUND -> log_security_event('denied'); RAISE 'invalid or expired invitation'
+5.  IF v_inv.status <> 'pending'          -> RAISE 'invalid or expired invitation'
+6.  IF v_inv.expires_at <= now()          -> UPDATE status='expired';
+                                             RAISE 'invalid or expired invitation'
+7.  IF v_inv.email <> v_email             -> log_security_event('denied');
+                                             RAISE 'invalid or expired invitation'
+8.  IF NOT platform.tenant_is_operable(v_inv.tenant_id) -> RAISE 'tenant unavailable'
+9.  INSERT INTO identity.memberships (tenant_id, user_id, status, created_by)
+      VALUES (v_inv.tenant_id, v_actor, 'active', v_actor)
+      ON CONFLICT (tenant_id, user_id)
+      DO UPDATE SET status = 'active', updated_by = v_actor
+      RETURNING id INTO v_membership;               -- duplicate membership: reactivate
+10. INSERT INTO identity.membership_roles (membership_id, role_key, granted_by)
+      VALUES (v_membership, v_inv.role_key, v_actor)
+      ON CONFLICT DO NOTHING;
+11. UPDATE identity.invitations
+      SET status='accepted', accepted_by=v_actor, accepted_at=now()
+      WHERE id = v_inv.id;
+12. RETURN v_membership;
+```
 
-## 12. pgTAP isolation tests
+**Verified:** token hash (4) · pending status (5) · expiration (6) · intended email (7) · tenant status (8) · authenticated user (1) · duplicate membership (9).
 
-Location `supabase/tests/`. Run via `supabase test db` against a **local/preview** database. **Never production.**
+**Uniform error message.** Steps 4–7 all raise _"invalid or expired invitation"_. Distinct messages would let an attacker with a token probe whether it exists, whether it is expired, and which address it belongs to. The denial detail goes to `audit.security_events`, which the attacker cannot read.
 
-Fixtures: 2 tenants (A, B), 6 users, spanning every role.
+**`FOR UPDATE`** in step 4 locks the row: two concurrent accepts serialize, and the second sees `status='accepted'` and fails at step 5.
 
-| #   | Test                                            | Asserts                                                                                                                   |
-| --- | ----------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
-| 1   | `t_tenant_a_cannot_read_tenant_b`               | A's owner selects B's tenant → **0 rows**                                                                                 |
-| 2   | `t_tenant_a_cannot_modify_tenant_b`             | A's owner updates B's tenant → **0 rows affected**                                                                        |
-| 3   | `t_tenant_a_cannot_read_b_memberships`          | Cross-tenant membership read → 0 rows                                                                                     |
-| 4   | 🔴 **`t_arbitrary_tenant_id_is_not_proof`**     | `has_permission(B_id, …)` as A's owner **with a valid session** → `false`. **The single most important test in Phase 2.** |
-| 5   | `t_staff_cannot_perform_owner_actions`          | staff → `tenancy.tenant.manage` → `false`                                                                                 |
-| 6   | `t_viewer_cannot_modify`                        | viewer UPDATE/INSERT/DELETE on all 11 tables → 0 rows                                                                     |
-| 7   | `t_anon_cannot_access_anything`                 | `SET ROLE anon` → every table → **permission denied**                                                                     |
-| 8   | `t_platform_admin_has_no_blanket_tenant_access` | platform_admin reads tenant business data → denied                                                                        |
-| 9   | `t_suspended_tenant_denies_all`                 | tenant → `suspended` → `tenant_owner` gets `false`                                                                        |
-| 10  | `t_removed_member_has_no_permissions`           | membership → `removed` → all `false`                                                                                      |
-| 11  | `t_audit_is_append_only`                        | UPDATE/DELETE on `audit.events` → **exception**, incl. as `service_role`                                                  |
-| 12  | `t_role_scope_is_enforced`                      | platform role → tenant membership → **exception**                                                                         |
-| 13  | `t_permission_scope_is_enforced`                | platform permission → tenant role → **exception**                                                                         |
-| 14  | `t_rls_coverage_is_complete`                    | every table in the 3 schemas has `relrowsecurity` AND ≥1 policy                                                           |
-| 15  | `t_helpers_are_not_anon_executable`             | `anon` cannot `EXECUTE` any `identity.*` helper                                                                           |
-| 16  | `t_invitation_token_is_never_plaintext`         | `token_hash` never equals a known raw token                                                                               |
+**Atomic.** Membership, role and invitation status move together or not at all.
 
-Test 14 is the machine-checked version of the `verify_rls_coverage()` assertion. Test 4 is the one that would have caught the arbitrary-tenant-ID class of bug the brief warns about.
-
-**No test will be reported as passing unless it was executed and the real output is shown.**
+**Re-invitation of a removed member** is handled by the `ON CONFLICT DO UPDATE` in step 9: the existing membership reactivates rather than the call failing on the `UNIQUE (tenant_id, user_id)` constraint.
 
 ---
 
-## 13. Blockers / open questions
+## 9. Object inventory
 
-1. 🔴 **This plan is not approved.** No SQL authored.
-2. 🟠 **Preview branching not verified** on `ywrzgursvdowzyhipsmt`. Needed to test migrations before production. If unavailable, we need a second Supabase project as staging **before** any production apply.
-3. 🟠 **`supabase/tests/` and `supabase test db` are not wired into CI.** pgTAP tests need a local Postgres in the workflow. Phase 2 implementation must add this, or the tests exist but never run — which is worse than no tests.
-4. 🟡 **Platform-admin support access** (`permission-model.md` §4). Deliberately no backdoor. Confirm you accept that support cannot read customer data.
+| Kind               | Count   | Detail                                                                 |
+| ------------------ | ------- | ---------------------------------------------------------------------- |
+| Extensions         | 3       | `pgcrypto`, `citext`, `pgtap`                                          |
+| Schemas            | 3       | `platform`, `identity`, `audit`                                        |
+| Enums              | 6       |                                                                        |
+| **Tables**         | **11**  | unchanged                                                              |
+| Helper functions   | 6       | `identity.*`, `platform.tenant_is_operable`                            |
+| **Flow functions** | **2**   | `platform.provision_tenant`, `identity.accept_invitation` ⬅ new        |
+| Audit functions    | 3       | `audit.emit`, `audit.log_security_event`, `audit.verify_rls_coverage`  |
+| Utility            | 1       | `set_updated_at()`                                                     |
+| **RLS policies**   | **~24** | ⬇ from ~28 (3 INSERT policies removed)                                 |
+| Triggers           | 16      | `updated_at` ×5, scope guards ×3, audit emit ×4, audit immutability ×4 |
+| Seed rows          | 70      | 8 roles + 17 permissions + 45 grants                                   |
+
+RLS enabled **11/11** · `FORCE` **11/11** · `USING(true)` count **0** · destructive operations **0**.
+
+---
+
+## 10. Rollback
+
+| Migration | Rollback                                                                                               |
+| --------- | ------------------------------------------------------------------------------------------------------ |
+| `0006`    | `DROP FUNCTION platform.provision_tenant, identity.accept_invitation;`                                 |
+| `0005`    | `DELETE FROM identity.role_permissions; DELETE FROM identity.permissions; DELETE FROM identity.roles;` |
+| `0004`    | `DROP SCHEMA audit CASCADE;`                                                                           |
+| `0003`    | Drop 6 functions, 5 tables, all policies, `role_scope`                                                 |
+| `0002`    | `DROP TABLE identity.invitations, memberships, profiles, platform.tenants CASCADE;` + 3 enums          |
+| `0001`    | `DROP SCHEMA platform, identity, audit CASCADE;` + extensions                                          |
+
+Full rollback = `DROP SCHEMA platform, identity, audit CASCADE`. Nothing outside those three schemas is touched; `auth` and `storage` are never modified.
+
+⚠️ **Cheap only while empty.** Once a real tenant exists, `0002`'s rollback destroys customer data and becomes an `-- approved-destructive:` operation requiring an impact report. **The free-rollback window closes at the first `provision_tenant()` call.**
+
+---
+
+## 11. pgTAP test inventory — 22 tests
+
+`supabase/tests/`. Fixtures: 2 tenants, 6 users spanning every role.
+
+### Tenant isolation
+
+| #   | Test                                                                                                            |
+| --- | --------------------------------------------------------------------------------------------------------------- |
+| 1   | `t_tenant_a_cannot_read_tenant_b`                                                                               |
+| 2   | `t_tenant_a_cannot_modify_tenant_b`                                                                             |
+| 3   | `t_tenant_a_cannot_read_b_memberships`                                                                          |
+| 4   | 🔴 `t_arbitrary_tenant_id_is_not_proof` — `has_permission(B,…)` as A's owner **with a valid session** → `false` |
+
+### Roles
+
+| #   | Test                                                                  |
+| --- | --------------------------------------------------------------------- |
+| 5   | `t_staff_cannot_perform_owner_actions`                                |
+| 6   | `t_viewer_cannot_modify` — all 11 tables                              |
+| 7   | `t_anon_cannot_access_anything` — `SET ROLE anon` → permission denied |
+| 8   | `t_platform_admin_has_no_blanket_tenant_access`                       |
+| 9   | `t_suspended_tenant_denies_all` — incl. `tenant_owner`                |
+| 10  | `t_removed_member_has_no_permissions`                                 |
+| 11  | `t_role_scope_is_enforced`                                            |
+| 12  | `t_permission_scope_is_enforced`                                      |
+
+### Correction 1 — audit
+
+| #   | Test                                                                                                                |
+| --- | ------------------------------------------------------------------------------------------------------------------- |
+| 13  | 🔴 `t_user_cannot_insert_audit_directly` — `INSERT INTO audit.events` as `authenticated` → **denied**               |
+| 14  | 🔴 `t_user_cannot_fabricate_actor` — trigger-written row always has `actor_id = auth.uid()`, never a supplied value |
+| 15  | 🔴 `t_user_cannot_call_audit_emit_as_rpc` — `EXECUTE audit.emit()` as `authenticated`/`anon` → denied               |
+| 16  | `t_user_cannot_write_security_events`                                                                               |
+| 17  | `t_audit_is_append_only` — UPDATE/DELETE → exception, **including as `service_role`**                               |
+| 18  | `t_audit_redacts_token_hash` — `before`/`after` never contain `token_hash`                                          |
+
+### Correction 2 — bootstrap
+
+| #   | Test                                                                                                              |
+| --- | ----------------------------------------------------------------------------------------------------------------- |
+| 19  | 🔴 `t_unauthorized_user_cannot_provision_tenant` — no `platform.tenant.create` → exception, **0 tenants created** |
+| 20  | `t_provisioning_creates_exactly_one_owner` — 1 membership, 1 `tenant_owner` role, `count(*) = 1`                  |
+| 21  | 🔴 `t_partial_provisioning_rolls_back` — force step 7 to fail → **0 tenants, 0 memberships** remain               |
+| 22  | `t_duplicate_provisioning_is_rejected` — same slug twice → exception, exactly 1 tenant                            |
+| 23  | `t_no_one_can_insert_tenant_directly` — `INSERT INTO platform.tenants` as `authenticated` → denied                |
+
+### Correction 3 — invitations
+
+| #   | Test                                                                       |
+| --- | -------------------------------------------------------------------------- |
+| 24  | `t_accept_requires_valid_token`                                            |
+| 25  | `t_accept_rejects_wrong_email` — valid token, wrong account → denied       |
+| 26  | `t_accept_rejects_expired`                                                 |
+| 27  | `t_accept_rejects_non_pending` — revoked / already accepted                |
+| 28  | `t_accept_rejects_suspended_tenant`                                        |
+| 29  | `t_accept_is_atomic` — membership + role + status together                 |
+| 30  | `t_duplicate_accept_is_safe` — second call fails, membership count stays 1 |
+| 31  | `t_invitation_token_is_never_plaintext`                                    |
+
+### Coverage
+
+| #   | Test                                                                                                 |
+| --- | ---------------------------------------------------------------------------------------------------- |
+| 32  | `t_rls_coverage_is_complete` — every table: `relrowsecurity` AND `relforcerowsecurity` AND ≥1 policy |
+| 33  | `t_helpers_are_not_anon_executable`                                                                  |
+
+**No test is reported as passing unless it was executed and the real output shown.**
+
+---
+
+## 12. CI database-test design
+
+pgTAP needs `auth.uid()`, and the `anon`/`authenticated`/`service_role` roles. **A bare `postgres:17` service container has none of them** — RLS tests against it would pass while proving nothing. So CI runs the real local Supabase stack.
+
+```yaml
+database-tests:
+  name: Database tests (pgTAP)
+  runs-on: ubuntu-latest
+  timeout-minutes: 15
+  permissions:
+    contents: read # no PR API access needed
+  steps:
+    - uses: actions/checkout@v6
+    - uses: supabase/setup-cli@v1 # composite action -- no Node 20 exposure
+      with:
+        version: latest
+    - name: Start local Supabase
+      run: supabase start
+    - name: Verify migrations apply cleanly from scratch
+      run: supabase db reset
+    - name: Run pgTAP tests
+      run: supabase test db
+    - name: Lint database
+      run: supabase db lint --level warning
+```
+
+`supabase db reset` re-applies every migration into an empty database, which is what catches ordering breakage and non-idempotent DDL. `supabase test db` runs `supabase/tests/*.sql`.
+
+Runs on **local containers** — no Supabase project touched, no cost, no credentials. `supabase/setup-cli` is a composite action, verified from its `action.yml`, so it carries no Node 20 runtime exposure.
+
+**This closes a Phase 1 gap I under-built.** Phase 1 shipped no database testing at all. pgTAP tests that never run are worse than none — they manufacture confidence.
+
+---
+
+## 13. Preview branching — availability
+
+**Status: unconfirmed by API; almost certainly not yet enabled.**
+
+```
+list_branches(ywrzgursvdowzyhipsmt)
+  -> InternalServerErrorException: "Project reference is missing when validating permissions"
+```
+
+Consistent across retries. Not a clean "branching disabled" signal, so I will not claim it as one.
+
+What **is** established, from Supabase's docs and the cost API:
+
+| Fact                                                                                   | Source             |
+| -------------------------------------------------------------------------------------- | ------------------ |
+| Branching is available on Pro                                                          | docs               |
+| Requires the **Supabase GitHub integration** installed and the repo connected          | docs               |
+| Preview branches are ephemeral, **data-less**, auto-deleted on PR merge/close          | docs               |
+| Cost: **$0.01344/hour**, Micro compute, usage-only                                     | `get_cost(branch)` |
+| Branching Compute is **not covered by Spend Cap** and **Compute Credits do not apply** | docs               |
+
+The `get_cost(type: "branch")` call returning a price implies the org can create branches. The likely reason `list_branches` fails is that **branching has never been enabled** on this project — it needs the GitHub integration connected first.
+
+### Recommendation: enable branching. Do not create a staging project.
+
+**Setup:** Dashboard → Project Settings → Integrations → Authorize GitHub → connect `KeithVenuewise73/hl-bos-platform` → **Working directory: `.`** (our `supabase/` is at the repo root).
+
+🔴 **Do NOT enable "Deploy to production."** That option auto-applies migrations on merge to the production branch — which directly contradicts your standing requirement, the brief, and `migration-plan.md` §5. Production apply stays a manually-approved workflow.
+
+✅ **Do** enable the Supabase check as a **required status check** on `main`, so a failing migration blocks the merge.
+
+**Cost:** a PR open 48 hours ≈ **$0.65**. A month of continuous PR activity is a few dollars.
+
+### If branching cannot be enabled: staging project
+
+| Option                     | Cost                                          | Verdict                                                         |
+| -------------------------- | --------------------------------------------- | --------------------------------------------------------------- |
+| **Preview branching**      | ~$0.01/hr, only while a PR is open            | ✅ **Recommended** — ephemeral, data-less, per-PR, auto-cleaned |
+| Persistent staging project | **$10/month** + compute (`get_cost(project)`) | Fallback only                                                   |
+
+A separate staging project is a **worse** fit: it is long-lived (so it drifts from `main`, which is how the legacy project got 52 out-of-band migrations), it is shared (so two PRs collide), and it costs more. Branching gives an isolated, disposable database per PR.
+
+**Layered safety, in order:**
+
+1. **CI local stack** (§12) — every PR, free, catches migration and RLS errors
+2. **Preview branch** — every PR, real Supabase, catches environment-specific issues
+3. **Production** — manual approval only, after 1 and 2 pass and the PR is reviewed
+
+Production stays untouched until all three gates are satisfied.
+
+---
+
+## 14. Blockers
+
+1. 🔴 **This revision is not approved.** No SQL authored.
+2. 🔴 **Ruling needed on `identity.invitation.accept`** (§8, `permission-model.md` §7). I implemented 3 of the 4 required invitation permissions and am flagging the 4th rather than shipping a dead control.
+3. 🟠 **Branching not enabled.** Needs the GitHub integration connected in the dashboard — an owner action I cannot perform.
+4. 🟡 **First `platform_owner` runbook** (§6) needs a named human and a recorded execution.
 5. 🟡 **Project still named** `keith@venuewise.net's Project`.
-6. 🟡 **Dependabot has 3 open PRs** — `actions/checkout@v7`, `actions/setup-node@v7`, `pnpm/action-setup@v6`. My "current" pins were already one major behind. Unrelated to Phase 2; they are on `main` and should be triaged separately.
+6. 🟡 **3 Dependabot PRs open** on `main` — `checkout@v7`, `setup-node@v7`, `action-setup@v6`. Unrelated to Phase 2.

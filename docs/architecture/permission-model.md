@@ -1,123 +1,114 @@
 # Permission Model
 
-**Status:** PROPOSED — Phase 2. Awaiting owner approval. **Nothing implemented.**
+**Status:** REVISED per owner review 2026-07-15. Awaiting approval. **Nothing implemented.**
 **Target:** greenfield project `ywrzgursvdowzyhipsmt` only.
+
+Revision: Correction 3 applied — `identity.invitation.delete` removed, `identity.invitation.revoke` added. See §7 for a flagged issue with `identity.invitation.accept`.
 
 ---
 
 ## 1. The rule that shapes everything
 
-> "Do not rely only on role names. Build a permission model that allows future extension." — Core v1 brief, §A
+> "Do not rely only on role names. Build a permission model that allows future extension." — brief, §A
 
-**RLS policies never test a role name.** They test a permission:
+RLS policies never test a role name. They test a permission:
 
 ```sql
--- NO. This is the pattern we are deliberately not building.
+-- NO.
 USING (identity.has_role(tenant_id, 'tenant_admin'))
-
 -- YES.
-USING (identity.has_permission(tenant_id, 'identity.membership.invite'))
+USING (identity.has_permission(tenant_id, 'identity.invitation.create'))
 ```
 
-Roles are a _bundle_ of permissions, resolved through `identity.role_permissions`. Adding a role, or changing what a role can do, is a **row change** — not a function edit, not a migration, not a deploy.
+Roles bundle permissions via `identity.role_permissions`. Adding a role is a **row**, not a function edit.
 
-This is the one substantive upgrade over the legacy `hscs_glp` model, which is otherwise correct. That model hard-codes eight role names into a function body:
+The legacy `hscs_glp.can_write()` hard-codes eight role names in its body; every new role is a redeploy. That does not scale to eleven products.
 
-```sql
--- hscs_glp.can_write(p_org) -- legacy, for reference
-select hscs_glp.is_internal(p_org)
-   and hscs_glp.has_role(p_org, 'owner_ceo','contract_admin','opportunity_analyst',
-                                'proposal_manager','operations_manager',
-                                'compliance_manager','finance_manager','carrier_manager');
-```
-
-Every new role there means editing and redeploying a function. Every vertical that needs a different role set means a new function. That does not scale to eleven products.
-
-## 2. Permission naming
+## 2. Naming
 
 ```
 <domain>.<resource>.<action>
 ```
 
-Lowercase, dot-separated, singular resource. Stored as `citext` so casing can never fork a permission into two.
+`citext`, so casing cannot fork one permission into two. Actions are a **closed vocabulary**, enforced by CHECK:
 
-Actions are a closed vocabulary — a `CHECK` constraint enforces the suffix:
+| Action   | Meaning                                                                                     |
+| -------- | ------------------------------------------------------------------------------------------- |
+| `read`   | See the record                                                                              |
+| `create` | Bring a new one into existence                                                              |
+| `update` | Modify an existing one                                                                      |
+| `delete` | Remove                                                                                      |
+| `revoke` | Withdraw something previously issued (≠ delete: the record survives, its validity does not) |
+| `assign` | Grant/withdraw authority to a principal                                                     |
+| `manage` | Administer lifecycle/config                                                                 |
 
-| Action   | Meaning                                                                        |
-| -------- | ------------------------------------------------------------------------------ |
-| `read`   | See the record                                                                 |
-| `create` | Bring a new one into existence                                                 |
-| `update` | Modify an existing one                                                         |
-| `delete` | Remove (soft-delete unless stated)                                             |
-| `manage` | Administer the resource's lifecycle/config. Never implies `read` — grant both. |
+**No implicit hierarchy.** `manage` does not imply `read`. `update` does not imply `read`. Implication chains are where privilege escalation hides. Verbose on purpose.
 
-**No implicit hierarchy.** `manage` does not grant `read`; `update` does not grant `read`. Implication chains are where privilege escalation hides. If a role needs both, `role_permissions` gets both rows. Verbose on purpose.
+### Why `revoke` and not `delete` (Correction 3)
 
-## 3. Permission vocabulary — Phase 2 only
+`identity.invitation.delete` was wrong twice over. It guarded an **UPDATE** (revocation sets `status='revoked'`), and it implied invitations are destroyed. They are not — the record of who invited whom, and who withdrew it, is exactly what an audit trail is for. Hard-deleting an invitation erases evidence.
 
-Phase 2 declares **17 permissions**. Only what Phase 2's tables need. Declaring `billing.invoice.read` before billing exists would be vocabulary theatre and would let a role be granted something meaningless.
+## 3. Vocabulary — Phase 2 only: 17 permissions
 
-### Tenant-scoped (`scope = 'tenant'`) — 13
+Only what Phase 2's tables need. `billing.invoice.read` before billing exists would be vocabulary theatre and would let a role hold something meaningless.
 
-| Permission                   | Guards                                     |
-| ---------------------------- | ------------------------------------------ |
-| `tenancy.tenant.read`        | Read own tenant row                        |
-| `tenancy.tenant.update`      | Rename, change branding/settings           |
-| `tenancy.tenant.manage`      | Lifecycle: suspend, deactivate             |
-| `identity.profile.read`      | Read profiles of co-members                |
-| `identity.membership.read`   | See who is in the tenant                   |
-| `identity.membership.create` | Direct-add a member (distinct from invite) |
-| `identity.membership.update` | Change a member's status                   |
-| `identity.membership.delete` | Remove a member                            |
-| `identity.invitation.read`   | See pending invitations                    |
-| `identity.invitation.create` | Invite someone                             |
-| `identity.invitation.delete` | Revoke an invitation                       |
-| `identity.role.assign`       | Grant/revoke a role on a membership        |
-| `audit.event.read`           | Read the tenant's own audit log            |
+### Tenant-scoped — 13
 
-### Platform-scoped (`scope = 'platform'`) — 4
+| Permission                       | Guards                                             |
+| -------------------------------- | -------------------------------------------------- |
+| `tenancy.tenant.read`            | Read own tenant row                                |
+| `tenancy.tenant.update`          | Rename, branding, settings                         |
+| `tenancy.tenant.manage`          | Lifecycle: suspend, deactivate                     |
+| `identity.profile.read`          | Read co-members' profiles                          |
+| `identity.membership.read`       | See who is in the tenant                           |
+| `identity.membership.create`     | Direct-add a member                                |
+| `identity.membership.update`     | Change a member's status                           |
+| `identity.membership.delete`     | Remove a member                                    |
+| `identity.invitation.read`       | See pending invitations                            |
+| `identity.invitation.create`     | Invite someone                                     |
+| **`identity.invitation.revoke`** | Withdraw a pending invitation ⬅ replaces `.delete` |
+| `identity.role.assign`           | Grant/withdraw a role on a membership              |
+| `audit.event.read`               | Read the tenant's own audit log                    |
 
-| Permission               | Guards                             |
-| ------------------------ | ---------------------------------- |
-| `platform.tenant.create` | Create a tenant                    |
-| `platform.tenant.read`   | List/read **all** tenants          |
-| `platform.tenant.manage` | Suspend/deactivate any tenant      |
-| `platform.audit.read`    | Read **all** tenants' audit events |
+### Platform-scoped — 4
+
+| Permission               | Guards                                                                   |
+| ------------------------ | ------------------------------------------------------------------------ |
+| `platform.tenant.create` | **Checked by `platform.provision_tenant()`, not by any policy.** See §6. |
+| `platform.tenant.read`   | List/read all tenants                                                    |
+| `platform.tenant.manage` | Suspend/deactivate any tenant                                            |
+| `platform.audit.read`    | Read all tenants' audit + security events                                |
 
 ## 4. Roles
 
-The eight roles the brief mandates. `scope` is enforced by a `CHECK`: a platform role cannot be attached to a tenant membership, and a tenant role cannot be attached to a platform grant.
+| Role              | Scope    | Purpose                                     |
+| ----------------- | -------- | ------------------------------------------- |
+| `platform_owner`  | platform | HLSV ownership                              |
+| `platform_admin`  | platform | HLSV operations — enumerated, never blanket |
+| `tenant_owner`    | tenant   | Customer's owner                            |
+| `tenant_admin`    | tenant   | Customer's administrator                    |
+| `manager`         | tenant   | Manages people, not the tenant              |
+| `staff`           | tenant   | Day-to-day operator                         |
+| `viewer`          | tenant   | Read-only                                   |
+| `service_account` | tenant   | Non-human integration                       |
 
-| Role              | Scope    | Purpose                                              |
-| ----------------- | -------- | ---------------------------------------------------- |
-| `platform_owner`  | platform | HLSV ownership. Full platform authority.             |
-| `platform_admin`  | platform | HLSV operations. Explicitly enumerated, not blanket. |
-| `tenant_owner`    | tenant   | Customer's owner. Full authority in their tenant.    |
-| `tenant_admin`    | tenant   | Customer's administrator.                            |
-| `manager`         | tenant   | Manages people, not the tenant itself.               |
-| `staff`           | tenant   | Day-to-day operator.                                 |
-| `viewer`          | tenant   | Read-only.                                           |
-| `service_account` | tenant   | Non-human integration.                               |
+### Grant matrix
 
-### Role → permission grants
-
-`•` = granted.
-
-| Permission                   | owner | admin | manager | staff | viewer | svc_acct |
-| ---------------------------- | :---: | :---: | :-----: | :---: | :----: | :------: |
-| `tenancy.tenant.read`        |   •   |   •   |    •    |   •   |   •    |    •     |
-| `tenancy.tenant.update`      |   •   |   •   |         |       |        |          |
-| `tenancy.tenant.manage`      |   •   |       |         |       |        |          |
-| `identity.profile.read`      |   •   |   •   |    •    |   •   |   •    |          |
-| `identity.membership.read`   |   •   |   •   |    •    |   •   |   •    |          |
-| `identity.membership.create` |   •   |   •   |         |       |        |          |
-| `identity.membership.update` |   •   |   •   |    •    |       |        |          |
-| `identity.membership.delete` |   •   |   •   |         |       |        |          |
-| `identity.invitation.read`   |   •   |   •   |    •    |       |        |          |
-| `identity.invitation.create` |   •   |   •   |    •    |       |        |          |
-| `identity.invitation.delete` |   •   |   •   |    •    |       |        |          |
-| `identity.role.assign`       |   •   |   •   |         |       |        |          |
-| `audit.event.read`           |   •   |   •   |         |       |        |          |
+| Permission                   | owner | admin | manager | staff | viewer | svc |
+| ---------------------------- | :---: | :---: | :-----: | :---: | :----: | :-: |
+| `tenancy.tenant.read`        |   •   |   •   |    •    |   •   |   •    |  •  |
+| `tenancy.tenant.update`      |   •   |   •   |         |       |        |     |
+| `tenancy.tenant.manage`      |   •   |       |         |       |        |     |
+| `identity.profile.read`      |   •   |   •   |    •    |   •   |   •    |     |
+| `identity.membership.read`   |   •   |   •   |    •    |   •   |   •    |     |
+| `identity.membership.create` |   •   |   •   |         |       |        |     |
+| `identity.membership.update` |   •   |   •   |    •    |       |        |     |
+| `identity.membership.delete` |   •   |   •   |         |       |        |     |
+| `identity.invitation.read`   |   •   |   •   |    •    |       |        |     |
+| `identity.invitation.create` |   •   |   •   |    •    |       |        |     |
+| `identity.invitation.revoke` |   •   |   •   |    •    |       |        |     |
+| `identity.role.assign`       |   •   |   •   |         |       |        |     |
+| `audit.event.read`           |   •   |   •   |         |       |        |     |
 
 | Platform permission      | platform_owner | platform_admin |
 | ------------------------ | :------------: | :------------: |
@@ -126,49 +117,64 @@ The eight roles the brief mandates. `scope` is enforced by a `CHECK`: a platform
 | `platform.tenant.manage` |       •        |                |
 | `platform.audit.read`    |       •        |       •        |
 
-### Deliberate choices, and why
+**45 `role_permissions` rows.**
 
-**`viewer` has zero write permissions.** Tested directly (`t_viewer_cannot_write`).
+### Deliberate choices
 
-**`service_account` cannot read profiles or memberships.** An integration credential is the most likely thing to leak — it lives in someone else's config. It gets the least. It reads its tenant row and nothing else about people.
+- **`viewer` has zero writes.** Tested.
+- **`service_account` reads only its tenant row.** An integration credential lives in someone else's config; it is the most likely thing to leak, so it gets the least. No profiles, no memberships.
+- **`manager` can invite and revoke, but cannot `delete` memberships or `assign` roles.** Managers manage staff; they do not decide who holds authority. Without that split, `manager` is `tenant_admin` renamed.
+- **`tenancy.tenant.manage` is owner-only.** Deactivation is near-irreversible.
+- **`platform.tenant.manage` is `platform_owner` only.** `platform_admin` sees every tenant but cannot suspend one. Ops needs visibility, not a kill switch.
 
-**`manager` can invite and update memberships but cannot `delete` them or `assign` roles.** Managers manage staff; they do not decide who has authority. Without this split, `manager` is `tenant_admin` with a different name.
+## 5. Platform admin — approved, restated
 
-**`tenancy.tenant.manage` is `tenant_owner` only.** Deactivating a tenant is close to irreversible. Admins should not be able to.
+Approved by owner: **no blanket access, no bypass on tenant tables.** No policy in Phase 2 names `is_platform_admin()` against tenant business data.
 
-**`platform.tenant.manage` is `platform_owner` only.** `platform_admin` can _see_ every tenant, but cannot suspend one. Ops needs visibility, not a kill switch.
+Accepted cost: **support staff cannot read customer data to debug.** Future support access will be time-limited, tenant-specific and audited — outside Phase 2, and explicitly not stubbed now.
 
-### 🔴 The platform-admin decision, stated plainly
+## 6. Permissions checked by functions, not policies
 
-> "Platform administrators receive only explicitly authorized access." — brief, RLS section
+Two permissions are **not** enforced by any RLS policy:
 
-**`platform_admin` and `platform_owner` get NO automatic read access to tenant business data.** They can enumerate tenants and read audit metadata. They cannot read a tenant's customers, appointments, messages or AI content.
+| Permission               | Enforced in                                                |
+| ------------------------ | ---------------------------------------------------------- |
+| `platform.tenant.create` | `platform.provision_tenant()`                              |
+| —                        | `identity.accept_invitation()` is token-authorized, see §7 |
 
-This means **support staff cannot see customer data to debug an issue.** That is a real operational cost and you should decide it deliberately rather than discover it later. The alternative — a blanket `USING (is_platform_admin())` on every table — is exactly the "overly broad policy" the brief forbids, and it means one compromised HLSV admin account reads every tenant of every product.
+`platform.tenants` has **no INSERT policy at all** (Correction 2: the policy is not weakened to solve bootstrap — it is removed). Nobody inserts a tenant directly. The only path is `provision_tenant()`, which checks `platform.tenant.create` itself and creates tenant + owner membership + owner role atomically.
 
-If support access is needed, the right shape is a **time-boxed, audited, per-tenant grant** (a `platform_support_grants` row with an expiry, every read logged). That is a Phase 6 admin-app concern. **Phase 2 deliberately does not build a backdoor now that we would have to remove later.**
+## 7. 🔴 Flagged: `identity.invitation.accept` cannot be a permission
 
-## 5. How a permission check resolves
+The review requires four invitation permissions: `read`, `create`, `revoke`, `accept`. **I have implemented three and am flagging the fourth rather than shipping it broken.**
+
+`has_permission(p_tenant, 'identity.invitation.accept')` resolves through `identity.memberships` filtered on `status='active'`. **The invitee has no active membership — that is the entire point of an invitation.** So the check is `false` by construction, for every invitee, always.
+
+That leaves two options, both bad:
+
+1. **Grant it to roles anyway.** It never evaluates true for anyone who needs it. Dead vocabulary that looks like a control and enforces nothing — worse than absent, because a reviewer sees `accept` in the matrix and assumes acceptance is gated.
+2. **Make `has_permission` accept non-active memberships.** This weakens the single check every policy on every table in the platform depends on, to serve one function. A suspended or removed member would begin resolving permissions. **Categorically unacceptable.**
+
+**Acceptance is authorized by the token, not by a permission.** The invitee proves identity by (a) being authenticated, and (b) presenting a secret only the invitation email received. `identity.accept_invitation(p_token)` verifies token hash, email match, expiry, pending status and tenant status — a stronger check than a permission bit, because it proves possession of a secret rather than membership in a set.
+
+**Requesting a ruling.** My recommendation: 13 tenant permissions as listed; acceptance stays token-authorized. If you want `accept` in the vocabulary for completeness, I will add it as a documented no-op with a comment saying it is never checked — but I would rather not, because dead controls are how real controls get ignored.
+
+## 8. Resolution path
 
 ```
 auth.uid()
-  └─> identity.memberships       (user_id = auth.uid(), tenant_id = p_tenant, status = 'active')
-        └─> identity.membership_roles
-              └─> identity.role_permissions
-                    └─> permission_key = p_permission   ->  TRUE
+  └─> identity.memberships        (user_id = auth.uid(), tenant_id = p_tenant, status='active')
+        └─> platform.tenants      (status IN ('trial','active'))
+              └─> identity.membership_roles
+                    └─> identity.role_permissions  ->  TRUE
 ```
 
-Additionally required at every step:
+A suspended or deactivated tenant denies everything, to every role, **including `tenant_owner`.** Suspension has to be real, not advisory.
 
-- membership `status = 'active'` — an `invited`, `suspended` or `removed` member has no permissions
-- tenant `status IN ('trial','active')` — **a suspended or deactivated tenant denies everything, to every role, including `tenant_owner`**
-
-That second condition is why `has_permission` joins `platform.tenants`. Suspension has to be real, not advisory.
-
-## 6. The invariant that must not break
+## 9. The invariant
 
 **`p_tenant` is an argument. It is never proof of access.**
 
-Every helper filters on `auth.uid()`, taken from the JWT, which a caller cannot forge. `p_tenant` narrows a set the caller already belongs to; it never widens it. Passing another tenant's UUID returns `false`, not that tenant's data.
+Every helper filters on `auth.uid()` from the JWT, which the caller cannot forge. `p_tenant` narrows a set the caller already belongs to; it never widens it. `provision_tenant()` takes **no tenant id at all** — it generates one internally, so there is nothing to supply.
 
-This is the property `t_arbitrary_tenant_id_is_not_proof` exists to prove, and it is the single most important test in Phase 2. The legacy `hscs_glp` model gets this right and we verified it line by line during the audit; Core v1 must not regress it.
+Proven by `t_arbitrary_tenant_id_is_not_proof`, the most important test in Phase 2.
