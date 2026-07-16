@@ -75,8 +75,19 @@ jobs:
         with:
           fetch-depth: 0
 
+      # v3, not v2. v2 runs on Node 20; GitHub switched the runner default to
+      # Node 24 on 2026-06-02 and v2's bundle fails at initialization on it --
+      # before scanning anything. v3 is the same action on Node 24; the vendor
+      # documents it as a one-line migration with no input/output/behaviour
+      # change. Node 20 is removed from runners entirely on 2026-09-16.
+      #
+      # GITLEAKS_LICENSE is intentionally absent: it is required only for repos
+      # owned by a GitHub *organization*. This repo is under a personal account
+      # (KeithVenuewise73), so scanning is free. NOTE: if this repo is ever
+      # transferred to a GitHub organization, this step will start failing until
+      # a free license key from gitleaks.io is added as a repo secret.
       - name: Gitleaks
-        uses: gitleaks/gitleaks-action@v2
+        uses: gitleaks/gitleaks-action@v3
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
