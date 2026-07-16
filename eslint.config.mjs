@@ -20,6 +20,7 @@ export default tseslint.config(
       "**/coverage/**",
       "**/*.tsbuildinfo",
       "supabase/functions/**", // Deno runtime, different lint target
+      "scripts/local-test/**", // local pgTAP runners: plain CommonJS, not part of the TS build
     ],
   },
 

@@ -31,11 +31,11 @@ node concurrency.cjs  # two live sessions racing one invitation token
 
 ## Divergences from real Supabase, stated plainly
 
-| Aspect | Local | Real |
-| --- | --- | --- |
-| Session user | `postgres` (superuser) | `authenticator` |
-| `postgres` role | superuser | not superuser; `BYPASSRLS` + `CREATEROLE` |
-| Auth | `auth.users` stub | full GoTrue |
+| Aspect          | Local                  | Real                                      |
+| --------------- | ---------------------- | ----------------------------------------- |
+| Session user    | `postgres` (superuser) | `authenticator`                           |
+| `postgres` role | superuser              | not superuser; `BYPASSRLS` + `CREATEROLE` |
+| Auth            | `auth.users` stub      | full GoTrue                               |
 
 The session-user difference is why test 48 asserts the **grant graph**
 (`pg_has_role`) rather than `SET ROLE` behaviour: `SET ROLE` is authorised
