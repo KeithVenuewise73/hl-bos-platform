@@ -31,7 +31,7 @@ Target re-verified before revising: **0 user tables, 0 migrations, 0 auth users.
 20260716HHMMSS_hlbos_0006_provisioning_and_invitation_flow.sql
 ```
 
-`0006` is new. Provisioning and acceptance depend on **every** other object — tenants, memberships, roles, permissions, audit triggers, and the seeded `tenant_owner` role. Folding them into `0002` would force a table into existence before its guard rails. They ship last, on a complete foundation.
+`0006` is new. Provisioning, acceptance and the one-time owner bootstrap depend on **every** other object — tenants, memberships, roles, permissions, audit triggers, and the seeded `tenant_owner` role. Folding them into `0002` would force a table into existence before its guard rails. They ship last, on a complete foundation.
 
 **RLS ordering** (owner-approved): `0002` enables RLS + `FORCE` with **zero policies**. Postgres denies all access to a table with RLS on and no policy, so the state between `0002` and `0003` fails closed. `0003` adds every policy at once against a complete permission model. This satisfies "RLS policies must ship with the protected tables" — via deny-by-default, which is stronger than policy-per-file: there is no window in which a table is reachable unprotected.
 
@@ -244,7 +244,9 @@ GRANT SELECT ON audit.events TO authenticated;   -- security_events: no grant at
 
 `audit.emit()` — `AFTER INSERT OR UPDATE OR DELETE ... FOR EACH ROW`, `SECURITY DEFINER`, owner `postgres` (`rolbypassrls = true`, **verified on target**), so it inserts despite no policy. `authenticated` has neither grant nor policy: a direct INSERT fails twice.
 
-Attached to: `platform.tenants`, `identity.memberships`, `identity.membership_roles`, `identity.invitations`.
+Attached to **5** tables: `platform.tenants`, `identity.memberships`, `identity.membership_roles`, `identity.invitations`, **`identity.platform_admins`**.
+
+🔴 **`identity.platform_admins` was missing from this list until 2026-07-15 — a real gap.** It is the _highest-privilege table in the platform_: a row in it grants platform-wide authority. An unaudited grant of platform authority is exactly the event the audit log exists to capture. Found while writing the bootstrap runbook, which needed the grant to be recorded.
 
 Every field derived, none accepted:
 
@@ -408,7 +410,7 @@ Full rollback = `DROP SCHEMA platform, identity, audit CASCADE`. Nothing outside
 
 ---
 
-## 11. pgTAP test inventory — 40 tests
+## 11. pgTAP test inventory — 46 tests
 
 `supabase/tests/`. Fixtures: 2 tenants, 6 users spanning every role.
 
@@ -474,6 +476,17 @@ Full rollback = `DROP SCHEMA platform, identity, audit CASCADE`. Nothing outside
 | 36  | 🔴 `t_accept_does_not_consult_tenant_permissions`                   | Acceptance succeeds for a user with **zero** permissions in the target tenant — proves `has_permission()` was not relaxed to make this path work |
 | 37  | `t_accept_derives_actor_from_auth_uid`                              | Resulting membership `user_id` = `auth.uid()`, never a caller-supplied value                                                                     |
 | 38  | `t_ct_eq_has_no_early_exit`                                         | `ct_eq()` returns `false` for equal-length hashes differing at byte 1 **and** at byte 64; both compare all 64 bytes                              |
+
+### First-owner bootstrap (runbook: `bootstrap-first-platform-owner.md`)
+
+| #   | Test                                     | Proves                                                                                   |
+| --- | ---------------------------------------- | ---------------------------------------------------------------------------------------- |
+| 41  | 🔴 `t_bootstrap_not_callable_by_clients` | `EXECUTE` as `authenticated` / `anon` → **denied**. Not an RPC, not granted.             |
+| 42  | 🔴 `t_bootstrap_is_one_time`             | Second call with any email → `bootstrap already performed`. Self-disarms.                |
+| 43  | `t_bootstrap_rejects_missing_user`       | Email with no `auth.users` row → raise, **0 platform_admins created**                    |
+| 44  | `t_bootstrap_rejects_unconfirmed_user`   | `email_confirmed_at IS NULL` → refuses to grant `platform_owner`                         |
+| 45  | `t_bootstrap_rejects_ambiguous_user`     | >1 matching `auth.users` row → raise rather than pick one                                |
+| 46  | `t_bootstrap_is_audited`                 | Creates a `critical` `audit.security_events` row **and** a `platform_admins` audit event |
 
 ### Coverage
 
@@ -577,6 +590,6 @@ Production stays untouched until all three gates are satisfied.
 1. 🔴 **This revision is not approved.** No SQL authored.
 2. ~~Ruling needed on `identity.invitation.accept`~~ ✅ **RESOLVED** — owner ruling 2026-07-15, option (a). Not in the vocabulary; acceptance is token-authorized. Vocabulary confirmed at 17.
 3. 🟠 **Branching not enabled.** Needs the GitHub integration connected in the dashboard — an owner action I cannot perform.
-4. 🟡 **First `platform_owner` runbook** (§6) needs a named human and a recorded execution.
+4. 🔴 **First `platform_owner`: `auth.users` is EMPTY (0 rows, verified).** The owner has no account on this project yet, and there is no app to sign up through — the portal is Phase 6. The record must be created via Dashboard → Authentication → Users → Add user, with Auto Confirm on. Runbook: `bootstrap-first-platform-owner.md`.
 5. 🟡 **Project still named** `keith@venuewise.net's Project`.
 6. 🟡 **3 Dependabot PRs open** on `main` — `checkout@v7`, `setup-node@v7`, `action-setup@v6`. Unrelated to Phase 2.
