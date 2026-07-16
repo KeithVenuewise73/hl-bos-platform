@@ -14,7 +14,7 @@ That gap is deliberate. Seeding an admin would mean committing a real person's i
 
 Per owner instruction: **no hard-coded email address or `auth.users` UUID in any migration or committed seed file.** The identity is supplied at runbook time, as a parameter, by a human.
 
-## 2. 🔴 Prerequisite: the owner's `auth.users` record must exist
+## 2. 🔴 Prerequisite: the owner's `auth.users` record must exist — via invitation
 
 Verified 2026-07-15 against the target:
 
@@ -22,23 +22,30 @@ Verified 2026-07-15 against the target:
 select count(*) from auth.users;   ->   0
 ```
 
-**There is currently no user to promote.** And there is no application to sign up through — the portal is Phase 6.
+**There is currently no user to promote.** And there is no application to sign up through — the portal is Phase 6. So the record is created from the dashboard.
 
-So the record is created via the dashboard:
+### The owner must demonstrate control of the address
 
-**Dashboard → Authentication → Users → Add user**
+**Owner correction 2026-07-15, binding: do NOT use "Auto Confirm User".**
 
-- Email: the owner's real address
-- ☑️ **Auto Confirm User** — the function below rejects unconfirmed users (§4, step 4)
+Auto Confirm creates a _confirmed_ user without anyone ever opening the mailbox. It would mean the most privileged identity in the platform — the account that can provision every tenant — was never proven to belong to the person it names. A typo in the address, or a stale/mistyped domain, would silently mint `platform_owner` for an address the owner does not control, and `email_confirmed_at` would still read non-null. The check in §4 step 4 would pass while proving nothing.
 
-Then confirm exactly one match:
+The invitation flow forces possession of the mailbox. That is the point.
+
+1. **Dashboard → Authentication → Users**
+2. **Add user → _Send invitation_** (not "Create new user" with Auto Confirm)
+3. **The owner opens the invitation email and completes confirmation**
+4. **Verify `email_confirmed_at` is non-null:**
 
 ```sql
-select id, email, email_confirmed_at
+select id, email, email_confirmed_at, created_at
 from auth.users
 where lower(email) = lower('<owner-email>');
--- expect: exactly 1 row, email_confirmed_at NOT NULL
+-- expect: exactly 1 row
+-- expect: email_confirmed_at IS NOT NULL  <- proves the mailbox was opened
 ```
+
+If `email_confirmed_at` is null, the invitation has not been completed. **Stop.** The bootstrap function will refuse (§4, step 4), and that refusal is correct — do not work around it by confirming the user manually.
 
 ## 3. The function — `platform.bootstrap_first_platform_owner`
 
@@ -49,14 +56,41 @@ platform.bootstrap_first_platform_owner(p_email citext) RETURNS uuid
   SECURITY DEFINER · owner postgres · VOLATILE · SET search_path = ''
 ```
 
-### Not reachable as an RPC — two independent reasons
+### Callable only by the database owner
+
+> **Callable only by the database owner through the Supabase SQL Editor. No API or application credential is granted execution permission.**
+
+**Owner correction 2026-07-15, binding: `service_role` must NOT be able to bootstrap a platform owner.**
+
+This matters more than it first appears. `service_role` is not an administrator — it is **an API credential**. It lives in `SUPABASE_SERVICE_ROLE_KEY`, in environment config, on servers, in CI. It is the credential most likely to leak (our own `.env.example` calls a leak "a full credential rotation event"). If a leaked service key could mint a `platform_owner`, then one leaked environment variable is a total platform takeover — every tenant of every product, via the normal API.
+
+```sql
+REVOKE ALL ON FUNCTION platform.bootstrap_first_platform_owner(citext)
+  FROM PUBLIC, anon, authenticated, service_role;
+-- No GRANT. Owner (postgres) only, by virtue of ownership.
+```
+
+📌 **`REVOKE ... FROM PUBLIC` is the load-bearing clause.** Postgres grants `EXECUTE` to `PUBLIC` by default on every new function — so without it, `service_role` would hold execute _via_ `PUBLIC` and the named revokes would be pointless. The explicit per-role revokes are declarative: they make the intent auditable and survive someone later re-granting to `PUBLIC`.
+
+**Verified on the target** that this is actually sufficient — i.e. that `service_role` has no transitive path back to the owner:
+
+```
+pg_auth_members:
+  service_role  granted TO  authenticator   (normal Supabase request path)
+  service_role  granted TO  postgres        (postgres may SET ROLE service_role)
+  postgres      granted TO  service_role    -> ABSENT
+```
+
+The grant runs **postgres → service_role**, not the reverse. `service_role` cannot `SET ROLE postgres` and therefore cannot reach an owner-only function. (`service_role` does have `rolbypassrls = true`, but that governs RLS — not function `EXECUTE`.)
+
+### Not reachable as an RPC either
 
 | Layer          | Mechanism                                                                                                            |
 | -------------- | -------------------------------------------------------------------------------------------------------------------- |
 | Not exposed    | Lives in `platform`, which is **not** in `api.schemas` (`config.toml` = `["public"]`). PostgREST never publishes it. |
-| Not executable | `REVOKE ALL ON FUNCTION ... FROM PUBLIC, anon, authenticated;` — **no `GRANT` to any client role.**                  |
+| Not executable | `REVOKE ALL` from every client role, above.                                                                          |
 
-Callable only by `postgres` / `service_role` — i.e. the SQL editor or a server-side path. This is the same class of defect as legacy **SEC-3**, where `hscs_glp` trigger functions are `anon`-callable via `/rest/v1/rpc/`. Not repeating it.
+Two independent reasons, so neither is a single point of failure. This is the same defect class as legacy **SEC-3**, where `hscs_glp` trigger functions are `anon`-callable via `/rest/v1/rpc/`. Not repeating it.
 
 ### Self-disarming after first use
 

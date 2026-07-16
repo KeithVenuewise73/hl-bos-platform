@@ -410,7 +410,7 @@ Full rollback = `DROP SCHEMA platform, identity, audit CASCADE`. Nothing outside
 
 ---
 
-## 11. pgTAP test inventory — 46 tests
+## 11. pgTAP test inventory — 48 tests
 
 `supabase/tests/`. Fixtures: 2 tenants, 6 users spanning every role.
 
@@ -479,14 +479,16 @@ Full rollback = `DROP SCHEMA platform, identity, audit CASCADE`. Nothing outside
 
 ### First-owner bootstrap (runbook: `bootstrap-first-platform-owner.md`)
 
-| #   | Test                                     | Proves                                                                                   |
-| --- | ---------------------------------------- | ---------------------------------------------------------------------------------------- |
-| 41  | 🔴 `t_bootstrap_not_callable_by_clients` | `EXECUTE` as `authenticated` / `anon` → **denied**. Not an RPC, not granted.             |
-| 42  | 🔴 `t_bootstrap_is_one_time`             | Second call with any email → `bootstrap already performed`. Self-disarms.                |
-| 43  | `t_bootstrap_rejects_missing_user`       | Email with no `auth.users` row → raise, **0 platform_admins created**                    |
-| 44  | `t_bootstrap_rejects_unconfirmed_user`   | `email_confirmed_at IS NULL` → refuses to grant `platform_owner`                         |
-| 45  | `t_bootstrap_rejects_ambiguous_user`     | >1 matching `auth.users` row → raise rather than pick one                                |
-| 46  | `t_bootstrap_is_audited`                 | Creates a `critical` `audit.security_events` row **and** a `platform_admins` audit event |
+| #   | Test                                          | Proves                                                                                                                           |
+| --- | --------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| 41  | 🔴 `t_bootstrap_not_callable_by_clients`      | `EXECUTE` as `authenticated` / `anon` → **denied**. Not an RPC, not granted.                                                     |
+| 42  | 🔴 `t_bootstrap_is_one_time`                  | Second call with any email → `bootstrap already performed`. Self-disarms.                                                        |
+| 43  | `t_bootstrap_rejects_missing_user`            | Email with no `auth.users` row → raise, **0 platform_admins created**                                                            |
+| 44  | `t_bootstrap_rejects_unconfirmed_user`        | `email_confirmed_at IS NULL` → refuses to grant `platform_owner`                                                                 |
+| 45  | `t_bootstrap_rejects_ambiguous_user`          | >1 matching `auth.users` row → raise rather than pick one                                                                        |
+| 46  | `t_bootstrap_is_audited`                      | Creates a `critical` `audit.security_events` row **and** a `platform_admins` audit event                                         |
+| 47  | 🔴 `t_bootstrap_not_callable_by_service_role` | `SET ROLE service_role` → `EXECUTE` → **denied**. A leaked `SUPABASE_SERVICE_ROLE_KEY` cannot mint a `platform_owner`.           |
+| 48  | 🔴 `t_service_role_cannot_escalate_to_owner`  | `SET ROLE service_role` → `SET ROLE postgres` → **denied**. Verified against `pg_auth_members`: no transitive path to the owner. |
 
 ### Coverage
 
@@ -590,6 +592,6 @@ Production stays untouched until all three gates are satisfied.
 1. 🔴 **This revision is not approved.** No SQL authored.
 2. ~~Ruling needed on `identity.invitation.accept`~~ ✅ **RESOLVED** — owner ruling 2026-07-15, option (a). Not in the vocabulary; acceptance is token-authorized. Vocabulary confirmed at 17.
 3. 🟠 **Branching not enabled.** Needs the GitHub integration connected in the dashboard — an owner action I cannot perform.
-4. 🔴 **First `platform_owner`: `auth.users` is EMPTY (0 rows, verified).** The owner has no account on this project yet, and there is no app to sign up through — the portal is Phase 6. The record must be created via Dashboard → Authentication → Users → Add user, with Auto Confirm on. Runbook: `bootstrap-first-platform-owner.md`.
+4. 🔴 **First `platform_owner`: `auth.users` is EMPTY (0 rows, verified).** The owner has no account on this project yet, and there is no app to sign up through — the portal is Phase 6. The record must be created via Dashboard → Authentication → Users → **Add user → Send invitation**, and the owner must open the email and complete confirmation. **Not Auto Confirm** — that would mint the platform's most privileged identity without anyone proving control of the address. Runbook: `bootstrap-first-platform-owner.md`.
 5. 🟡 **Project still named** `keith@venuewise.net's Project`.
 6. 🟡 **3 Dependabot PRs open** on `main` — `checkout@v7`, `setup-node@v7`, `action-setup@v6`. Unrelated to Phase 2.
