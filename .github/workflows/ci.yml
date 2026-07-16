@@ -148,6 +148,51 @@ jobs:
       - name: Reject NEXT_PUBLIC_ secrets
         run: bash scripts/check-no-public-secrets.sh
 
+  database-tests:
+    name: Database tests (pgTAP)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read # no PR API access needed
+    steps:
+      - uses: actions/checkout@v6
+
+      # Composite action -- verified from its action.yml, so no Node 20 runtime
+      # exposure (unlike the gitleaks v2 problem).
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      # The real local Supabase stack. A bare postgres:17 service container has
+      # no auth.uid() and no anon/authenticated/service_role roles, so RLS tests
+      # against it would pass while proving nothing.
+      - name: Start Supabase
+        run: supabase start
+
+      # Proves the set applies cleanly from an empty database, in order.
+      # This is what catches ordering breakage and non-idempotent DDL.
+      - name: Apply migrations from scratch
+        run: supabase db reset
+
+      - name: pgTAP suite
+        run: supabase test db
+
+      # plpgsql_check. Gated at `error`, not `warning`: warnings are advisory
+      # (unused variables, hidden casts) and a cosmetic one turning the PR red
+      # is a false signal that trains people to ignore the gate. Errors are
+      # real: wrong types, missing RETURN, dead code, SQL-injection patterns.
+      - name: Database lint (errors fail the build)
+        run: supabase db lint --level error
+
+      # Warnings surface in the log without blocking the merge.
+      - name: Database lint (warnings, advisory)
+        continue-on-error: true
+        run: supabase db lint --level warning
+
+      - name: Stop Supabase
+        if: always()
+        run: supabase stop
+
   migrations:
     name: Migration checks
     runs-on: ubuntu-latest
