@@ -32,7 +32,7 @@ Queried, not counted by hand:
 | Policies                       |          21 |
 | Functions                      |          18 |
 | — `SECURITY DEFINER`           |          12 |
-| — …with explicit `search_path` | **12 / 12** |
+| — …with explicit `search_path` | **13 / 13** |
 | Triggers                       |          16 |
 | Enums                          |           7 |
 | Indexes                        |          23 |
@@ -53,16 +53,17 @@ PostgreSQL **17.6** (matching production) + pgTAP **1.3.5** (the real extension)
 
 ```
 ### 01_tenant_isolation.sql          12 passed
-### 02_audit_and_access.sql          15 passed
+### 02_audit_and_access.sql          17 passed
 ### 03_provisioning.sql               9 passed
 ### 04_invitations.sql               13 passed
 ### 05_bootstrap_and_coverage.sql    14 passed
 ### 06_atomicity.sql                  3 passed
+### 07_privilege_escalation.sql       8 passed
 ========================================
-TOTAL: 66 passed, 0 failed
+TOTAL: 76 passed, 0 failed
 
 concurrency (2 live sessions):        1 passed
-GRAND TOTAL: 67 passed, 0 failed
+GRAND TOTAL: 77 passed, 0 failed
 ```
 
 ## 4. 🔴 Findings from execution — things review did not catch
