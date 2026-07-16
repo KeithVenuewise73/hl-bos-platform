@@ -1,4 +1,19 @@
 name: CI
+#
+# Action pins: every action here runs on Node 24.
+#
+# GitHub switched the runner default to Node 24 on 2026-06-02 and removes
+# Node 20 from runners entirely on 2026-09-16. Node 20 actions are living on
+# borrowed time; gitleaks-action@v2 already fails outright. Runtimes verified
+# from each action's own action.yml:
+#
+#   actions/checkout@v6      node24   (v4 = node20)
+#   actions/setup-node@v5    node24   (v4 = node20)
+#   pnpm/action-setup@v5     node24   (v4 = node20)
+#   gitleaks/gitleaks-action@v3  node24   (v2 = node20, fails at init)
+#
+# Before adding an action, check `runs.using` in its action.yml. If it says
+# node20, find the Node 24 major or expect it to break by 2026-09-16.
 
 on:
   pull_request:
@@ -25,17 +40,17 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           # Full history so the secret scan can diff the whole PR range,
           # not just the tip commit.
           fetch-depth: 0
 
       - name: Install pnpm
-        uses: pnpm/action-setup@v4
+        uses: pnpm/action-setup@v5
 
       - name: Setup Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: pnpm
@@ -71,7 +86,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           fetch-depth: 0
 
@@ -102,6 +117,6 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Validate migration filenames and content
         run: bash scripts/check-migrations.sh
