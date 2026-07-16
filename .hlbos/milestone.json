@@ -1,0 +1,29 @@
+{
+  "$comment": "Live milestone state. Version-controlled so it is auditable, and updated by the AI engineer as work lands. The Control Center reads this -- it does not guess progress.",
+  "milestone": "2.5 — CEO Development Control Center",
+  "phase": "Building the console",
+  "engineer": "Claude (AI engineer)",
+  "startedOn": "2026-07-16",
+  "tasks": [
+    { "title": "Phase 2: identity, tenancy, permissions, audit", "done": true },
+    { "title": "Phase 2 merged to main", "done": true },
+    { "title": "Control Center: project status, one-click actions", "done": true },
+    { "title": "Control Center: plain-English failure translation", "done": true },
+    { "title": "Control Center: quality gates + approval queue", "done": true },
+    { "title": "Connect GitHub so build results are visible", "done": false },
+    { "title": "Apply Phase 2 database to a preview environment", "done": false },
+    { "title": "Apply Phase 2 database to production", "done": false }
+  ],
+  "blockers": [
+    {
+      "title": "GitHub is not connected to this console",
+      "meaning": "Build results and pull requests cannot be shown until a GitHub access token is added. Everything on this machine still works.",
+      "owner": "ceo"
+    },
+    {
+      "title": "The database has never been applied anywhere",
+      "meaning": "Phase 2 is built and tested but not live. It needs a preview environment first, which needs Supabase branching switched on.",
+      "owner": "ceo"
+    }
+  ]
+}

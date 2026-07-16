@@ -36,6 +36,12 @@ catalog:
   "@supabase/supabase-js": "2.110.6"
   "@supabase/ssr": "0.12.3"
 
+  # --- Control Center -----------------------------------------------------
+  # Import guard: makes a build FAIL if server-only code is pulled into a
+  # client bundle. The Control Center shells out to git; that must never be
+  # reachable from a browser bundle.
+  server-only: "0.0.1"
+
   # --- Test ---------------------------------------------------------------
   vitest: "4.1.10"
   "@vitest/coverage-v8": "4.1.10"
