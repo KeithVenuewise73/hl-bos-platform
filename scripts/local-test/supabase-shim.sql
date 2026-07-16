@@ -36,7 +36,7 @@ grant service_role to postgres;   -- mirrors production pg_auth_members
 create schema if not exists auth;
 
 create table if not exists auth.users (
-  id                  uuid primary key default gen_random_uuid(),
+  id                  uuid primary key default pg_catalog.gen_random_uuid(),
   email               text,
   encrypted_password  text,
   email_confirmed_at  timestamptz,

@@ -175,7 +175,10 @@ begin
     detail, severity, outcome, occurred_at
   ) values (
     p_tenant,
-    case when v_actor is null then 'system' else 'user' end,
+    -- explicit cast: an inline CASE yields `text`, which does not implicitly
+    -- coerce to the enum in an INSERT target list (it does when assigned to a
+    -- typed plpgsql variable, which is why audit.emit() does not need this).
+    (case when v_actor is null then 'system' else 'user' end)::audit.actor_type,
     v_actor, p_action, p_resource_type, p_resource_id,
     p_detail, p_severity, p_outcome, now()
   );

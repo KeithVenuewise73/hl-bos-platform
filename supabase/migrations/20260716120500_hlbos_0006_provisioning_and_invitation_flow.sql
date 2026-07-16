@@ -18,6 +18,37 @@
 -- ===========================================================================
 
 -- ---------------------------------------------------------------------------
+-- 🔴 KNOWN LIMITATION: DENIALS ARE NOT AUDITED IN-DATABASE.
+--
+-- The first draft of these functions called audit.log_security_event() and then
+-- RAISEd. That was DEAD CODE, proven by execution rather than review:
+--
+--     insert into audit.security_events ...;
+--     raise exception 'boom';
+--     -> rows written: 0
+--
+-- PostgreSQL has no autonomous transactions. The RAISE aborts the transaction
+-- and destroys the audit row along with it -- the denial log is erased by the
+-- very denial it is recording. Leaving those calls in would be a control that
+-- looks real and enforces nothing, which is exactly the anti-pattern we
+-- rejected for identity.invitation.accept.
+--
+-- They have therefore been REMOVED rather than left as decoration. Denials
+-- raise; they are not logged in-database.
+--
+-- Successful paths audit correctly: they commit, so the 0004 triggers and the
+-- bootstrap's explicit security event all persist.
+--
+-- Options for durable denial logging, for owner decision (NOT taken here --
+-- each is a real design change, not an implementation detail):
+--   1. API layer records denials (Phase 6). Simple; not database-guaranteed.
+--   2. dblink autonomous transaction. Native-ish, but requires storing a
+--      connection string -- i.e. credentials -- inside the database, and opens
+--      a connection per denial: a DoS amplifier on the auth path.
+--   3. pg_background / pg_cron sweep of a durable queue. Extra moving parts.
+-- ---------------------------------------------------------------------------
+
+-- ---------------------------------------------------------------------------
 -- platform.provision_tenant
 --
 -- Takes NO tenant id. There is no parameter through which a caller could
@@ -48,10 +79,6 @@ begin
   end if;
 
   if not identity.has_platform_permission('platform.tenant.create') then
-    perform audit.log_security_event(
-      'platform.tenant.create', 'denied', 'warning', null, 'platform.tenants', null,
-      jsonb_build_object('slug', p_slug::text)
-    );
     raise exception 'insufficient privilege to create a tenant'
       using errcode = 'insufficient_privilege';
   end if;
@@ -138,8 +165,6 @@ begin
   v_selector := split_part(p_token, '.', 1);
   v_verifier := split_part(p_token, '.', 2);
   if v_selector = '' or v_verifier = '' then
-    perform audit.log_security_event('identity.invitation.accept', 'denied', 'warning',
-      null, 'identity.invitations', null, jsonb_build_object('reason','malformed_token'));
     raise exception '%', c_generic using errcode = 'invalid_parameter_value';
   end if;
 
@@ -151,8 +176,6 @@ begin
   for update;
 
   if not found then
-    perform audit.log_security_event('identity.invitation.accept', 'denied', 'warning',
-      null, 'identity.invitations', null, jsonb_build_object('reason','unknown_selector'));
     raise exception '%', c_generic using errcode = 'invalid_parameter_value';
   end if;
 
@@ -161,39 +184,28 @@ begin
        encode(extensions.digest(v_verifier, 'sha256'), 'hex'),
        v_inv.token_verifier_hash
      ) then
-    perform audit.log_security_event('identity.invitation.accept', 'denied', 'critical',
-      v_inv.tenant_id, 'identity.invitations', v_inv.id::text,
-      jsonb_build_object('reason','verifier_mismatch'));
     raise exception '%', c_generic using errcode = 'invalid_parameter_value';
   end if;
 
   if v_inv.status <> 'pending' then     -- replay, revoked, already accepted
-    perform audit.log_security_event('identity.invitation.accept', 'denied', 'warning',
-      v_inv.tenant_id, 'identity.invitations', v_inv.id::text,
-      jsonb_build_object('reason','status_' || v_inv.status::text));
     raise exception '%', c_generic using errcode = 'invalid_parameter_value';
   end if;
 
   if v_inv.expires_at <= now() then
-    update identity.invitations set status = 'expired' where id = v_inv.id;
-    perform audit.log_security_event('identity.invitation.accept', 'denied', 'info',
-      v_inv.tenant_id, 'identity.invitations', v_inv.id::text,
-      jsonb_build_object('reason','expired'));
+    -- Deliberately does NOT write status='expired' here: the RAISE below would
+    -- roll that update back too (see the header note). expires_at is the
+    -- authoritative check anyway -- the status column is a housekeeping
+    -- convenience, to be swept by a scheduled job when pg_cron arrives in
+    -- Phase 4. Writing it here would be a statement that never commits.
     raise exception '%', c_generic using errcode = 'invalid_parameter_value';
   end if;
 
   if v_inv.email is distinct from v_email then
     -- The stolen-link case: valid token, wrong account.
-    perform audit.log_security_event('identity.invitation.accept', 'denied', 'critical',
-      v_inv.tenant_id, 'identity.invitations', v_inv.id::text,
-      jsonb_build_object('reason','email_mismatch'));
     raise exception '%', c_generic using errcode = 'invalid_parameter_value';
   end if;
 
   if not platform.tenant_is_operable(v_inv.tenant_id) then
-    perform audit.log_security_event('identity.invitation.accept', 'denied', 'warning',
-      v_inv.tenant_id, 'identity.invitations', v_inv.id::text,
-      jsonb_build_object('reason','tenant_not_operable'));
     raise exception '%', c_generic using errcode = 'invalid_parameter_value';
   end if;
 
