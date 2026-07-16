@@ -85,6 +85,28 @@ jobs:
     name: Secret scan
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    # Job-level permissions OVERRIDE the top-level block entirely, so both
+    # scopes must be named here -- inheriting contents:read is not a thing.
+    #
+    # Why pull-requests: read is required, from the action's own source
+    # (src/gitleaks.js, ScanPullRequest):
+    #
+    #   GET /repos/{owner}/{repo}/pulls/{pull_number}/commits
+    #
+    # The action needs commits.data[0].sha and the last sha to build the
+    # scan range (--log-opts=<base>^..<head>). Without this scope the call
+    # 403s and the job dies before scanning anything.
+    #
+    # This call is NOT avoidable on pull_request events. The BASE_REF env
+    # override exists, but the source applies it AFTER the API call, so it
+    # does not prevent the 403.
+    #
+    # pull-requests: WRITE is deliberately NOT granted. The only thing that
+    # needs it is posting inline review comments on a detected secret, which
+    # we disable below. Detection itself does not need it.
+    permissions:
+      contents: read
+      pull-requests: read
     steps:
       - uses: actions/checkout@v6
         with:
@@ -105,6 +127,20 @@ jobs:
         uses: gitleaks/gitleaks-action@v3
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # Off so the job can run on pull-requests:read instead of :write.
+          # createReviewComment() is the ONLY call needing write, and the
+          # source wraps it in try/catch -- so with read-only it would fail
+          # silently on every leak forever. Better to disable it explicitly
+          # than to leave a permanently broken code path.
+          #
+          # This does NOT weaken detection. On a leak, gitleaks still exits 2,
+          # the action exits 1, the job goes red and the PR stays blocked. The
+          # findings are still reported in the job summary and the SARIF
+          # artifact. Only the inline PR comment is lost.
+          #
+          # To get inline comments back: delete this line and change
+          # pull-requests: read -> write above. That is the whole trade.
+          GITLEAKS_ENABLE_COMMENTS: "false"
 
       # Defence in depth: gitleaks catches known credential shapes, this
       # catches the specific mistake this platform most fears -- a private
