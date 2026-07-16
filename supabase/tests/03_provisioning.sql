@@ -1,3 +1,7 @@
+-- Fixtures are included per-file: the CLI wraps each test in its own
+-- transaction and rolls it back, so they cannot be loaded once globally.
+\ir _fixtures.sql.inc
+
 begin;
 select plan(9);
 select tests.seed();

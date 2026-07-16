@@ -55,9 +55,5 @@ enable_signup = true
 enable_signup = true
 double_confirm_changes = true
 enable_confirmations = true
-# Mirrors the production hardening we are recommending (audit SEC-6:
-# leaked password protection is currently disabled in production).
-[auth.email.template]
-
 [analytics]
 enabled = false

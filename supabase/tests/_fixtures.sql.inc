@@ -1,7 +1,15 @@
 -- ---------------------------------------------------------------------------
 -- Shared fixtures + impersonation helpers for the Phase 2 pgTAP suite.
 --
--- Loaded before each test file. Creates 2 tenants and 6 users spanning every
+-- NOT A TEST FILE. The `.inc` suffix is deliberate: `supabase test db` runs
+-- pg_prove over supabase/tests and treats every `.sql` / `.pg` file as a test,
+-- so a fixture file named `.sql` would be executed as a test and fail for
+-- having no plan().
+--
+-- It is \ir-included at the top of each test file rather than run once,
+-- because the Supabase CLI wraps EVERY test in its own transaction and rolls
+-- it back regardless of outcome -- so helpers created by a separate file would
+-- be rolled back before the next test could use them. Creates 2 tenants and 6 users spanning every
 -- tenant role, plus a platform admin.
 --
 -- Fixtures are inserted as the OWNER (bypassing RLS) on purpose: we are

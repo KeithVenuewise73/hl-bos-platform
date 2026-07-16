@@ -177,7 +177,16 @@ jobs:
       - name: pgTAP suite
         run: supabase test db
 
-      - name: Database lint
+      # plpgsql_check. Gated at `error`, not `warning`: warnings are advisory
+      # (unused variables, hidden casts) and a cosmetic one turning the PR red
+      # is a false signal that trains people to ignore the gate. Errors are
+      # real: wrong types, missing RETURN, dead code, SQL-injection patterns.
+      - name: Database lint (errors fail the build)
+        run: supabase db lint --level error
+
+      # Warnings surface in the log without blocking the merge.
+      - name: Database lint (warnings, advisory)
+        continue-on-error: true
         run: supabase db lint --level warning
 
       - name: Stop Supabase

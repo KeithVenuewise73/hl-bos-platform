@@ -8,7 +8,7 @@ const conn = () =>
 (async () => {
   const setup = conn();
   await setup.connect();
-  await setup.query(fs.readFileSync("/tmp/pgtest/tests/00_fixtures.sql", "utf8"));
+  await setup.query(fs.readFileSync("/tmp/pgtest/tests/_fixtures.sql.inc", "utf8"));
   await setup.query("select tests.seed()");
   const { rows } = await setup.query(
     "select tests.make_invitation(tests.uid('tenant_a'), 'invitee@example.test') as tok",
@@ -61,11 +61,12 @@ const conn = () =>
   // TRUNCATE, not DELETE: audit.events has a BEFORE DELETE trigger that
   // rejects row deletion. TRUNCATE does not fire row triggers, and this
   // connection is the table owner.
-  const clean = conn(); await clean.connect();
+  const clean = conn();
+  await clean.connect();
   await clean.query(`truncate audit.security_events, audit.events,
     identity.membership_roles, identity.platform_admins, identity.invitations,
     identity.memberships, identity.profiles, platform.tenants cascade`);
-  await clean.query('delete from auth.users');
+  await clean.query("delete from auth.users");
   await clean.end();
 
   const succeeded = [a, b].filter((x) => x.ok).length;
