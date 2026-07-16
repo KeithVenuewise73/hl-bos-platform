@@ -49,8 +49,28 @@ for f in "${FILES[@]}"; do
   fi
 
   # No secrets in migrations, ever.
-  if grep -qiE "(service_role_key|sb_secret_|sk_live_|password\s*=\s*'[^']{8,})" "$f"; then
-    echo "FAIL [$base]: looks like it contains a secret."
+  #
+  # Secret PREFIXES (sb_secret_, sk_live_) are flagged bare -- they only ever
+  # appear attached to a real value.
+  #
+  # Variable NAMES (service_role_key) are only flagged when they carry a value.
+  # A migration comment may legitimately say "SUPABASE_SERVICE_ROLE_KEY" while
+  # explaining why that role is revoked -- naming a credential is not leaking
+  # it. Flagging the bare mention trained us to ignore the guard, which is worse
+  # than not having it.
+  if grep -qiE "(sb_secret_[A-Za-z0-9]{8,}|sk_live_[A-Za-z0-9]{8,})" "$f"; then
+    echo "FAIL [$base]: contains what looks like a live secret value."
+    FAILED=1
+  fi
+  if grep -qiE "(service_role_key|password|api_key|secret)[\"']?\s*(=|:=|:)\s*[\"']?[A-Za-z0-9._+/-]{8,}" "$f"; then
+    echo "FAIL [$base]: looks like a credential is being assigned a value."
+    FAILED=1
+  fi
+  # SQL's own PASSWORD syntax has no '=' -- e.g. ALTER ROLE x WITH PASSWORD 'v'.
+  # Caught separately; an earlier refactor let this slip through and only a
+  # negative test found it.
+  if grep -qiE "password[[:space:]]+['\"][^'\"]{6,}['\"]" "$f"; then
+    echo "FAIL [$base]: contains a literal PASSWORD value."
     FAILED=1
   fi
 

@@ -117,7 +117,7 @@ Only what Phase 2's tables need. `billing.invoice.read` before billing exists wo
 | `platform.tenant.manage` |       •        |                |
 | `platform.audit.read`    |       •        |       •        |
 
-**45 `role_permissions` rows.**
+**46 `role_permissions` rows.** (13 owner + 12 admin + 7 manager + 3 staff + 3 viewer + 1 service_account + 4 platform_owner + 3 platform_admin. An earlier draft said 45 -- that was an arithmetic error in the document, not in the matrix.)
 
 ### Deliberate choices
 
