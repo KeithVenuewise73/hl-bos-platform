@@ -1,0 +1,21 @@
+-- HL-BOS local seed data.
+--
+-- Runs against the LOCAL stack only (`supabase start` / `supabase db reset`).
+-- It is never applied to production.
+--
+-- Rules:
+--   * No real customer data, ever.
+--   * No secrets. Provider credentials belong in Supabase Vault, referenced
+--     by key -- never seeded as literals.
+--   * Seeds must be idempotent so `db reset` is repeatable.
+--
+-- Reference data that production genuinely needs (the module registry, role
+-- and permission rows, plan definitions) is NOT seeded here. It ships as a
+-- versioned migration (hlbos_0015_seed_and_reference_data) so it is
+-- reviewable and reproducible across environments. This file is for local
+-- developer convenience only.
+--
+-- Phase 1 has no schema yet, so there is nothing to seed. Content arrives
+-- with Phase 2 (identity and tenancy).
+
+select 'HL-BOS local seed: no schema yet (Phase 1)' as status;

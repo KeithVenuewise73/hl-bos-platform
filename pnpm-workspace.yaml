@@ -1,0 +1,48 @@
+# HL-BOS workspace definition.
+#
+# Packages are added to the tree only when they carry a real responsibility,
+# a public interface, documentation and tests. Empty placeholder packages are
+# explicitly not created -- an empty package that merely makes the repo "look
+# complete" is a liability, not an asset.
+#
+# Phase 1 introduces exactly one package: @hl-bos/config.
+# Later phases add packages as their capability lands.
+
+packages:
+  - "apps/*"
+  - "packages/*"
+
+# Centrally pinned versions, referenced from package.json via "catalog:".
+# Rationale for the important pins is in docs/architecture/dependency-policy.md
+# -- read it before bumping anything.
+catalog:
+  # --- Language / build ---------------------------------------------------
+  # TypeScript is pinned to the 6.0 line, NOT latest (7.0.2).
+  # typescript-eslint@8.64.0 declares `typescript: >=4.8.4 <6.1.0`.
+  # TS 7 would silently break type-aware linting. See dependency-policy.md.
+  typescript: "6.0.3"
+
+  # --- Framework ----------------------------------------------------------
+  next: "16.2.10"
+  react: "19.2.7"
+  react-dom: "19.2.7"
+  "@types/react": "19.2.17"
+  "@types/react-dom": "19.2.3"
+
+  # --- Validation ---------------------------------------------------------
+  zod: "4.4.3"
+
+  # --- Supabase -----------------------------------------------------------
+  "@supabase/supabase-js": "2.110.6"
+  "@supabase/ssr": "0.12.3"
+
+  # --- Test ---------------------------------------------------------------
+  vitest: "4.1.10"
+  "@vitest/coverage-v8": "4.1.10"
+
+  # --- Node ---------------------------------------------------------------
+  # Pinned to the 22 line to match engines.node (>=22) and the CI runtime.
+  # Satisfies vitest's peer range (^20 || ^22 || >=24). Deliberately not 26
+  # (latest): the @types major should track the Node runtime major, or you
+  # get types for APIs that do not exist at runtime.
+  "@types/node": "22.20.1"

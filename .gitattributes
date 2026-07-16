@@ -1,0 +1,44 @@
+# HL-BOS Platform — line ending normalization
+#
+# The repository is developed on Windows and built in Linux CI. Without this
+# file, every checkout produces spurious whole-file diffs (CRLF vs LF) that
+# make code review impossible and defeat migration diffing.
+#
+# Rule: LF in the repository, always. Git normalizes on commit.
+
+* text=auto eol=lf
+
+# Explicit: files that must always be LF (executed in Linux CI / containers)
+*.sh        text eol=lf
+*.sql       text eol=lf
+*.ts        text eol=lf
+*.tsx       text eol=lf
+*.js        text eol=lf
+*.mjs       text eol=lf
+*.cjs       text eol=lf
+*.json      text eol=lf
+*.yml       text eol=lf
+*.yaml      text eol=lf
+*.md        text eol=lf
+*.toml      text eol=lf
+Dockerfile  text eol=lf
+
+# Explicit: Windows-only files that must keep CRLF
+*.bat       text eol=crlf
+*.cmd       text eol=crlf
+*.ps1       text eol=crlf
+
+# Binary — never touch, never diff
+*.png       binary
+*.jpg       binary
+*.jpeg      binary
+*.gif       binary
+*.ico       binary
+*.webp      binary
+*.woff      binary
+*.woff2     binary
+*.pdf       binary
+
+# Generated — collapse in review, exclude from language stats
+pnpm-lock.yaml      linguist-generated=true -diff
+*.tsbuildinfo       linguist-generated=true -diff

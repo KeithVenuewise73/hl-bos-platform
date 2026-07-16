@@ -1,0 +1,65 @@
+# Dependabot configuration.
+#
+# The critical rule here is the TypeScript constraint. See
+# docs/architecture/dependency-policy.md before changing anything.
+
+version: 2
+updates:
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: "chore(deps)"
+      include: "scope"
+    groups:
+      # Keep the linting toolchain moving together. Bumping eslint without
+      # typescript-eslint (or vice versa) produces a peer conflict that
+      # strict-peer-dependencies turns into a failed install.
+      lint-toolchain:
+        patterns:
+          - "eslint"
+          - "@eslint/*"
+          - "typescript-eslint"
+          - "eslint-config-*"
+      test-toolchain:
+        patterns:
+          - "vitest"
+          - "@vitest/*"
+      react-ecosystem:
+        patterns:
+          - "react"
+          - "react-dom"
+          - "@types/react"
+          - "@types/react-dom"
+          - "next"
+
+    ignore:
+      # ---------------------------------------------------------------------
+      # TypeScript is HELD at the 6.0 line. Do not remove this.
+      # ---------------------------------------------------------------------
+      # typescript-eslint@8.64.0 declares `typescript: >=4.8.4 <6.1.0`.
+      # TypeScript 7.0.2 is published and is `latest`, so without this ignore
+      # Dependabot would open a PR bumping TypeScript out of the range that
+      # type-aware linting supports. With strict-peer-dependencies=true that
+      # PR fails to install; the real risk is someone "fixing" the failure by
+      # relaxing the peer check, which silently degrades every type-aware
+      # lint rule across the platform.
+      #
+      # Lift this ONLY when typescript-eslint ships TS 7 support on the
+      # `latest` dist-tag. Bump criteria: dependency-policy.md section 2.
+      - dependency-name: "typescript"
+        versions: [">=6.1.0"]
+
+      # @types/node tracks the Node runtime major (engines.node >= 22).
+      # Types ahead of the runtime describe APIs that do not exist at runtime.
+      - dependency-name: "@types/node"
+        versions: [">=23.0.0"]
+
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    commit-message:
+      prefix: "chore(ci)"
