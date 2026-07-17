@@ -1,0 +1,7 @@
+{
+  // Build config: same settings, but tests are not emitted to dist.
+  // tsconfig.json deliberately DOES include tests, because type-aware
+  // linting needs them in a project or it cannot parse them.
+  "extends": "./tsconfig.json",
+  "exclude": ["node_modules", "dist", "**/*.test.ts"]
+}
