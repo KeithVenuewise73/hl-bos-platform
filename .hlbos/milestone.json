@@ -1,0 +1,73 @@
+{
+  "$comment": "Live milestone state. Version-controlled so it is auditable, and updated by the AI engineer as work lands. The Control Center reads this -- it does not guess progress.",
+  "milestone": "2.5 \u2014 CEO Development Control Center",
+  "phase": "Console complete; awaiting connection",
+  "engineer": "Claude (AI engineer)",
+  "startedOn": "2026-07-16",
+  "tasks": [
+    {
+      "title": "Phase 2: identity, tenancy, permissions, audit",
+      "done": true
+    },
+    {
+      "title": "Phase 2 merged to main",
+      "done": true
+    },
+    {
+      "title": "Control Center: project status, one-click actions",
+      "done": true
+    },
+    {
+      "title": "Control Center: plain-English failure translation",
+      "done": true
+    },
+    {
+      "title": "Control Center: quality gates + approval queue",
+      "done": true
+    },
+    {
+      "title": "Control Center is the only entry point",
+      "done": true
+    },
+    {
+      "title": "Operating contract so future sessions honour it",
+      "done": true
+    },
+    {
+      "title": "Approve-and-merge from inside the console",
+      "done": true
+    },
+    {
+      "title": "Supabase status panel",
+      "done": true
+    },
+    {
+      "title": "In-console connection setup (no text editor, no terminal)",
+      "done": true
+    },
+    {
+      "title": "Connect GitHub and Supabase (needs your tokens)",
+      "done": false
+    },
+    {
+      "title": "Deploy Preview (needs Supabase branching switched on)",
+      "done": false
+    },
+    {
+      "title": "Deploy Production (needs a preview to test against first)",
+      "done": false
+    }
+  ],
+  "blockers": [
+    {
+      "title": "Accounts not connected yet",
+      "meaning": "Open Connect accounts in the console and paste a GitHub token and a Supabase token. Two minutes, once. Until then the console cannot show your builds or the database.",
+      "owner": "ceo"
+    },
+    {
+      "title": "Deploy buttons are not built yet",
+      "meaning": "Deploying needs a preview environment to test against, and Supabase branching is not switched on. Building a Deploy button before then would be a button that cannot deploy.",
+      "owner": "ai-engineer"
+    }
+  ]
+}

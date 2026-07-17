@@ -31,10 +31,18 @@ export default tseslint.config(
     languageOptions: {
       parserOptions: {
         projectService: {
-          // Root-level config files (vitest.config.ts and friends) are not
-          // members of any package tsconfig. Without this they fail to parse
-          // and lint reports a false error on a file that is perfectly fine.
-          allowDefaultProject: ["*.config.ts", "*.config.mts"],
+          // Config files (vitest.config.ts and friends) are not members of any
+          // package tsconfig. Without this they fail to parse and lint reports a
+          // false error on a file that is perfectly fine. Cover both the repo
+          // root and one level down (per-app / per-package config files).
+          allowDefaultProject: [
+            "*.config.ts",
+            "*.config.mts",
+            "apps/*/*.config.ts",
+            "apps/*/*.config.mts",
+            "packages/*/*.config.ts",
+            "packages/*/*.config.mts",
+          ],
         },
         tsconfigRootDir: import.meta.dirname,
       },
