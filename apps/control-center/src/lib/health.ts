@@ -30,6 +30,18 @@ function checkHealth(status: string, conclusion: string | null): Health {
 
 export function gatesFor(pr: PullRequest | null): QualityGate[] {
   if (!pr) return [];
+  if (!pr.checksReadable) {
+    // The token can see the PR but not its check results. Say so plainly instead
+    // of rendering an empty "no checks" state that reads as "all clear".
+    return [
+      {
+        name: "CI checks",
+        health: "unknown",
+        summary:
+          "Can't read results — the GitHub token is missing the 'Checks' read permission.",
+      },
+    ];
+  }
   return pr.checks.map((c) => {
     const h = checkHealth(c.status, c.conclusion);
     return {
@@ -78,6 +90,15 @@ export function overallHealth(
     return {
       health: "yellow",
       summary: "Checks are still running. Nothing to do yet.",
+    };
+  }
+  if (gates.some((g) => g.health === "unknown")) {
+    // Never let an unreadable gate fall through to "green" -- that would claim
+    // a pass the console cannot actually see.
+    return {
+      health: "unknown",
+      summary:
+        "Check results can't be read. Grant the GitHub token the 'Checks' read permission to see them.",
     };
   }
   return { health: "green", summary: "Every check passed. Ready for your decision." };

@@ -1,7 +1,7 @@
 {
   "$comment": "Live milestone state. Version-controlled so it is auditable, and updated by the AI engineer as work lands. The Control Center reads this -- it does not guess progress.",
   "milestone": "2.5 \u2014 CEO Development Control Center",
-  "phase": "Console complete; awaiting connection",
+  "phase": "Connected; verifying live features",
   "engineer": "Claude (AI engineer)",
   "startedOn": "2026-07-16",
   "tasks": [
@@ -47,7 +47,7 @@
     },
     {
       "title": "Connect GitHub and Supabase (needs your tokens)",
-      "done": false
+      "done": true
     },
     {
       "title": "Deploy Preview (needs Supabase branching switched on)",
@@ -59,11 +59,6 @@
     }
   ],
   "blockers": [
-    {
-      "title": "Accounts not connected yet",
-      "meaning": "Open Connect accounts in the console and paste a GitHub token and a Supabase token. Two minutes, once. Until then the console cannot show your builds or the database.",
-      "owner": "ceo"
-    },
     {
       "title": "Deploy buttons are not built yet",
       "meaning": "Deploying needs a preview environment to test against, and Supabase branching is not switched on. Building a Deploy button before then would be a button that cannot deploy.",

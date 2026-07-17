@@ -39,6 +39,12 @@ export interface PullRequest {
   draft: boolean;
   mergeable: boolean | null;
   checks: CheckRun[];
+  /**
+   * False when the check results could not be READ (typically a 403 because the
+   * token lacks the "Checks" permission), as opposed to a PR that simply has no
+   * checks yet. The console must not treat "cannot see" as "nothing there".
+   */
+  checksReadable: boolean;
 }
 
 export type GitHubState =
@@ -102,6 +108,11 @@ export async function githubState(slug: string | null): Promise<GitHubState> {
     const pulls: PullRequest[] = await Promise.all(
       raw.map(async (p) => {
         let checks: CheckRun[] = [];
+        // A PR with no checks yet returns 200 with an empty list, so reaching
+        // the catch means the REQUEST failed -- almost always a 403 because the
+        // token lacks the "Checks" read permission. That is "cannot see", not
+        // "nothing there", and the two must never render the same.
+        let checksReadable = true;
         try {
           const cr = await gh<{
             check_runs: Array<{
@@ -116,7 +127,7 @@ export async function githubState(slug: string | null): Promise<GitHubState> {
             conclusion: c.conclusion,
           }));
         } catch {
-          // A PR with no checks yet is normal, not an error.
+          checksReadable = false;
         }
         return {
           number: p.number,
@@ -126,6 +137,7 @@ export async function githubState(slug: string | null): Promise<GitHubState> {
           draft: p.draft,
           mergeable: p.mergeable,
           checks,
+          checksReadable,
         };
       }),
     );

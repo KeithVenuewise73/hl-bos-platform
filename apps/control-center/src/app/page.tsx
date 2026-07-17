@@ -22,7 +22,6 @@ export default async function Page() {
   const gates = gatesFor(primaryPr);
   const health = overallHealth(gh, gates);
   const milestone = await milestoneState();
-  const approvals = approvalQueue({ gh, health: health.health, milestone });
   const conn = await connectionStatus();
 
   let repoMigrations: string[];
@@ -34,6 +33,10 @@ export default async function Page() {
     repoMigrations = [];
   }
   const sb = await supabaseState(repoMigrations);
+
+  // The approval queue reflects LIVE connection state (GitHub + Supabase), so
+  // connection prompts appear and vanish with the real tokens -- never hardcoded.
+  const approvals = approvalQueue({ gh, sb, health: health.health, milestone });
 
   return (
     <main style={{ maxWidth: 1100, margin: "0 auto", padding: "28px 24px 64px" }}>
