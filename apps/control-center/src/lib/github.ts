@@ -40,9 +40,9 @@ export interface PullRequest {
   mergeable: boolean | null;
   checks: CheckRun[];
   /**
-   * False when the check results could not be READ (typically a 403 because the
-   * token lacks the "Checks" permission), as opposed to a PR that simply has no
-   * checks yet. The console must not treat "cannot see" as "nothing there".
+   * False when the CI results could not be READ (typically a 403 because the
+   * token lacks the "Actions" read permission), as opposed to a PR that simply
+   * has no CI yet. The console must not treat "cannot see" as "nothing there".
    */
   checksReadable: boolean;
 }
@@ -76,6 +76,80 @@ async function gh<T>(path: string, tk: string): Promise<T> {
   return (await res.json()) as T;
 }
 
+/**
+ * Read the CI result for a commit via the ACTIONS API.
+ *
+ * Why not the Checks API (`/commits/{sha}/check-runs`)? Because the console
+ * authenticates with a fine-grained personal access token, and a fine-grained
+ * PAT CANNOT be granted access to the Checks API. There is no "Checks"
+ * fine-grained permission -- that API is GitHub-App-only -- so check-runs always
+ * returns 403 "Resource not accessible by personal access token" for this token.
+ * (Verified against the live API and GitHub's fine-grained permission reference.)
+ *
+ * GitHub Actions -- our CI -- publishes results as workflow runs, readable with
+ * the "Actions" repository permission (Read), which a fine-grained token CAN
+ * grant. We take the newest run per workflow for the commit, then its jobs, so
+ * each job (Validate, Secret scan, Database tests, Migration checks) still
+ * surfaces as its own gate, exactly as before.
+ *
+ * The Commit Statuses API is NOT a substitute: Actions does not write commit
+ * statuses, so `/commits/{sha}/status` comes back empty (state=pending, 0 rows).
+ */
+async function ciChecksForSha(
+  slug: string,
+  sha: string,
+  tk: string,
+): Promise<{ checks: CheckRun[]; readable: boolean }> {
+  try {
+    const runs = await gh<{
+      workflow_runs: Array<{
+        id: number;
+        name: string | null;
+        status: string;
+        conclusion: string | null;
+        workflow_id: number;
+        created_at: string;
+      }>;
+    }>(`/repos/${slug}/actions/runs?head_sha=${sha}&per_page=50`, tk);
+
+    // Re-runs supersede: keep only the newest run per workflow.
+    const latest = new Map<number, (typeof runs.workflow_runs)[number]>();
+    for (const r of runs.workflow_runs) {
+      const prev = latest.get(r.workflow_id);
+      if (!prev || r.created_at > prev.created_at) latest.set(r.workflow_id, r);
+    }
+
+    const checks: CheckRun[] = [];
+    for (const run of latest.values()) {
+      try {
+        const j = await gh<{
+          jobs: Array<{ name: string; status: string; conclusion: string | null }>;
+        }>(`/repos/${slug}/actions/runs/${run.id}/jobs?per_page=100`, tk);
+        for (const job of j.jobs) {
+          checks.push({
+            name: job.name,
+            status: job.status,
+            conclusion: job.conclusion,
+          });
+        }
+      } catch {
+        // If one run's jobs cannot be read, fall back to the run-level result so
+        // the gate still reflects reality rather than silently disappearing.
+        checks.push({
+          name: run.name ?? "CI",
+          status: run.status,
+          conclusion: run.conclusion,
+        });
+      }
+    }
+    return { checks, readable: true };
+  } catch {
+    // A 403 here means the token lacks the "Actions" (Read) permission -- the
+    // correct, grantable fine-grained permission for reading CI results.
+    return { checks: [], readable: false };
+  }
+}
+
 export async function githubState(slug: string | null): Promise<GitHubState> {
   const tk = await token();
   if (!tk) {
@@ -107,28 +181,7 @@ export async function githubState(slug: string | null): Promise<GitHubState> {
 
     const pulls: PullRequest[] = await Promise.all(
       raw.map(async (p) => {
-        let checks: CheckRun[] = [];
-        // A PR with no checks yet returns 200 with an empty list, so reaching
-        // the catch means the REQUEST failed -- almost always a 403 because the
-        // token lacks the "Checks" read permission. That is "cannot see", not
-        // "nothing there", and the two must never render the same.
-        let checksReadable = true;
-        try {
-          const cr = await gh<{
-            check_runs: Array<{
-              name: string;
-              status: string;
-              conclusion: string | null;
-            }>;
-          }>(`/repos/${slug}/commits/${p.head.sha}/check-runs`, tk);
-          checks = cr.check_runs.map((c) => ({
-            name: c.name,
-            status: c.status,
-            conclusion: c.conclusion,
-          }));
-        } catch {
-          checksReadable = false;
-        }
+        const { checks, readable } = await ciChecksForSha(slug, p.head.sha, tk);
         return {
           number: p.number,
           title: p.title,
@@ -137,7 +190,7 @@ export async function githubState(slug: string | null): Promise<GitHubState> {
           draft: p.draft,
           mergeable: p.mergeable,
           checks,
-          checksReadable,
+          checksReadable: readable,
         };
       }),
     );
@@ -195,17 +248,23 @@ export async function pullRequestIsMergeable(
     }>(`/repos/${slug}/pulls/${number}`, tk);
     if (pr.draft)
       return { ready: false, reason: "This work is still marked as a draft." };
-    const cr = await gh<{
-      check_runs: Array<{ name: string; status: string; conclusion: string | null }>;
-    }>(`/repos/${slug}/commits/${pr.head.sha}/check-runs`, tk);
-    const failing = cr.check_runs.filter(
+    const { checks, readable } = await ciChecksForSha(slug, pr.head.sha, tk);
+    if (!readable)
+      return {
+        ready: false,
+        reason:
+          "The token can't read CI results. Grant it the 'Actions' read permission, then re-save it.",
+      };
+    if (checks.length === 0)
+      return { ready: false, reason: "No CI has run for this commit yet." };
+    const failing = checks.filter(
       (c) =>
         c.status === "completed" &&
         c.conclusion !== "success" &&
         c.conclusion !== "neutral" &&
         c.conclusion !== "skipped",
     );
-    const running = cr.check_runs.filter((c) => c.status !== "completed");
+    const running = checks.filter((c) => c.status !== "completed");
     if (failing.length > 0)
       return { ready: false, reason: `${failing.length} check(s) are still failing.` };
     if (running.length > 0)

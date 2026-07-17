@@ -59,9 +59,9 @@ export function approvalQueue(args: {
     // results or offer an approve-merge decision.
     if (args.gh.pulls.some((pr) => !pr.checksReadable)) {
       out.push({
-        title: "GitHub token can't read check results",
-        why: "The console can see your pull requests but not whether their checks passed, so it cannot offer an approve-merge decision. The token needs the 'Checks' read permission added.",
-        action: "Update the GitHub token permissions, then re-save it",
+        title: "GitHub token can't read CI results",
+        why: "The console can see your pull requests but not whether their checks passed, so it cannot offer an approve-merge decision. The token needs the 'Actions' read permission added (fine-grained tokens cannot use the Checks API).",
+        action: "Add 'Actions: Read' to the GitHub token, then re-save it",
         urgency: "soon",
       });
     }

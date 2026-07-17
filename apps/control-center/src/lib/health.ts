@@ -38,7 +38,7 @@ export function gatesFor(pr: PullRequest | null): QualityGate[] {
         name: "CI checks",
         health: "unknown",
         summary:
-          "Can't read results — the GitHub token is missing the 'Checks' read permission.",
+          "Can't read results — the GitHub token is missing the 'Actions' read permission.",
       },
     ];
   }
@@ -98,7 +98,7 @@ export function overallHealth(
     return {
       health: "unknown",
       summary:
-        "Check results can't be read. Grant the GitHub token the 'Checks' read permission to see them.",
+        "Check results can't be read. Grant the GitHub token the 'Actions' read permission to see them.",
     };
   }
   return { health: "green", summary: "Every check passed. Ready for your decision." };
