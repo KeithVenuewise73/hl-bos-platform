@@ -51,7 +51,7 @@ async function token(): Promise<string | null> {
   // Read from .env.local, which the console itself writes when the CEO pastes a
   // token into the Connect page. He never opens a text editor.
   const file = await readEnvFile();
-  if (file["HLBOS_GITHUB_TOKEN"]) return file["HLBOS_GITHUB_TOKEN"]!;
+  if (file["HLBOS_GITHUB_TOKEN"]) return file["HLBOS_GITHUB_TOKEN"];
   // eslint-disable-next-line no-restricted-properties -- see the note above
   const env = process.env;
   return env["HLBOS_GITHUB_TOKEN"] ?? env["GITHUB_TOKEN"] ?? null;

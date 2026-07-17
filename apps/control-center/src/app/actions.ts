@@ -113,6 +113,7 @@ export async function saveWork(message: string): Promise<ActionResult> {
 }
 
 /** Refresh. */
+// eslint-disable-next-line @typescript-eslint/require-await -- Next.js Server Actions must be async, even when the body is synchronous.
 export async function refresh(): Promise<void> {
   revalidatePath("/");
 }
@@ -167,13 +168,19 @@ export async function approveMerge(
   );
 }
 
+/** A form field is a string or a File; treat anything that is not a string as empty. */
+function field(form: FormData, name: string): string {
+  const value = form.get(name);
+  return typeof value === "string" ? value.trim() : "";
+}
+
 /** Save connection tokens. The console writes the file; no editor, no terminal. */
 export async function saveConnection(form: FormData): Promise<ActionResult> {
   const { writeEnvValues } = await import("@/lib/secrets");
   const values: Record<string, string> = {};
-  const gh = String(form.get("github") ?? "").trim();
-  const sb = String(form.get("supabase") ?? "").trim();
-  const ref = String(form.get("ref") ?? "").trim();
+  const gh = field(form, "github");
+  const sb = field(form, "supabase");
+  const ref = field(form, "ref");
   if (gh) values["HLBOS_GITHUB_TOKEN"] = gh;
   if (sb) values["SUPABASE_ACCESS_TOKEN"] = sb;
   if (ref) values["HLBOS_SUPABASE_PROJECT_REF"] = ref;

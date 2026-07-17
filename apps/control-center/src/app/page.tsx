@@ -6,7 +6,6 @@ import { approvalQueue } from "@/lib/approvals";
 import { PORTFOLIO, PORTFOLIO_NOTE } from "@/lib/registry";
 import { Card, Dot, Row, Empty, LABEL } from "@/components/ui";
 import { ActionsIsland } from "@/components/ActionsIsland";
-import { MergeButton } from "@/components/MergeButton";
 import { supabaseState } from "@/lib/supabase";
 import { connectionStatus } from "@/lib/secrets";
 import { readdir } from "node:fs/promises";
@@ -25,7 +24,7 @@ export default async function Page() {
   const approvals = approvalQueue({ gh, health: health.health, milestone });
   const conn = await connectionStatus();
 
-  let repoMigrations: string[] = [];
+  let repoMigrations: string[];
   try {
     repoMigrations = (await readdir(path.join(REPO_ROOT, "supabase", "migrations")))
       .filter((f) => f.endsWith(".sql"))
