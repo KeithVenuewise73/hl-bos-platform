@@ -6,6 +6,7 @@ import { approvalQueue } from "@/lib/approvals";
 import { PORTFOLIO, PORTFOLIO_NOTE } from "@/lib/registry";
 import { Card, Dot, Row, Empty, LABEL } from "@/components/ui";
 import { ActionsIsland } from "@/components/ActionsIsland";
+import { MergeButton } from "@/components/MergeButton";
 import { supabaseState } from "@/lib/supabase";
 import { connectionStatus } from "@/lib/secrets";
 import { readdir } from "node:fs/promises";
@@ -95,7 +96,11 @@ export default async function Page() {
               >
                 {a.why}
               </div>
-              {a.href ? (
+              {a.mergeable ? (
+                // The approval can be executed here -- close the loop in the
+                // console instead of sending the CEO out to github.com.
+                <MergeButton number={a.mergeable.number} title={a.mergeable.title} />
+              ) : a.href ? (
                 <a
                   href={a.href}
                   target="_blank"
