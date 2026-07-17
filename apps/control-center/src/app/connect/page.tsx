@@ -1,5 +1,5 @@
 import { connectionStatus } from "@/lib/secrets";
-import { Card, Dot } from "@/components/ui";
+import { Card, Dot } from "@hl-bos/ui";
 import { ConnectForm } from "@/components/ConnectForm";
 
 export const dynamic = "force-dynamic";

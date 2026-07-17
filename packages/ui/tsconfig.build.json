@@ -1,0 +1,5 @@
+{
+  // Build config: same settings, but tests are not emitted to dist.
+  "extends": "./tsconfig.json",
+  "exclude": ["node_modules", "dist", "**/*.test.ts", "**/*.test.tsx"]
+}

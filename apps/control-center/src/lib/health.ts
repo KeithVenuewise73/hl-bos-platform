@@ -1,6 +1,10 @@
 import type { GitHubState, PullRequest } from "./github";
+import type { Health } from "@hl-bos/ui";
 
-export type Health = "green" | "yellow" | "red" | "unknown";
+// The status vocabulary is shared across both planes of Herman Legacy Cloud.
+// Health lives in @hl-bos/ui; re-exported here so existing imports of it from
+// this operator-plane module keep working.
+export type { Health };
 
 export interface QualityGate {
   name: string;

@@ -4,7 +4,7 @@ import { gatesFor, overallHealth, type Health } from "@/lib/health";
 import { milestoneState } from "@/lib/milestone";
 import { approvalQueue } from "@/lib/approvals";
 import { PORTFOLIO, PORTFOLIO_NOTE } from "@/lib/registry";
-import { Card, Dot, Row, Empty, LABEL } from "@/components/ui";
+import { Card, Dot, Row, Empty, LABEL } from "@hl-bos/ui";
 import { ActionsIsland } from "@/components/ActionsIsland";
 import { MergeButton } from "@/components/MergeButton";
 import { supabaseState } from "@/lib/supabase";

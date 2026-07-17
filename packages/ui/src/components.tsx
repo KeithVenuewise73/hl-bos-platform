@@ -1,19 +1,13 @@
 import type { ReactNode } from "react";
-import type { Health } from "@/lib/health";
+import { DOT, LABEL, type Health } from "./status.js";
 
-export const DOT: Record<Health, string> = {
-  green: "#3fb950",
-  yellow: "#d29922",
-  red: "#f85149",
-  unknown: "#6e7681",
-};
-
-export const LABEL: Record<Health, string> = {
-  green: "Healthy",
-  yellow: "Working",
-  red: "Needs attention",
-  unknown: "Not visible",
-};
+/**
+ * The shared shell primitives.
+ *
+ * Deliberately presentational and tenant-neutral: they render the same for a
+ * Herman Legacy company and for a future external customer. Tenant awareness
+ * lives in the data these render, never in the components themselves.
+ */
 
 export function Card({
   title,
