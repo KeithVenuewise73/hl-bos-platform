@@ -119,6 +119,44 @@ export default tseslint.config(
     },
   },
 
+  // The remote-safety boundary, enforced.
+  //
+  // apps/cloud is the HOSTED execution plane. It must expose only operations
+  // that are safe to perform remotely. Shell execution, OS access and the
+  // operator-plane toolchain stay in apps/control-center. A shell-out import
+  // here fails the build, so the boundary cannot erode by accident. Promoting a
+  // privileged action to the cloud is a deliberate redesign behind an
+  // authenticated API -- not an unnoticed import.
+  {
+    files: ["apps/cloud/**/*.{ts,tsx}"],
+    rules: {
+      "no-restricted-imports": [
+        "error",
+        {
+          paths: [
+            {
+              name: "child_process",
+              message:
+                "The hosted cloud plane must not shell out. Shell execution stays in the local operator plane (Headquarters). See the remote-safety boundary.",
+            },
+            {
+              name: "node:child_process",
+              message:
+                "The hosted cloud plane must not shell out. Shell execution stays in the local operator plane (Headquarters). See the remote-safety boundary.",
+            },
+          ],
+          patterns: [
+            {
+              group: ["**/control-center/**"],
+              message:
+                "The cloud plane must not import operator-plane modules. Share code through @hl-bos/* packages instead.",
+            },
+          ],
+        },
+      ],
+    },
+  },
+
   {
     files: ["**/*.{mjs,js}"],
     ...tseslint.configs.disableTypeChecked,

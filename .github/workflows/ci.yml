@@ -69,6 +69,13 @@ jobs:
       - name: Format check
         run: pnpm format:check
 
+      # Type-aware lint and typecheck resolve @hl-bos/* from each package's
+      # built dist (its package.json "types" entry). Build the library packages
+      # before those steps so their types exist. The apps are built by the
+      # final Build step.
+      - name: Build workspace packages
+        run: pnpm --filter "./packages/*" build
+
       - name: Lint
         run: pnpm lint
 

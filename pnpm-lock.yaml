@@ -75,6 +75,46 @@ importers:
         specifier: 4.1.10
         version: 4.1.10(@types/node@22.20.1)(@vitest/coverage-v8@4.1.10)
 
+  apps/cloud:
+    dependencies:
+      '@hl-bos/deploy':
+        specifier: workspace:*
+        version: link:../../packages/deploy
+      '@hl-bos/lifecycle':
+        specifier: workspace:*
+        version: link:../../packages/lifecycle
+      '@hl-bos/ui':
+        specifier: workspace:*
+        version: link:../../packages/ui
+      next:
+        specifier: 'catalog:'
+        version: 16.2.10(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
+      react:
+        specifier: 'catalog:'
+        version: 19.2.7
+      react-dom:
+        specifier: 'catalog:'
+        version: 19.2.7(react@19.2.7)
+      server-only:
+        specifier: 'catalog:'
+        version: 0.0.1
+    devDependencies:
+      '@types/node':
+        specifier: 'catalog:'
+        version: 22.20.1
+      '@types/react':
+        specifier: 'catalog:'
+        version: 19.2.17
+      '@types/react-dom':
+        specifier: 'catalog:'
+        version: 19.2.3(@types/react@19.2.17)
+      typescript:
+        specifier: 'catalog:'
+        version: 6.0.3
+      vitest:
+        specifier: 'catalog:'
+        version: 4.1.10(@types/node@22.20.1)(@vitest/coverage-v8@4.1.10)
+
   apps/control-center:
     dependencies:
       '@hl-bos/ui':
@@ -133,6 +173,15 @@ importers:
       '@types/node':
         specifier: 'catalog:'
         version: 22.20.1
+      typescript:
+        specifier: 'catalog:'
+        version: 6.0.3
+      vitest:
+        specifier: 'catalog:'
+        version: 4.1.10(@types/node@22.20.1)(@vitest/coverage-v8@4.1.10)
+
+  packages/lifecycle:
+    devDependencies:
       typescript:
         specifier: 'catalog:'
         version: 6.0.3
