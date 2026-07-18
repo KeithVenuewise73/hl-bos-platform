@@ -3,7 +3,7 @@
 \ir _fixtures.sql.inc
 
 begin;
-select plan(5);
+select plan(10);
 select tests.seed();
 
 -- === tenant_class ==========================================================
@@ -21,8 +21,8 @@ select tests.logout();
 
 -- 2  *** the security fix ***
 -- A tenant admin holds UPDATE on platform.tenants and can edit its own tenant,
--- so it passes RLS to reach the row -- but it must not be able to promote its
--- own tenant to first_party. The guard raises insufficient_privilege (42501).
+-- so it passes RLS to reach the row -- but it must not promote its own tenant
+-- to first_party. The guard raises insufficient_privilege (42501).
 select tests.login_as(tests.uid('owner_a'));
 select throws_ok(
   $$ update platform.tenants
@@ -55,10 +55,48 @@ select has_function(
   't_class_guard_function_exists'
 );
 
--- NOTE for review: a full suite should also assert the positive case -- a
--- platform admin (fixture 'padmin') CAN set first_party -- once padmin's
--- platform.tenant.manage grant in the 0005 seed is confirmed, so the RLS UPDATE
--- policy lets it reach the row.
+-- === provision_tenant(..., tenant_class) ===================================
+-- powner has platform.tenant.create and is a verified platform admin.
+
+-- 6  Provisioning with no class succeeds and yields a customer.
+select tests.login_as(tests.uid('powner'));
+select lives_ok(
+  $$ select platform.provision_tenant('cust-co', 'Customer Co') $$,
+  't_provision_defaults_to_customer_class'
+);
+-- 7
+select is(
+  (select tenant_class::text from platform.tenants where slug = 'cust-co'),
+  'customer',
+  't_provisioned_default_is_customer'
+);
+select tests.logout();
+
+-- 8  A platform admin may provision a first_party tenant explicitly.
+select tests.login_as(tests.uid('powner'));
+select lives_ok(
+  $$ select platform.provision_tenant('hl-co', 'HL Company', null, 'first_party') $$,
+  't_platform_admin_can_provision_first_party'
+);
+-- 9
+select is(
+  (select tenant_class::text from platform.tenants where slug = 'hl-co'),
+  'first_party',
+  't_provisioned_first_party_recorded'
+);
+select tests.logout();
+
+-- 10  A user who is not a platform admin cannot provision a first_party tenant.
+--     (owner_a lacks platform.tenant.create, so it is denied with 42501; the
+--     class gate is additional defense in depth for a would-be non-admin
+--     provisioner.)
+select tests.login_as(tests.uid('owner_a'));
+select throws_ok(
+  $$ select platform.provision_tenant('sneaky', 'Sneaky', null, 'first_party') $$,
+  '42501', null,
+  't_non_admin_cannot_provision_first_party'
+);
+select tests.logout();
 
 select finish();
 rollback;
