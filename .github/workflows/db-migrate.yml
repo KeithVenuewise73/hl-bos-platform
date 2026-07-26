@@ -1,0 +1,118 @@
+name: DB migrate (protected)
+#
+# Protected, manual-only migration path for the canonical HL-BOS project.
+# Canonical project ref: mvvtngiopdrgiedjmhfb (HL-BOS Core). See ADR-0001.
+#
+# THIS WORKFLOW IS INERT UNTIL THE CEO ARMS IT. It cannot apply anything until:
+#   1. A GitHub Environment named `production` exists WITH required reviewers
+#      (Settings -> Environments -> production -> Required reviewers).
+#      That reviewer approval IS the manual production approval gate.
+#   2. Repo secret  SUPABASE_ACCESS_TOKEN  is set (a Supabase personal access
+#      token). It is a secret; its VALUE never appears in this repo or logs.
+#   3. Repo variable SUPABASE_PROJECT_REF is set to mvvtngiopdrgiedjmhfb
+#      (a project ref is NOT a secret; using a variable keeps it in one place).
+#
+# Design rules enforced here:
+#   - Never auto-applies. Only `workflow_dispatch` (a human clicks Run).
+#   - `validate` always runs first and needs no secrets: it proves the whole
+#     set applies from empty and the pgTAP suite passes.
+#   - `apply` runs only when mode=apply, only after `validate` passes, and only
+#     after the `production` environment's required reviewer approves.
+#   - Forward-repair, not destructive rollback: apply uses `supabase db push`
+#     (applies new migrations forward). Rollback is a new forward migration.
+
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "validate = checks only (no apply). apply = validate then push to canonical project (gated)."
+        type: choice
+        default: validate
+        options: [validate, apply]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: db-migrate-${{ github.ref }}
+  cancel-in-progress: false # never cancel an in-flight apply
+
+jobs:
+  validate:
+    name: Validate (no secrets, no apply)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v6
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+      - name: Migration filename/content checks
+        run: bash scripts/check-migrations.sh
+      - name: Start local Supabase
+        run: supabase start
+      - name: Apply migrations from scratch (ordering + idempotency)
+        run: supabase db reset
+      - name: pgTAP suite
+        run: supabase test db
+      - name: DB lint (errors fail)
+        run: supabase db lint --level error
+      - name: Stop local Supabase
+        if: always()
+        run: supabase stop
+
+  drift-check:
+    name: Migration drift vs canonical (read-only)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    needs: validate
+    # Read-only: lists remote migrations and compares to the repo. Needs the
+    # access token but performs NO writes. Skipped automatically until the
+    # secret/variable are configured.
+    if: ${{ vars.SUPABASE_PROJECT_REF != '' }}
+    steps:
+      - uses: actions/checkout@v6
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+      - name: Link canonical project
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        run: supabase link --project-ref "${{ vars.SUPABASE_PROJECT_REF }}"
+      - name: List remote migrations (drift visibility)
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        run: supabase migration list
+
+  apply:
+    name: Apply to canonical (manual approval gate)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    needs: [validate, drift-check]
+    if: ${{ github.event.inputs.mode == 'apply' }}
+    # The `production` environment's required-reviewer rule is the approval gate.
+    environment: production
+    steps:
+      - uses: actions/checkout@v6
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+      - name: Guard — refuse to run without an armed target
+        run: |
+          if [ -z "${{ vars.SUPABASE_PROJECT_REF }}" ]; then
+            echo "SUPABASE_PROJECT_REF is not set. Refusing to apply." >&2
+            exit 1
+          fi
+          echo "Target project ref: ${{ vars.SUPABASE_PROJECT_REF }}"
+      - name: Link canonical project
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        run: supabase link --project-ref "${{ vars.SUPABASE_PROJECT_REF }}"
+      - name: Push migrations (forward-only)
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        run: supabase db push
+      - name: Record applied state
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        run: supabase migration list

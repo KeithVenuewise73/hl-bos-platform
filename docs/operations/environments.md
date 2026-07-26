@@ -1,26 +1,30 @@
 # Environments
 
-**Last verified:** 2026-07-15
+**Last verified:** 2026-07-15 · **Corrected:** 2026-07-26
+
+> **⚠️ CORRECTED 2026-07-26 — see [ADR-0001](../architecture/decisions/0001-canonical-hl-bos-supabase-project.md).**
+> The canonical HL-BOS project is **`HL-BOS Core` / `mvvtngiopdrgiedjmhfb`** (us-west-2), where all 17 migrations are live and verified. The project `ywrzgursvdowzyhipsmt` (us-east-1) named in the original 2026-07-15 version of this section was the _intended_ greenfield project, but development actually landed in `mvvtngiopdrgiedjmhfb`; `ywrzgursvdowzyhipsmt` remains **empty and is not canonical**. The table below has been corrected to canonical values; the original us-east-1 ref is preserved in ADR-0001 for provenance.
 
 ---
 
 ## 1. Canonical HL-BOS Core production project
 
-Owner decision 2026-07-15 (Option 2): HL-BOS Core lives in a **new greenfield project** under the Pro organization. Verified against the live API on 2026-07-15:
+Owner decision 2026-07-15 (Option 2): HL-BOS Core lives in a **new greenfield project** under the Pro organization. Canonical values re-verified against the live API on 2026-07-26:
 
-| Property         | Value                                                           |
-| ---------------- | --------------------------------------------------------------- |
-| Organization     | `Herman Legacy Software Ventures`                               |
-| Organization ID  | `ihtsbcxtvkbfkkpmforp`                                          |
-| **Plan**         | **`pro`** ✅                                                    |
-| Project ID / ref | `ywrzgursvdowzyhipsmt`                                          |
-| Project name     | ⚠️ `keith@venuewise.net's Project` — **needs renaming, see §4** |
-| Region           | `us-east-1` ✅                                                  |
-| Postgres         | 17.6 (`17.6.1.141`), engine 17, channel `ga`                    |
-| Status           | `ACTIVE_HEALTHY`                                                |
-| Created          | 2026-07-15T19:13:04Z                                            |
+| Property                         | Value                                                     |
+| -------------------------------- | --------------------------------------------------------- |
+| Organization                     | `Herman Legacy Software Ventures`                         |
+| Organization ID                  | `ihtsbcxtvkbfkkpmforp`                                    |
+| **Plan**                         | **`pro`** ✅                                              |
+| Project ID / ref                 | `mvvtngiopdrgiedjmhfb` ✅ **(canonical — HL-BOS Core)**   |
+| Project name                     | `HL-BOS Core`                                             |
+| Region                           | `us-west-2`                                               |
+| Postgres                         | 17.6 (`17.6.1.141`), engine 17, channel `ga`              |
+| Status                           | `ACTIVE_HEALTHY`; 17 migrations applied, 49 tables        |
+| Created                          | 2026-07-16T04:27:03Z                                      |
+| Alternate (empty, NOT canonical) | `ywrzgursvdowzyhipsmt` (us-east-1) — parked; see ADR-0001 |
 
-The project **ref is not a secret** — it appears in every client request URL (`https://ywrzgursvdowzyhipsmt.supabase.co`). Recording it here is intentional and safe. The publishable key, service-role key and database password are secrets and appear nowhere in this repository.
+The project **ref is not a secret** — it appears in every client request URL (`https://mvvtngiopdrgiedjmhfb.supabase.co`). Recording it here is intentional and safe. The publishable key, service-role key and database password are secrets and appear nowhere in this repository.
 
 ## 2. Greenfield verification — evidence
 
@@ -85,11 +89,12 @@ Renaming is a label change: it does not alter the project ref, connection string
 
 ## 5. Environment matrix
 
-| Environment | Backing                                       | Status                                                  |
-| ----------- | --------------------------------------------- | ------------------------------------------------------- |
-| Local       | `supabase start` (see `supabase/config.toml`) | Configured, not yet exercised                           |
-| Preview     | Supabase branch off `ywrzgursvdowzyhipsmt`    | **Not created.** Branching not yet verified as enabled. |
-| Staging     | TBD                                           | Not introduced                                          |
-| Production  | `ywrzgursvdowzyhipsmt`                        | Created, empty, **no migrations applied**               |
+| Environment   | Backing                                       | Status                                                                                         |
+| ------------- | --------------------------------------------- | ---------------------------------------------------------------------------------------------- |
+| Local         | `supabase start` (see `supabase/config.toml`) | Configured, not yet exercised                                                                  |
+| Preview       | Supabase branch off `mvvtngiopdrgiedjmhfb`    | **Not created.** Branching not yet verified as enabled.                                        |
+| Staging       | TBD                                           | Not introduced                                                                                 |
+| Production    | `mvvtngiopdrgiedjmhfb` (HL-BOS Core)          | **17 migrations applied out-of-band; protected apply workflow pending (Phase 1 Checkpoint 1)** |
+| _(alternate)_ | `ywrzgursvdowzyhipsmt`                        | Empty, parked, **not canonical** — see ADR-0001                                                |
 
 Per `migration-plan.md` §5, migrations reach production only via a protected workflow with manual approval — never via MCP `apply_migration`, dashboard SQL, or any ad-hoc path. That rule is what the brownfield project's 52 out-of-band migrations exist to warn us about.

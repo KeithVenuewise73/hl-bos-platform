@@ -1,0 +1,68 @@
+name: Deploy (protected)
+#
+# Protected, manual-only deployment of Supabase Edge Functions for the
+# canonical HL-BOS project (mvvtngiopdrgiedjmhfb, HL-BOS Core). See ADR-0001.
+#
+# THIS WORKFLOW IS INERT UNTIL THE CEO ARMS IT (same prerequisites as
+# db-migrate.yml): a `production` GitHub Environment with required reviewers,
+# secret SUPABASE_ACCESS_TOKEN, and variable SUPABASE_PROJECT_REF.
+#
+# Scope: Edge Functions only (ai-gateway, events-dispatcher, billing-webhook).
+# Frontend/worker application hosting is NOT chosen yet (no Vercel/Coolify), so
+# there is deliberately no app-deploy job here — it is added when the CEO picks
+# a host (see docs/visibilityai/phase-1-enablement/03-deployment-and-migration-plan.md).
+#
+# Rules: never auto-deploys (workflow_dispatch only); functions are gated on the
+# `production` environment approval; provider API keys are Vault entries read at
+# runtime by the functions — this workflow never handles their values.
+
+on:
+  workflow_dispatch:
+    inputs:
+      functions:
+        description: "Space-separated function slugs to deploy, or 'all'."
+        type: string
+        default: "all"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  deploy-functions:
+    name: Deploy Edge Functions (manual approval gate)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment: production
+    steps:
+      - uses: actions/checkout@v6
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+      - name: Guard — refuse to run without an armed target
+        run: |
+          if [ -z "${{ vars.SUPABASE_PROJECT_REF }}" ]; then
+            echo "SUPABASE_PROJECT_REF is not set. Refusing to deploy." >&2
+            exit 1
+          fi
+      - name: Link canonical project
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        run: supabase link --project-ref "${{ vars.SUPABASE_PROJECT_REF }}"
+      - name: Deploy functions
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        run: |
+          set -euo pipefail
+          if [ "${{ github.event.inputs.functions }}" = "all" ]; then
+            targets="ai-gateway events-dispatcher billing-webhook"
+          else
+            targets="${{ github.event.inputs.functions }}"
+          fi
+          for fn in $targets; do
+            echo "Deploying $fn"
+            supabase functions deploy "$fn"
+          done

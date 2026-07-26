@@ -1,7 +1,9 @@
 # Runbook — Bootstrap the First `platform_owner`
 
+> **⚠️ CORRECTED 2026-07-26 — see [ADR-0001](../architecture/decisions/0001-canonical-hl-bos-supabase-project.md).** The **Target** below is **stale**. Run this runbook against the canonical project **`mvvtngiopdrgiedjmhfb` (HL-BOS Core)**, not `ywrzgursvdowzyhipsmt` (empty, not canonical).
+
 **Status:** PROPOSED design. Not implemented. **Run once, manually, by the owner.**
-**Target:** `ywrzgursvdowzyhipsmt` (HL-BOS Core, Herman Legacy Software Ventures — Pro)
+**Target:** `mvvtngiopdrgiedjmhfb` (HL-BOS Core, Herman Legacy Software Ventures — Pro) — _was `ywrzgursvdowzyhipsmt`; corrected per ADR-0001_
 **Prerequisite:** Phase 2 migrations `0001`–`0006` applied. This runbook does nothing before then.
 
 ---
