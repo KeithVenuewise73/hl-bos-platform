@@ -3,7 +3,7 @@
 -- Coverage for v0_ai_gateway: permission-gated runs, budget enforcement,
 -- honest cost recording, tenant isolation of the run ledger.
 begin;
-select plan(7);
+select plan(6);
 select tests.seed();
 
 -- a member with ai.run.create can begin a run; a viewer (read-only) cannot
