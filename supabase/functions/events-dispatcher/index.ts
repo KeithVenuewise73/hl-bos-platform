@@ -11,10 +11,18 @@
 import { createClient } from "jsr:@supabase/supabase-js@2";
 
 Deno.serve(async () => {
-  const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
-  const { data: processed, error } = await admin.schema("events").rpc("dispatch_batch", { p_limit: 200 });
-  if (error) return new Response(JSON.stringify({ error: error.message }), { status: 500 });
+  const admin = createClient(
+    Deno.env.get("SUPABASE_URL")!,
+    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+  );
+  const { data: processed, error } = await admin
+    .schema("events")
+    .rpc("dispatch_batch", { p_limit: 200 });
+  if (error)
+    return new Response(JSON.stringify({ error: error.message }), { status: 500 });
   // Deploy-time extension: read queued events.deliveries and invoke each
   // consumer_module handler here (idempotent; mark delivered/failed).
-  return new Response(JSON.stringify({ processed }), { headers: { "content-type": "application/json" } });
+  return new Response(JSON.stringify({ processed }), {
+    headers: { "content-type": "application/json" },
+  });
 });

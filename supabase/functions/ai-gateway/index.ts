@@ -20,53 +20,90 @@ function resolverFor(admin: any): (ref: string) => Promise<string> {
   // Vault resolver: reads a secret by name from Supabase Vault. Never logs it.
   return async (vaultRef: string) => {
     const name = vaultRef.replace(/^vault:/, "");
-    const { data, error } = await admin.schema("vault").from("decrypted_secrets")
-      .select("decrypted_secret").eq("name", name).single();
+    const { data, error } = await admin
+      .schema("vault")
+      .from("decrypted_secrets")
+      .select("decrypted_secret")
+      .eq("name", name)
+      .single();
     if (error || !data) throw new Error(`missing_secret:${name}`);
     return data.decrypted_secret as string;
   };
 }
 
-async function pickProvider(admin: any, modelKey: string): Promise<{ provider: AiProvider; model: any }> {
-  const { data: model } = await admin.schema("ai").from("models")
-    .select("key, provider_key, input_cost, output_cost, is_active").eq("key", modelKey).single();
+async function pickProvider(
+  admin: any,
+  modelKey: string,
+): Promise<{ provider: AiProvider; model: any }> {
+  const { data: model } = await admin
+    .schema("ai")
+    .from("models")
+    .select("key, provider_key, input_cost, output_cost, is_active")
+    .eq("key", modelKey)
+    .single();
   if (!model?.is_active) throw new Error("model_inactive");
-  const { data: prov } = await admin.schema("ai").from("providers")
-    .select("kind, is_active, credential_ref").eq("key", model.provider_key).single();
+  const { data: prov } = await admin
+    .schema("ai")
+    .from("providers")
+    .select("kind, is_active, credential_ref")
+    .eq("key", model.provider_key)
+    .single();
   if (!prov?.is_active) throw new Error("provider_inactive");
   const resolve = resolverFor(admin);
   const provider: AiProvider =
-    prov.kind === "mock" ? new MockProvider()
-    : prov.kind === "anthropic" ? new AnthropicProvider(prov.credential_ref, resolve)
-    : (() => { throw new Error(`provider_unsupported:${prov.kind}`); })();
+    prov.kind === "mock"
+      ? new MockProvider()
+      : prov.kind === "anthropic"
+        ? new AnthropicProvider(prov.credential_ref, resolve)
+        : (() => {
+            throw new Error(`provider_unsupported:${prov.kind}`);
+          })();
   return { provider, model };
 }
 
 Deno.serve(async (req: Request) => {
   try {
     const jwt = req.headers.get("Authorization") ?? "";
-    const { tenantId, prompt, promptKey, promptVersion, modelKey, correlationId } = await req.json();
+    const { tenantId, prompt, promptKey, promptVersion, modelKey, correlationId } =
+      await req.json();
 
     // caller-scoped client (RLS + auth.uid) for the run lifecycle RPCs
-    const caller = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_ANON_KEY")!, {
-      global: { headers: { Authorization: jwt } },
-    });
+    const caller = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_ANON_KEY")!,
+      {
+        global: { headers: { Authorization: jwt } },
+      },
+    );
     // admin client (service role) only for reading catalog + Vault
-    const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+    const admin = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+    );
 
     // begin_run enforces ai.run.create + budget; throws otherwise
     const { data: runId, error: beErr } = await caller.schema("ai").rpc("begin_run", {
-      p_tenant: tenantId, p_prompt: promptKey, p_version: promptVersion, p_model: modelKey, p_correlation: correlationId ?? null,
+      p_tenant: tenantId,
+      p_prompt: promptKey,
+      p_version: promptVersion,
+      p_model: modelKey,
+      p_correlation: correlationId ?? null,
     });
-    if (beErr) return new Response(JSON.stringify({ error: beErr.message }), { status: 403 });
+    if (beErr)
+      return new Response(JSON.stringify({ error: beErr.message }), { status: 403 });
 
     try {
       const { provider, model } = await pickProvider(admin, modelKey);
       const out = await provider.generate({ model: modelKey, prompt });
-      const cost = out.inputTokens * Number(model.input_cost) + out.outputTokens * Number(model.output_cost);
+      const cost =
+        out.inputTokens * Number(model.input_cost) +
+        out.outputTokens * Number(model.output_cost);
       await caller.schema("ai").rpc("finish_run", {
-        p_run: runId, p_input_tokens: out.inputTokens, p_output_tokens: out.outputTokens,
-        p_cost_usd: cost, p_status: "succeeded",
+        p_run: runId,
+        p_input_tokens: out.inputTokens,
+        p_output_tokens: out.outputTokens,
+        p_cost_usd: cost,
+        p_status: "succeeded",
       });
       return new Response(JSON.stringify({ runId, text: out.text, costUsd: cost }), {
         headers: { "content-type": "application/json" },
@@ -74,9 +111,15 @@ Deno.serve(async (req: Request) => {
     } catch (genErr) {
       // provider failure: record the run as failed, never a fabricated success
       await caller.schema("ai").rpc("finish_run", {
-        p_run: runId, p_input_tokens: 0, p_output_tokens: 0, p_cost_usd: 0, p_status: "failed",
+        p_run: runId,
+        p_input_tokens: 0,
+        p_output_tokens: 0,
+        p_cost_usd: 0,
+        p_status: "failed",
       });
-      return new Response(JSON.stringify({ runId, error: String(genErr) }), { status: 502 });
+      return new Response(JSON.stringify({ runId, error: String(genErr) }), {
+        status: 502,
+      });
     }
   } catch (e) {
     return new Response(JSON.stringify({ error: String(e) }), { status: 400 });

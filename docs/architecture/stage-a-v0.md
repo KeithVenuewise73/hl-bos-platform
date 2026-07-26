@@ -8,14 +8,14 @@ correctly, on the live reconciled spine (`platform` / `identity` / `audit`); not
 
 ## Modules delivered
 
-| Schema | Purpose | Key surface |
-| --- | --- | --- |
-| `events` | Transactional outbox event bus | `events.emit()`, `events.dispatch_batch()` |
-| `entitlements` | Feature grants + per-tenant module activation | `has_feature()`, `module_is_active()`, `activate_module()` |
-| `integrations` | Connector registry; Vault-referenced credentials | `upsert_connection()`, `begin_sync()`, `finish_sync()` |
-| `ai` | Model gateway: prompts, run ledger, budgets | `begin_run()`, `finish_run()`, `within_budget()` |
-| `workflows` | Human-approval gate | `request_approval()`, `decide()`, `is_approved()` |
-| `visibility` | VisibilityAI module boundary (sites, content, reviews) | `draft_content()`, `submit_content_for_approval()`, `publish_content()`, `ingest_review()` |
+| Schema         | Purpose                                                | Key surface                                                                                |
+| -------------- | ------------------------------------------------------ | ------------------------------------------------------------------------------------------ |
+| `events`       | Transactional outbox event bus                         | `events.emit()`, `events.dispatch_batch()`                                                 |
+| `entitlements` | Feature grants + per-tenant module activation          | `has_feature()`, `module_is_active()`, `activate_module()`                                 |
+| `integrations` | Connector registry; Vault-referenced credentials       | `upsert_connection()`, `begin_sync()`, `finish_sync()`                                     |
+| `ai`           | Model gateway: prompts, run ledger, budgets            | `begin_run()`, `finish_run()`, `within_budget()`                                           |
+| `workflows`    | Human-approval gate                                    | `request_approval()`, `decide()`, `is_approved()`                                          |
+| `visibility`   | VisibilityAI module boundary (sites, content, reviews) | `draft_content()`, `submit_content_for_approval()`, `publish_content()`, `ingest_review()` |
 
 ## Conventions (inherited from the spine)
 

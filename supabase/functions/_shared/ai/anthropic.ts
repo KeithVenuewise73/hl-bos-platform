@@ -4,7 +4,12 @@
 // exercised in V0 validation (no live credential). When a key is granted at
 // deploy, ai.providers row 'anthropic' is set is_active=true and this adapter
 // becomes selectable by the gateway. Default model tier: latest Claude family.
-import type { AiProvider, GenerateRequest, GenerateResult, SecretResolver } from "./provider.ts";
+import type {
+  AiProvider,
+  GenerateRequest,
+  GenerateResult,
+  SecretResolver,
+} from "./provider.ts";
 
 export class AnthropicProvider implements AiProvider {
   readonly kind = "anthropic" as const;
@@ -35,8 +40,15 @@ export class AnthropicProvider implements AiProvider {
     }
     const data = await resp.json();
     const usage = data.usage ?? { input_tokens: 0, output_tokens: 0 };
-    const text = (data.content ?? []).map((b: { text?: string }) => b.text ?? "").join("");
+    const text = (data.content ?? [])
+      .map((b: { text?: string }) => b.text ?? "")
+      .join("");
     // cost is computed by the gateway from ai.models pricing; provider returns tokens
-    return { text, inputTokens: usage.input_tokens, outputTokens: usage.output_tokens, costUsd: 0 };
+    return {
+      text,
+      inputTokens: usage.input_tokens,
+      outputTokens: usage.output_tokens,
+      costUsd: 0,
+    };
   }
 }
