@@ -15,6 +15,9 @@ import { createClient } from "jsr:@supabase/supabase-js@2";
 import type { AiProvider } from "../_shared/ai/provider.ts";
 import { MockProvider } from "../_shared/ai/mock.ts";
 import { AnthropicProvider } from "../_shared/ai/anthropic.ts";
+import { redact } from "../_shared/ai/redact.ts";
+import { validateStructuredOutput } from "../_shared/ai/structured.ts";
+import { withRetry } from "../_shared/ai/retry.ts";
 
 function resolverFor(admin: any): (ref: string) => Promise<string> {
   // Vault resolver: reads a secret by name from Supabase Vault. Never logs it.
@@ -64,8 +67,18 @@ async function pickProvider(
 Deno.serve(async (req: Request) => {
   try {
     const jwt = req.headers.get("Authorization") ?? "";
-    const { tenantId, prompt, promptKey, promptVersion, modelKey, correlationId } =
-      await req.json();
+    const {
+      tenantId,
+      prompt,
+      promptKey,
+      promptVersion,
+      modelKey,
+      correlationId,
+      // optional runtime controls
+      expectJson, // when true, provider text must be valid JSON or the run fails
+      requiredKeys, // optional top-level keys the JSON must contain
+      retries, // total provider attempts (default 2 = one retry)
+    } = await req.json();
 
     // caller-scoped client (RLS + auth.uid) for the run lifecycle RPCs
     const caller = createClient(
@@ -94,7 +107,20 @@ Deno.serve(async (req: Request) => {
 
     try {
       const { provider, model } = await pickProvider(admin, modelKey);
-      const out = await provider.generate({ model: modelKey, prompt });
+      // Retry ONLY the provider call, inside the single pending run. begin_run
+      // already created exactly one run; finish_run below runs once. So a
+      // retried-then-succeeded call is one run, one completion — no duplication.
+      const out = await withRetry(
+        () => provider.generate({ model: modelKey, prompt }),
+        {
+          attempts: typeof retries === "number" ? retries : 2,
+        },
+      );
+      // Structured-output gate: if JSON was requested, it must parse (and carry
+      // any required keys) or this is a FAILED run, not a success.
+      if (expectJson) {
+        validateStructuredOutput(out.text, { requiredKeys });
+      }
       const cost =
         out.inputTokens * Number(model.input_cost) +
         out.outputTokens * Number(model.output_cost);
@@ -109,7 +135,9 @@ Deno.serve(async (req: Request) => {
         headers: { "content-type": "application/json" },
       });
     } catch (genErr) {
-      // provider failure: record the run as failed, never a fabricated success
+      // provider failure OR invalid structured output: record the run as
+      // failed, never a fabricated success. Error text is redacted before it
+      // leaves the process, so a leaked key/token cannot ride out in the body.
       await caller.schema("ai").rpc("finish_run", {
         p_run: runId,
         p_input_tokens: 0,
@@ -117,11 +145,11 @@ Deno.serve(async (req: Request) => {
         p_cost_usd: 0,
         p_status: "failed",
       });
-      return new Response(JSON.stringify({ runId, error: String(genErr) }), {
+      return new Response(JSON.stringify({ runId, error: redact(String(genErr)) }), {
         status: 502,
       });
     }
   } catch (e) {
-    return new Response(JSON.stringify({ error: String(e) }), { status: 400 });
+    return new Response(JSON.stringify({ error: redact(String(e)) }), { status: 400 });
   }
 });

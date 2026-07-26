@@ -12,7 +12,7 @@ Turning the built HL-BOS foundation + VisibilityAI assessment engine into a work
 | 2   | [Environment Reconciliation Report](02-environment-reconciliation-report.md)     | 1          | ✅ Done                                                                               |
 | 3   | [Deployment & Migration Plan](03-deployment-and-migration-plan.md)               | 1          | ✅ Done (workflows authored, inert)                                                   |
 | —   | [Retirement-Readiness — empty project](04-retirement-readiness-empty-project.md) | 1          | ✅ Done (park, do not retire)                                                         |
-| 4   | Shared AI Enablement Report                                                      | 2          | ⏳ Pending                                                                            |
+| 4   | [Shared AI Enablement Report](05-shared-ai-enablement-report.md)                 | 2          | ✅ Done (local; mock provider)                                                        |
 | 5   | Communications Architecture                                                      | 3          | ⏳ Pending                                                                            |
 | 6   | Storage Architecture                                                             | 3          | ⏳ Pending                                                                            |
 | 7   | Website Scanner Architecture                                                     | 4          | ⏳ Pending                                                                            |
@@ -25,7 +25,7 @@ Turning the built HL-BOS foundation + VisibilityAI assessment engine into a work
 ## Checkpoints
 
 1. **Canonical project & deployment controls** — ADR, stale-ref corrections, protected `db-migrate.yml` + `deploy.yml` (inert), env reconciliation, retirement-readiness. **← current; report then stop before production deployment.**
-2. AI & background runtime — activate AI gateway, event dispatcher, smoke tests, cost tracking.
+2. AI & background runtime — activate AI gateway, event dispatcher, smoke tests, cost tracking. **← done locally (mock provider); 24 pgTAP + 8 Deno assertions passing.**
 3. Shared storage & communications — schemas, provider interfaces, RLS, consent, tests.
 4. Website scanner — SSRF-safe worker, evidence collection, assessment integration, human-review handoff.
 5. Internal end-to-end test — an authorized Herman Legacy-controlled public site.

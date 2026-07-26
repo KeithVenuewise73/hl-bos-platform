@@ -201,3 +201,21 @@ jobs:
       - uses: actions/checkout@v6
       - name: Validate migration filenames and content
         run: bash scripts/check-migrations.sh
+
+  functions-tests:
+    name: Edge function tests (Deno)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    # Deno unit tests for the AI-gateway edge layer (provider adapters, secret
+    # redaction, structured-output validation, retry). Deno is installed via its
+    # official script rather than a third-party action, to avoid any action
+    # Node-runtime pinning concern. The tests import only local _shared modules
+    # (no remote deps), so they run offline once Deno is present.
+    steps:
+      - uses: actions/checkout@v6
+      - name: Install Deno
+        run: |
+          curl -fsSL https://deno.land/install.sh | DENO_INSTALL="$HOME/.deno" sh
+          echo "$HOME/.deno/bin" >> "$GITHUB_PATH"
+      - name: Run edge function unit tests
+        run: deno test --no-check supabase/functions/tests/

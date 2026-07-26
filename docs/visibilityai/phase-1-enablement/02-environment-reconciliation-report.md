@@ -35,13 +35,14 @@ Classification: **Operational · Partially operational · Configured-unverified 
 - `docs/operations/phase-2-implementation-report.md`, `PR_BODY_phase2.md` — already note the change.
 
 **Stale references — corrected this checkpoint (banner + fix, history preserved):**
-| File | Was | Action |
-| --- | --- | --- |
-| `docs/operations/environments.md` | `ywrzgursvdowzyhipsmt` as production (table + preview/prod rows + URL) | Table corrected to `mvvtngiopdrgiedjmhfb`; banner added |
-| `docs/operations/migration-plan.md` | greenfield = `ywrzgursvdowzyhipsmt` | Correction banner added |
-| `docs/operations/phase-2-migration-set.md` | Target `ywrzgursvdowzyhipsmt` | Correction banner added |
-| `docs/operations/bootstrap-first-platform-owner.md` | Target `ywrzgursvdowzyhipsmt` | Target corrected + banner |
-| `docs/architecture/permission-model.md` | Target `ywrzgursvdowzyhipsmt` | Target corrected + banner |
+
+| File                                                | Was                                                                    | Action                                                  |
+| --------------------------------------------------- | ---------------------------------------------------------------------- | ------------------------------------------------------- |
+| `docs/operations/environments.md`                   | `ywrzgursvdowzyhipsmt` as production (table + preview/prod rows + URL) | Table corrected to `mvvtngiopdrgiedjmhfb`; banner added |
+| `docs/operations/migration-plan.md`                 | greenfield = `ywrzgursvdowzyhipsmt`                                    | Correction banner added                                 |
+| `docs/operations/phase-2-migration-set.md`          | Target `ywrzgursvdowzyhipsmt`                                          | Correction banner added                                 |
+| `docs/operations/bootstrap-first-platform-owner.md` | Target `ywrzgursvdowzyhipsmt`                                          | Target corrected + banner                               |
+| `docs/architecture/permission-model.md`             | Target `ywrzgursvdowzyhipsmt`                                          | Target corrected + banner                               |
 
 **No secret or runtime configuration hardcoded either ref**, so no code/config change was needed beyond docs. `.env.example` uses a placeholder URL; project refs are runtime-supplied via `@hl-bos/config`.
 
