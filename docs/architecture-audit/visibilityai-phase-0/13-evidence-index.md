@@ -1,0 +1,50 @@
+# Deliverable 13 — Evidence Index
+
+**Audit:** VisibilityAI Phase 0
+**Date:** 2026-07-26
+
+Every major conclusion, its evidence, and a confidence level. Evidence types: **Repo** (file in this repository), **DB** (live read-only catalog query against HL-BOS Core `mvvtngiopdrgiedjmhfb`), **Advisor** (Supabase security advisor), **API** (GitHub/Supabase management API), **Doc** (repository documentation, treated as a claim).
+
+| #   | Finding                                                               | Evidence type | Path / object                                                 | Detail                                            | Confidence                        |
+| --- | --------------------------------------------------------------------- | ------------- | ------------------------------------------------------------- | ------------------------------------------------- | --------------------------------- |
+| 1   | HL-BOS Core is the canonical project with 17 migrations live          | DB + API      | `mvvtngiopdrgiedjmhfb`                                        | `list_migrations` returns 0001–0017; matches repo | High                              |
+| 2   | Second project `ywrzgursvdowzyhipsmt` is empty                        | DB            | `ywrzgursvdowzyhipsmt`                                        | 0 migrations, 0 tables                            | High                              |
+| 3   | Legacy 156-table project is unreachable / out of scope                | API + Doc     | `list_projects`; `CLAUDE.md`                                  | Not in token scope                                | High                              |
+| 4   | 49 tables, 100% RLS enabled + FORCED                                  | DB            | pg_class over 10 schemas                                      | 49/49 enabled & forced                            | High                              |
+| 5   | 0 SECURITY DEFINER functions with mutable search_path                 | DB            | pg_proc.proconfig                                             | secdef_no_searchpath = 0                          | High                              |
+| 6   | 58 policies, 54 functions, 42 triggers                                | DB            | pg_policy/pg_proc/pg_trigger                                  | per-schema counts                                 | High                              |
+| 7   | 2 tables RLS-on-no-policy (fail-closed)                               | DB + Advisor  | `ai.guardrails`, `integrations.webhook_events`                | advisor INFO ×2                                   | High                              |
+| 8   | 0 ERROR advisors; 2 WARN (pgtap in public, leaked-pw off)             | Advisor       | `get_advisors(security)`                                      | —                                                 | High                              |
+| 9   | Permission-based RLS (not role-name)                                  | Repo          | mig 0003                                                      | policies call `has_permission()`                  | High                              |
+| 10  | Tenant id is a filter never proof; `auth.uid()` in every helper       | Repo          | mig 0003 fns                                                  | verified each body                                | High                              |
+| 11  | Audit is append-only, immutable even to service_role                  | Repo          | mig 0004                                                      | `reject_mutation` trigger                         | High                              |
+| 12  | No-escalation rule enforced in policies                               | Repo          | mig 0003 `can_grant_role`; test 07                            | subset check                                      | High                              |
+| 13  | Anti-fabrication: reviews/invoices/payments no tenant write path      | Repo          | mig 0014/0016; tests 15/17                                    | definer-only writes                               | High                              |
+| 14  | Human gate before publish/refund                                      | Repo          | mig 0013/0014/0016                                            | `is_approved` required                            | High                              |
+| 15  | One tenancy model (`platform.tenants`), no org/tenant duplication     | Repo + DB     | mig 0002/0007/0008                                            | class first_party/customer                        | High                              |
+| 16  | No second identity store (profiles PK = auth.users.id)                | Repo          | mig 0002                                                      | —                                                 | High                              |
+| 17  | Billing reuses tenant/entitlements; no duplicate customer             | Repo          | mig 0015/0016                                                 | `reconcile_entitlements`                          | High                              |
+| 18  | 43 permissions, 125 grants, 8 roles seeded                            | DB            | identity.\* row counts                                        | matches migrations                                | High                              |
+| 19  | 16 assessment categories + growth-score engine live                   | Repo + DB     | mig 0017; `assessment_categories`=16                          | weighted 0–100                                    | High                              |
+| 20  | Edge functions exist in source but 0 deployed                         | Repo + API    | `functions/*`; `list_edge_functions`=[]                       | —                                                 | High                              |
+| 21  | ai-gateway real wiring; anthropic inert (no key); mock active         | Repo          | `functions/ai-gateway`, `_shared/ai/*`                        | —                                                 | High                              |
+| 22  | billing-webhook is a stub (501); stripe adapter stub                  | Repo          | `functions/billing-webhook`, `_shared/billing/stripe.ts`      | —                                                 | High                              |
+| 23  | Secrets are Vault references only; none in repo                       | Repo          | CHECK constraints mig 0011/0012/0015; gitleaks CI             | `vault:` form enforced                            | High                              |
+| 24  | 18 tests (17 pgTAP, 166 assertions + 1 concurrency)                   | Repo          | `supabase/tests/*`, `scripts/local-test/concurrency.cjs`      | plan counts summed                                | High                              |
+| 25  | CI runs DB tests; no deploy job                                       | Repo          | `.github/workflows/ci.yml`                                    | `supabase test db`; no deploy                     | High                              |
+| 26  | Control Center is local-only by design                                | Repo          | `apps/control-center/next.config.ts`, README                  | origin-locked to localhost                        | High                              |
+| 27  | `@hl-bos/config` is the only sanctioned process.env reader            | Repo          | `packages/config`, `eslint.config.mjs`                        | ESLint-enforced                                   | High                              |
+| 28  | communications / storage / reporting absent                           | Repo + DB     | no schema/buckets                                             | —                                                 | High                              |
+| 29  | pg_cron/pg_net available but not installed                            | Repo + Doc    | mig 0009 header; `stage-a-v0.md`                              | —                                                 | Medium (avail claim is doc)       |
+| 30  | Migrations applied out-of-band; no protected apply workflow           | Repo          | `ci.yml` (no deploy) + live migrations                        | governance gap                                    | High                              |
+| 31  | Docs assert "nothing applied" — stale vs 17 live migrations           | Doc + DB      | `environments.md`, `phase-2-*`, `PR_BODY_phase2.md`           | contradiction                                     | High                              |
+| 32  | `environments.md` names wrong project ref                             | Doc           | `environments.md` vs `PR_BODY_phase2.md`                      | flagged by newer doc                              | High                              |
+| 33  | Legacy SEC-1 (2,481 anon-writable rows) is in the legacy project only | Doc           | `current-state-audit.md`, `SECURITY.md`                       | unverifiable here                                 | Medium (doc; project unreachable) |
+| 34  | Products beyond HL-BOS/VisibilityAI/Control Center have no code       | Repo          | `registry.ts`                                                 | 9 products, most `not-started`                    | High                              |
+| 35  | Strangler-fig plan superseded by greenfield decision                  | Doc           | `migration-plan.md`, `environments.md` (Option 2, 2026-07-15) | HL-BOS Core is greenfield                         | High                              |
+
+## Confidence notes
+
+- **High** = verified directly against the live database catalog or read in the repository source this session.
+- **Medium** = relies on a documentation claim about a resource not directly reachable (legacy project; extension availability). These are flagged in-line.
+- No conclusion in this audit rests on an unverified assumption presented as fact. Where the docs and the deployed reality conflict (rows 31–32), the **deployed reality** is treated as authoritative and the doc is flagged stale.
