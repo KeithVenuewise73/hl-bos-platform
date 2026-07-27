@@ -1,0 +1,48 @@
+# Checkpoint 8B — Duplicate & Unsafe Legacy Implementation Report
+
+**Date:** 2026-07-27 · **Checkpoint:** 8B · **Method:** read-only inspection of committed legacy SQL + the legacy team's own `rls-baseline.md`. No legacy asset altered.
+
+> **Covers required deliverables 8 (Duplicate-implementation register) and 9 (Unsafe-implementation register).** Context: [Reuse & Evidence Analysis](67-checkpoint8b-legacy-asset-discovery-reuse-analysis.md) · [Venuewise & Huddle Evidence](68-venuewise-huddle-evidence.md).
+
+## Purpose and the honesty boundary
+
+This report says plainly where the legacy estate **re-implements a capability HL-BOS already has** (so HLVS does not treat it as greenfield or, worse, copy it in) and where the legacy estate is **structurally unsafe by HL-BOS standards** (so no unsafe pattern is ever migrated). Every finding below is from committed source or the legacy team's own captured baseline — none is inferred. Where the live project could not be re-queried by this session, the finding is tagged **[captured]** (from `rls-baseline.md`) rather than **[verified-now]**.
+
+## 1. Duplicate-implementation register (deliverable 8)
+
+Capabilities the legacy estate implements that **already exist, properly, in HL-BOS**. The correct action is **`reuse_existing_hlbos`** — do not copy legacy code; where the legacy version must keep running, it is a `retain_in_venuewise` until convergence.
+
+| #   | Legacy implementation                                                   | HL-BOS canonical implementation                                             | Why HL-BOS wins                                                | Action                                  |
+| --- | ----------------------------------------------------------------------- | --------------------------------------------------------------------------- | -------------------------------------------------------------- | --------------------------------------- |
+| D1  | Identity via `users_profile` + `is_admin()` JWT claim                   | `identity` schema: permissions, `has_permission`, `has_platform_permission` | Fine-grained permission vocab vs. a single boolean admin claim | reuse HL-BOS                            |
+| D2  | Tenancy = "one shared project, tenancy planned later" (VPS §4)          | `platform` tenants + tenant-scoped RLS **already enforced**                 | Real isolation today vs. aspirational `workspace_id`           | reuse HL-BOS / **convergence decision** |
+| D3  | Admin authorization via `auth.jwt()->'app_metadata'->>'role' = 'admin'` | `identity.has_platform_permission(...)`                                     | Central, auditable, revocable; not a static token claim        | reuse HL-BOS                            |
+| D4  | Analytics via `page_views` / `analytics_data`                           | `audit` + `events` outbox + analytics                                       | Append-only, tamper-evident, RLS+FORCE                         | reuse HL-BOS (re-instrument)            |
+| D5  | Media metadata ad hoc in product tables + Storage                       | `storage_meta`                                                              | One governed file-metadata plane                               | reuse HL-BOS                            |
+| D6  | Messaging/Payments named as future engines (VPS §3)                     | `comms`, `billing` — built and tested                                       | Already exist on the spine                                     | reuse HL-BOS                            |
+| D7  | Event bus / async work (implicit, via Edge Functions)                   | `events.emit` outbox + CP5 shared dispatcher                                | One transactional outbox, no second bus                        | reuse HL-BOS                            |
+
+**Bottom line:** the legacy estate duplicates HL-BOS's identity, tenancy, audit/analytics, media-metadata, messaging/payments, and eventing concerns. **None should be extracted as code.** They confirm the requirement set; HL-BOS is the implementation.
+
+## 2. Unsafe-implementation register (deliverable 9)
+
+Patterns in the legacy estate that are **unsafe by the HL-BOS standing constraints** (RLS + **FORCE** on every table; permission-checked writes; no anon writes; tenant isolation; no admin-by-JWT-claim). These are documented so **no unsafe pattern is ever migrated into HL-BOS**, and so the CEO sees the real security delta. Several are already acknowledged by the legacy team in `rls-baseline.md`.
+
+| #   | Unsafe pattern                                                                                 | Evidence                                                                                                                                        | Risk                                                                                        | HL-BOS rule it violates                                                     |
+| --- | ---------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------- |
+| U1  | **No `FORCE ROW LEVEL SECURITY`** on any table                                                 | `grep 'force row level security'` = **0** across all 7 committed SQL files                                                                      | A table owner / definer path bypasses RLS silently                                          | HL-BOS: RLS **+ FORCE** on every table                                      |
+| U2  | **Unauthenticated anon `INSERT WITH CHECK (true)`** on intake tables                           | `anon_insert_leads`, `anon_insert_page_views`, `anon_insert_submissions` (committed) + **[captured]** ~19 tables in `rls-baseline.md` Finding 1 | Anyone with the public anon key writes arbitrary rows (spam/abuse/poisoning)                | HL-BOS: writes require `has_permission(...)`; no anon writes                |
+| U3  | **Admin-by-JWT-claim** (`app_metadata.role = 'admin'`) grants `FOR ALL`                        | 4 `admin_all_*` policies in `venuewise-ecosystem-schema.sql`                                                                                    | Full table control keyed to a static token claim, not a checked/revocable permission        | HL-BOS: platform-permission checks, centrally revocable                     |
+| U4  | **Single shared Supabase project, no tenant boundary**                                         | `config.js` one `url`/`anonKey` for every product; VPS §4 defers tenancy                                                                        | One project = one blast radius across all brands/customers                                  | HL-BOS: tenant-scoped isolation from day one                                |
+| U5  | **Browser holds the anon key + talks straight to PostgREST**                                   | `shared/supabase.js` + hardcoded `sb_publishable_...` in HTML                                                                                   | All authorization rests on RLS quality alone; no server mediation of writes                 | HL-BOS: Edge Functions mediate; deterministic engines gate                  |
+| U6  | **[captured] RLS-enabled tables with no policies** relied on as "deny-all except service_role" | `rls-baseline.md` Finding 3 (`admin_users`, `bookings`, `facilities`, …)                                                                        | Silent-fail if a page reads them with anon; intent unconfirmed per table                    | HL-BOS: explicit, tested policies per table                                 |
+| U7  | **[captured] Redundant/duplicate & likely-dead policies**                                      | `rls-baseline.md` Finding 2 (dup anon-insert policies) + Finding 3 (`coach_connections` predicate can never match)                              | Confusing surface; dead policy reads as protection that isn't there                         | HL-BOS: "never leave a control that controls nothing"                       |
+| U8  | Public anon key committed in repo history                                                      | `config.js`, many HTML files                                                                                                                    | Not a secret leak (anon keys are public by design) but couples all sites to one project ref | — (informational; **no service_role or live secret was found in any repo**) |
+
+**Clearance note (honesty rule):** the anon/publishable keys in `config.js` are **public by design**, not a secret exposure. A read of the committed SQL and static assets found **no `service_role` key, no live API secret, and no private credential** in any inspected repo. U8 is coupling risk, not a breach.
+
+## 3. Migration safety verdict
+
+- **Do not migrate any legacy DDL or policy as-is.** Every unsafe pattern above (U1–U7) is disqualifying under HL-BOS constraints.
+- **Migrate requirements, not code.** The domain model (D-register capabilities) is re-expressed on the HL-BOS spine with RLS+FORCE, permission-checked writes, and tenant isolation — `adapt_before_migration`.
+- **Nothing is migrated in CP8B.** This is the register that a future, separately-approved migration must satisfy — see the [Migration Sequence](72-hlvs-catalog-registration-and-migration-sequence.md).

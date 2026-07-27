@@ -38,3 +38,20 @@ Architecture-level documentation for the Herman Legacy platform. Phase-0 audit a
 
 **Migration:** `supabase/migrations/20260727090200_hlbos_0025_hlvs_factory.sql` (`hlvs` schema).
 **Tests:** `supabase/tests/27_hlvs_factory.sql` (90 pgTAP), `supabase/functions/tests/hlvs_factory.test.ts` (14 Deno), TS in `supabase/functions/_shared/hlvs/*`. Suite totals: **560 pgTAP + 93 Deno**.
+
+## Checkpoint 8B — Venuewise, Huddle, HighlightAI & BroadcastAI Legacy Asset Discovery
+
+Evidence discovery, classification & migration planning only — **no migration, no production code, no legacy asset altered.** These docs correct any assumption that CP8's "greenfield" applied beyond the `hl-bos-platform` repo/DB.
+
+| #      | Deliverable(s)                                                                       | Doc                                                                                                      |
+| ------ | ------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------- |
+| 1–3,19 | Access report · Repo/branch inventory · Pages inventory · Manual-access requirements | [67 · Reuse & Evidence Analysis](67-checkpoint8b-legacy-asset-discovery-reuse-analysis.md)               |
+| 4–7    | Venuewise evidence · Huddle evidence · Capability matrix · Migration-candidate map   | [68 · Venuewise & Huddle Evidence](68-venuewise-huddle-evidence.md)                                      |
+| 8–9    | Duplicate-implementation register · Unsafe-implementation register                   | [69 · Duplicate & Unsafe Report](69-duplicate-and-unsafe-legacy-report.md)                               |
+| 10–14  | HighlightAI + BroadcastAI evidence audits · determinations · video-AI gap statement  | [70 · Video-AI Evidence Audit](70-highlightai-broadcastai-evidence-audit.md)                             |
+| 15–16  | Shared media-platform capability map · Venuewise product boundary                    | [71 · Media Platform Capability Map](71-media-platform-capability-map.md)                                |
+| 17–18  | HLVS catalog registration proposals · Exact migration sequence                       | [72 · Catalog Registration & Migration Sequence](72-hlvs-catalog-registration-and-migration-sequence.md) |
+| 20     | CEO decision & authorization report                                                  | [73 · CEO Decision Report](73-checkpoint8b-ceo-decision-report.md)                                       |
+| 21     | Completion report — answers the 10 questions                                         | [74 · Completion Report](74-checkpoint8b-completion-report.md)                                           |
+
+**Headline findings:** the legacy estate is **live, not greenfield** (Venuewise Core → `venuewise.net`, 5 Star Sports Media → `5starsportsmedia.com`, one shared Supabase project); **HighlightAI and BroadcastAI were not found** as working software (only a YouTube-embed gallery), so they are genuinely greenfield; legacy security patterns (no FORCE RLS, anon INSERT, admin-by-JWT-claim, single shared project) **must never be migrated**; and Venuewise Core overlaps HL-BOS's own multi-tenant purpose — a **converge-vs-coexist decision for the CEO.**
