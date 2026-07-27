@@ -37,6 +37,20 @@ Turning the built HL-BOS foundation + VisibilityAI assessment engine into a work
 | —   | [CP5 Known Limitations](27-known-limitations.md)                                                   | 5          | ✅ Done                                                                               |
 | —   | [CP5 CEO Decision & Authorization](28-checkpoint5-ceo-decision-report.md)                          | 5          | ✅ Done                                                                               |
 | —   | [CP5 Completion Summary](29-checkpoint5-completion-summary.md)                                     | 5          | ✅ Done                                                                               |
+| —   | [CP6 Reuse Analysis](30-checkpoint6-reuse-analysis.md)                                             | 6          | ✅ Done                                                                               |
+| —   | [Blueprint Architecture](31-blueprint-architecture.md)                                             | 6          | ✅ Done (local; engine tested)                                                        |
+| —   | [Service Catalog Spec](32-service-catalog-spec.md)                                                 | 6          | ✅ Done (provisional; no prices)                                                      |
+| —   | [Module Catalog Spec](33-module-catalog-spec.md)                                                   | 6          | ✅ Done (no provisioning)                                                             |
+| —   | [Recommendation Rules & Priority Model](34-recommendation-rules-and-priority.md)                   | 6          | ✅ Done (data-driven, versioned)                                                      |
+| —   | [Impact & ROI Modeling Spec](35-impact-and-roi-modeling.md)                                        | 6          | ✅ Done (assumption-based, no guarantees)                                             |
+| —   | [Blueprint Lifecycle & Workflow](36-blueprint-lifecycle-and-workflow.md)                           | 6          | ✅ Done (AI cannot self-approve)                                                      |
+| —   | [Evidence Traceability](37-evidence-traceability.md)                                               | 6          | ✅ Done                                                                               |
+| —   | [Proposal & Provisioning Interface](38-proposal-and-provisioning-interface.md)                     | 6          | ✅ Done (interfaces only)                                                             |
+| —   | [Blueprint Operations Runbook](39-blueprint-operations-runbook.md)                                 | 6          | ✅ Done                                                                               |
+| —   | [CP6 Test Coverage](40-blueprint-test-coverage.md)                                                 | 6          | ✅ Done (380 pgTAP + 65 Deno)                                                         |
+| —   | [CP6 Known Limitations](41-blueprint-known-limitations.md)                                         | 6          | ✅ Done                                                                               |
+| —   | [CP6 CEO Decision & Authorization](42-checkpoint6-ceo-decision-report.md)                          | 6          | ✅ Done                                                                               |
+| —   | [CP6 Completion Summary](43-checkpoint6-completion-summary.md)                                     | 6          | ✅ Done                                                                               |
 
 ## Checkpoints
 
@@ -45,6 +59,7 @@ Turning the built HL-BOS foundation + VisibilityAI assessment engine into a work
 3. Shared storage & communications — schemas, provider interfaces, RLS, consent, tests. **← done locally; migrations 0018/0019; 51 new pgTAP + 6 Deno assertions passing.**
 4. **Business Discovery Engine foundation** — reusable `discovery` schema (migration 0020): collector registry, unified Business Profile + evidence, Digital Maturity + Business Health frameworks, assessment lifecycle via workflows. **← done locally; 34 new pgTAP assertions. The Website Scanner is now Discovery Module 1 (an evidence collector).**
 5. **Website Assessment collector (Discovery Module 1)** — SSRF-safe deterministic evidence collection into the Discovery Engine; shared event handler-invocation (migration 0021); scan lifecycle + collector activation (migration 0022); data-driven rubric scoring; prompt-injection fencing; mock AI/PageSpeed. **← done locally; migrations 0021/0022; +40 pgTAP + 30 Deno assertions (315 pgTAP + 44 Deno total). Live crawl/AI/PageSpeed/scheduler remain CEO-gated.**
+6. **Business Transformation Blueprint Engine** — converts a completed assessment into a structured, versioned, evidence-traceable transformation plan (migration 0023): extended blueprints/recommendations, data-driven service + module + phase catalogs, versioned recommendation rules, transparent priority model, honest assumption-based impact estimates, controlled lifecycle with human approval (AI can never self-approve). Reuses the discovery/workflow/events/AI/storage/comms/billing spine; inert worker on the CP5 dispatcher. **← done locally; migration 0023; +65 pgTAP + 21 Deno assertions (380 pgTAP + 65 Deno total). Live AI/scheduler/proposal/provisioning/prices remain CEO-gated.**
 
 ## Governance
 
