@@ -26,12 +26,17 @@ Turning the built HL-BOS foundation + VisibilityAI assessment engine into a work
 | —   | [CP4 Test Coverage](16-checkpoint4-test-coverage.md)                                               | 4          | ✅ Done (275 pgTAP + 14 Deno)                                                         |
 | —   | [CP4 CEO Decision Report](17-checkpoint4-ceo-decision-report.md)                                   | 4          | ✅ Done                                                                               |
 | —   | [CP4 Completion Summary](18-checkpoint4-completion-summary.md)                                     | 4          | ✅ Done                                                                               |
-| 7   | Website Scanner Architecture (now Discovery Module 1)                                              | 5          | ⏳ Pending (CP5)                                                                      |
-| 8   | Database Reuse Matrix                                                                              | 2–4        | ⏳ Pending (per new object)                                                           |
-| 9   | Security Threat Model                                                                              | 2–4        | ⏳ Pending                                                                            |
-| 10  | Test Plan & Results                                                                                | all        | ⏳ Pending                                                                            |
-| 11  | Operational Runbook                                                                                | 2–4        | ⏳ Pending                                                                            |
-| 12  | Phase 1 Readiness Report                                                                           | 5          | ⏳ Pending                                                                            |
+| —   | [CP5 Reuse Analysis](19-checkpoint5-reuse-analysis.md)                                             | 5          | ✅ Done                                                                               |
+| 7   | [Website Assessment Architecture (Discovery Module 1)](20-website-assessment-architecture.md)      | 5          | ✅ Done (local; core tested)                                                          |
+| —   | [SSRF & Crawl Security Report](21-ssrf-and-crawl-security.md)                                      | 5          | ✅ Done                                                                               |
+| —   | [Website Evidence & Scoring Spec](22-website-evidence-and-scoring.md)                              | 5          | ✅ Done                                                                               |
+| —   | [Shared Dispatcher Handler-Invocation](23-shared-dispatcher-handler-invocation.md)                 | 5          | ✅ Done (migration 0021)                                                              |
+| —   | [Website Scanner Operations Runbook](24-website-scanner-operations-runbook.md)                     | 5          | ✅ Done                                                                               |
+| —   | [Website Provider & Secret Configuration](25-website-provider-and-secret-configuration.md)         | 5          | ✅ Done (names only; no secret created)                                               |
+| —   | [CP5 Test Coverage](26-website-test-coverage.md)                                                   | 5          | ✅ Done (315 pgTAP + 44 Deno)                                                         |
+| —   | [CP5 Known Limitations](27-known-limitations.md)                                                   | 5          | ✅ Done                                                                               |
+| —   | [CP5 CEO Decision & Authorization](28-checkpoint5-ceo-decision-report.md)                          | 5          | ✅ Done                                                                               |
+| —   | [CP5 Completion Summary](29-checkpoint5-completion-summary.md)                                     | 5          | ✅ Done                                                                               |
 
 ## Checkpoints
 
@@ -39,7 +44,7 @@ Turning the built HL-BOS foundation + VisibilityAI assessment engine into a work
 2. AI & background runtime — activate AI gateway, event dispatcher, smoke tests, cost tracking. **← done locally (mock provider); 24 pgTAP + 8 Deno assertions passing.**
 3. Shared storage & communications — schemas, provider interfaces, RLS, consent, tests. **← done locally; migrations 0018/0019; 51 new pgTAP + 6 Deno assertions passing.**
 4. **Business Discovery Engine foundation** — reusable `discovery` schema (migration 0020): collector registry, unified Business Profile + evidence, Digital Maturity + Business Health frameworks, assessment lifecycle via workflows. **← done locally; 34 new pgTAP assertions. The Website Scanner is now Discovery Module 1 (an evidence collector).**
-5. Website Assessment collector (Discovery Module 1) — SSRF-safe evidence collection into the Discovery Engine; then internal end-to-end test on an authorized Herman Legacy-controlled public site.
+5. **Website Assessment collector (Discovery Module 1)** — SSRF-safe deterministic evidence collection into the Discovery Engine; shared event handler-invocation (migration 0021); scan lifecycle + collector activation (migration 0022); data-driven rubric scoring; prompt-injection fencing; mock AI/PageSpeed. **← done locally; migrations 0021/0022; +40 pgTAP + 30 Deno assertions (315 pgTAP + 44 Deno total). Live crawl/AI/PageSpeed/scheduler remain CEO-gated.**
 
 ## Governance
 

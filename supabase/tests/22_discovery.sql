@@ -41,10 +41,12 @@ select ok((select count(*) from discovery.evidence
            where profile_id=(select id from discovery.profiles where business_name='Acme Salon')) >= 2,
   't_evidence_recorded');
 
--- --- collector extension point: inactive collector is inert -----------------
+-- --- collector extension point: an inactive collector is inert --------------
+-- (social_presence remains an inactive placeholder; website_assessment is
+-- activated by migration 0022, so this uses social_presence.)
 select throws_ok(
   $$ select discovery.start_collection(
-       (select id from discovery.profiles where business_name='Acme Salon'), 'website_assessment') $$,
+       (select id from discovery.profiles where business_name='Acme Salon'), 'social_presence') $$,
   '42501', null, 't_inactive_collector_inert');
 select tests.logout();
 
