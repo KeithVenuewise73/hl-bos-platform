@@ -8,7 +8,7 @@ The `bti` schema — an AI-powered Business Transformation Operating System deli
 
 - **Portfolio registry** (`bti.businesses`) + a **cross-business CEO dashboard** (`bti.ceo_dashboard`).
 - **13-stage engagement lifecycle** with a deterministic stage machine and the Venuewise **analysis-only cap**.
-- **Executive intelligence framework** — 6 domains, 44 dimensions, 10 industry packs (extensible by row).
+- **Executive intelligence framework** — 6 domains, 43 dimensions, 10 industry packs (extensible by row).
 - **Deterministic 7-score engine** (`bti.compute_scores` + `_shared/bti/scoring.ts`), honest nulls.
 - **Executive Blueprint assembly** (17 mandated sections, honest empties) + **Growth Intelligence engine** (priority + ROI + Herman Legacy service).
 - **Consulting delivery** (projects/milestones/tasks) + **ROI tracking** (baseline→projected→realized).
@@ -16,7 +16,7 @@ The `bti` schema — an AI-powered Business Transformation Operating System deli
 
 ## Migrations authored
 
-- `20260727090300_hlbos_0026_bti_platform.sql` — the `bti` schema: 13 tables, 7 enums, ~20 RPCs, RLS+FORCE on every table, 12 `bti.*` permissions, seeds (6 domains, 44 dimensions, 10 industry packs). **No existing object altered.** Not applied to any live project.
+- `20260727090300_hlbos_0026_bti_platform.sql` — the `bti` schema: 13 tables, 7 enums, ~20 RPCs, RLS+FORCE on every table, 12 `bti.*` permissions, seeds (6 domains, 43 dimensions, 10 industry packs). **No existing object altered.** Not applied to any live project.
 
 ## What existing architecture was reused
 

@@ -1,0 +1,28 @@
+{
+  "name": "@hl-bos/hl-bti-alpha",
+  "version": "0.1.0",
+  "private": true,
+  "description": "HL-BTI Alpha — the first customer-facing Business Transformation application. A local, statically-exported executive UI over the HL-BTI backend (bti schema). Reuses @hl-bos/bti-engine; introduces no platform service.",
+  "type": "module",
+  "scripts": {
+    "dev": "next dev --port 4100",
+    "build": "next build",
+    "start": "next start --port 4100",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "clean": "rm -rf .next out dist *.tsbuildinfo"
+  },
+  "dependencies": {
+    "@hl-bos/bti-engine": "workspace:*",
+    "next": "catalog:",
+    "react": "catalog:",
+    "react-dom": "catalog:"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "@types/react": "catalog:",
+    "@types/react-dom": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  }
+}

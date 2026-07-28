@@ -59,7 +59,7 @@ Tenant: `bti.{business,engagement,assessment,delivery,roi}.{read,manage}`. Platf
 
 ## Seeds
 
-6 intelligence domains, 44 domain dimensions (matching the PCO's module lists), 10 industry packs (general, transportation, sports, salon, barbershop, restaurant, healthcare, professional_services, construction, manufacturing). No prices, no licensing, no tenant/business rows (those are created per real engagement via RPC — never seeded as fake data).
+6 intelligence domains, 43 domain dimensions (matching the PCO's module lists), 10 industry packs (general, transportation, sports, salon, barbershop, restaurant, healthcare, professional_services, construction, manufacturing). No prices, no licensing, no tenant/business rows (those are created per real engagement via RPC — never seeded as fake data).
 
 ## Rollback
 

@@ -13,7 +13,7 @@ The assessment framework is **data-driven and extensible**: six intelligence dom
 | **AI Readiness** (`ai_readiness`)          | automation opportunities, AI assistants, customer support, marketing automation, internal AI workflows, future AI products                             | 7                     |
 | **Financial Intelligence** (`financial`)   | cost reduction, revenue growth, automation ROI, transformation ROI                                                                                     | 8                     |
 
-Each PCO sub-item is a seeded `bti.domain_dimensions` row (44 total) with its own weight.
+Each PCO sub-item is a seeded `bti.domain_dimensions` row (43 total) with its own weight.
 
 ## 2. Scoring — deterministic and honest
 

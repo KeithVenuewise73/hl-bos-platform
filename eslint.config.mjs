@@ -17,6 +17,7 @@ export default tseslint.config(
       "**/node_modules/**",
       "**/dist/**",
       "**/.next/**",
+      "**/out/**", // Next.js static-export output (build artifact)
       "**/coverage/**",
       "**/*.tsbuildinfo",
       "supabase/functions/**", // Deno runtime, different lint target
