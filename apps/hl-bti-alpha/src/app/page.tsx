@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { WorkspaceProvider, useWorkspace } from "@/lib/workspace";
 import type { Nav, Go } from "@/lib/nav";
+import Analyze from "@/screens/Analyze";
 import CommandCenter from "@/screens/CommandCenter";
 import CeoDashboard from "@/screens/CeoDashboard";
 import Clients from "@/screens/Clients";
@@ -18,7 +19,7 @@ export default function Page() {
 
 function App() {
   const { ready, reset } = useWorkspace();
-  const [nav, setNav] = useState<Nav>({ view: "ceo", tab: "overview" });
+  const [nav, setNav] = useState<Nav>({ view: "analyze", tab: "overview" });
   const [menuOpen, setMenuOpen] = useState(false);
   const [theme, setTheme] = useState<"light" | "dark">("light");
 
@@ -64,6 +65,9 @@ function App() {
             <div className="brand-sub">Business Transformation</div>
           </div>
         </div>
+
+        <div className="nav-group">Start here</div>
+        {navItem("analyze", "⚡", "Analyze Business")}
 
         <div className="nav-group">Executive</div>
         {navItem("command", "🏢", "CEO Command Center")}
@@ -112,6 +116,8 @@ function App() {
           <div className="content">
             <div className="dim">Loading workspace…</div>
           </div>
+        ) : nav.view === "analyze" ? (
+          <Analyze />
         ) : nav.view === "command" ? (
           <CommandCenter go={go} />
         ) : nav.view === "ceo" ? (

@@ -9,6 +9,7 @@ export * from "./lifecycle.ts";
 export * from "./growth.ts";
 export * from "./blueprint.ts";
 export * as consulting from "./consulting/index.ts";
+export * as analyst from "./analyst/index.ts";
 
 // Convenience: the domain transformation weights, straight from the catalog.
 import { DOMAINS } from "./catalog.ts";

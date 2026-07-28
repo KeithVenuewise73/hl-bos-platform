@@ -1,4 +1,4 @@
-export type View = "command" | "ceo" | "clients" | "engagement";
+export type View = "analyze" | "command" | "ceo" | "clients" | "engagement";
 
 export type EngagementTab =
   | "overview"

@@ -74,7 +74,7 @@ Executive Blueprint  →  Proposal  →  "Ask for the business"
 | HL-BTI does                                         | Consultant does                              |
 | --------------------------------------------------- | -------------------------------------------- |
 | Discover, collect evidence, understand the business | Enter name + website; add optional documents |
-| Produce findings, opportunities, ROI, priorities   | **Review and approve** the findings          |
+| Produce findings, opportunities, ROI, priorities    | **Review and approve** the findings          |
 | Map opportunities to Herman Legacy services         | Confirm the recommended services fit         |
 | Assemble the blueprint and the proposal             | Present them and ask for the business        |
 
