@@ -8,6 +8,7 @@ export * from "./scoring.ts";
 export * from "./lifecycle.ts";
 export * from "./growth.ts";
 export * from "./blueprint.ts";
+export * as consulting from "./consulting/index.ts";
 
 // Convenience: the domain transformation weights, straight from the catalog.
 import { DOMAINS } from "./catalog.ts";
