@@ -1,5 +1,7 @@
 # Phase 2 — Proposed Migration Set (REVISED)
 
+> **⚠️ CORRECTED 2026-07-26 — see [ADR-0001](../architecture/decisions/0001-canonical-hl-bos-supabase-project.md).** The `Target: ywrzgursvdowzyhipsmt` line below is **stale**. The canonical HL-BOS project is **`mvvtngiopdrgiedjmhfb` (HL-BOS Core)**; these migrations are now live there. `ywrzgursvdowzyhipsmt` is empty and not canonical. Historical content preserved for provenance.
+
 **Status:** 🔴 PROPOSED. **No SQL authored. Nothing applied. Supabase not modified.**
 **Revised:** 2026-07-15, per owner review + owner ruling on invitation acceptance. Corrections 1–3 applied.
 **Target:** `ywrzgursvdowzyhipsmt` (HL-BOS Core, Herman Legacy Software Ventures — Pro)

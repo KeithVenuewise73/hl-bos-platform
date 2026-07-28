@@ -36,6 +36,14 @@ export const PORTFOLIO: readonly Product[] = [
     location: "this repository",
   },
   {
+    name: "HL-BTI (Business Transformation Intelligence)",
+    stage: "development",
+    status:
+      "First product built by the HL-BOS Software Factory (PCO #1). The `bti` schema, executive scoring engine, engagement lifecycle, delivery/ROI and CEO dashboard are built and tested (47 database + 11 edge tests, green locally). Never applied to a live project; no live customer engagement yet.",
+    version: null,
+    location: "this repository (supabase/migrations 0026, _shared/bti)",
+  },
+  {
     name: "HLVS Venture Studio",
     stage: "production",
     status:

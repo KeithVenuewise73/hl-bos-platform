@@ -1,5 +1,7 @@
 # Phase 2 Migration Plan — Greenfield HL-BOS Core
 
+> **⚠️ CORRECTED 2026-07-26 — see [ADR-0001](../architecture/decisions/0001-canonical-hl-bos-supabase-project.md).** Every reference to the project ref `ywrzgursvdowzyhipsmt` in this doc is **stale**. The canonical HL-BOS project is **`mvvtngiopdrgiedjmhfb` (HL-BOS Core, us-west-2)**, where the 17 Phase-2/V0 migrations are now live. `ywrzgursvdowzyhipsmt` is empty and not canonical. This doc's status line below ("no migration applied") reflects its 2026-07-15 authoring and is superseded by the Phase 0 audit. Historical content preserved for provenance.
+
 **Status:** PROPOSED. Awaiting owner approval. **No migration has been authored or applied.**
 **Supersedes:** the strangler-fig plan in `docs/architecture/target-architecture.md` §3, which assumed Decision 1 = Option B.
 **Owner decision:** 2026-07-15 — Option 2, new greenfield Supabase project. Final.

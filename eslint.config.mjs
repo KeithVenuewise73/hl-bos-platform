@@ -17,6 +17,7 @@ export default tseslint.config(
       "**/node_modules/**",
       "**/dist/**",
       "**/.next/**",
+      "**/out/**", // Next.js static-export output (build artifact)
       "**/coverage/**",
       "**/*.tsbuildinfo",
       "supabase/functions/**", // Deno runtime, different lint target
@@ -116,6 +117,22 @@ export default tseslint.config(
     rules: {
       "no-restricted-properties": "off",
       "@typescript-eslint/no-unsafe-assignment": "off",
+    },
+  },
+
+  // The HL-BTI app's Supabase config boundary is the ONE place in that app
+  // allowed to read process.env directly. A Next.js static export inlines only
+  // literal `process.env.NEXT_PUBLIC_*` dot-access at build time; reading the
+  // same values dynamically through @hl-bos/config's loadEnv() would NOT be
+  // inlined and would be `undefined` in the browser bundle. Both values here are
+  // browser-safe by the platform's own ENV_SPEC (the publishable/anon key is
+  // documented as public and gated by RLS, not by secrecy), so exposing them is
+  // correct, not a leak. Scoped to this single file to keep the guard everywhere else.
+  {
+    files: ["apps/hl-bti/src/lib/supabase.ts"],
+    rules: {
+      "no-restricted-properties": "off",
+      "no-restricted-syntax": "off",
     },
   },
 

@@ -1,0 +1,387 @@
+{
+  "audit_version": "1.0",
+  "audit_date": "2026-07-26",
+  "audit_scope": "VisibilityAI Phase 0 — HL-BOS architecture audit (inspection only)",
+  "canonical_supabase_project": "mvvtngiopdrgiedjmhfb",
+  "repositories": [
+    {
+      "name": "KeithVenuewise73/hl-bos-platform",
+      "default_branch": "main",
+      "package_manager": "pnpm@10.34.5",
+      "build": "turborepo",
+      "head_commit": "45c3418"
+    }
+  ],
+  "applications": [
+    {
+      "name": "@hl-bos/control-center",
+      "path": "apps/control-center",
+      "purpose": "CEO Development Control Center",
+      "status": "functional-development",
+      "deployment": "local-only-by-design",
+      "auth": "none (localhost-origin-locked)",
+      "evidence": "apps/control-center/next.config.ts, README.md"
+    }
+  ],
+  "packages": [
+    {
+      "name": "@hl-bos/config",
+      "path": "packages/config",
+      "purpose": "Only sanctioned process.env reader; validated + classified env",
+      "status": "live",
+      "evidence": "packages/config/src/env.ts, classification.ts"
+    }
+  ],
+  "database_schemas": [
+    {
+      "schema": "platform",
+      "tables": 1,
+      "migration": "0001-0008",
+      "purpose": "tenants + lifecycle"
+    },
+    {
+      "schema": "identity",
+      "tables": 8,
+      "migration": "0002-0006",
+      "purpose": "profiles, memberships, roles, permissions, invitations, platform_admins"
+    },
+    {
+      "schema": "audit",
+      "tables": 2,
+      "migration": "0004",
+      "purpose": "append-only audit + security events"
+    },
+    {
+      "schema": "events",
+      "tables": 3,
+      "migration": "0009",
+      "purpose": "transactional outbox event bus"
+    },
+    {
+      "schema": "entitlements",
+      "tables": 4,
+      "migration": "0010",
+      "purpose": "feature catalog, plan mapping, tenant entitlements, module activation"
+    },
+    {
+      "schema": "integrations",
+      "tables": 5,
+      "migration": "0011",
+      "purpose": "connector registry, connections, sync runs, webhooks"
+    },
+    {
+      "schema": "ai",
+      "tables": 7,
+      "migration": "0012",
+      "purpose": "provider/model/prompt registry, run ledger, budgets, guardrails"
+    },
+    {
+      "schema": "workflows",
+      "tables": 3,
+      "migration": "0013",
+      "purpose": "human-approval gate"
+    },
+    {
+      "schema": "visibility",
+      "tables": 8,
+      "migration": "0014,0017",
+      "purpose": "sites, content, reviews, prospects, assessments"
+    },
+    {
+      "schema": "billing",
+      "tables": 8,
+      "migration": "0015-0016",
+      "purpose": "reusable subscription platform"
+    }
+  ],
+  "database_verified_metrics": {
+    "total_tables": 49,
+    "rls_enabled": 49,
+    "rls_forced": 49,
+    "policies": 58,
+    "functions": 54,
+    "triggers": 42,
+    "securitydefiner_mutable_search_path": 0,
+    "tables_rls_no_policy_failclosed": ["ai.guardrails", "integrations.webhook_events"],
+    "advisor_errors": 0,
+    "advisor_warnings": [
+      "pgtap_in_public_schema",
+      "leaked_password_protection_disabled"
+    ],
+    "roles_seeded": 8,
+    "permissions_seeded": 43,
+    "role_permission_grants": 125,
+    "assessment_categories": 16,
+    "auth_users": 1,
+    "posture": "pre-production, seed data only"
+  },
+  "shared_services": [
+    {
+      "name": "identity",
+      "status": "ready",
+      "reuse": "reuse-unchanged",
+      "canonical": true
+    },
+    {
+      "name": "tenancy",
+      "status": "ready",
+      "reuse": "reuse-unchanged",
+      "canonical": true
+    },
+    {
+      "name": "permissions",
+      "status": "ready",
+      "reuse": "reuse-extend",
+      "canonical": true
+    },
+    {
+      "name": "audit",
+      "status": "ready",
+      "reuse": "reuse-unchanged",
+      "canonical": true
+    },
+    {
+      "name": "events",
+      "status": "ready-db-needs-deploy",
+      "reuse": "reuse-deploy",
+      "canonical": true
+    },
+    {
+      "name": "entitlements",
+      "status": "ready",
+      "reuse": "reuse-unchanged",
+      "canonical": true
+    },
+    {
+      "name": "integrations",
+      "status": "ready-framework",
+      "reuse": "extend",
+      "canonical": true
+    },
+    {
+      "name": "ai-gateway",
+      "status": "ready-db-needs-deploy",
+      "reuse": "extend-deploy",
+      "canonical": true
+    },
+    {
+      "name": "workflows",
+      "status": "ready",
+      "reuse": "reuse-unchanged",
+      "canonical": true
+    },
+    {
+      "name": "billing",
+      "status": "ready-db-stripe-stub",
+      "reuse": "reuse-repair",
+      "canonical": true
+    },
+    {
+      "name": "communications",
+      "status": "absent",
+      "reuse": "new-module",
+      "canonical": false
+    },
+    {
+      "name": "storage",
+      "status": "absent",
+      "reuse": "new-module",
+      "canonical": false
+    },
+    {
+      "name": "reporting",
+      "status": "absent",
+      "reuse": "new-module-defer",
+      "canonical": false
+    }
+  ],
+  "products": [
+    {
+      "name": "HL-BOS Core",
+      "status": "functional-development",
+      "schema": "all",
+      "disposition": "extend"
+    },
+    {
+      "name": "CEO Development Control Center",
+      "status": "functional-development",
+      "path": "apps/control-center",
+      "disposition": "leave-unchanged"
+    },
+    {
+      "name": "VisibilityAI",
+      "status": "partial-prototype-db-only",
+      "schema": "visibility",
+      "disposition": "extend"
+    },
+    {
+      "name": "SalonAI",
+      "status": "planned",
+      "note": "billing catalog example only",
+      "disposition": "assemble-later"
+    },
+    {
+      "name": "HomeHuddle",
+      "status": "planned",
+      "note": "billing catalog example only",
+      "disposition": "assemble-later"
+    },
+    { "name": "LandscapeAI", "status": "planned", "disposition": "assemble-later" },
+    { "name": "FleetHuddle", "status": "planned", "disposition": "assemble-later" },
+    { "name": "CoachAI", "status": "planned", "disposition": "assemble-later" },
+    { "name": "Venuewise", "status": "planned", "disposition": "assemble-later" },
+    {
+      "name": "HLVS Venture Studio",
+      "status": "production-legacy-unreachable",
+      "disposition": "out-of-scope"
+    },
+    {
+      "name": "HSCS Government Logistics",
+      "status": "production-legacy-unreachable",
+      "disposition": "out-of-scope"
+    },
+    {
+      "name": "AI Asset Recovery",
+      "status": "production-legacy-unreachable",
+      "disposition": "out-of-scope"
+    }
+  ],
+  "external_integrations": [
+    {
+      "name": "Supabase",
+      "status": "active",
+      "usage": "db, auth, vault-ref, edge (undeployed), storage (unused)"
+    },
+    { "name": "GitHub", "status": "active", "usage": "control-center REST client, CI" },
+    {
+      "name": "Anthropic",
+      "status": "seeded-inactive",
+      "credential": "vault:anthropic_api_key"
+    },
+    {
+      "name": "Stripe",
+      "status": "seeded-inactive-stub",
+      "credential": "vault:stripe_secret_key"
+    },
+    { "name": "Google (Business/SearchConsole/PageSpeed)", "status": "catalog-only" },
+    { "name": "Twilio/Email", "status": "not-present-deferred" }
+  ],
+  "duplications": [
+    { "concept": "intra-repo foundations", "finding": "none", "severity": "none" },
+    {
+      "concept": "legacy hlvs/hscs_glp tenancy vs platform.tenants",
+      "finding": "legacy project, out-of-scope, unreachable",
+      "severity": "informational",
+      "required_before_visibilityai": false
+    }
+  ],
+  "visibilityai_reuse_decisions": [
+    { "capability": "tenancy/identity/permissions", "decision": "reuse-unchanged" },
+    {
+      "capability": "assessment/scoring/recommendations",
+      "decision": "reuse-unchanged"
+    },
+    {
+      "capability": "workflows/audit/entitlements/events",
+      "decision": "reuse-unchanged"
+    },
+    {
+      "capability": "ai analysis",
+      "decision": "extend-deploy",
+      "blocker": "gateway undeployed, no key"
+    },
+    {
+      "capability": "billing/payments",
+      "decision": "reuse-repair",
+      "blocker": "stripe stub"
+    },
+    { "capability": "integrations (pagespeed/gbp/reviews)", "decision": "extend" },
+    { "capability": "website scanning", "decision": "new-module", "priority": "P0" },
+    {
+      "capability": "proposals/agreements",
+      "decision": "new-within-visibility+storage",
+      "priority": "P0"
+    },
+    {
+      "capability": "communications/delivery",
+      "decision": "new-shared-module",
+      "priority": "P0"
+    },
+    {
+      "capability": "storage/documents",
+      "decision": "new-shared-module",
+      "priority": "P0"
+    },
+    { "capability": "reporting/dashboards", "decision": "defer" },
+    { "capability": "white-label", "decision": "defer" }
+  ],
+  "blockers": [
+    {
+      "id": "F-5",
+      "title": "no protected deploy/migration workflow; 17 migrations applied out-of-band",
+      "severity": "medium-process",
+      "required_before": "customer-data"
+    },
+    {
+      "id": "edge-undeployed",
+      "title": "ai-gateway/events-dispatcher not deployed; pg_cron/pg_net not installed",
+      "severity": "medium",
+      "required_before": "scanning/ai"
+    },
+    {
+      "id": "legacy-unreachable",
+      "title": "legacy 156-table project not reachable",
+      "severity": "n/a",
+      "required_before": "out-of-scope"
+    }
+  ],
+  "ceo_decisions": [
+    {
+      "id": "D-1",
+      "question": "Bless HL-BOS Core as canonical, retire empty project, fix environments.md",
+      "required_before_dev": true
+    },
+    {
+      "id": "D-2",
+      "question": "Confirm legacy project out of scope",
+      "required_before_dev": false
+    },
+    {
+      "id": "D-3",
+      "question": "Build communications + storage as shared modules first",
+      "required_before_dev": "for-dependent-features"
+    },
+    {
+      "id": "D-4",
+      "question": "Shared CRM vs visibility-local prospects",
+      "required_before_dev": false
+    },
+    {
+      "id": "D-5",
+      "question": "Deploy ai-gateway + grant Anthropic key",
+      "required_before_dev": "before-real-ai"
+    },
+    {
+      "id": "D-6",
+      "question": "Denial logging at API layer",
+      "required_before_dev": false
+    },
+    { "id": "D-7", "question": "Defer reporting module", "required_before_dev": false },
+    {
+      "id": "D-8",
+      "question": "Install pg_cron/pg_net + deploy worker pipeline",
+      "required_before_dev": "for-scanning"
+    },
+    {
+      "id": "D-9",
+      "question": "Build protected deploy governance workflow",
+      "required_before_dev": "before-ga"
+    },
+    {
+      "id": "D-10",
+      "question": "Choose customer-app hosting",
+      "required_before_dev": "before-external-users"
+    }
+  ],
+  "readiness_conclusion": "VisibilityAI development may begin with stated restrictions (see deliverable 12)."
+}

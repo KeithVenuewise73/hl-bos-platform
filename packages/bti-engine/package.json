@@ -1,0 +1,22 @@
+{
+  "name": "@hl-bos/bti-engine",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Canonical TypeScript engine for HL-BTI: the deterministic executive scoring, engagement lifecycle, growth intelligence and blueprint assembly, mirroring the DB authority (bti.*) and the edge layer (_shared/bti). One algorithm, shared by every HL-BOS surface.",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "default": "./src/index.ts"
+    }
+  },
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run",
+    "clean": "rm -rf dist *.tsbuildinfo"
+  },
+  "devDependencies": {
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  }
+}

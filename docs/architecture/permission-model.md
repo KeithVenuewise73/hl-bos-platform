@@ -1,7 +1,9 @@
 # Permission Model
 
+> **⚠️ CORRECTED 2026-07-26 — see [ADR-0001](decisions/0001-canonical-hl-bos-supabase-project.md).** The **Target** below is **stale**, and this model is now **implemented and live** on the canonical project **`mvvtngiopdrgiedjmhfb` (HL-BOS Core)** — 8 roles, 43 permissions, 125 grants (Phase 0 audit). `ywrzgursvdowzyhipsmt` is empty and not canonical.
+
 **Status:** REVISED per owner review 2026-07-15. Awaiting approval. **Nothing implemented.**
-**Target:** greenfield project `ywrzgursvdowzyhipsmt` only.
+**Target:** `mvvtngiopdrgiedjmhfb` (HL-BOS Core) — _was greenfield `ywrzgursvdowzyhipsmt`; corrected per ADR-0001_
 
 Revision: Correction 3 applied. Owner ruling 2026-07-15 (option **a**) applied — `identity.invitation.accept` is **not** in the vocabulary. See §7.
 

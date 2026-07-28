@@ -1,0 +1,464 @@
+<title>Herman Legacy · Business Transformation Intelligence</title>
+<style>
+  :root {
+    --paper: #faf8f4;
+    --surface: #ffffff;
+    --surface-2: #f4f1ea;
+    --text: #1a1d24;
+    --muted: #5c6472;
+    --border: #e7e3da;
+    --gold: #a97c2f;
+    --gold-soft: #f0e6cf;
+    --critical: #b23a2e;
+    --high: #b06a1f;
+    --ok: #2f7d53;
+    --info: #3a6ea5;
+    --shadow: 0 1px 2px rgba(26, 29, 36, .04), 0 8px 24px rgba(26, 29, 36, .06);
+    --serif: Georgia, "Iowan Old Style", "Palatino Linotype", "Times New Roman", serif;
+    --sans: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --paper: #12151b;
+      --surface: #191d25;
+      --surface-2: #1f242e;
+      --text: #e8e6e0;
+      --muted: #98a0ad;
+      --border: #2a2f39;
+      --gold: #d0a860;
+      --gold-soft: #33291a;
+      --critical: #e07161;
+      --high: #d99a4e;
+      --ok: #5cba86;
+      --info: #6ea3d8;
+      --shadow: 0 1px 2px rgba(0, 0, 0, .3), 0 10px 30px rgba(0, 0, 0, .35);
+    }
+  }
+  :root[data-theme="light"] {
+    --paper: #faf8f4; --surface: #ffffff; --surface-2: #f4f1ea; --text: #1a1d24;
+    --muted: #5c6472; --border: #e7e3da; --gold: #a97c2f; --gold-soft: #f0e6cf;
+    --critical: #b23a2e; --high: #b06a1f; --ok: #2f7d53; --info: #3a6ea5;
+    --shadow: 0 1px 2px rgba(26,29,36,.04), 0 8px 24px rgba(26,29,36,.06);
+  }
+  :root[data-theme="dark"] {
+    --paper: #12151b; --surface: #191d25; --surface-2: #1f242e; --text: #e8e6e0;
+    --muted: #98a0ad; --border: #2a2f39; --gold: #d0a860; --gold-soft: #33291a;
+    --critical: #e07161; --high: #d99a4e; --ok: #5cba86; --info: #6ea3d8;
+    --shadow: 0 1px 2px rgba(0,0,0,.3), 0 10px 30px rgba(0,0,0,.35);
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--paper);
+    color: var(--text);
+    font-family: var(--sans);
+    font-size: 15px;
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+  }
+  h1, h2, h3 { font-family: var(--serif); font-weight: 600; text-wrap: balance; margin: 0; }
+  a { color: var(--gold); }
+
+  .wrap { max-width: 960px; margin: 0 auto; padding: 0 24px; }
+
+  header.site {
+    position: sticky; top: 0; z-index: 20;
+    background: color-mix(in srgb, var(--paper) 88%, transparent);
+    backdrop-filter: saturate(1.4) blur(10px);
+    border-bottom: 1px solid var(--border);
+  }
+  header.site .wrap {
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 16px; padding-top: 12px; padding-bottom: 12px;
+  }
+  .brand { display: flex; align-items: center; gap: 12px; min-width: 0; }
+  .mark {
+    width: 34px; height: 34px; flex: none; border-radius: 7px;
+    background: linear-gradient(145deg, var(--gold), color-mix(in srgb, var(--gold) 60%, #000));
+    color: #fff; display: grid; place-items: center;
+    font-family: var(--serif); font-weight: 700; font-size: 17px;
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,.15);
+  }
+  .brand .eyebrow { font-size: 10.5px; letter-spacing: .16em; text-transform: uppercase; color: var(--gold); font-weight: 700; }
+  .brand .name { font-family: var(--serif); font-size: 16px; font-weight: 600; line-height: 1.15; }
+  .themetoggle {
+    border: 1px solid var(--border); background: var(--surface); color: var(--muted);
+    border-radius: 999px; padding: 6px 12px; font-size: 12.5px; cursor: pointer;
+    font-family: var(--sans); display: inline-flex; gap: 6px; align-items: center;
+  }
+  .themetoggle:hover { color: var(--text); border-color: var(--gold); }
+
+  .hero { padding: 40px 0 8px; }
+  .hero .kicker { font-size: 12px; letter-spacing: .18em; text-transform: uppercase; color: var(--gold); font-weight: 700; margin-bottom: 12px; }
+  .hero h1 { font-size: 40px; line-height: 1.08; letter-spacing: -.01em; }
+  .hero p.lede { font-size: 17px; color: var(--muted); max-width: 60ch; margin: 14px 0 0; }
+
+  main { padding: 28px 0 80px; display: flex; flex-direction: column; gap: 22px; }
+
+  .card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 14px; padding: 22px; box-shadow: var(--shadow);
+  }
+  .card.pad-lg { padding: 26px; }
+
+  .step-label {
+    display: flex; align-items: baseline; gap: 10px; margin: 8px 2px 2px;
+  }
+  .step-num {
+    font-family: var(--serif); font-size: 13px; font-weight: 700; color: var(--gold);
+    border: 1px solid var(--gold); border-radius: 999px; width: 26px; height: 26px;
+    display: grid; place-items: center; flex: none;
+  }
+  .step-label h2 { font-size: 22px; }
+  .step-sub { color: var(--muted); font-size: 13.5px; margin-left: auto; }
+
+  label.field { display: flex; flex-direction: column; gap: 6px; font-size: 12.5px; color: var(--muted); font-weight: 600; }
+  label.field input, label.field select, textarea {
+    font-family: var(--sans); font-size: 14.5px; color: var(--text);
+    background: var(--surface-2); border: 1px solid var(--border); border-radius: 9px;
+    padding: 10px 12px; width: 100%; outline: none;
+  }
+  label.field input:focus, label.field select:focus, textarea:focus { border-color: var(--gold); box-shadow: 0 0 0 3px var(--gold-soft); }
+  .grid4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; }
+  @media (max-width: 720px) { .grid4 { grid-template-columns: repeat(2, 1fr); } .hero h1 { font-size: 32px; } }
+  @media (max-width: 460px) { .grid4 { grid-template-columns: 1fr; } }
+
+  details.html-src { margin-top: 14px; }
+  details.html-src summary { cursor: pointer; font-size: 12.5px; color: var(--muted); }
+  details.html-src textarea { margin-top: 10px; min-height: 120px; font-family: var(--mono); font-size: 12px; line-height: 1.5; }
+
+  .actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 18px; align-items: center; }
+  .btn {
+    font-family: var(--sans); font-size: 14.5px; font-weight: 600; cursor: pointer;
+    border-radius: 10px; padding: 11px 18px; border: 1px solid var(--border);
+    background: var(--surface); color: var(--text);
+  }
+  .btn:hover { border-color: var(--gold); }
+  .btn.primary {
+    background: linear-gradient(145deg, var(--gold), color-mix(in srgb, var(--gold) 72%, #000));
+    color: #fff; border-color: transparent;
+  }
+  .btn.primary:disabled { opacity: .5; cursor: not-allowed; }
+  .btn.ghost { background: transparent; }
+
+  .banner {
+    background: var(--surface-2); border: 1px solid var(--border); border-left: 3px solid var(--gold);
+    border-radius: 8px; padding: 11px 14px; font-size: 13px; color: var(--muted);
+  }
+
+  .profile-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  @media (max-width: 640px) { .profile-grid { grid-template-columns: 1fr; } }
+  .obs { background: var(--surface-2); border: 1px solid var(--border); border-radius: 10px; padding: 13px 15px; }
+  .obs .lbl { font-weight: 700; font-size: 13px; letter-spacing: .02em; }
+  .obs .dtl { font-size: 14px; margin-top: 3px; }
+  .obs .ev { font-size: 11.5px; color: var(--muted); margin-top: 6px; font-family: var(--mono); }
+
+  .finding { border-left: 3px solid var(--border); }
+  .finding.p-critical { border-left-color: var(--critical); }
+  .finding.p-high { border-left-color: var(--high); }
+  .finding-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+  .finding-head h3 { font-size: 17px; }
+  .finding-head .fstate { font-size: 13px; color: var(--muted); margin-top: 3px; }
+  .badges { display: flex; gap: 6px; flex-wrap: wrap; }
+  .badge {
+    font-size: 11px; font-weight: 700; letter-spacing: .03em; text-transform: uppercase;
+    padding: 4px 9px; border-radius: 999px; border: 1px solid var(--border);
+    background: var(--surface-2); color: var(--muted); white-space: nowrap;
+  }
+  .badge.crit { color: #fff; background: var(--critical); border-color: transparent; }
+  .badge.high { color: #fff; background: var(--high); border-color: transparent; }
+  .badge.ok { color: var(--ok); border-color: color-mix(in srgb, var(--ok) 40%, var(--border)); background: color-mix(in srgb, var(--ok) 12%, var(--surface)); }
+  .badge.info { color: var(--info); border-color: color-mix(in srgb, var(--info) 40%, var(--border)); background: color-mix(in srgb, var(--info) 12%, var(--surface)); }
+  .badge.gold { color: var(--gold); border-color: color-mix(in srgb, var(--gold) 45%, var(--border)); background: var(--gold-soft); }
+
+  table.detail { width: 100%; border-collapse: collapse; margin-top: 12px; font-size: 13.5px; }
+  table.detail td { padding: 8px 10px; vertical-align: top; border-top: 1px solid var(--border); }
+  table.detail td.k { color: var(--muted); font-weight: 600; width: 150px; white-space: nowrap; }
+  table.detail tr:first-child td { border-top: none; }
+
+  .prop-wrap { overflow-x: auto; }
+  table.proposal { width: 100%; border-collapse: collapse; font-size: 13.5px; min-width: 520px; }
+  table.proposal th { text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); padding: 8px 10px; border-bottom: 1px solid var(--border); }
+  table.proposal td { padding: 10px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  table.proposal td .svc { font-weight: 600; font-family: var(--serif); }
+
+  .score {
+    display: inline-flex; align-items: baseline; gap: 6px; font-family: var(--serif);
+    font-weight: 700; font-size: 15px;
+  }
+  .score .n { font-size: 22px; }
+
+  .blueprint h2.bp-title { font-size: 26px; margin: 4px 0 2px; }
+  .bp-eyebrow { font-size: 11px; letter-spacing: .14em; text-transform: uppercase; color: var(--gold); font-weight: 700; }
+  .narr { display: flex; flex-direction: column; gap: 14px; margin-top: 16px; }
+  .narr .sec .st { font-family: var(--serif); font-weight: 600; font-size: 15.5px; }
+  .narr .sec .bd { font-size: 14px; color: var(--text); margin-top: 3px; }
+
+  .svc-row { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
+
+  .analyzing { display: flex; align-items: center; gap: 12px; color: var(--muted); font-size: 14px; }
+  .spinner { width: 18px; height: 18px; border: 2px solid var(--border); border-top-color: var(--gold); border-radius: 50%; animation: spin .8s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  @media (prefers-reduced-motion: reduce) { .spinner { animation: none; } }
+
+  .empty { text-align: center; color: var(--muted); padding: 34px 20px; }
+  .empty .ico { font-size: 30px; }
+
+  footer.note { border-top: 1px solid var(--border); color: var(--muted); font-size: 12px; padding: 22px 0 40px; }
+
+  @media print {
+    header.site, .hero, .intake-card, footer.note, .themetoggle { display: none !important; }
+    body { background: #fff; color: #000; }
+    .card { box-shadow: none; border-color: #ccc; break-inside: avoid; }
+  }
+</style>
+
+<header class="site">
+  <div class="wrap">
+    <div class="brand">
+      <div class="mark">HL</div>
+      <div>
+        <div class="eyebrow">Herman Legacy</div>
+        <div class="name">Business Transformation Intelligence</div>
+      </div>
+    </div>
+    <button class="themetoggle" id="themeBtn" type="button" aria-label="Toggle theme"><span id="themeIco">◐</span> Theme</button>
+  </div>
+</header>
+
+<div class="wrap">
+  <section class="hero">
+    <div class="kicker">Executive Analysis</div>
+    <h1>Turn any business into an evidence-backed transformation blueprint.</h1>
+    <p class="lede">Enter a business and its website. HL-BTI reads real signals from the page, produces evidence-backed findings, maps each to a Herman Legacy solution, and assembles a board-ready blueprint and proposal — with no scores entered by hand.</p>
+  </section>
+</div>
+
+<div class="wrap">
+  <main>
+    <section class="card pad-lg intake-card">
+      <div class="step-label"><span class="step-num">1</span><h2>Business</h2></div>
+      <p style="color:var(--muted); font-size:13.5px; margin:6px 0 16px;">Pre-filled with a demo business. Edit the fields, and paste a customer&rsquo;s homepage HTML for a live analysis of their own site.</p>
+      <div class="grid4">
+        <label class="field">Business name<input id="f-name" type="text" /></label>
+        <label class="field">Website<input id="f-website" type="text" /></label>
+        <label class="field">Industry<select id="f-industry"></select></label>
+        <label class="field">Location<input id="f-location" type="text" /></label>
+      </div>
+      <details class="html-src">
+        <summary>Website content &mdash; auto-filled with the demo site; paste the customer&rsquo;s homepage HTML for a live analysis</summary>
+        <textarea id="f-html" spellcheck="false"></textarea>
+      </details>
+      <div class="actions">
+        <button class="btn primary" id="analyzeBtn" type="button">⚡ Analyze Business</button>
+        <button class="btn ghost" id="printBtn" type="button" style="display:none;">🖨 Export Blueprint + Proposal</button>
+      </div>
+    </section>
+
+    <div id="results"></div>
+  </main>
+</div>
+
+<div class="wrap">
+  <footer class="note" id="footerNote"></footer>
+</div>
+
+<script id="engine">(()=>{var ee=Object.defineProperty;var te=(e,i)=>{for(var t in i)ee(e,t,{get:i[t],enumerable:!0})};var k=[{key:"business",name:"Business Intelligence",description:"Maturity, leadership, processes, customer experience, growth readiness.",transformationWeight:9,dimensions:[{key:"business_maturity",name:"Business Maturity",weight:7},{key:"leadership",name:"Leadership",weight:6},{key:"processes",name:"Processes",weight:6},{key:"customer_experience",name:"Customer Experience",weight:7},{key:"growth_readiness",name:"Growth Readiness",weight:7}]},{key:"operations",name:"Operations Intelligence",description:"Operations, supply chain, scheduling, reporting, automation, fleet, utilization, warehouse, transportation.",transformationWeight:8,dimensions:[{key:"operations",name:"Operations",weight:7},{key:"supply_chain",name:"Supply Chain",weight:7},{key:"scheduling",name:"Scheduling",weight:5},{key:"reporting",name:"Reporting",weight:5},{key:"automation",name:"Automation",weight:6},{key:"fleet",name:"Fleet",weight:5},{key:"resource_utilization",name:"Resource Utilization",weight:6},{key:"warehouse_operations",name:"Warehouse Operations",weight:6},{key:"transportation",name:"Transportation",weight:6}]},{key:"growth",name:"Growth Intelligence",description:"Website, SEO, AI search, GBP, reviews, content, social, competitors, lead gen, conversion, brand, tech stack.",transformationWeight:8,dimensions:[{key:"website",name:"Website",weight:7},{key:"seo",name:"SEO",weight:7},{key:"ai_search_optimization",name:"AI Search Optimization",weight:6},{key:"google_business_profile",name:"Google Business Profile",weight:5},{key:"reviews",name:"Reviews",weight:5},{key:"content",name:"Content",weight:5},{key:"social_media",name:"Social Media",weight:5},{key:"competitors",name:"Competitors",weight:5},{key:"lead_generation",name:"Lead Generation",weight:7},{key:"conversion",name:"Conversion",weight:7},{key:"brand_authority",name:"Brand Authority",weight:5},{key:"technology_stack",name:"Technology Stack",weight:5}]},{key:"technology",name:"Technology Intelligence",description:"Software, security, cloud readiness, architecture, technical debt, scalability, HL-BOS compatibility.",transformationWeight:7,dimensions:[{key:"software",name:"Software",weight:6},{key:"security",name:"Security",weight:7},{key:"cloud_readiness",name:"Cloud Readiness",weight:6},{key:"architecture",name:"Architecture",weight:6},{key:"technical_debt",name:"Technical Debt",weight:6},{key:"scalability",name:"Scalability",weight:6},{key:"hlbos_compatibility",name:"HL-BOS Compatibility",weight:6}]},{key:"ai_readiness",name:"AI Readiness",description:"Automation opportunities, AI assistants, support, marketing automation, internal AI, future AI products.",transformationWeight:7,dimensions:[{key:"automation_opportunities",name:"Automation Opportunities",weight:7},{key:"ai_assistants",name:"AI Assistants",weight:6},{key:"customer_support",name:"Customer Support",weight:6},{key:"marketing_automation",name:"Marketing Automation",weight:6},{key:"internal_ai_workflows",name:"Internal AI Workflows",weight:6},{key:"future_ai_products",name:"Future AI Products",weight:5}]},{key:"financial",name:"Financial Intelligence",description:"Cost reduction, revenue growth, automation ROI, transformation ROI.",transformationWeight:8,dimensions:[{key:"cost_reduction",name:"Cost Reduction",weight:7},{key:"revenue_growth",name:"Revenue Growth",weight:8},{key:"automation_roi",name:"Automation ROI",weight:7},{key:"transformation_roi",name:"Transformation ROI",weight:7}]}],B=[{key:"general",name:"General Business",description:"Baseline pack \u2014 all six domains.",applicableDomains:["business","operations","growth","technology","ai_readiness","financial"]},{key:"transportation",name:"Transportation & Logistics",description:"Warehouses, transportation, distribution, fleet, logistics.",applicableDomains:["operations","business","financial","technology","growth","ai_readiness"]},{key:"sports",name:"Sports & Media",description:"Sports organizations, media, community platforms.",applicableDomains:["growth","business","ai_readiness","technology","operations","financial"]},{key:"salon",name:"Salon",description:"Salons and personal-care services.",applicableDomains:["growth","business","operations","financial","ai_readiness","technology"]},{key:"barbershop",name:"Barbershop",description:"Barbershops and grooming services.",applicableDomains:["growth","business","operations","financial","ai_readiness","technology"]},{key:"restaurant",name:"Restaurant",description:"Restaurants and food service.",applicableDomains:["operations","growth","business","financial","ai_readiness","technology"]},{key:"healthcare",name:"Healthcare",description:"Healthcare and clinical services.",applicableDomains:["technology","operations","business","financial","ai_readiness","growth"]},{key:"professional_services",name:"Professional Services",description:"Consulting, legal, accounting and similar.",applicableDomains:["business","growth","financial","technology","ai_readiness","operations"]},{key:"construction",name:"Construction",description:"Construction and trades.",applicableDomains:["operations","business","financial","growth","technology","ai_readiness"]},{key:"manufacturing",name:"Manufacturing",description:"Manufacturers and producers.",applicableDomains:["operations","technology","financial","business","ai_readiness","growth"]}];function N(e){return Math.round(e)}function ie(e){if(e.length===0)return null;let i=0,t=0;for(let o of e)i+=o.rating*o.weight,t+=o.weight;return t===0?null:N(i/t/5*100)}function P(e,i){let t=new Map;for(let l of e){let g=t.get(l.domain)??[];g.push(l),t.set(l.domain,g)}let o={};for(let[l,g]of t){let d=ie(g);d!==null&&(o[l]=d)}let r=new Map(i.map(l=>[l.domain,l.transformationWeight])),n=0,s=0;for(let[l,g]of Object.entries(o)){let d=r.get(l)??0;n+=g*d,s+=d}let a=s===0?null:N(n/s),u=l=>o[l]===void 0?null:o[l];return{domainScores:o,businessHealth:u("business"),operations:u("operations"),growth:u("growth"),technology:u("technology"),aiReadiness:u("ai_readiness"),financialOpportunity:u("financial"),transformation:a}}var ne=["prospect","lead_qualification","business_discovery","assessment","executive_analysis","blueprint","proposal","customer_approval","implementation","project_management","roi_tracking","monthly_partnership"];function oe(e){let i=ne.indexOf(e);return i<0?0:i+1}var Te=oe("blueprint");var se={business_maturity:{rootCause:"Immature or undocumented operating routines",action:"Establish a documented operating model and management cadence",services:["Business Transformation","Operational Consulting"],metrics:["Documented core processes","Management review cadence in place"],difficulty:"medium",timeline:"medium_term"},leadership:{rootCause:"Unclear ownership and decision rights",action:"Define leadership roles, decision rights, and accountability",services:["Business Transformation","Training"],metrics:["RACI defined for key decisions","Leadership review rhythm"],difficulty:"medium",timeline:"short_term"},processes:{rootCause:"Ad-hoc, person-dependent processes",action:"Map and standardize the highest-friction processes",services:["Operational Consulting","Operating Systems"],metrics:["Top-5 processes documented","Cycle-time reduction"],difficulty:"medium",timeline:"short_term"},customer_experience:{rootCause:"No consistent, measured customer journey",action:"Instrument the customer journey and close top friction points",services:["Business Transformation","Digital Marketing"],metrics:["CSAT/NPS captured","Response-time SLA met"],difficulty:"medium",timeline:"short_term"},growth_readiness:{rootCause:"Growth outpacing systems and structure",action:"Build the systems foundation required to scale",services:["Business Transformation","Operating Systems"],metrics:["Scalable systems in place","Onboarding time reduced"],difficulty:"high",timeline:"medium_term"},operations:{rootCause:"Manual coordination and limited visibility",action:"Introduce operational KPIs and standard workflows",services:["Operational Consulting","Operating Systems"],metrics:["Operational KPI dashboard live","Throughput improvement"],difficulty:"medium",timeline:"short_term"},supply_chain:{rootCause:"Reactive, siloed supply-chain coordination",action:"Establish supplier visibility and demand planning",services:["Operational Consulting","Custom Software"],metrics:["Supplier lead-time tracked","Stockout rate reduced"],difficulty:"high",timeline:"medium_term"},scheduling:{rootCause:"Manual scheduling without optimization",action:"Deploy a scheduling system with constraints and alerts",services:["Operating Systems","AI Automation"],metrics:["Schedule adherence","Idle-time reduction"],difficulty:"medium",timeline:"short_term"},reporting:{rootCause:"Reports assembled by hand, late and inconsistent",action:"Automate a single source of operational truth",services:["Custom Software","AI Automation"],metrics:["Automated daily reporting","Report latency < 1 day"],difficulty:"medium",timeline:"short_term"},automation:{rootCause:"Repetitive manual tasks not yet automated",action:"Automate the highest-volume repetitive workflows",services:["AI Automation","Custom Software"],metrics:["Manual hours automated","Error-rate reduction"],difficulty:"medium",timeline:"short_term"},fleet:{rootCause:"Limited fleet visibility and utilization tracking",action:"Add fleet telematics and utilization reporting",services:["Operating Systems","Custom Software"],metrics:["Fleet utilization %","Maintenance-on-time %"],difficulty:"high",timeline:"medium_term"},resource_utilization:{rootCause:"Capacity not measured against demand",action:"Measure utilization and rebalance capacity",services:["Operational Consulting"],metrics:["Utilization %","Overtime reduction"],difficulty:"medium",timeline:"short_term"},warehouse_operations:{rootCause:"Layout and pick paths not optimized",action:"Optimize slotting, pick paths, and receiving flow",services:["Operational Consulting","Operating Systems"],metrics:["Pick rate","Order accuracy %"],difficulty:"high",timeline:"medium_term"},transportation:{rootCause:"Routing and dispatch handled manually",action:"Introduce routing/dispatch optimization",services:["Operating Systems","AI Automation"],metrics:["On-time delivery %","Cost per mile"],difficulty:"high",timeline:"medium_term"},website:{rootCause:"Website not built to convert or rank",action:"Modernize the site for speed, clarity, and conversion",services:["Website Development","Hosting"],metrics:["Page speed","Conversion rate"],difficulty:"medium",timeline:"short_term"},seo:{rootCause:"Weak on-page and technical SEO foundations",action:"Run an SEO foundation and content program",services:["SEO","VisibilityAI"],metrics:["Indexed pages","Organic sessions"],difficulty:"medium",timeline:"medium_term"},ai_search_optimization:{rootCause:"Content not structured for AI answer engines",action:"Optimize for AI search (AEO) with structured content",services:["VisibilityAI","SEO"],metrics:["AI-answer citations","Structured-data coverage"],difficulty:"medium",timeline:"medium_term"},google_business_profile:{rootCause:"Local profile incomplete or unmanaged",action:"Complete and actively manage the local profile",services:["VisibilityAI","Digital Marketing"],metrics:["Profile completeness","Local actions"],difficulty:"low",timeline:"immediate"},reviews:{rootCause:"No systematic review-generation motion",action:"Install a review-generation and response workflow",services:["Digital Marketing","Managed Services"],metrics:["Review volume","Average rating"],difficulty:"low",timeline:"immediate"},content:{rootCause:"Inconsistent, low-authority content",action:"Run an evidence-based content engine",services:["Digital Marketing","SEO"],metrics:["Publishing cadence","Content-driven leads"],difficulty:"medium",timeline:"medium_term"},social_media:{rootCause:"Unmanaged or inconsistent social presence",action:"Establish a managed social cadence",services:["Digital Marketing","Managed Services"],metrics:["Posting cadence","Engagement rate"],difficulty:"low",timeline:"short_term"},competitors:{rootCause:"Limited competitive intelligence",action:"Stand up a competitive-intelligence view",services:["Business Transformation","VisibilityAI"],metrics:["Competitive benchmark tracked"],difficulty:"medium",timeline:"short_term"},lead_generation:{rootCause:"No repeatable lead-generation system",action:"Build a measurable lead-generation system",services:["Digital Marketing","VisibilityAI"],metrics:["Qualified leads/month","Cost per lead"],difficulty:"medium",timeline:"short_term"},conversion:{rootCause:"Funnel leaks between visit and close",action:"Optimize the funnel and follow-up motion",services:["Website Development","AI Automation"],metrics:["Conversion rate","Speed-to-lead"],difficulty:"medium",timeline:"short_term"},brand_authority:{rootCause:"Thin proof of expertise and trust",action:"Build authority assets and proof points",services:["Digital Marketing","Business Transformation"],metrics:["Authority assets published","Branded search"],difficulty:"medium",timeline:"long_term"},technology_stack:{rootCause:"Fragmented or dated marketing stack",action:"Rationalize the growth technology stack",services:["Operating Systems","Custom Software"],metrics:["Integrated stack","Attribution coverage"],difficulty:"medium",timeline:"medium_term"},software:{rootCause:"Disconnected or outdated software",action:"Consolidate onto fit-for-purpose systems",services:["Custom Software","Operating Systems"],metrics:["Systems consolidated","License waste removed"],difficulty:"high",timeline:"medium_term"},security:{rootCause:"Gaps in access control and data protection",action:"Close priority security gaps and add monitoring",services:["Managed Services","Custom Software"],metrics:["Access reviewed","Findings remediated"],difficulty:"high",timeline:"immediate"},cloud_readiness:{rootCause:"Infrastructure not cloud-ready or resilient",action:"Move to resilient, managed cloud hosting",services:["Hosting","Managed Services"],metrics:["Uptime %","Recovery time objective"],difficulty:"high",timeline:"medium_term"},architecture:{rootCause:"Point solutions without a coherent architecture",action:"Define a target architecture and integration plan",services:["Custom Software","Operating Systems"],metrics:["Target architecture approved","Integration coverage"],difficulty:"high",timeline:"long_term"},technical_debt:{rootCause:"Accumulated shortcuts slowing change",action:"Prioritize and retire the highest-risk debt",services:["Custom Software","Managed Services"],metrics:["Debt items retired","Change lead-time"],difficulty:"high",timeline:"medium_term"},scalability:{rootCause:"Systems not designed to scale with demand",action:"Re-platform bottlenecks for scale",services:["Custom Software","Hosting"],metrics:["Load headroom","Cost-per-transaction"],difficulty:"high",timeline:"long_term"},hlbos_compatibility:{rootCause:"Not yet aligned to the HL-BOS platform",action:"Plan an HL-BOS-aligned build path",services:["Operating Systems","Business Transformation"],metrics:["Compatibility assessed","Migration path defined"],difficulty:"medium",timeline:"medium_term"},automation_opportunities:{rootCause:"Manual work that AI could handle",action:"Identify and pilot high-value automations",services:["AI Automation"],metrics:["Automations piloted","Hours reclaimed"],difficulty:"medium",timeline:"short_term"},ai_assistants:{rootCause:"No AI assistants supporting the team",action:"Introduce governed AI assistants for key roles",services:["AI Automation","Training"],metrics:["Assistants deployed","Task time reduced"],difficulty:"medium",timeline:"short_term"},customer_support:{rootCause:"Support is fully manual and reactive",action:"Add AI-assisted support with human oversight",services:["AI Automation","Managed Services"],metrics:["First-response time","Deflection rate"],difficulty:"medium",timeline:"short_term"},marketing_automation:{rootCause:"Marketing tasks done by hand",action:"Automate nurture and campaign workflows",services:["AI Automation","Digital Marketing"],metrics:["Automated nurture live","Marketing hours saved"],difficulty:"medium",timeline:"short_term"},internal_ai_workflows:{rootCause:"No internal AI workflows in operations",action:"Deploy internal AI workflows with guardrails",services:["AI Automation","Operating Systems"],metrics:["Workflows live","Cycle-time reduction"],difficulty:"medium",timeline:"medium_term"},future_ai_products:{rootCause:"AI product opportunities unexplored",action:"Scope candidate AI products and a roadmap",services:["Business Transformation","Custom Software"],metrics:["Product concepts scoped","Roadmap approved"],difficulty:"high",timeline:"long_term"},cost_reduction:{rootCause:"Cost drivers not measured or managed",action:"Target the largest controllable cost drivers",services:["Operational Consulting","AI Automation"],metrics:["Cost baseline set","Cost reduced %"],difficulty:"medium",timeline:"medium_term"},revenue_growth:{rootCause:"Revenue levers under-exploited",action:"Prioritize the highest-leverage revenue plays",services:["Business Transformation","Digital Marketing"],metrics:["Pipeline growth","Revenue growth %"],difficulty:"medium",timeline:"medium_term"},automation_roi:{rootCause:"Automation ROI not yet captured",action:"Sequence automations by ROI and track savings",services:["AI Automation"],metrics:["Automation savings tracked","Payback period"],difficulty:"medium",timeline:"short_term"},transformation_roi:{rootCause:"No mechanism to track transformation ROI",action:"Instrument baseline and realized ROI per initiative",services:["Business Transformation"],metrics:["Baseline captured","Realized ROI tracked"],difficulty:"medium",timeline:"short_term"}};function F(e){return se[e]}function D(e){return Math.max(0,5-e)}function H(e){let i=D(e);return i>=4?"critical":i===3?"high":"medium"}function W(e,i){return i>=1?"high":e===0?"low":"moderate"}function ae(e,i){return k.find(o=>o.key===e)?.dimensions.find(o=>o.key===i)?.name??i}var ce={business:"constrains the organization's ability to execute and scale",operations:"raises operating cost and slows fulfillment",growth:"limits new-customer acquisition and revenue",technology:"increases risk and slows every other initiative",ai_readiness:"leaves productivity and service-quality gains uncaptured",financial:"means margin and ROI opportunities go uncaptured"},me={business:"clearer execution and a foundation to scale",operations:"lower cost per unit and faster, more reliable fulfillment",growth:"more qualified pipeline and revenue",technology:"lower risk and faster delivery of every other initiative",ai_readiness:"reclaimed hours and higher service quality",financial:"captured margin and measurable ROI"};function le(e){return e>=4?"Left unaddressed, this is a near-term threat to performance.":e===3?"This materially holds back results if not addressed this quarter.":"This caps upside and should be scheduled deliberately."}function ue(e,i){return i>=4?"immediate":i===3&&(e==="medium_term"||e==="long_term")?"short_term":e}function K(e){let i=[],t=new Map;for(let n of e.evidence??[]){let s=n.dimension??`domain:${n.domain}`,a=t.get(s)??[];a.push(n.label),t.set(s,a)}for(let n of e.ratings){if(n.rating>3)continue;let s=F(n.dimension);if(!s)continue;let a=ae(n.domain,n.dimension),u=D(n.rating),l=H(n.rating),g=t.get(n.dimension)??[],d=e.notes?.[n.domain],y=[`Assessment rating: ${a} = ${n.rating}/5 (verified input)`,...g.map(_=>`Attached evidence: ${_}`),...d?[`Assessor note (${n.domain}): ${d}`]:[]],c=`Weak ${a} ${ce[n.domain]}.`,f=le(u),w=`Improving ${a} from ${n.rating}/5 toward target unlocks ${me[n.domain]}.`,v=[{type:"fact",text:`${a} was rated ${n.rating}/5 in the assessment.`,evidence:y},{type:"inference",text:`Likely root cause: ${s.rootCause.toLowerCase()}.`,evidence:[`Derived from the ${a} rating${g.length?" and attached evidence":""}.`]},{type:"inference",text:c,evidence:[`Derived from the ${a} rating and its domain (${n.domain}).`]},{type:"opinion",text:`Recommended action: ${s.action}.`,evidence:["Professional recommendation based on the finding."]}];i.push({domain:n.domain,dimension:n.dimension,label:a,rating:n.rating,severity:u,finding:`${a} is rated ${n.rating}/5 \u2014 below target.`,supportingEvidence:y,businessImpact:c,rootCause:s.rootCause,businessRisk:f,opportunity:w,priority:l,recommendedAction:s.action,difficulty:s.difficulty,timeline:ue(s.timeline,u),successMetrics:s.metrics,services:s.services,claims:v})}let o={critical:0,high:1,medium:2,low:3},r={business:9,operations:8,growth:8,technology:7,ai_readiness:7,financial:8};return i.sort((n,s)=>{let a=o[n.priority]-o[s.priority];if(a!==0)return a;let u=r[s.domain]-r[n.domain];return u!==0?u:n.label.localeCompare(s.label)}),i}function de(e){let i=`${e.difficulty} implementation difficulty`;return e.timeline==="immediate"?`Placed Immediate: ${e.priority} priority (rated ${e.rating}/5) with ${i} \u2014 address now.`:e.timeline==="short_term"?`Placed Short-Term: ${e.priority} priority with ${i} \u2014 sequence within the quarter.`:e.timeline==="medium_term"?`Placed Medium-Term: ${i} requires planning and dependencies before execution.`:`Placed Long-Term: ${i} and strategic scope make this a 6\u201312 month initiative.`}function z(e){let i={immediate:[],short_term:[],medium_term:[],long_term:[]};for(let t of e)i[t.timeline].push({dimension:t.dimension,label:t.label,priority:t.priority,difficulty:t.difficulty,action:t.recommendedAction,justification:de(t)});return{immediate:i.immediate,shortTerm:i.short_term,mediumTerm:i.medium_term,longTerm:i.long_term}}var pe={critical:3,high:2,medium:1,low:1};function j(e){let i=new Map;for(let o of e)for(let r of o.services){let n=i.get(r)??{labels:new Set,weight:0};n.labels.add(o.label),n.weight+=pe[o.priority],i.set(r,n)}let t=[];for(let[o,r]of i){let n=[...r.labels].sort();t.push({service:o,supportedBy:n,rationale:`Supported by ${n.length} finding(s): ${n.join(", ")}.`})}return t.sort((o,r)=>{let n=i.get(o.service).weight,s=i.get(r.service).weight;return s!==n?s-n:r.supportedBy.length!==o.supportedBy.length?r.supportedBy.length-o.supportedBy.length:o.service.localeCompare(r.service)}),t}var x="Additional financial information required.";function G(e){let i=e??{},t=[];if(typeof i.laborHoursPerMonth=="number"&&typeof i.laborCostPerHour=="number"){let o=i.laborHoursPerMonth*.2;t.push({label:"Estimated automation savings (illustrative, 20% of measured manual hours)",value:Math.round(o*i.laborCostPerHour),unit:"per month",note:"Assumption-based on supplied labor hours and cost/hour; validate before quoting."})}else t.push({label:"Automation savings",value:null,unit:"per month",note:x+" Provide monthly manual labor hours and loaded cost per hour."});return typeof i.monthlyOperatingCost=="number"?t.push({label:"Operating cost baseline (from supplied figure)",value:Math.round(i.monthlyOperatingCost),unit:"per month",note:"Baseline only; reduction targets require an operational assessment."}):t.push({label:"Operating cost reduction",value:null,unit:"per month",note:x+" Provide monthly operating cost."}),typeof i.monthlyRevenue=="number"?t.push({label:"Revenue baseline (from supplied figure)",value:Math.round(i.monthlyRevenue),unit:"per month",note:"Baseline only; growth projections require validated conversion and pipeline data."}):t.push({label:"Revenue growth opportunity",value:null,unit:"per month",note:x+" Provide current monthly revenue and conversion data."}),t.push({label:"Recurring revenue opportunity",value:null,unit:"per month",note:x+" Requires a service/subscription model decision (CEO)."}),t}function p(e,i,t,o,r){return r===void 0?{key:e,title:i,body:t,hasData:o}:{key:e,title:i,body:t,hasData:o,note:r}}function T(e,i,t,o){let r=e.filter(s=>s.domain===i);if(r.length===0)return p(o,t,"",!1,`No ${i.replace("_"," ")} findings \u2014 either not assessed or already at target.`);let n=r.slice(0,4).map(s=>`${s.label}: ${s.recommendedAction}`);return p(o,t,`Priority moves: ${n.join("; ")}.`,!0)}function q(e,i,t,o,r){let n=Object.entries(i.domainScores),s=n.filter(([,m])=>m>=70),a=t.filter(m=>m.priority==="critical"),u=t.filter(m=>m.priority==="high"),l=i.transformation===null?p("executive_summary","Executive Summary","",!1,"No domains scored \u2014 complete the assessment to generate the summary."):p("executive_summary","Executive Summary",`${e} has an overall Transformation Score of ${i.transformation}/100 across ${n.length} assessed domain(s). The assessment surfaced ${t.length} evidence-backed finding(s)`+(a.length?`, ${a.length} of them critical`:"")+". The priorities below are sequenced by severity and business impact, and every recommendation traces to a verified rating.",!0),g=n.length===0?p("current_state","Current State","",!1,"No domain scores available."):p("current_state","Current State",n.map(([m,b])=>`${m.replace("_"," ")}: ${b}/100`).join(" \xB7 "),!0),d=s.length===0?p("strengths","Business Strengths","",!1,"No domain scored at or above 70."):p("strengths","Business Strengths",`Strong domains: ${s.map(([m,b])=>`${m.replace("_"," ")} (${b})`).join(", ")}.`,!0),y=t.length===0?p("weaknesses","Business Weaknesses","",!1,"No findings \u2014 nothing rated at or below the finding threshold."):p("weaknesses","Business Weaknesses",`Lowest-rated areas: ${t.slice(0,5).map(m=>`${m.label} (${m.rating}/5)`).join(", ")}.`,!0),c=a.length+u.length===0?p("strategic_risks","Strategic Risks","",!1,"No critical or high-priority findings."):p("strategic_risks","Strategic Risks",[...a,...u].slice(0,5).map(m=>`${m.label}: ${m.businessRisk}`).join(" "),!0),f=t.length===0?p("transformation_priorities","Transformation Priorities","",!1,"No findings to prioritize."):p("transformation_priorities","Transformation Priorities",t.slice(0,6).map((m,b)=>`${b+1}. ${m.label} (${m.priority}) \u2014 ${m.recommendedAction}`).join(" "),!0),w=o.length===0?p("executive_recommendations","Executive Recommendations","",!1,"No services recommended \u2014 no supporting findings."):p("executive_recommendations","Executive Recommendations",`Recommended Herman Legacy services, strongest support first: ${o.slice(0,6).map(m=>m.service).join(", ")}.`,!0),v=r.filter(m=>m.value!==null),_=v.length===0?p("financial_opportunities","Financial Opportunities","",!1,"Additional financial information required before any financial value can be stated."):p("financial_opportunities","Financial Opportunities",v.map(m=>`${m.label}: ${m.value?.toLocaleString()} ${m.unit}`).join("; ")+".",!0),O=i.transformation===null?p("board_summary","Board-Level Summary","",!1,"Insufficient data for a board summary."):p("board_summary","Board-Level Summary",`Transformation Score ${i.transformation}/100. ${a.length} critical, ${u.length} high-priority findings. ${o.length} Herman Legacy service line(s) indicated. `+(v.length?"Financial baselines provided.":"Financial values pending additional information."),!0);return[l,g,d,y,c,T(t,"growth","Growth Opportunities","growth_opportunities"),T(t,"technology","Technology Opportunities","technology_opportunities"),T(t,"ai_readiness","AI Opportunities","ai_opportunities"),T(t,"operations","Operational Opportunities","operational_opportunities"),_,f,w,O]}function U(e,i){return i.map(t=>{let o=t.supportingEvidence.filter(a=>a.startsWith("Attached evidence")),r=W(t.rating,o.length),n=[];o.length===0&&n.push(`No corroborating evidence attached for ${t.label} beyond the rating.`),t.domain==="financial"&&!e.financial&&n.push("No financial figures supplied \u2014 financial impact cannot be quantified."),t.rating===0&&n.push("Rating of 0/5 is extreme; confirm it reflects reality, not a data gap.");let s=[`What specifically drives the low ${t.label} rating today?`,`What have you already tried to improve ${t.label}?`,t.domain==="financial"?`What is the current monthly figure behind ${t.label}?`:`What would "good" look like for ${t.label} in 90 days?`];return{subject:`${t.label} (${t.domain})`,confidence:r,evidenceUsed:t.supportingEvidence,missingInformation:n.length?n:["None \u2014 rating is corroborated by attached evidence."],nextQuestions:s}})}var ge="bti-consulting-0.1.0";function he(e){let i=[];for(let t of e.ratings){let r=k.find(n=>n.key===t.domain)?.dimensions.find(n=>n.key===t.dimension);r&&i.push({domain:t.domain,dimension:t.dimension,rating:t.rating,weight:r.weight})}return i}function V(e){let i=P(he(e),Y),t=K(e),o=z(t),r=j(t),n=G(e.financial),s=q(e.businessName,i,t,r,n),a=U(e,t),u=t.flatMap(d=>d.claims),l=d=>u.filter(y=>y.type===d).length,g=new Set(e.ratings.map(d=>d.domain)).size;return{generatedFor:e.businessName,mode:e.mode,transformationScore:i.transformation,findings:t,roadmap:o,solutions:r,financial:n,narrative:s,review:a,meta:{engineVersion:ge,domainsAssessed:g,dimensionsRated:e.ratings.length,findingsGenerated:t.length,factCount:l("fact"),inferenceCount:l("inference"),opinionCount:l("opinion")}}}var I={};te(I,{HL_PRODUCTS:()=>we,SAMPLE_BUSINESS:()=>Re,SAMPLE_HTML:()=>Ie,analyzeBusiness:()=>ke,analyzeHtml:()=>L,hlServiceLabel:()=>R});var ye=["facebook","instagram","linkedin","twitter","x.com","youtube","tiktok"],ve=[["Google Analytics",/gtag\(|googletagmanager|google-analytics|ga\.js|analytics\.js/i],["Meta Pixel",/fbq\(|connect\.facebook\.net\/[^"']*fbevents/i],["Hotjar",/hotjar/i],["Segment",/cdn\.segment\.com/i]];function C(e,i){let t=e.match(i);return t&&t[1]!==void 0?t[1].trim():null}function A(e,i){let t=e.match(i);return t?t.length:0}function L(e,i){let t=i.trim().toLowerCase().startsWith("https://"),o=C(e,/<title[^>]*>([\s\S]*?)<\/title>/i),r=C(e,/<meta[^>]+name=["']description["'][^>]+content=["']([^"']*)["']/i)??C(e,/<meta[^>]+content=["']([^"']*)["'][^>]+name=["']description["']/i),n=/<link[^>]+rel=["']canonical["']/i.test(e),s=C(e,/<meta[^>]+name=["']robots["'][^>]+content=["']([^"']*)["']/i),a=C(e,/<html[^>]+lang=["']([^"']*)["']/i),u=/<meta[^>]+name=["']viewport["']/i.test(e),l=A(e,/<h1[\s>]/gi),g=A(e,/<h[1-6][\s>]/gi),d=A(e,/<img[\s>]/gi),c=(e.match(/<img[^>]*>/gi)??[]).filter(h=>!/\balt\s*=/i.test(h)).length,f=e.match(/<a[^>]+href=["']([^"']+)["']/gi)??[],w=0,v=0,_=new Set;for(let h of f){let S=(h.match(/href=["']([^"']+)["']/i)?.[1]??"").toLowerCase();if(S.startsWith("http")){v++;for(let $ of ye)S.includes($)&&_.add($==="x.com"?"twitter":$)}else S&&!S.startsWith("#")&&!S.startsWith("mailto")&&!S.startsWith("tel")&&w++}let O=/href=["']tel:/i.test(e),m=/href=["']mailto:/i.test(e),b=/<address[\s>]/i.test(e)||/\b\d{1,5}\s+[A-Za-z0-9.\s]+\b(street|st\.|avenue|ave\.|road|rd\.|blvd|suite|ste)\b/i.test(e),Q=A(e,/<form[\s>]/gi),Z=ve.filter(([,h])=>h.test(e)).map(([h])=>h),J=A(e,/<meta[^>]+property=["']og:/gi),E=[];for(let h of e.matchAll(/"@type"\s*:\s*"([^"]+)"/gi))h[1]&&E.push(h[1]);let M=e.replace(/<script[\s\S]*?<\/script>/gi," ").replace(/<style[\s\S]*?<\/style>/gi," ").replace(/<[^>]+>/g," ").replace(/\s+/g," ").trim(),X=M?M.split(" ").length:0;return{url:i,https:t,title:o,titleLength:o?.length??0,metaDescription:r,metaDescriptionLength:r?.length??0,hasViewport:u,lang:a,h1Count:l,headingCount:g,imageCount:d,imagesMissingAlt:c,internalLinks:w,externalLinks:v,socialLinks:[..._],hasTel:O,hasMailto:m,hasAddressSignal:b,forms:Q,analyticsTags:Z,openGraphCount:J,structuredDataTypes:[...new Set(E)],canonical:n,robotsMeta:s,wordCount:X}}var be={"Website Development":"Herman Legacy Digital",Hosting:"Herman Legacy Digital","Custom Software":"Herman Legacy Digital","Digital Marketing":"Marketing Services","Business Transformation":"Business Transformation Services","Operational Consulting":"Business Transformation Services",Training:"Business Transformation Services","Operating Systems":"Future Vertical Operating Systems","Managed Services":"Reputation Management",SEO:"SEO",VisibilityAI:"VisibilityAI","AI Automation":"AI Automation"},we=["Herman Legacy Digital","VisibilityAI","HL-BOS CRM","HomeHuddle","Business Transformation Services","Marketing Services","AI Automation","Reputation Management","Future Vertical Operating Systems","SEO"];function R(e){return be[e]??e}var _e=[{domain:"technology",dimension:"security",when:e=>!e.https,rating:e=>e.https?5:1,fact:e=>e.https?"Site served over HTTPS.":"Site URL is not HTTPS \u2014 no transport encryption observed."},{domain:"growth",dimension:"seo",when:e=>!e.metaDescription||e.metaDescriptionLength<50||(e.title?.length??0)<10,rating:e=>e.metaDescription&&e.metaDescriptionLength>=50&&(e.title?.length??0)>=10?4:2,fact:e=>`SEO basics: title ${e.title?`"${e.title.slice(0,40)}" (${e.titleLength} chars)`:"MISSING"}, meta description ${e.metaDescription?`${e.metaDescriptionLength} chars`:"MISSING"}.`},{domain:"growth",dimension:"ai_search_optimization",when:e=>e.structuredDataTypes.length===0,rating:e=>e.structuredDataTypes.length>0?4:1,fact:e=>e.structuredDataTypes.length?`Structured data present: ${e.structuredDataTypes.join(", ")}.`:"No schema.org structured data found \u2014 AI answer engines have little to cite."},{domain:"growth",dimension:"google_business_profile",when:e=>!e.hasTel&&!e.hasAddressSignal,rating:e=>e.hasTel||e.hasAddressSignal?4:2,fact:e=>e.hasTel||e.hasAddressSignal?"Contact/local signals present (phone or address).":"No phone or address signal on the page \u2014 weak local/GBP footprint."},{domain:"growth",dimension:"social_media",when:e=>e.socialLinks.length<2,rating:e=>e.socialLinks.length>=2?4:2,fact:e=>e.socialLinks.length?`Social links found: ${e.socialLinks.join(", ")}.`:"No social profile links found on the page."},{domain:"growth",dimension:"content",when:e=>e.wordCount<300||e.headingCount<3,rating:e=>e.wordCount>=300&&e.headingCount>=3?4:2,fact:e=>`Content depth: ~${e.wordCount} words, ${e.headingCount} headings.`},{domain:"growth",dimension:"conversion",when:e=>e.forms===0,rating:e=>e.forms>0?4:2,fact:e=>e.forms>0?`${e.forms} form(s) present for capture.`:"No form found \u2014 no on-page lead capture."},{domain:"growth",dimension:"lead_generation",when:e=>e.forms===0&&!e.hasMailto,rating:e=>e.forms>0||e.hasMailto?4:2,fact:e=>e.forms>0||e.hasMailto?"A contact path exists (form or email).":"No form and no email link \u2014 hard to generate leads."},{domain:"growth",dimension:"website",when:e=>!e.hasViewport||e.imagesMissingAlt>0,rating:e=>e.hasViewport&&e.imagesMissingAlt===0?4:3,fact:e=>`Site quality: ${e.hasViewport?"mobile viewport set":"NO mobile viewport"}, ${e.imagesMissingAlt}/${e.imageCount} images missing alt text.`},{domain:"growth",dimension:"technology_stack",when:e=>e.analyticsTags.length===0,rating:e=>e.analyticsTags.length>0?4:2,fact:e=>e.analyticsTags.length?`Analytics detected: ${e.analyticsTags.join(", ")}.`:"No analytics/measurement tag detected \u2014 decisions run blind."}];function Se(e,i){let t=[];return t.push({label:"Digital presence",detail:e.https?"Runs a secure (HTTPS) website.":"Website is not secured with HTTPS.",evidence:`URL: ${e.url}`}),t.push({label:"Discoverability",detail:e.metaDescription&&e.structuredDataTypes.length?"Has basic SEO metadata and structured data.":"Weak search discoverability \u2014 missing metadata and/or structured data.",evidence:`title ${e.titleLength} chars, meta ${e.metaDescriptionLength} chars, schema: ${e.structuredDataTypes.join(", ")||"none"}`}),t.push({label:"Customer engagement",detail:e.forms||e.hasTel||e.hasMailto?"Provides a way for customers to make contact.":"No clear contact or capture path for customers.",evidence:`forms: ${e.forms}, tel: ${e.hasTel}, email: ${e.hasMailto}`}),t.push({label:"Marketing footprint",detail:e.socialLinks.length>=2?`Active across ${e.socialLinks.length} social channels.`:"Thin social presence.",evidence:`social: ${e.socialLinks.join(", ")||"none"}; analytics: ${e.analyticsTags.join(", ")||"none"}`}),t.push({label:"Industry",detail:`${i.industry}${i.location?` \xB7 ${i.location}`:""}`,evidence:"Provided by consultant at intake."}),t}function ke(e){let i=L(e.html,e.website),t=[],o=[];for(let c of _e)t.push({domain:c.domain,dimension:c.dimension,rating:c.rating(i)}),o.push({domain:c.domain,dimension:c.dimension,label:c.fact(i)});let r={businessName:e.name,industryPack:e.industry,mode:"full_transformation",ratings:t,evidence:o,...e.financial?{financial:e.financial}:{}},n=V(r);for(let c of n.findings)c.services=[...new Set(c.services.map(R))];let s=[...new Set(n.solutions.map(c=>R(c.service)))],a=n.narrative.find(c=>c.key==="executive_recommendations");a&&a.hasData&&s.length&&(a.body=`Recommended Herman Legacy services, strongest support first: ${s.slice(0,7).join(", ")}.`);let u=Se(i,e),l=new Set(n.findings.filter(c=>c.priority==="critical"||c.priority==="high").flatMap(c=>c.services)),g=new Set,d=[];for(let c of n.solutions){let f=R(c.service);g.has(f)||(g.add(f),d.push({service:f,supportedBy:c.supportedBy,type:l.has(c.service)?"recurring":"one_time"}))}return{business:{name:e.name,website:e.website,industry:e.industry,...e.location?{location:e.location}:{}},evidence:i,profile:u,report:n,proposal:{lines:d,recommendedServices:[...new Set(n.solutions.map(c=>R(c.service)))]},coverageNote:"This analysis is website-driven. Operations, financial, and deeper AI-readiness findings require documents or a short interview \u2014 HL-BTI does not infer what it cannot observe."}}var Re={name:"Rivertown Logistics",website:"https://rivertown-logistics.example.com",industry:"transportation",location:"Columbus, OH"},Ie=`<!doctype html>
+<html>
+<head>
+  <title>Rivertown Logistics \u2014 Regional Freight & Warehousing</title>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+</head>
+<body>
+  <header>
+    <h1>Rivertown Logistics</h1>
+    <nav><a href="/services">Services</a><a href="/about">About</a><a href="/contact">Contact</a></nav>
+  </header>
+  <main>
+    <section>
+      <h2>Regional freight, warehousing, and last-mile delivery</h2>
+      <p>Rivertown Logistics has moved freight across the Midwest for over 20 years. We run a
+      modern fleet, a 120,000 sq ft distribution center, and a team that treats your cargo like
+      our own. From LTL to full truckload, scheduled routes to on-demand runs, we keep your
+      supply chain moving.</p>
+      <img src="/img/fleet.jpg">
+      <img src="/img/warehouse.jpg">
+    </section>
+    <section>
+      <h2>Our services</h2>
+      <h3>Freight</h3><p>LTL and FTL across the Midwest with reliable transit times.</p>
+      <h3>Warehousing</h3><p>Short and long-term storage with inventory visibility.</p>
+      <h3>Last-mile</h3><p>Scheduled and on-demand local delivery.</p>
+    </section>
+    <footer>
+      <a href="https://facebook.com/rivertownlogistics">Facebook</a>
+      <p>Call dispatch during business hours.</p>
+    </footer>
+  </main>
+</body>
+</html>`;var Y=k.map(e=>({domain:e.key,transformationWeight:e.transformationWeight}));globalThis.HLBTI={analyzeBusiness:I.analyzeBusiness,SAMPLE_BUSINESS:I.SAMPLE_BUSINESS,SAMPLE_HTML:I.SAMPLE_HTML,INDUSTRY_PACKS:B};})();
+</script>
+<script>
+(function () {
+  "use strict";
+  var H = window.HLBTI;
+  var $ = function (id) { return document.getElementById(id); };
+  function esc(s) { return String(s == null ? "" : s).replace(/[&<>"]/g, function (c) { return ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]; }); }
+
+  /* ---- theme toggle (respects OS default; overrides via data-theme) ---- */
+  var themeBtn = $("themeBtn");
+  themeBtn.addEventListener("click", function () {
+    var root = document.documentElement;
+    var cur = root.getAttribute("data-theme");
+    if (!cur) {
+      var dark = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches;
+      cur = dark ? "dark" : "light";
+    }
+    root.setAttribute("data-theme", cur === "dark" ? "light" : "dark");
+  });
+
+  /* ---- intake defaults ---- */
+  $("f-name").value = H.SAMPLE_BUSINESS.name;
+  $("f-website").value = H.SAMPLE_BUSINESS.website;
+  $("f-location").value = H.SAMPLE_BUSINESS.location;
+  $("f-html").value = H.SAMPLE_HTML;
+  var sel = $("f-industry");
+  H.INDUSTRY_PACKS.forEach(function (p) {
+    var o = document.createElement("option");
+    o.value = p.key; o.textContent = p.name; sel.appendChild(o);
+  });
+  sel.value = H.SAMPLE_BUSINESS.industry;
+
+  function roiBand(priority) {
+    if (priority === "critical" || priority === "high") return "High";
+    if (priority === "medium") return "Medium";
+    return "Low";
+  }
+  function scoreColor(n) {
+    if (n >= 67) return "var(--ok)";
+    if (n >= 34) return "var(--high)";
+    return "var(--critical)";
+  }
+
+  /* ---- render ---- */
+  function render(a) {
+    var report = a.report;
+    var html = "";
+
+    /* 2 — Business Intelligence Profile */
+    html += '<section class="step-label" style="margin-top:26px;"><span class="step-num">2</span><h2>Business Intelligence Profile</h2><span class="step-sub">what HL-BTI understands</span></section>';
+    html += '<section class="card">';
+    html += '<div class="profile-grid">';
+    a.profile.forEach(function (o) {
+      html += '<div class="obs"><div class="lbl">' + esc(o.label) + '</div><div class="dtl">' + esc(o.detail) + '</div><div class="ev">Evidence: ' + esc(o.evidence) + '</div></div>';
+    });
+    html += '</div>';
+    html += '<div class="banner" style="margin-top:14px;">&#8505; ' + esc(a.coverageNote) + '</div>';
+    html += '</section>';
+
+    /* 3 — Findings & Herman Legacy Recommendations */
+    html += '<section class="step-label" style="margin-top:26px;"><span class="step-num">3</span><h2>Findings &amp; Herman Legacy Recommendations</h2></section>';
+    report.findings.forEach(function (f, i) {
+      var confidence = (report.review[i] && report.review[i].confidence) || "moderate";
+      var pcls = f.priority === "critical" ? "p-critical" : (f.priority === "high" ? "p-high" : "");
+      var pbadge = f.priority === "critical" ? "crit" : (f.priority === "high" ? "high" : "");
+      var cbadge = confidence === "high" ? "ok" : (confidence === "low" ? "crit" : "");
+      html += '<section class="card finding ' + pcls + '" style="margin-top:14px;">';
+      html += '<div class="finding-head"><div><h3>' + esc(f.label) + '</h3><div class="fstate">' + esc(f.finding) + '</div></div>';
+      html += '<div class="badges">';
+      html += '<span class="badge ' + pbadge + '">' + esc(f.priority) + '</span>';
+      html += '<span class="badge ' + cbadge + '">confidence: ' + esc(confidence) + '</span>';
+      html += '<span class="badge info">Est. ROI: ' + roiBand(f.priority) + '</span>';
+      html += '</div></div>';
+      html += '<table class="detail"><tbody>';
+      html += '<tr><td class="k">Evidence</td><td>' + f.supportingEvidence.map(function (e) { return "<div>" + esc(e) + "</div>"; }).join("") + '</td></tr>';
+      html += '<tr><td class="k">Business Impact</td><td>' + esc(f.businessImpact) + '</td></tr>';
+      html += '<tr><td class="k">Strategic Risk</td><td>' + esc(f.businessRisk) + '</td></tr>';
+      html += '<tr><td class="k">Root Cause</td><td>' + esc(f.rootCause) + '</td></tr>';
+      html += '<tr><td class="k">Recommended action</td><td>' + esc(f.recommendedAction) + ' <span style="color:var(--muted);">(' + esc(f.timeline) + ', ' + esc(f.difficulty) + ' effort)</span></td></tr>';
+      html += '<tr><td class="k">Herman Legacy solution</td><td class="badges">' + f.services.map(function (s) { return '<span class="badge gold">' + esc(s) + '</span>'; }).join("") + '</td></tr>';
+      html += '</tbody></table></section>';
+    });
+
+    /* 4 — Executive Blueprint */
+    var t = report.transformationScore;
+    html += '<section class="step-label" style="margin-top:26px;"><span class="step-num">4</span><h2>Executive Business Transformation Blueprint</h2></section>';
+    html += '<section class="card pad-lg blueprint">';
+    html += '<div style="display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap;">';
+    html += '<div class="bp-eyebrow">Business Transformation Blueprint</div>';
+    if (t !== null && t !== undefined) {
+      html += '<div class="score" style="color:' + scoreColor(t) + ';" title="internal composite">Composite <span class="n">' + t + '</span>/100</div>';
+    }
+    html += '</div>';
+    html += '<h2 class="bp-title">' + esc(a.business.name) + '</h2>';
+    html += '<div class="narr">';
+    report.narrative.filter(function (s) { return s.hasData; }).forEach(function (s) {
+      html += '<div class="sec"><div class="st">' + esc(s.title) + '</div><div class="bd">' + esc(s.body) + '</div></div>';
+    });
+    html += '</div>';
+    html += '<div class="step-label" style="margin:22px 0 0;"><h2 style="font-size:16px;">Recommended Herman Legacy Services</h2></div>';
+    html += '<div class="svc-row">';
+    var uniqSvc = [];
+    a.proposal.recommendedServices.forEach(function (s) { if (uniqSvc.indexOf(s) < 0) uniqSvc.push(s); });
+    uniqSvc.forEach(function (s) { html += '<span class="badge gold">' + esc(s) + '</span>'; });
+    html += '</div></section>';
+
+    /* 5 — Proposal */
+    html += '<section class="step-label" style="margin-top:26px;"><span class="step-num">5</span><h2>Proposal</h2></section>';
+    html += '<section class="card pad-lg">';
+    html += '<p style="font-size:14px; margin:0 0 6px;">A Business Transformation engagement for <strong>' + esc(a.business.name) + '</strong>, delivering the Herman Legacy services below &mdash; sequenced from the evidence-backed findings above.</p>';
+    html += '<div class="prop-wrap"><table class="proposal"><thead><tr><th>Herman Legacy service</th><th>Type</th><th>Addresses</th><th>Price</th></tr></thead><tbody>';
+    a.proposal.lines.forEach(function (l) {
+      html += '<tr><td><span class="svc">' + esc(l.service) + '</span></td>';
+      html += '<td><span class="badge ' + (l.type === "recurring" ? "info" : "") + '">' + (l.type === "recurring" ? "Monthly" : "One-time") + '</span></td>';
+      html += '<td style="color:var(--muted);">' + esc(l.supportedBy.slice(0, 3).join(", ")) + '</td>';
+      html += '<td style="color:var(--muted);">TBD</td></tr>';
+    });
+    html += '</tbody></table></div>';
+    html += '<div class="banner" style="margin-top:12px;">&#128161; Pricing is a CEO decision &mdash; set it before sending. HL-BTI never invents a price.</div>';
+    html += '</section>';
+
+    $("results").innerHTML = html;
+    $("printBtn").style.display = "";
+  }
+
+  var analyzeBtn = $("analyzeBtn");
+  function run() {
+    var name = $("f-name").value.trim();
+    var htmlSrc = $("f-html").value;
+    if (!name || !htmlSrc.trim()) return;
+    analyzeBtn.disabled = true;
+    analyzeBtn.textContent = "Analyzing…";
+    $("results").innerHTML = '<section class="card"><div class="analyzing"><span class="spinner"></span> Discovering the website, collecting evidence, and analyzing…</div></section>';
+    setTimeout(function () {
+      try {
+        var location = $("f-location").value.trim();
+        var input = {
+          name: name,
+          website: $("f-website").value.trim(),
+          industry: $("f-industry").value,
+          html: htmlSrc
+        };
+        if (location) input.location = location;
+        var a = H.analyzeBusiness(input);
+        render(a);
+      } catch (err) {
+        $("results").innerHTML = '<section class="card"><div class="banner" style="border-left-color:var(--critical);">Analysis error: ' + esc(err && err.message ? err.message : String(err)) + '</div></section>';
+      } finally {
+        analyzeBtn.disabled = false;
+        analyzeBtn.textContent = "⚡ Analyze Business";
+      }
+    }, 320);
+  }
+  analyzeBtn.addEventListener("click", run);
+  $("printBtn").addEventListener("click", function () { window.print(); });
+
+  $("footerNote").innerHTML =
+    "<strong>Herman Legacy · Business Transformation Intelligence</strong> — live preview build. " +
+    "The analysis, findings, blueprint, and proposal are produced by the real HL-BTI engine running in your browser; nothing is invented. " +
+    "This preview covers the full Analyze → Blueprint → Proposal workflow. Sign-in and saved, cross-device engagements are part of the full cloud deployment.";
+})();
+</script>
