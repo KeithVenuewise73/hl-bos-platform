@@ -66,6 +66,10 @@
       "done": true
     },
     {
+      "title": "Canonical Capability Library (Phase XI-1): one evidence-backed record unifying 6 capability registries, deterministic duplicate/reuse gate, read-only /capabilities view — in-code, no migration, not merged",
+      "done": true
+    },
+    {
       "title": "HL-BTI v2 Business Transformation Intelligence engine (@hl-bos/transformation-intelligence) — configurable scoring, evidence-gated impact/ROI, Software Factory reuse, CEO-approval gating, HLVS + government-contracts intelligence; Executive Portal Transformation Intelligence + Government Contracts views over labelled sample input",
       "done": true
     },

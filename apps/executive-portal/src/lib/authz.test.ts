@@ -110,6 +110,12 @@ describe("Phase IX operational views", () => {
     }
   });
 
+  it("Capability Library is visible to every authenticated role (sensitive fields gated in-page)", () => {
+    for (const role of ALL_ROLES) expect(canView(role, "capabilities")).toBe(true);
+    expect(canView(null, "capabilities")).toBe(false);
+    expect(VIEWS.find((v) => v.view === "capabilities")?.group).toBe("factory");
+  });
+
   it("an unauthenticated viewer sees none of the new views", () => {
     for (const v of [
       "home",
@@ -117,6 +123,7 @@ describe("Phase IX operational views", () => {
       "search",
       "applications",
       "status",
+      "capabilities",
     ] as PortalView[]) {
       expect(canView(null, v)).toBe(false);
     }

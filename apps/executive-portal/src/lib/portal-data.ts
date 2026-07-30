@@ -24,10 +24,21 @@ import {
   APPLICATIONS,
   applicationByKey,
   applicationsByCategory,
+  CAPABILITIES,
+  capabilityById,
+  capabilityInventory,
+  productsForCapability,
+  applicationsForCapability,
+  reconcileCapabilities,
+  duplicateCheck,
+  evaluateReuse,
   type Asset,
   type AssetKind,
   type ApplicationRecord,
   type AppCategory,
+  type Capability,
+  type ProposedCapability,
+  type ReuseDecision,
 } from "@hl-bos/catalog";
 
 export {
@@ -48,8 +59,24 @@ export {
   APPLICATIONS,
   applicationByKey,
   applicationsByCategory,
+  CAPABILITIES,
+  capabilityById,
+  capabilityInventory,
+  productsForCapability,
+  applicationsForCapability,
+  reconcileCapabilities,
+  duplicateCheck,
+  evaluateReuse,
 };
-export type { Asset, AssetKind, ApplicationRecord, AppCategory };
+export type {
+  Asset,
+  AssetKind,
+  ApplicationRecord,
+  AppCategory,
+  Capability,
+  ProposedCapability,
+  ReuseDecision,
+};
 
 /** Platform health, derived from the registry's database assets (no live query). */
 export function platformHealth() {

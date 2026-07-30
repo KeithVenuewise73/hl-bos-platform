@@ -26,6 +26,7 @@ export type PortalView =
   | "catalog"
   | "factory"
   | "modules"
+  | "capabilities"
   | "compositions"
   | "relationships"
   | "readiness"
@@ -132,6 +133,14 @@ export const VIEWS: ViewMeta[] = [
     path: "/modules",
     label: "Module Registry",
     description: "Reusable engineering modules",
+    group: "factory",
+    sensitive: false,
+  },
+  {
+    view: "capabilities",
+    path: "/capabilities",
+    label: "Capability Library",
+    description: "Canonical reusable capabilities + duplicate gate",
     group: "factory",
     sensitive: false,
   },
@@ -254,6 +263,7 @@ const MATRIX: Record<PortalView, PortalRole[]> = {
   catalog: ALL,
   factory: ALL,
   modules: ALL,
+  capabilities: ALL,
   compositions: ALL,
   relationships: ALL,
   readiness: ALL,
