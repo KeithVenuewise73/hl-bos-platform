@@ -67,6 +67,21 @@ describe("authorization boundary — role matrix", () => {
     }
   });
 
+  it("transformation intelligence is owner/executive/administrator only", () => {
+    for (const role of ALL_ROLES) {
+      const allowed =
+        role === "platform_owner" || role === "executive" || role === "administrator";
+      expect(canView(role, "intelligence")).toBe(allowed);
+    }
+  });
+
+  it("government contracts is owner/executive only", () => {
+    for (const role of ALL_ROLES) {
+      const allowed = role === "platform_owner" || role === "executive";
+      expect(canView(role, "government")).toBe(allowed);
+    }
+  });
+
   it("every role can see the dashboard and catalog", () => {
     for (const role of ALL_ROLES) {
       expect(canView(role, "dashboard")).toBe(true);

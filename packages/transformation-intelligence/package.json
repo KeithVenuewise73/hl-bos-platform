@@ -1,0 +1,27 @@
+{
+  "name": "@hl-bos/transformation-intelligence",
+  "version": "0.1.0",
+  "private": true,
+  "description": "HL-BTI v2 — the reusable Business Transformation Intelligence engine. A composition layer over @hl-bos/bti-engine (scoring, findings, consulting) and @hl-bos/catalog (Software Factory) that turns a scored assessment into executive recommendations answering: what happened, why, what to do, the estimated business impact, and what approval is required. Configurable scoring, no hardcoded industries, nothing fabricated.",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "default": "./src/index.ts"
+    }
+  },
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run",
+    "clean": "rm -rf dist *.tsbuildinfo"
+  },
+  "dependencies": {
+    "@hl-bos/bti-engine": "workspace:*",
+    "@hl-bos/catalog": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  }
+}

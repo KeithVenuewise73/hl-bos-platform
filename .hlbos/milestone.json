@@ -58,6 +58,10 @@
       "done": true
     },
     {
+      "title": "HL-BTI v2 Business Transformation Intelligence engine (@hl-bos/transformation-intelligence) — configurable scoring, evidence-gated impact/ROI, Software Factory reuse, CEO-approval gating, HLVS + government-contracts intelligence; Executive Portal Transformation Intelligence + Government Contracts views over labelled sample input",
+      "done": true
+    },
+    {
       "title": "Connect GitHub and Supabase (needs your tokens)",
       "done": false
     },

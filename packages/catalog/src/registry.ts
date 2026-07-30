@@ -284,6 +284,27 @@ const ASSETS: Asset[] = [
     evidence: "packages/bti-engine",
   },
   {
+    id: "pkg.transformation-intelligence",
+    kind: "package",
+    name: "@hl-bos/transformation-intelligence",
+    summary:
+      "HL-BTI v2 — the reusable Business Transformation Intelligence engine. A composition layer over @hl-bos/bti-engine (scoring/consulting) and @hl-bos/catalog (Software Factory): configurable scoring, evidence-gated impact/ROI, factory reuse %, CEO-approval gating, HLVS software-opportunity and government-contracts intelligence. No hardcoded industries; nothing fabricated.",
+    maturity: "built_undeployed",
+    reuse: ["reusable", "commercial"],
+    owner: "HSCS Consulting",
+    layer: "HL-BTI",
+    key: "transformation-intelligence",
+    location: "packages/transformation-intelligence",
+    tags: ["engine", "intelligence", "recommendations", "deterministic", "reuse"],
+    relationships: [
+      { kind: "uses", to: "pkg.bti-engine" },
+      { kind: "uses", to: "pkg.catalog" },
+      { kind: "provides", to: "ai.recommendation-engine" },
+      { kind: "owned_by", to: "repo.hl-bos-platform" },
+    ],
+    evidence: "packages/transformation-intelligence (Phase VIII)",
+  },
+  {
     id: "pkg.catalog",
     kind: "package",
     name: "@hl-bos/catalog",

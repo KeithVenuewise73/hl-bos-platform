@@ -120,9 +120,15 @@ importers:
 
   apps/executive-portal:
     dependencies:
+      '@hl-bos/bti-engine':
+        specifier: workspace:*
+        version: link:../../packages/bti-engine
       '@hl-bos/catalog':
         specifier: workspace:*
         version: link:../../packages/catalog
+      '@hl-bos/transformation-intelligence':
+        specifier: workspace:*
+        version: link:../../packages/transformation-intelligence
       '@supabase/ssr':
         specifier: 'catalog:'
         version: 0.12.3(@supabase/supabase-js@2.110.6)
@@ -249,6 +255,25 @@ importers:
       zod:
         specifier: 'catalog:'
         version: 4.4.3
+    devDependencies:
+      '@types/node':
+        specifier: 'catalog:'
+        version: 22.20.1
+      typescript:
+        specifier: 'catalog:'
+        version: 6.0.3
+      vitest:
+        specifier: 'catalog:'
+        version: 4.1.10(@types/node@22.20.1)(@vitest/coverage-v8@4.1.10)
+
+  packages/transformation-intelligence:
+    dependencies:
+      '@hl-bos/bti-engine':
+        specifier: workspace:*
+        version: link:../bti-engine
+      '@hl-bos/catalog':
+        specifier: workspace:*
+        version: link:../catalog
     devDependencies:
       '@types/node':
         specifier: 'catalog:'

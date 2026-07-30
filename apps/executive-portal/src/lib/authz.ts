@@ -24,7 +24,9 @@ export type PortalView =
   | "commercial"
   | "deployment"
   | "decisions"
-  | "portfolio";
+  | "portfolio"
+  | "intelligence"
+  | "government";
 
 export const ROLE_LABEL: Record<PortalRole, string> = {
   platform_owner: "Platform Owner",
@@ -115,6 +117,20 @@ export const VIEWS: ViewMeta[] = [
     sensitive: false,
   },
   {
+    view: "intelligence",
+    path: "/intelligence",
+    label: "Transformation Intelligence",
+    description: "What happened, why, what to do, impact, approvals",
+    sensitive: true,
+  },
+  {
+    view: "government",
+    path: "/government",
+    label: "Government Contracts",
+    description: "Opportunity → win probability → gaps → profit → decision",
+    sensitive: true,
+  },
+  {
     view: "commercial",
     path: "/commercial",
     label: "Commercial Readiness",
@@ -203,6 +219,8 @@ const MATRIX: Record<PortalView, PortalRole[]> = {
     "read_only_auditor",
   ],
   deployment: ["platform_owner", "executive", "administrator"],
+  intelligence: ["platform_owner", "executive", "administrator"],
+  government: ["platform_owner", "executive"],
   commercial: ["platform_owner", "executive"],
   decisions: ["platform_owner", "executive"],
 };

@@ -15,7 +15,11 @@ const config: NextConfig = {
   reactStrictMode: true,
   poweredByHeader: false,
   productionBrowserSourceMaps: false,
-  transpilePackages: ["@hl-bos/catalog"],
+  transpilePackages: [
+    "@hl-bos/catalog",
+    "@hl-bos/bti-engine",
+    "@hl-bos/transformation-intelligence",
+  ],
   headers() {
     return Promise.resolve([
       {
