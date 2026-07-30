@@ -41,6 +41,10 @@ export default async function Page() {
         <h1 style={{ margin: 0, fontSize: 22 }}>Development Control Center</h1>
         <p style={{ margin: "4px 0 0", color: "#8b949e", fontSize: 13 }}>
           Herman Legacy Software Ventures — internal. Runs on this machine only.{" "}
+          <a href="/catalog" style={{ color: "#58a6ff" }}>
+            Enterprise Catalog
+          </a>{" "}
+          ·{" "}
           <a href="/connect" style={{ color: "#58a6ff" }}>
             {conn.github && conn.supabase ? "Connections" : "Connect accounts"}
           </a>

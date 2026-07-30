@@ -46,6 +46,14 @@
       "done": true
     },
     {
+      "title": "Enterprise Catalog activated in the console (browse, global search, asset relationships, completeness metrics)",
+      "done": true
+    },
+    {
+      "title": "Software Factory assembly engine (module registry, product compositions, SalonAI reference assembly, executive readiness) in the console",
+      "done": true
+    },
+    {
       "title": "Connect GitHub and Supabase (needs your tokens)",
       "done": false
     },
