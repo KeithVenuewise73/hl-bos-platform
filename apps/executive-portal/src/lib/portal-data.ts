@@ -20,8 +20,14 @@ import {
   executiveReadiness,
   FACTORY_CHECKLIST,
   MATURITY_LABEL,
+  search,
+  APPLICATIONS,
+  applicationByKey,
+  applicationsByCategory,
   type Asset,
   type AssetKind,
+  type ApplicationRecord,
+  type AppCategory,
 } from "@hl-bos/catalog";
 
 export {
@@ -38,8 +44,12 @@ export {
   executiveReadiness,
   FACTORY_CHECKLIST,
   MATURITY_LABEL,
+  search,
+  APPLICATIONS,
+  applicationByKey,
+  applicationsByCategory,
 };
-export type { Asset, AssetKind };
+export type { Asset, AssetKind, ApplicationRecord, AppCategory };
 
 /** Platform health, derived from the registry's database assets (no live query). */
 export function platformHealth() {

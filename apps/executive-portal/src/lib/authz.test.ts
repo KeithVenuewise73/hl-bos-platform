@@ -2,9 +2,11 @@ import { describe, it, expect } from "vitest";
 import {
   canView,
   viewsFor,
+  groupedViewsFor,
   roleFromPermissions,
   isPortalRole,
   VIEWS,
+  NAV_GROUPS,
   type PortalRole,
   type PortalView,
 } from "./authz";
@@ -86,6 +88,61 @@ describe("authorization boundary — role matrix", () => {
     for (const role of ALL_ROLES) {
       expect(canView(role, "dashboard")).toBe(true);
       expect(canView(role, "catalog")).toBe(true);
+    }
+  });
+});
+
+describe("Phase IX operational views", () => {
+  it("CEO Home, Global Search, Applications and Platform Status are visible to every role", () => {
+    for (const role of ALL_ROLES) {
+      expect(canView(role, "home")).toBe(true);
+      expect(canView(role, "search")).toBe(true);
+      expect(canView(role, "applications")).toBe(true);
+      expect(canView(role, "status")).toBe(true);
+    }
+  });
+
+  it("Task Center is operational (owner/executive/administrator) only", () => {
+    for (const role of ALL_ROLES) {
+      const allowed =
+        role === "platform_owner" || role === "executive" || role === "administrator";
+      expect(canView(role, "tasks")).toBe(allowed);
+    }
+  });
+
+  it("an unauthenticated viewer sees none of the new views", () => {
+    for (const v of [
+      "home",
+      "tasks",
+      "search",
+      "applications",
+      "status",
+    ] as PortalView[]) {
+      expect(canView(null, v)).toBe(false);
+    }
+  });
+
+  it("every view declares a known nav group", () => {
+    const groups = new Set(NAV_GROUPS.map((g) => g.group));
+    for (const v of VIEWS) expect(groups.has(v.group)).toBe(true);
+  });
+
+  it("grouped nav for the owner covers every group and only permitted views", () => {
+    const grouped = groupedViewsFor("platform_owner");
+    expect(grouped.length).toBe(NAV_GROUPS.length);
+    const flat = grouped.flatMap((g) => g.views.map((v) => v.view));
+    expect(new Set(flat).size).toBe(VIEWS.length); // owner sees all
+  });
+
+  it("grouped nav for a null role is empty", () => {
+    expect(groupedViewsFor(null)).toEqual([]);
+  });
+
+  it("grouped nav never leaks a view the role cannot see", () => {
+    for (const role of ALL_ROLES) {
+      for (const g of groupedViewsFor(role)) {
+        for (const v of g.views) expect(canView(role, v.view)).toBe(true);
+      }
     }
   });
 });

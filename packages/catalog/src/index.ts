@@ -16,6 +16,7 @@ export * from "./metrics";
 export * from "./modules";
 export * from "./compositions";
 export * from "./factory";
+export * from "./app-registry";
 
 import type { Asset, AssetKind, Catalog } from "./types";
 import { CATALOG } from "./registry";

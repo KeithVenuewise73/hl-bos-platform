@@ -7,12 +7,21 @@
  * nothing.
  *
  * All views are READ-ONLY. No role can execute a command, deploy, or write.
+ *
+ * Phase IX: views carry a `group` so navigation is organised around executive
+ * workflow (Command → Intelligence → Factory & Catalog → Governance → Platform)
+ * rather than a flat developer list.
  */
 
 export type PortalRole =
   "platform_owner" | "executive" | "administrator" | "developer" | "read_only_auditor";
 
 export type PortalView =
+  | "home"
+  | "tasks"
+  | "search"
+  | "applications"
+  | "status"
   | "dashboard"
   | "catalog"
   | "factory"
@@ -28,6 +37,9 @@ export type PortalView =
   | "intelligence"
   | "government";
 
+export type NavGroup =
+  "command" | "intelligence" | "factory" | "governance" | "platform";
+
 export const ROLE_LABEL: Record<PortalRole, string> = {
   platform_owner: "Platform Owner",
   executive: "Executive",
@@ -36,91 +48,58 @@ export const ROLE_LABEL: Record<PortalRole, string> = {
   read_only_auditor: "Read-only Auditor",
 };
 
+/** Nav groups in executive display order. */
+export const NAV_GROUPS: { group: NavGroup; label: string }[] = [
+  { group: "command", label: "Command" },
+  { group: "intelligence", label: "Intelligence" },
+  { group: "factory", label: "Factory & Catalog" },
+  { group: "governance", label: "Governance" },
+  { group: "platform", label: "Platform" },
+];
+
 export interface ViewMeta {
   view: PortalView;
   path: string;
   label: string;
   description: string;
+  group: NavGroup;
   /** True = commercially sensitive (owner/executive only). */
   sensitive: boolean;
 }
 
 export const VIEWS: ViewMeta[] = [
+  // --- Command -----------------------------------------------------------
   {
-    view: "dashboard",
+    view: "home",
     path: "/",
-    label: "Executive Dashboard",
-    description: "The whole picture at a glance",
+    label: "CEO Home",
+    description: "The executive operating dashboard",
+    group: "command",
     sensitive: false,
   },
   {
-    view: "catalog",
-    path: "/catalog",
-    label: "Enterprise Catalog",
-    description: "Every software asset",
-    sensitive: false,
+    view: "tasks",
+    path: "/tasks",
+    label: "Task Center",
+    description: "Everything awaiting a CEO decision",
+    group: "command",
+    sensitive: true,
   },
   {
-    view: "factory",
-    path: "/factory",
-    label: "Software Factory",
-    description: "Assemble products from modules",
+    view: "search",
+    path: "/search",
+    label: "Global Search",
+    description: "Find anything across the enterprise",
+    group: "command",
     sensitive: false,
   },
-  {
-    view: "modules",
-    path: "/modules",
-    label: "Module Registry",
-    description: "Reusable engineering modules",
-    sensitive: false,
-  },
-  {
-    view: "compositions",
-    path: "/compositions",
-    label: "Product Compositions",
-    description: "How each product is assembled",
-    sensitive: false,
-  },
-  {
-    view: "relationships",
-    path: "/relationships",
-    label: "Asset Relationships",
-    description: "Dependencies and dependents",
-    sensitive: false,
-  },
-  {
-    view: "readiness",
-    path: "/readiness",
-    label: "Product Readiness",
-    description: "Completion and assembly status",
-    sensitive: false,
-  },
-  {
-    view: "platform_health",
-    path: "/platform-health",
-    label: "Platform Health",
-    description: "Schemas, tables, security posture",
-    sensitive: false,
-  },
-  {
-    view: "portfolio",
-    path: "/portfolio",
-    label: "Product Portfolio",
-    description: "Every product and its stage",
-    sensitive: false,
-  },
-  {
-    view: "deployment",
-    path: "/deployment",
-    label: "Deployment Status",
-    description: "What is built vs deployed",
-    sensitive: false,
-  },
+  // --- Intelligence ------------------------------------------------------
   {
     view: "intelligence",
     path: "/intelligence",
     label: "Transformation Intelligence",
     description: "What happened, why, what to do, impact, approvals",
+    group: "intelligence",
     sensitive: true,
   },
   {
@@ -128,13 +107,73 @@ export const VIEWS: ViewMeta[] = [
     path: "/government",
     label: "Government Contracts",
     description: "Opportunity → win probability → gaps → profit → decision",
+    group: "intelligence",
     sensitive: true,
+  },
+  // --- Factory & Catalog -------------------------------------------------
+  {
+    view: "factory",
+    path: "/factory",
+    label: "Software Factory",
+    description: "Assemble products from modules",
+    group: "factory",
+    sensitive: false,
+  },
+  {
+    view: "catalog",
+    path: "/catalog",
+    label: "Enterprise Catalog",
+    description: "Every software asset",
+    group: "factory",
+    sensitive: false,
+  },
+  {
+    view: "modules",
+    path: "/modules",
+    label: "Module Registry",
+    description: "Reusable engineering modules",
+    group: "factory",
+    sensitive: false,
+  },
+  {
+    view: "compositions",
+    path: "/compositions",
+    label: "Product Compositions",
+    description: "How each product is assembled",
+    group: "factory",
+    sensitive: false,
+  },
+  {
+    view: "readiness",
+    path: "/readiness",
+    label: "Product Readiness",
+    description: "Completion and assembly status",
+    group: "factory",
+    sensitive: false,
+  },
+  {
+    view: "portfolio",
+    path: "/portfolio",
+    label: "Product Portfolio",
+    description: "Every product and its stage",
+    group: "factory",
+    sensitive: false,
+  },
+  // --- Governance --------------------------------------------------------
+  {
+    view: "applications",
+    path: "/applications",
+    label: "Application Registry",
+    description: "Every Herman Legacy application, governed",
+    group: "governance",
+    sensitive: false,
   },
   {
     view: "commercial",
     path: "/commercial",
     label: "Commercial Readiness",
     description: "Pricing/licensing/ownership status",
+    group: "governance",
     sensitive: true,
   },
   {
@@ -142,9 +181,61 @@ export const VIEWS: ViewMeta[] = [
     path: "/decisions",
     label: "CEO Decision Status",
     description: "Decisions awaiting the CEO",
+    group: "governance",
     sensitive: true,
   },
+  {
+    view: "deployment",
+    path: "/deployment",
+    label: "Deployment Status",
+    description: "What is built vs deployed",
+    group: "governance",
+    sensitive: false,
+  },
+  // --- Platform ----------------------------------------------------------
+  {
+    view: "status",
+    path: "/status",
+    label: "Platform Status",
+    description: "Every system: health, version, dependencies",
+    group: "platform",
+    sensitive: false,
+  },
+  {
+    view: "platform_health",
+    path: "/platform-health",
+    label: "Platform Health",
+    description: "Schemas, tables, security posture",
+    group: "platform",
+    sensitive: false,
+  },
+  {
+    view: "relationships",
+    path: "/relationships",
+    label: "Asset Relationships",
+    description: "Dependencies and dependents",
+    group: "platform",
+    sensitive: false,
+  },
+  {
+    view: "dashboard",
+    path: "/overview",
+    label: "Enterprise Overview",
+    description: "The original at-a-glance catalog dashboard",
+    group: "platform",
+    sensitive: false,
+  },
 ];
+
+const ALL: PortalRole[] = [
+  "platform_owner",
+  "executive",
+  "administrator",
+  "developer",
+  "read_only_auditor",
+];
+const OPERATIONAL: PortalRole[] = ["platform_owner", "executive", "administrator"];
+const EXEC: PortalRole[] = ["platform_owner", "executive"];
 
 /**
  * The access matrix. Each view lists the roles allowed to see it.
@@ -155,74 +246,25 @@ export const VIEWS: ViewMeta[] = [
  * - read_only_auditor: view-only, non-sensitive (no commercial/decisions/deployment).
  */
 const MATRIX: Record<PortalView, PortalRole[]> = {
-  dashboard: [
-    "platform_owner",
-    "executive",
-    "administrator",
-    "developer",
-    "read_only_auditor",
-  ],
-  catalog: [
-    "platform_owner",
-    "executive",
-    "administrator",
-    "developer",
-    "read_only_auditor",
-  ],
-  factory: [
-    "platform_owner",
-    "executive",
-    "administrator",
-    "developer",
-    "read_only_auditor",
-  ],
-  modules: [
-    "platform_owner",
-    "executive",
-    "administrator",
-    "developer",
-    "read_only_auditor",
-  ],
-  compositions: [
-    "platform_owner",
-    "executive",
-    "administrator",
-    "developer",
-    "read_only_auditor",
-  ],
-  relationships: [
-    "platform_owner",
-    "executive",
-    "administrator",
-    "developer",
-    "read_only_auditor",
-  ],
-  readiness: [
-    "platform_owner",
-    "executive",
-    "administrator",
-    "developer",
-    "read_only_auditor",
-  ],
-  platform_health: [
-    "platform_owner",
-    "executive",
-    "administrator",
-    "developer",
-    "read_only_auditor",
-  ],
-  portfolio: [
-    "platform_owner",
-    "executive",
-    "administrator",
-    "developer",
-    "read_only_auditor",
-  ],
-  deployment: ["platform_owner", "executive", "administrator"],
-  intelligence: ["platform_owner", "executive", "administrator"],
-  government: ["platform_owner", "executive"],
-  commercial: ["platform_owner", "executive"],
-  decisions: ["platform_owner", "executive"],
+  home: ALL,
+  search: ALL,
+  applications: ALL,
+  status: ALL,
+  dashboard: ALL,
+  catalog: ALL,
+  factory: ALL,
+  modules: ALL,
+  compositions: ALL,
+  relationships: ALL,
+  readiness: ALL,
+  platform_health: ALL,
+  portfolio: ALL,
+  deployment: OPERATIONAL,
+  tasks: OPERATIONAL,
+  intelligence: OPERATIONAL,
+  government: EXEC,
+  commercial: EXEC,
+  decisions: EXEC,
 };
 
 /** THE check. `null` role (unauthenticated) can see nothing. */
@@ -237,13 +279,19 @@ export function viewsFor(role: PortalRole | null): ViewMeta[] {
   return VIEWS.filter((v) => canView(role, v.view));
 }
 
-const VALID_ROLES = new Set<PortalRole>([
-  "platform_owner",
-  "executive",
-  "administrator",
-  "developer",
-  "read_only_auditor",
-]);
+/** The views a role may see, grouped by nav group in executive order. */
+export function groupedViewsFor(
+  role: PortalRole | null,
+): { group: NavGroup; label: string; views: ViewMeta[] }[] {
+  const visible = viewsFor(role);
+  return NAV_GROUPS.map((g) => ({
+    group: g.group,
+    label: g.label,
+    views: visible.filter((v) => v.group === g.group),
+  })).filter((g) => g.views.length > 0);
+}
+
+const VALID_ROLES = new Set<PortalRole>(ALL);
 
 export function isPortalRole(value: unknown): value is PortalRole {
   return typeof value === "string" && VALID_ROLES.has(value as PortalRole);

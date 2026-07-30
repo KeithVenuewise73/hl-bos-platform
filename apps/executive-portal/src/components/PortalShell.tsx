@@ -2,7 +2,13 @@ import "server-only";
 import type { ReactNode } from "react";
 import { redirect } from "next/navigation";
 import { getViewer } from "@/lib/session";
-import { canView, viewsFor, ROLE_LABEL, VIEWS, type PortalView } from "@/lib/authz";
+import {
+  canView,
+  groupedViewsFor,
+  ROLE_LABEL,
+  VIEWS,
+  type PortalView,
+} from "@/lib/authz";
 
 /**
  * The guarded shell every protected page renders inside.
@@ -63,7 +69,7 @@ export async function PortalShell({
     );
   }
 
-  const nav = viewsFor(viewer.role);
+  const groups = groupedViewsFor(viewer.role);
 
   return (
     <div style={{ maxWidth: 1120, margin: "0 auto", padding: "22px 24px 64px" }}>
@@ -94,24 +100,50 @@ export async function PortalShell({
       </header>
 
       <nav
-        style={{ display: "flex", flexWrap: "wrap", gap: "6px 8px", marginBottom: 20 }}
+        style={{
+          display: "flex",
+          flexWrap: "wrap",
+          gap: "10px 18px",
+          marginBottom: 20,
+          paddingBottom: 14,
+          borderBottom: "1px solid #21262d",
+        }}
       >
-        {nav.map((v) => (
-          <a
-            key={v.view}
-            href={v.path}
-            style={{
-              fontSize: 12.5,
-              padding: "5px 10px",
-              borderRadius: 8,
-              textDecoration: "none",
-              color: v.view === view ? "#e8eaed" : "#8b949e",
-              background: v.view === view ? "#1f6feb" : "#0d1117",
-              border: "1px solid #21262d",
-            }}
+        {groups.map((g) => (
+          <div
+            key={g.group}
+            style={{ display: "flex", flexDirection: "column", gap: 6 }}
           >
-            {v.label}
-          </a>
+            <div
+              style={{
+                fontSize: 10.5,
+                letterSpacing: 0.6,
+                textTransform: "uppercase",
+                color: "#6e7681",
+              }}
+            >
+              {g.label}
+            </div>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+              {g.views.map((v) => (
+                <a
+                  key={v.view}
+                  href={v.path}
+                  style={{
+                    fontSize: 12.5,
+                    padding: "5px 10px",
+                    borderRadius: 8,
+                    textDecoration: "none",
+                    color: v.view === view ? "#e8eaed" : "#8b949e",
+                    background: v.view === view ? "#1f6feb" : "#0d1117",
+                    border: "1px solid #21262d",
+                  }}
+                >
+                  {v.label}
+                </a>
+              ))}
+            </div>
+          </div>
         ))}
       </nav>
 
