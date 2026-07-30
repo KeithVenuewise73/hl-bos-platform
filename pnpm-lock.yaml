@@ -80,6 +80,9 @@ importers:
 
   apps/control-center:
     dependencies:
+      '@hl-bos/catalog':
+        specifier: workspace:*
+        version: link:../../packages/catalog
       next:
         specifier: 'catalog:'
         version: 16.2.10(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
@@ -179,6 +182,18 @@ importers:
 
   packages/bti-engine:
     devDependencies:
+      typescript:
+        specifier: 'catalog:'
+        version: 6.0.3
+      vitest:
+        specifier: 'catalog:'
+        version: 4.1.10(@types/node@22.20.1)(@vitest/coverage-v8@4.1.10)
+
+  packages/catalog:
+    devDependencies:
+      '@types/node':
+        specifier: 'catalog:'
+        version: 22.20.1
       typescript:
         specifier: 'catalog:'
         version: 6.0.3

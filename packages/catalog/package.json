@@ -1,0 +1,23 @@
+{
+  "name": "@hl-bos/catalog",
+  "version": "0.1.0",
+  "private": true,
+  "description": "The Enterprise Catalog engine: the single source of truth for every Herman Legacy software asset. A curated registry of products, modules, shared services, AI capabilities, APIs, repositories, databases, workflows, edge functions, industry solutions and business capabilities, plus a deterministic repository scanner that reconciles the registry against what physically exists. Reuses and surfaces the HLVS Factory rather than replacing it.",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "default": "./src/index.ts"
+    }
+  },
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run",
+    "clean": "rm -rf dist *.tsbuildinfo"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  }
+}

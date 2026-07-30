@@ -46,6 +46,10 @@
       "done": true
     },
     {
+      "title": "Enterprise Catalog activated in the console (browse, global search, asset relationships, completeness metrics)",
+      "done": true
+    },
+    {
       "title": "Connect GitHub and Supabase (needs your tokens)",
       "done": false
     },
