@@ -224,6 +224,26 @@ const ASSETS: Asset[] = [
     ],
     evidence: "apps/hl-bti-alpha",
   },
+  {
+    id: "app.executive-portal",
+    kind: "application",
+    name: "Herman Legacy Executive Portal",
+    summary:
+      "Secure, read-only, cloud-deployable executive view over the Enterprise Catalog and Software Factory. Reuses @hl-bos/catalog; contains no shell/git/pnpm/filesystem command surface. Authenticated via HL-BOS identity; separate from the localhost-only Control Center.",
+    maturity: "built_undeployed",
+    reuse: ["internal_only", "reusable"],
+    owner: "Herman Legacy Platform",
+    layer: "Tooling",
+    key: "executive-portal",
+    location: "apps/executive-portal",
+    tags: ["executive", "read-only", "authenticated", "cloud"],
+    relationships: [
+      { kind: "consumes", to: "pkg.catalog" },
+      { kind: "uses", to: "svc.identity" },
+      { kind: "owned_by", to: "repo.hl-bos-platform" },
+    ],
+    evidence: "apps/executive-portal (Phase VII)",
+  },
 
   // ======================================================================
   // SHARED PACKAGES

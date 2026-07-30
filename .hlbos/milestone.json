@@ -54,6 +54,10 @@
       "done": true
     },
     {
+      "title": "Herman Legacy Executive Portal — secure, read-only, cloud-deployable app (HL-BOS auth, 5 roles, no command surface); staging-ready, not yet deployed",
+      "done": true
+    },
+    {
       "title": "Connect GitHub and Supabase (needs your tokens)",
       "done": false
     },

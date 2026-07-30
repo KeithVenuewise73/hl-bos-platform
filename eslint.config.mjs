@@ -136,6 +136,25 @@ export default tseslint.config(
     },
   },
 
+  // The Executive Portal's env boundary: the specific files that must read
+  // runtime/build env directly. NEXT_PUBLIC_* must be literal dot-access to be
+  // inlined; the publishable key is browser-safe by ENV_SPEC (RLS is the
+  // boundary, not secrecy). Session/middleware also read NODE_ENV/HL_BOS_ENV/
+  // PORTAL_DEV_ROLE to gate the (production-impossible) local dev role. Scoped
+  // to these files to keep the guard everywhere else.
+  {
+    files: [
+      "apps/executive-portal/src/lib/session.ts",
+      "apps/executive-portal/src/lib/browser.ts",
+      "apps/executive-portal/src/middleware.ts",
+      "apps/executive-portal/src/app/api/health/route.ts",
+    ],
+    rules: {
+      "no-restricted-properties": "off",
+      "no-restricted-syntax": "off",
+    },
+  },
+
   {
     files: ["**/*.{mjs,js}"],
     ...tseslint.configs.disableTypeChecked,
