@@ -63,3 +63,22 @@ export async function catalogView(): Promise<CatalogView> {
 
 export { buildCatalog, groupByKind, assetsByKind, neighborhood, search, KIND_LABEL };
 export type { Asset, AssetKind, Catalog, Metrics, CompletenessReport };
+
+// --- Software Factory (Phase IV) -----------------------------------------
+export {
+  MODULE_REGISTRY,
+  PRODUCT_COMPOSITIONS,
+  compositionByKey,
+  assembleProduct,
+  assembleAll,
+  executiveReadiness,
+  FACTORY_CHECKLIST,
+  MATURITY_LABEL,
+  REUSE_LABEL,
+} from "@hl-bos/catalog";
+export type {
+  ModuleDef,
+  ProductComposition,
+  AssemblyResult,
+  ExecutiveReadiness,
+} from "@hl-bos/catalog";

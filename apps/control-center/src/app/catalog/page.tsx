@@ -41,6 +41,10 @@ export default async function CatalogDashboard({
         </div>
         <p style={{ margin: "4px 0 0", color: "#8b949e", fontSize: 13 }}>
           The authoritative source for every Herman Legacy software asset.{" "}
+          <a href="/catalog/factory" style={{ color: "#58a6ff" }}>
+            Software Factory
+          </a>{" "}
+          ·{" "}
           <a href="/" style={{ color: "#58a6ff" }}>
             ← Control Center
           </a>

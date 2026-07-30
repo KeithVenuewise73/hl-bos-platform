@@ -13,6 +13,9 @@ export * from "./completeness";
 export * from "./graph";
 export * from "./search";
 export * from "./metrics";
+export * from "./modules";
+export * from "./compositions";
+export * from "./factory";
 
 import type { Asset, AssetKind, Catalog } from "./types";
 import { CATALOG } from "./registry";
