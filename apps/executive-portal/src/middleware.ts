@@ -20,7 +20,7 @@ export async function middleware(req: NextRequest) {
 
   // Local dev bypass (impossible in production — see access.ts).
   const dev = devRoleFromEnv({
-    nodeEnv: process.env.NODE_ENV,
+    nodeEnv: process.env["NODE_ENV"],
     hlBosEnv: process.env["HL_BOS_ENV"],
     devRole: process.env["PORTAL_DEV_ROLE"],
   });
