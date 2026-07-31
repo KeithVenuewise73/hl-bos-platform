@@ -9,7 +9,7 @@ name: CI
 #
 #   actions/checkout@v6      node24   (v4 = node20)
 #   actions/setup-node@v5    node24   (v4 = node20)
-#   pnpm/action-setup@v5     node24   (v4 = node20)
+#   pnpm/action-setup@v6     node24   (v4 = node20)
 #   gitleaks/gitleaks-action@v3  node24   (v2 = node20, fails at init)
 #
 # Before adding an action, check `runs.using` in its action.yml. If it says
@@ -47,7 +47,7 @@ jobs:
           fetch-depth: 0
 
       - name: Install pnpm
-        uses: pnpm/action-setup@v5
+        uses: pnpm/action-setup@v6
 
       - name: Setup Node
         uses: actions/setup-node@v5
