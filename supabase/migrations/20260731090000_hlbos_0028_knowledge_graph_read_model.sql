@@ -411,9 +411,8 @@ begin
        and graph._can_see(e.scope, e.tenant_id)
      where r.depth < v_depth
   )
-  select coalesce(jsonb_agg(distinct n order by n), '[]'::jsonb) into v_nodes
-    from (select r.node_id as n from rev r where r.node_id <> p_node_id limit v_lim) s
-    join lateral (select s.n as n) n on true;
+  select coalesce(jsonb_agg(n order by n), '[]'::jsonb) into v_nodes
+    from (select distinct r.node_id as n from rev r where r.node_id <> p_node_id order by r.node_id limit v_lim) s;
   return jsonb_build_object(
     'projectionVersion', (select version from graph.projections where id = v_pid),
     'start', p_node_id, 'maxDepth', v_depth,

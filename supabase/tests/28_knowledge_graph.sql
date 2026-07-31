@@ -5,7 +5,7 @@
 -- XI-2C completion report.)
 
 begin;
-select plan(18);
+select plan(23);
 
 -- Schema + tables exist.
 select has_schema('graph');
@@ -49,6 +49,38 @@ select ok((select has_function_privilege('authenticated','public.graph_get_node(
           'authenticated may call graph_get_node');
 select ok((select not has_function_privilege('anon','public.graph_active_projection_status()','execute')),
           'anon may NOT call graph_active_projection_status');
+
+-- ── Runtime execution regression guard (added Phase XI-2J) ───────────────────
+-- The root cause of a bug found on the preview: the graph_* RPCs existed and
+-- were granted, but NO test EXECUTED them, so graph_find_blast_radius shipped
+-- with an ambiguous-column error that only surfaced at runtime with real
+-- dependents. These assertions actually CALL the RPCs against a published
+-- projection so that class of bug fails in CI, not in production.
+\ir _fixtures.sql.inc
+select tests.seed();
+insert into identity.role_permissions (role_key, permission_key)
+  values ('platform_owner','graph.projection.manage'), ('platform_owner','graph.projection.read')
+  on conflict do nothing;
+-- Act as a platform owner via JWT (the publisher runs from a controlled path).
+select set_config('request.jwt.claims',
+                  json_build_object('sub', tests.uid('powner')::text)::text, true);
+select graph.publish_projection(1,'kg-test','pgtap','c',true,
+  $n$[{"id":"m:a","type":"module","canonicalName":"a","displayName":"A","lifecycle":"live","scope":"platform","sourceRegistry":"t","evidence":"e"},
+      {"id":"m:b","type":"module","canonicalName":"b","displayName":"B","lifecycle":"live","scope":"platform","sourceRegistry":"t","evidence":"e"},
+      {"id":"m:c","type":"module","canonicalName":"c","displayName":"C","lifecycle":"live","scope":"platform","sourceRegistry":"t","evidence":"e"}]$n$::jsonb,
+  $e$[{"id":"m:a|depends_on|m:b","from":"m:a","kind":"depends_on","to":"m:b","inverse":"depended on by","scope":"platform","evidence":"e","sourceSystem":"t"},
+      {"id":"m:b|depends_on|m:c","from":"m:b","kind":"depends_on","to":"m:c","inverse":"depended on by","scope":"platform","evidence":"e","sourceSystem":"t"}]$e$::jsonb);
+select graph.activate_projection(1);
+select ok((public.graph_find_dependencies('m:a',6)->'dependencies') ? 'm:c',
+          'graph_find_dependencies traverses depends_on multi-hop');
+select ok((public.graph_find_blast_radius('m:c',6,100)->'dependents') ? 'm:a',
+          'graph_find_blast_radius executes and returns transitive dependents');
+select is((public.graph_find_blast_radius('m:c',999,999)->>'maxDepth'), '12',
+          'graph_find_blast_radius caps traversal depth at 12');
+select ok(jsonb_array_length(public.graph_get_neighbors('m:b',100)->'outgoing') >= 1,
+          'graph_get_neighbors executes and returns edges');
+select is(public.graph_get_node('m:a')->>'node_id', 'm:a',
+          'graph_get_node executes and returns the node');
 
 select * from finish();
 rollback;
