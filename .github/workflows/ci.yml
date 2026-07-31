@@ -201,6 +201,21 @@ jobs:
       - uses: actions/checkout@v6
       - name: Validate migration filenames and content
         run: bash scripts/check-migrations.sh
+      # Lineage governance (offline, no network): sequential ordinals, monotonic
+      # version identifiers, SHA-256 checksum lock vs .hlbos/migration-lineage.json,
+      # and canonical-registry consistency. Catches migration identity drift,
+      # duplicate numbers, checksum mismatches and silent edits. See ADR-0002.
+      - name: Setup Node
+        uses: actions/setup-node@v5
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          # This job never installs pnpm — it only runs a dependency-free Node
+          # script. setup-node@v5 otherwise auto-detects the packageManager field
+          # and tries to prime a pnpm cache, which fails ("Unable to locate
+          # executable file: pnpm"). No workspace deps here, so disable it.
+          package-manager-cache: false
+      - name: Migration lineage governance
+        run: node scripts/check-lineage.mjs
 
   functions-tests:
     name: Edge function tests (Deno)

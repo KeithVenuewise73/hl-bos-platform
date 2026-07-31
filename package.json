@@ -20,7 +20,9 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
-    "check": "pnpm format:check && pnpm lint && pnpm typecheck && pnpm test",
+    "lineage": "node scripts/check-lineage.mjs",
+    "lineage:write": "node scripts/check-lineage.mjs --write",
+    "check": "pnpm format:check && pnpm lint && pnpm typecheck && pnpm lineage && pnpm test",
     "clean": "turbo run clean && rm -rf node_modules"
   },
   "devDependencies": {

@@ -16,6 +16,13 @@ export * from "./metrics";
 export * from "./modules";
 export * from "./compositions";
 export * from "./factory";
+export * from "./app-registry";
+export * from "./capabilities";
+export * from "./capability-reuse";
+export * from "./graph-model";
+export * from "./graph-projection";
+export * from "./graph-traverse";
+export * from "./graph-serialize";
 
 import type { Asset, AssetKind, Catalog } from "./types";
 import { CATALOG } from "./registry";

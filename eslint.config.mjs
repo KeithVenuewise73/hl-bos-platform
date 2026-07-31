@@ -44,6 +44,10 @@ export default tseslint.config(
             "packages/*/*.config.ts",
             "packages/*/*.config.mts",
           ],
+          // One default-project config file per app/package (next/vitest configs)
+          // plus the repo root; the default cap of 8 is exceeded as the workspace
+          // grows. These files are tiny, so the lint cost is negligible.
+          maximumDefaultProjectFileMatchCount_THIS_WILL_SLOW_DOWN_LINTING: 30,
         },
         tsconfigRootDir: import.meta.dirname,
       },
@@ -136,9 +140,43 @@ export default tseslint.config(
     },
   },
 
+  // The Executive Portal's env boundary: the specific files that must read
+  // runtime/build env directly. NEXT_PUBLIC_* must be literal dot-access to be
+  // inlined; the publishable key is browser-safe by ENV_SPEC (RLS is the
+  // boundary, not secrecy). Session/middleware also read NODE_ENV/HL_BOS_ENV/
+  // PORTAL_DEV_ROLE to gate the (production-impossible) local dev role. Scoped
+  // to these files to keep the guard everywhere else.
+  {
+    files: [
+      "apps/executive-portal/src/lib/session.ts",
+      "apps/executive-portal/src/lib/browser.ts",
+      "apps/executive-portal/src/middleware.ts",
+      "apps/executive-portal/src/app/api/health/route.ts",
+    ],
+    rules: {
+      "no-restricted-properties": "off",
+      "no-restricted-syntax": "off",
+    },
+  },
+
   {
     files: ["**/*.{mjs,js}"],
     ...tseslint.configs.disableTypeChecked,
+  },
+
+  // Standalone Node scripts (governance/CI helpers) run in Node, not the
+  // browser or the TS build. Give them Node globals so no-undef does not fire
+  // on process/console. They still get the security lint via the shared rules.
+  {
+    files: ["scripts/**/*.{mjs,js}"],
+    languageOptions: {
+      globals: {
+        process: "readonly",
+        console: "readonly",
+        Buffer: "readonly",
+        URL: "readonly",
+      },
+    },
   },
 
   // Must stay last: turns off rules that conflict with Prettier.
