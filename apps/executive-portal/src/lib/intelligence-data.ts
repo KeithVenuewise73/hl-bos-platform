@@ -17,10 +17,20 @@ import {
   assessGovOpportunity,
   ourCapabilities,
   DEFAULT_CONFIG,
+  customerManufacturingSystem,
   type GovOpportunity,
   type TransformationIntelligenceResult,
   type GovAssessment,
 } from "@hl-bos/transformation-intelligence";
+
+/**
+ * The CEO Operations Dashboard — the assembled Customer Manufacturing System
+ * (Execution Phase 3). Pure composition of existing engines; the operational
+ * metrics are honestly zero until live customers exist.
+ */
+export function customerOperations() {
+  return customerManufacturingSystem();
+}
 
 /** An explicitly illustrative assessment — NOT a real customer. */
 const SAMPLE_ASSESSMENT: consulting.AssessmentInput = {

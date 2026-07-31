@@ -20,3 +20,8 @@ export * from "./recommendations";
 export * from "./hlvs";
 export * from "./government";
 export * from "./pipeline";
+export * from "./customer-lifecycle";
+export * from "./visibility-ai";
+export * from "./crm";
+export * from "./ceo-operations";
+export * from "./customer-manufacturing";
