@@ -31,3 +31,4 @@ export * from "./content-manufacturing";
 export * from "./campaigns";
 export * from "./growth-dashboard";
 export * from "./reference-implementation";
+export * from "./herman-legacy-digital";
