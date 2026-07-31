@@ -21,6 +21,8 @@ export * from "./capabilities";
 export * from "./capability-reuse";
 export * from "./factory-registry";
 export * from "./factory-blueprints";
+export * from "./operating-model";
+export * from "./portfolio";
 export * from "./graph-model";
 export * from "./graph-projection";
 export * from "./graph-traverse";
