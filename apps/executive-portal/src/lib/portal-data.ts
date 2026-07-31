@@ -32,6 +32,14 @@ import {
   reconcileCapabilities,
   duplicateCheck,
   evaluateReuse,
+  buildKnowledgeGraph,
+  validateGraph,
+  blastRadius,
+  capabilitiesForApplication,
+  singlePointsOfDependency,
+  highestReuseCoveragePlannedProduct,
+  outgoing,
+  incoming,
   type Asset,
   type AssetKind,
   type ApplicationRecord,
@@ -39,6 +47,9 @@ import {
   type Capability,
   type ProposedCapability,
   type ReuseDecision,
+  type GraphNode,
+  type GraphEdge,
+  type KnowledgeGraph,
 } from "@hl-bos/catalog";
 
 export {
@@ -67,6 +78,14 @@ export {
   reconcileCapabilities,
   duplicateCheck,
   evaluateReuse,
+  buildKnowledgeGraph,
+  validateGraph,
+  blastRadius,
+  capabilitiesForApplication,
+  singlePointsOfDependency,
+  highestReuseCoveragePlannedProduct,
+  outgoing,
+  incoming,
 };
 export type {
   Asset,
@@ -76,6 +95,9 @@ export type {
   Capability,
   ProposedCapability,
   ReuseDecision,
+  GraphNode,
+  GraphEdge,
+  KnowledgeGraph,
 };
 
 /** Platform health, derived from the registry's database assets (no live query). */

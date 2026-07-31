@@ -116,6 +116,12 @@ describe("Phase IX operational views", () => {
     expect(VIEWS.find((v) => v.view === "capabilities")?.group).toBe("factory");
   });
 
+  it("Knowledge Graph is visible to every authenticated role, none unauthenticated", () => {
+    for (const role of ALL_ROLES) expect(canView(role, "graph")).toBe(true);
+    expect(canView(null, "graph")).toBe(false);
+    expect(VIEWS.find((v) => v.view === "graph")?.group).toBe("platform");
+  });
+
   it("an unauthenticated viewer sees none of the new views", () => {
     for (const v of [
       "home",

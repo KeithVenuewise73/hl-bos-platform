@@ -31,6 +31,7 @@ export type PortalView =
   | "relationships"
   | "readiness"
   | "platform_health"
+  | "graph"
   | "commercial"
   | "deployment"
   | "decisions"
@@ -219,6 +220,14 @@ export const VIEWS: ViewMeta[] = [
     sensitive: false,
   },
   {
+    view: "graph",
+    path: "/graph",
+    label: "Knowledge Graph",
+    description: "How every asset relates — typed, explainable",
+    group: "platform",
+    sensitive: false,
+  },
+  {
     view: "relationships",
     path: "/relationships",
     label: "Asset Relationships",
@@ -268,6 +277,7 @@ const MATRIX: Record<PortalView, PortalRole[]> = {
   relationships: ALL,
   readiness: ALL,
   platform_health: ALL,
+  graph: ALL,
   portfolio: ALL,
   deployment: OPERATIONAL,
   tasks: OPERATIONAL,
