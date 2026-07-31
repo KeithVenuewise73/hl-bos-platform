@@ -159,6 +159,26 @@ export default tseslint.config(
     },
   },
 
+  // Herman Legacy Digital's env boundary — same rationale as the Executive
+  // Portal. Only the auth/session, middleware, browser client, health check, the
+  // intake delivery adapter and the analytics sink read env directly; scoped to
+  // these files so the guard holds everywhere else. Publishable key only; no
+  // service-role key is read anywhere.
+  {
+    files: [
+      "apps/herman-legacy-digital/src/lib/session.ts",
+      "apps/herman-legacy-digital/src/lib/browser.ts",
+      "apps/herman-legacy-digital/src/lib/persist.ts",
+      "apps/herman-legacy-digital/src/middleware.ts",
+      "apps/herman-legacy-digital/src/app/api/health/route.ts",
+      "apps/herman-legacy-digital/src/app/api/event/route.ts",
+    ],
+    rules: {
+      "no-restricted-properties": "off",
+      "no-restricted-syntax": "off",
+    },
+  },
+
   {
     files: ["**/*.{mjs,js}"],
     ...tseslint.configs.disableTypeChecked,

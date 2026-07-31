@@ -144,6 +144,38 @@ export const APPLICATIONS: ApplicationRecord[] = [
     evidence: "apps/executive-portal; GitHub Actions deploy.yml run count = 0",
   },
   {
+    key: "herman-legacy-digital",
+    name: "Herman Legacy Digital",
+    description:
+      "The customer-facing AI-powered Business Transformation company (hermanlegacydigital.com): a public marketing + assessment-intake site and an authenticated client portal. Assembled on HL-BOS — reuses the portfolio, VisibilityAI, HL-BTI, customer lifecycle, HL-BOS identity and the Executive Portal deployment pattern; introduces no duplicate identity/CRM/workflow/portal systems.",
+    category: "web_property",
+    repository: REPO,
+    owner: "KeithVenuewise73",
+    executiveOwner: "Keith Herman (CEO)",
+    currentBranch: "claude/hlvs-architectural-assessment-ltqs1b",
+    environment: "local",
+    developmentStatus: "built_undeployed",
+    deploymentStatus: "not_deployed",
+    productionUrl: null,
+    stagingUrl: null,
+    localUrl: "http://localhost:4400",
+    supabaseProject: CORE,
+    version: "0.1.0",
+    health: "unknown",
+    hosting: "none yet (Coolify pattern configured, not deployed)",
+    dependencies: [
+      "@hl-bos/catalog",
+      "@hl-bos/transformation-intelligence",
+      "@supabase/ssr",
+    ],
+    reusableModules: ["identity_core"],
+    softwareFactoryIntegration:
+      "Public projection + client portal over @hl-bos/catalog (portfolio) and @hl-bos/transformation-intelligence (customer lifecycle, reference implementations).",
+    notes:
+      "Release 1 built and validated (build + tests green); not deployed. DNS to hermanlegacydigital.com awaits CEO authorization.",
+    evidence: "apps/herman-legacy-digital (Phase 6, Release 1); not deployed",
+  },
+  {
     key: "control-center",
     name: "CEO Development Control Center",
     description:

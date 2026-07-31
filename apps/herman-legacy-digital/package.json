@@ -1,0 +1,33 @@
+{
+  "name": "@hl-bos/herman-legacy-digital",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Herman Legacy Digital — the customer-facing AI-powered Business Transformation company (hermanlegacydigital.com). A public marketing + assessment-intake site and an authenticated client portal, assembled on the canonical HL-BOS platform: reuses @hl-bos/catalog and @hl-bos/transformation-intelligence, HL-BOS identity (Supabase Auth), and the Executive Portal deployment pattern. It introduces NO duplicate identity, CRM, workflow, billing, or portal systems.",
+  "type": "module",
+  "scripts": {
+    "dev": "next dev --port 4400",
+    "build": "next build",
+    "start": "next start --port 4400",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint .",
+    "test": "vitest run",
+    "clean": "rm -rf .next dist *.tsbuildinfo"
+  },
+  "dependencies": {
+    "@hl-bos/catalog": "workspace:*",
+    "@hl-bos/transformation-intelligence": "workspace:*",
+    "@supabase/ssr": "catalog:",
+    "@supabase/supabase-js": "catalog:",
+    "next": "catalog:",
+    "react": "catalog:",
+    "react-dom": "catalog:",
+    "server-only": "catalog:"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "@types/react": "catalog:",
+    "@types/react-dom": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  }
+}
