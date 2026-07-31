@@ -1,7 +1,7 @@
 {
   "$comment": "Live milestone state. Version-controlled so it is auditable, and updated by the AI engineer as work lands. The Control Center reads this -- it does not guess progress.",
-  "milestone": "2.5 \u2014 CEO Development Control Center",
-  "phase": "Console complete; awaiting connection",
+  "milestone": "Platform Foundation v1.0 \u2014 Enterprise Knowledge Graph live in production",
+  "phase": "Migration 0028 applied to canonical production (XI-2L); graph installed and sealed (fail-closed) pending a permission grant",
   "engineer": "Claude (AI engineer)",
   "startedOn": "2026-07-16",
   "tasks": [
@@ -78,11 +78,19 @@
       "done": false
     },
     {
-      "title": "Deploy Preview (needs Supabase branching switched on)",
-      "done": false
+      "title": "Knowledge Graph validated on a production-cut preview (XI-2J): full runtime authz/RLS/RPC/rollback; a real RPC bug was found, fixed, and covered by a regression test",
+      "done": true
     },
     {
-      "title": "Deploy Production (needs a preview to test against first)",
+      "title": "Platform Foundation v1.0 merged to main via PR #18 (CI green: Validate, pgTAP 0001–0028 + graph execution tests, Migration checks, Deno, Secret scan)",
+      "done": true
+    },
+    {
+      "title": "Deploy Production — migration 0028 (Knowledge Graph) applied to canonical production (mvvtngiopdrgiedjmhfb) at exact repo version 20260731090000; 17/17 structural checks pass; RLS forced; RPCs fail-closed; lineage reconciled (XI-2L)",
+      "done": true
+    },
+    {
+      "title": "Grant graph permissions + publish the first production projection (145 nodes / 427 edges) — a separate CEO authorization; the graph is installed but dormant until then",
       "done": false
     }
   ],

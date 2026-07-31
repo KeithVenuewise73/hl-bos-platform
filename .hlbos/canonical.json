@@ -48,7 +48,8 @@
     }
   ],
   "foundationOrdinals": [1, 2, 3, 4, 5, 6, 7, 8],
-  "notYetAppliedOrdinals": [28],
+  "$notYetAppliedOrdinals_note": "0028 was applied to canonical production on 2026-07-31 (Phase XI-2L), recorded at its exact repo version 20260731090000. Production applied set is now 0001–0028, matching the repo. See docs/architecture-audit/hlvs-phase-11-2l-production-deployment/.",
+  "notYetAppliedOrdinals": [],
   "knownMigrationDrift": {
     "$comment": "No active drift. The 0023–0027 version-identifier drift was reconciled in Phase XI-2I (Option D) — repo files renamed to production's applied versions; SQL content unchanged. History preserved below under resolvedMigrationDrift.",
     "entries": []

@@ -227,8 +227,7 @@
       "filename": "20260731090000_hlbos_0028_knowledge_graph_read_model.sql",
       "version": "20260731090000",
       "sha256": "f750be1862dd8aa3790898ee0633c609df14071eb9627c09b0a577a4d4fc476f",
-      "foundation": false,
-      "notYetApplied": true
+      "foundation": false
     }
   ]
 }
