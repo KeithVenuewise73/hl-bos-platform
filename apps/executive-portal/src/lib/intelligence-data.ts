@@ -18,6 +18,7 @@ import {
   ourCapabilities,
   DEFAULT_CONFIG,
   customerManufacturingSystem,
+  hermanLegacyMarketingSystem,
   type GovOpportunity,
   type TransformationIntelligenceResult,
   type GovAssessment,
@@ -30,6 +31,14 @@ import {
  */
 export function customerOperations() {
   return customerManufacturingSystem();
+}
+
+/**
+ * Herman Legacy Marketing (Execution Phase 3A) — the assembled marketing unit.
+ * Growth metrics are honestly zero until campaigns publish.
+ */
+export function marketingUnit() {
+  return hermanLegacyMarketingSystem();
 }
 
 /** An explicitly illustrative assessment — NOT a real customer. */

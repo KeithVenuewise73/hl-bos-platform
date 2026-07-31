@@ -25,3 +25,8 @@ export * from "./visibility-ai";
 export * from "./crm";
 export * from "./ceo-operations";
 export * from "./customer-manufacturing";
+export * from "./marketing";
+export * from "./marketing-studio";
+export * from "./content-manufacturing";
+export * from "./campaigns";
+export * from "./growth-dashboard";

@@ -19,6 +19,7 @@ export type PortalRole =
 export type PortalView =
   | "home"
   | "operations"
+  | "marketing"
   | "tasks"
   | "search"
   | "applications"
@@ -85,6 +86,14 @@ export const VIEWS: ViewMeta[] = [
     path: "/operations",
     label: "CEO Operations",
     description: "Customer Manufacturing System — one operating picture",
+    group: "command",
+    sensitive: true,
+  },
+  {
+    view: "marketing",
+    path: "/marketing",
+    label: "Marketing & Growth",
+    description: "Herman Legacy Marketing — campaigns, studio, growth",
     group: "command",
     sensitive: true,
   },
@@ -291,6 +300,7 @@ const MATRIX: Record<PortalView, PortalRole[]> = {
   deployment: OPERATIONAL,
   tasks: OPERATIONAL,
   operations: OPERATIONAL,
+  marketing: OPERATIONAL,
   intelligence: OPERATIONAL,
   government: EXEC,
   commercial: EXEC,
