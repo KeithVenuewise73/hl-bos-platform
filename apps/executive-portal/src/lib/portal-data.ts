@@ -40,6 +40,9 @@ import {
   highestReuseCoveragePlannedProduct,
   outgoing,
   incoming,
+  serializeGraph,
+  projectionStatus,
+  GRAPH_MODEL_VERSION,
   type Asset,
   type AssetKind,
   type ApplicationRecord,
@@ -86,6 +89,9 @@ export {
   highestReuseCoveragePlannedProduct,
   outgoing,
   incoming,
+  serializeGraph,
+  projectionStatus,
+  GRAPH_MODEL_VERSION,
 };
 export type {
   Asset,

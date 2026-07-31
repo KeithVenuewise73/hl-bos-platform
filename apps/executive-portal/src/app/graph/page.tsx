@@ -10,6 +10,8 @@ import {
   highestReuseCoveragePlannedProduct,
   outgoing,
   incoming,
+  projectionStatus,
+  GRAPH_MODEL_VERSION,
   type GraphNode,
 } from "@/lib/portal-data";
 
@@ -39,6 +41,7 @@ export default async function GraphPage({
 
   const spods = singlePointsOfDependency(g, 2).slice(0, 6);
   const topPlanned = highestReuseCoveragePlannedProduct();
+  const proj = projectionStatus();
 
   return (
     <PortalShell view="graph">
@@ -62,6 +65,32 @@ export default async function GraphPage({
           accent={v.ok ? "#3fb950" : "#f85149"}
         />
       </Grid>
+
+      <Card
+        title="Persistent read model (projection status)"
+        sub="In-code projection. The DB read-model migration (0028) is created and locally validated — not yet applied."
+      >
+        <Row k="Graph model version" v={GRAPH_MODEL_VERSION} />
+        <Row
+          k="Projection checksum"
+          v={<code style={{ fontSize: 12 }}>{proj.checksum}</code>}
+        />
+        <Row k="Nodes · edges" v={`${proj.nodeCount} · ${proj.edgeCount}`} />
+        <Row
+          k="Integrity"
+          v={
+            <span>
+              <Dot health={proj.integrityOk ? "green" : "red"} />
+              {proj.integrityOk ? "clean" : "issues"}
+            </span>
+          }
+        />
+        <div style={{ fontSize: 11.5, color: "#6e7681", marginTop: 8 }}>
+          Publishing to the persistent read model requires an approved migration apply
+          (CEO decision). Until then the portal reads the deterministic in-code
+          projection.
+        </div>
+      </Card>
 
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
         <Card title="Node inventory" sub="By type (evidence-backed).">

@@ -22,6 +22,7 @@ export * from "./capability-reuse";
 export * from "./graph-model";
 export * from "./graph-projection";
 export * from "./graph-traverse";
+export * from "./graph-serialize";
 
 import type { Asset, AssetKind, Catalog } from "./types";
 import { CATALOG } from "./registry";
