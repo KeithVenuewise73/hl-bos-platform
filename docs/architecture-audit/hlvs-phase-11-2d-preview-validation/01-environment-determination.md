@@ -3,6 +3,14 @@
 **Read-only.** Nothing below wrote to any database. Every fact was gathered with
 `list_branches`, `list_migrations`, and read-only `select` queries.
 
+> **Correction (Phase XI-2E):** the table below labels the reachable branch
+> `moftgnrbnsixeddcwdpz` as "= production's lineage". That is **wrong** — it is a **stale,
+> abandoned preview branch**. Production (`mvvtngiopdrgiedjmhfb`), queried directly in
+> XI-2E, runs **this repository's platform lineage** (0001–0027 events/billing/hlvs/bti;
+> no portfolio/govcon). Read this document as "the reachable _branch_ is a different
+> lineage", not "production is". See
+> [../hlvs-phase-11-2e-lineage-reconciliation/02-lineage-schema-identity.md](../hlvs-phase-11-2e-lineage-reconciliation/02-lineage-schema-identity.md).
+
 ## Databases reachable from this environment
 
 | Project / branch                   | Ref                    | Role                                                                                                              |

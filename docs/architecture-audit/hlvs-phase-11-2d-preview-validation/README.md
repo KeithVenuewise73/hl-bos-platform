@@ -4,6 +4,16 @@
 **Production-readiness recommendation: NOT READY FOR PRODUCTION MIGRATION.**
 Nothing was applied to any remote database. Production was not touched. No merge.
 
+> **Corrected by Phase XI-2E (2026-07-31).** This report inferred that the reachable
+> HL-BOS **production** is a portfolio/govcon lineage. That inference was drawn from a
+> **stale preview branch** (`hlbos-m1-portfolio`, `moftgnrbnsixeddcwdpz`) — **not** from
+> production. XI-2E queried production (`mvvtngiopdrgiedjmhfb`) directly and found it runs
+> **this repository's own platform lineage** (events/billing/hlvs/bti, 27 migrations, no
+> portfolio/govcon, no graph). The portfolio/govcon lineage exists **only** on that
+> abandoned branch. The XI-2D _decision_ (do not apply 0028 to that branch) and the
+> permission-key fix remain valid; only the "production = portfolio/govcon" reading was
+> wrong. See [../hlvs-phase-11-2e-lineage-reconciliation/README.md](../hlvs-phase-11-2e-lineage-reconciliation/README.md).
+
 ---
 
 ## In plain language
