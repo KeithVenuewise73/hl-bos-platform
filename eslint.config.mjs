@@ -164,6 +164,21 @@ export default tseslint.config(
     ...tseslint.configs.disableTypeChecked,
   },
 
+  // Standalone Node scripts (governance/CI helpers) run in Node, not the
+  // browser or the TS build. Give them Node globals so no-undef does not fire
+  // on process/console. They still get the security lint via the shared rules.
+  {
+    files: ["scripts/**/*.{mjs,js}"],
+    languageOptions: {
+      globals: {
+        process: "readonly",
+        console: "readonly",
+        Buffer: "readonly",
+        URL: "readonly",
+      },
+    },
+  },
+
   // Must stay last: turns off rules that conflict with Prettier.
   prettier,
 );

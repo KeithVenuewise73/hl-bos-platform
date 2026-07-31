@@ -75,14 +75,30 @@ jobs:
       - uses: supabase/setup-cli@v1
         with:
           version: latest
+      - name: Setup Node
+        uses: actions/setup-node@v5
+        with:
+          node-version: "22"
+      - name: Guard — refuse to link a NON-canonical project
+        run: |
+          CANON=$(node -e "process.stdout.write(require('./.hlbos/canonical.json').canonicalProjectRef)")
+          if [ "${{ vars.SUPABASE_PROJECT_REF }}" != "$CANON" ]; then
+            echo "SUPABASE_PROJECT_REF (${{ vars.SUPABASE_PROJECT_REF }}) is not the canonical project ($CANON). Refusing." >&2
+            exit 1
+          fi
       - name: Link canonical project
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
         run: supabase link --project-ref "${{ vars.SUPABASE_PROJECT_REF }}"
-      - name: List remote migrations (drift visibility)
+      - name: Migration drift vs canonical declaration (fails on unexpected drift)
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
-        run: supabase migration list
+        # Human-readable list AND a machine check: production's applied set must
+        # match .hlbos/canonical.json. Fails on foreign/out-of-band migrations or
+        # a missing expected-applied version. See ADR-0002.
+        run: |
+          supabase migration list
+          supabase migration list | node scripts/check-lineage-drift.mjs
 
   apply:
     name: Apply to canonical (manual approval gate)
@@ -97,13 +113,24 @@ jobs:
       - uses: supabase/setup-cli@v1
         with:
           version: latest
-      - name: Guard — refuse to run without an armed target
+      - name: Setup Node
+        uses: actions/setup-node@v5
+        with:
+          node-version: "22"
+      - name: Guard — refuse to run without an armed, CANONICAL target
         run: |
           if [ -z "${{ vars.SUPABASE_PROJECT_REF }}" ]; then
             echo "SUPABASE_PROJECT_REF is not set. Refusing to apply." >&2
             exit 1
           fi
-          echo "Target project ref: ${{ vars.SUPABASE_PROJECT_REF }}"
+          CANON=$(node -e "process.stdout.write(require('./.hlbos/canonical.json').canonicalProjectRef)")
+          if [ "${{ vars.SUPABASE_PROJECT_REF }}" != "$CANON" ]; then
+            echo "Refusing: target ${{ vars.SUPABASE_PROJECT_REF }} is not the canonical project ($CANON)." >&2
+            exit 1
+          fi
+          echo "Target project ref (canonical): ${{ vars.SUPABASE_PROJECT_REF }}"
+      - name: Lineage governance (offline) before any apply
+        run: node scripts/check-lineage.mjs
       - name: Link canonical project
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}

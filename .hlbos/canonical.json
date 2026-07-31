@@ -1,0 +1,93 @@
+{
+  "$comment": "CANONICAL REGISTRY — the machine-readable source of truth for HL-BOS lineage & deployment governance. Curated by humans/engineer; verified against live evidence in Phase XI-2F (2026-07-31). Project refs are non-secret (ADR-0001). Consumed by scripts/check-lineage.mjs and the CI drift-check. Update deliberately, in a reviewable commit.",
+  "schemaVersion": 1,
+  "canonicalRepository": "KeithVenuewise73/hl-bos-platform",
+  "canonicalProjectRef": "mvvtngiopdrgiedjmhfb",
+  "organization": {
+    "name": "Herman Legacy Software Ventures",
+    "ref": "ihtsbcxtvkbfkkpmforp"
+  },
+  "environments": [
+    {
+      "name": "production",
+      "role": "canonical-production",
+      "projectRef": "mvvtngiopdrgiedjmhfb",
+      "projectName": "HL-BOS Core",
+      "region": "us-west-2",
+      "lineage": "platform",
+      "migrationsApplied": 27,
+      "dataBearing": "seed-and-vocabulary-only (1 bootstrap owner; no customer data verified 2026-07-31)",
+      "authoritative": true,
+      "disposition": "canonical — the one authoritative deployment target"
+    },
+    {
+      "name": "hlbos-m1-portfolio",
+      "role": "abandoned-preview-branch",
+      "projectRef": "moftgnrbnsixeddcwdpz",
+      "parentProjectRef": "mvvtngiopdrgiedjmhfb",
+      "lineage": "portfolio-govcon (superseded)",
+      "withData": false,
+      "authoritative": false,
+      "disposition": "ARCHIVE then delete in a later authorized step (see hlvs-phase-11-2f preview archive). Never use as a validation target."
+    },
+    {
+      "name": "keith-venuewise-parked",
+      "role": "empty-parked",
+      "projectRef": "ywrzgursvdowzyhipsmt",
+      "region": "us-east-1",
+      "migrationsApplied": 0,
+      "authoritative": false,
+      "disposition": "keep; do not develop on; do not delete (ADR-0001)"
+    },
+    {
+      "name": "legacy-herman-platform",
+      "role": "legacy-unreachable",
+      "projectRef": "bkfsjhhclbqrhaolvhmz",
+      "authoritative": false,
+      "disposition": "OUT OF SCOPE — unreachable, open security findings; do not touch without an approved plan"
+    }
+  ],
+  "foundationOrdinals": [1, 2, 3, 4, 5, 6, 7, 8],
+  "notYetAppliedOrdinals": [28],
+  "knownMigrationDrift": {
+    "$comment": "0023–0027 were applied to production with DIFFERENT version identifiers than the repo files carry. Phase XI-2F proved the SQL is byte-for-byte identical after stripping comments/whitespace (matching normalized md5s); the difference is a version-identifier + cosmetic-comment drift only, NOT a content divergence. Recorded here until repaired via an approved forward-only step. When repaired, remove these entries.",
+    "sqlContentIdentical": true,
+    "entries": [
+      {
+        "ordinal": 23,
+        "name": "hlbos_0023_blueprint_engine",
+        "repoVersion": "20260727090000",
+        "productionAppliedVersion": "20260728181327",
+        "normalizedMd5": "f7ac093f429399f77d3f699b9c58d387"
+      },
+      {
+        "ordinal": 24,
+        "name": "hlbos_0024_commerce_provisioning",
+        "repoVersion": "20260727090100",
+        "productionAppliedVersion": "20260728182035",
+        "normalizedMd5": "984e33a8e0a50888ce8a9e401bcfebae"
+      },
+      {
+        "ordinal": 25,
+        "name": "hlbos_0025_hlvs_factory",
+        "repoVersion": "20260727090200",
+        "productionAppliedVersion": "20260728182459",
+        "normalizedMd5": "6d9642bdefb1cba031bc0004e0b2ed49"
+      },
+      {
+        "ordinal": 26,
+        "name": "hlbos_0026_bti_platform",
+        "repoVersion": "20260727090300",
+        "productionAppliedVersion": "20260728182832",
+        "normalizedMd5": "56d7affd729a75a1708c17963ba5cbf3"
+      },
+      {
+        "ordinal": 27,
+        "name": "hlbos_0027_bti_intake_and_public_api",
+        "repoVersion": "20260728090000",
+        "productionAppliedVersion": "20260728182949",
+        "normalizedMd5": "386591edb1080bbce2a740fc65489735"
+      }
+    ]
+  }
+}
