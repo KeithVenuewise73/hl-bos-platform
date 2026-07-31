@@ -50,42 +50,47 @@
   "foundationOrdinals": [1, 2, 3, 4, 5, 6, 7, 8],
   "notYetAppliedOrdinals": [28],
   "knownMigrationDrift": {
-    "$comment": "0023–0027 were applied to production with DIFFERENT version identifiers than the repo files carry. Phase XI-2F proved the SQL is byte-for-byte identical after stripping comments/whitespace (matching normalized md5s); the difference is a version-identifier + cosmetic-comment drift only, NOT a content divergence. Recorded here until repaired via an approved forward-only step. When repaired, remove these entries.",
-    "sqlContentIdentical": true,
+    "$comment": "No active drift. The 0023–0027 version-identifier drift was reconciled in Phase XI-2I (Option D) — repo files renamed to production's applied versions; SQL content unchanged. History preserved below under resolvedMigrationDrift.",
+    "entries": []
+  },
+  "resolvedMigrationDrift": {
+    "$comment": "HISTORICAL record of the reconciled drift (Phase XI-2I, 2026-07-31, Option D). Repo migration files 0023–0027 were renamed from their old version identifiers to production's applied versions; content byte-identical (sha256 before==after) and normalized SQL matched production. See docs/architecture-audit/hlvs-phase-11-2i-reconciliation-execution/01-reconciliation-audit.md and ADR-0002 addendum.",
+    "reconciledInPhase": "XI-2I",
+    "mechanism": "Option D — repository filename reconciliation (git mv, content preserved)",
     "entries": [
       {
         "ordinal": 23,
         "name": "hlbos_0023_blueprint_engine",
-        "repoVersion": "20260727090000",
-        "productionAppliedVersion": "20260728181327",
+        "oldVersion": "20260727090000",
+        "newVersion": "20260728181327",
         "normalizedMd5": "f7ac093f429399f77d3f699b9c58d387"
       },
       {
         "ordinal": 24,
         "name": "hlbos_0024_commerce_provisioning",
-        "repoVersion": "20260727090100",
-        "productionAppliedVersion": "20260728182035",
+        "oldVersion": "20260727090100",
+        "newVersion": "20260728182035",
         "normalizedMd5": "984e33a8e0a50888ce8a9e401bcfebae"
       },
       {
         "ordinal": 25,
         "name": "hlbos_0025_hlvs_factory",
-        "repoVersion": "20260727090200",
-        "productionAppliedVersion": "20260728182459",
+        "oldVersion": "20260727090200",
+        "newVersion": "20260728182459",
         "normalizedMd5": "6d9642bdefb1cba031bc0004e0b2ed49"
       },
       {
         "ordinal": 26,
         "name": "hlbos_0026_bti_platform",
-        "repoVersion": "20260727090300",
-        "productionAppliedVersion": "20260728182832",
+        "oldVersion": "20260727090300",
+        "newVersion": "20260728182832",
         "normalizedMd5": "56d7affd729a75a1708c17963ba5cbf3"
       },
       {
         "ordinal": 27,
         "name": "hlbos_0027_bti_intake_and_public_api",
-        "repoVersion": "20260728090000",
-        "productionAppliedVersion": "20260728182949",
+        "oldVersion": "20260728090000",
+        "newVersion": "20260728182949",
         "normalizedMd5": "386591edb1080bbce2a740fc65489735"
       }
     ]

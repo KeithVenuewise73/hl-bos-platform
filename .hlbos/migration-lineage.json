@@ -184,54 +184,49 @@
     {
       "ordinal": 23,
       "name": "hlbos_0023_blueprint_engine",
-      "filename": "20260727090000_hlbos_0023_blueprint_engine.sql",
-      "version": "20260727090000",
+      "filename": "20260728181327_hlbos_0023_blueprint_engine.sql",
+      "version": "20260728181327",
       "sha256": "c25d6e338afd357f8dd2237132298c379bb689dd345bcf099fed6a6f8a9abb7b",
-      "foundation": false,
-      "productionAppliedVersion": "20260728181327"
+      "foundation": false
     },
     {
       "ordinal": 24,
       "name": "hlbos_0024_commerce_provisioning",
-      "filename": "20260727090100_hlbos_0024_commerce_provisioning.sql",
-      "version": "20260727090100",
+      "filename": "20260728182035_hlbos_0024_commerce_provisioning.sql",
+      "version": "20260728182035",
       "sha256": "0ffef225b007cb47365955e795f5069cae21a0ee9ecf2212490ac8e3e57cc867",
-      "foundation": false,
-      "productionAppliedVersion": "20260728182035"
+      "foundation": false
     },
     {
       "ordinal": 25,
       "name": "hlbos_0025_hlvs_factory",
-      "filename": "20260727090200_hlbos_0025_hlvs_factory.sql",
-      "version": "20260727090200",
+      "filename": "20260728182459_hlbos_0025_hlvs_factory.sql",
+      "version": "20260728182459",
       "sha256": "fd30da2193c8b960e0cce350327c734bc97eb7116fa2777356e0d1bf6a56c918",
-      "foundation": false,
-      "productionAppliedVersion": "20260728182459"
+      "foundation": false
     },
     {
       "ordinal": 26,
       "name": "hlbos_0026_bti_platform",
-      "filename": "20260727090300_hlbos_0026_bti_platform.sql",
-      "version": "20260727090300",
+      "filename": "20260728182832_hlbos_0026_bti_platform.sql",
+      "version": "20260728182832",
       "sha256": "e9bc7036fd5e8a5928e0be3da0f8d7689f50129ff95f3171b1394d9a3972ab7d",
-      "foundation": false,
-      "productionAppliedVersion": "20260728182832"
+      "foundation": false
     },
     {
       "ordinal": 27,
       "name": "hlbos_0027_bti_intake_and_public_api",
-      "filename": "20260728090000_hlbos_0027_bti_intake_and_public_api.sql",
-      "version": "20260728090000",
+      "filename": "20260728182949_hlbos_0027_bti_intake_and_public_api.sql",
+      "version": "20260728182949",
       "sha256": "34c58af64d00a1c586c1f7d9eb92c21190a25ab62079cb28368c4d2a8bd84308",
-      "foundation": false,
-      "productionAppliedVersion": "20260728182949"
+      "foundation": false
     },
     {
       "ordinal": 28,
       "name": "hlbos_0028_knowledge_graph_read_model",
       "filename": "20260731090000_hlbos_0028_knowledge_graph_read_model.sql",
       "version": "20260731090000",
-      "sha256": "07b9276e6a8cb8cc0c47dc59b530a5b21031648a772957460a3f9d0ea5f709cc",
+      "sha256": "6b898a4ac55d3d2b5951f26f2fa13cd9f642d8b03755e7bc22201a6124808b52",
       "foundation": false,
       "notYetApplied": true
     }

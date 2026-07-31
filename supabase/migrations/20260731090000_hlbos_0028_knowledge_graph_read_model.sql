@@ -12,6 +12,19 @@
 -- Ordinary/authenticated roles have NO write path — only the SECURITY DEFINER
 -- publisher (gated on `graph.projection.manage`) may write. Runtime reads go through
 -- `public.graph_*` SECURITY DEFINER functions gated on `graph.projection.read`.
+--
+-- rollback:
+--   DROP FUNCTION IF EXISTS public.graph_active_projection_status();
+--   DROP FUNCTION IF EXISTS public.graph_get_node(text);
+--   DROP FUNCTION IF EXISTS public.graph_get_neighbors(text, integer);
+--   DROP FUNCTION IF EXISTS public.graph_find_blast_radius(text, integer, integer);
+--   DROP FUNCTION IF EXISTS public.graph_find_dependencies(text, integer);
+--   DROP FUNCTION IF EXISTS public.graph_find_capabilities_for_application(text);
+--   DROP FUNCTION IF EXISTS public.graph_find_applications_for_capability(text);
+--   DROP SCHEMA IF EXISTS graph CASCADE;  -- graph tables + graph.* publisher/helpers
+--   DELETE FROM identity.role_permissions WHERE permission_key LIKE 'graph.%';
+--   DELETE FROM identity.permissions      WHERE key            LIKE 'graph.%';
+-- ===========================================================================
 
 create schema if not exists graph;
 

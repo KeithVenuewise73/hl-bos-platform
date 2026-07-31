@@ -53,3 +53,26 @@ the same PR.** An unexplained checksum change is a red flag, by design.
   XI-2F repair strategy). Production history is never rewritten.
 - **Boundary with ADR-0001:** ADR-0001 names the canonical project; ADR-0002 makes that
   naming enforceable and extends it to the whole lineage.
+
+---
+
+## Addendum · Phase XI-2I (2026-07-31) — reconciliation executed + vendor alignment
+
+_Appended; the decision above is unchanged._
+
+- **Executed the `0023–0027` reconciliation (Option D).** Repo files were renamed to
+  production's applied version identifiers via `git mv` (content byte-identical; SHA-256
+  before == after). Full evidence:
+  [hlvs-phase-11-2i-reconciliation-execution/01-reconciliation-audit.md](../../architecture-audit/hlvs-phase-11-2i-reconciliation-execution/01-reconciliation-audit.md).
+  The active `knownMigrationDrift` in `.hlbos/canonical.json` is now empty; the history is
+  preserved under `resolvedMigrationDrift`.
+- **Vendor alignment (Phase XI-2H).** Repo-side filename reconciliation is the
+  content-preserving realization of Supabase's official _align-local-to-authoritative-remote_
+  recovery (`db pull` reaches the same end-state but discards hand-authored migrations).
+  **`supabase migration repair` and `supabase db pull` are the sanctioned tools for the
+  reverse scenario** — when the **remote** migration history is wrong and must be corrected.
+  Mutating `schema_migrations` from inside a migration remains prohibited.
+- **Correctness fix disclosed.** Running `scripts/check-migrations.sh` this phase surfaced
+  that migration `0028` lacked the required `-- rollback:` block (latent since XI-2C); a
+  comment-only rollback block was added (normalized-SQL md5 unchanged). This is the
+  governance working as intended — a guard caught a real omission.

@@ -1,5 +1,11 @@
 # XI-2F · Migration repair strategy + production readiness checklist
 
+> **Status update (Phase XI-2I, 2026-07-31):** Option R1/D was **executed** — repo
+> `0023–0027` renamed to production's applied versions (content byte-identical). The
+> "next phase" items below are now done for the drift repair. Evidence:
+> [../hlvs-phase-11-2i-reconciliation-execution/01-reconciliation-audit.md](../hlvs-phase-11-2i-reconciliation-execution/01-reconciliation-audit.md).
+> The XI-2F text below is preserved as the original plan.
+
 **Not executed in this phase** (boundary: no production migration, no history rewrite).
 This is the approved-forward-only plan. The repair is content-safe because the SQL of
 `0023–0027` is proven identical (see [01](01-migration-drift-report.md)); only the
