@@ -7,7 +7,7 @@ name: CI
 # borrowed time; gitleaks-action@v2 already fails outright. Runtimes verified
 # from each action's own action.yml:
 #
-#   actions/checkout@v6      node24   (v4 = node20)
+#   actions/checkout@v7      node24   (v4 = node20)
 #   actions/setup-node@v5    node24   (v4 = node20)
 #   pnpm/action-setup@v5     node24   (v4 = node20)
 #   gitleaks/gitleaks-action@v3  node24   (v2 = node20, fails at init)
@@ -40,7 +40,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           # Full history so the secret scan can diff the whole PR range,
           # not just the tip commit.
@@ -108,7 +108,7 @@ jobs:
       contents: read
       pull-requests: read
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
@@ -155,7 +155,7 @@ jobs:
     permissions:
       contents: read # no PR API access needed
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       # Composite action -- verified from its action.yml, so no Node 20 runtime
       # exposure (unlike the gitleaks v2 problem).
@@ -198,7 +198,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - name: Validate migration filenames and content
         run: bash scripts/check-migrations.sh
       # Lineage governance (offline, no network): sequential ordinals, monotonic
@@ -227,7 +227,7 @@ jobs:
     # Node-runtime pinning concern. The tests import only local _shared modules
     # (no remote deps), so they run offline once Deno is present.
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - name: Install Deno
         run: |
           curl -fsSL https://deno.land/install.sh | DENO_INSTALL="$HOME/.deno" sh
