@@ -159,7 +159,7 @@ jobs:
 
       # Composite action -- verified from its action.yml, so no Node 20 runtime
       # exposure (unlike the gitleaks v2 problem).
-      - uses: supabase/setup-cli@v1
+      - uses: supabase/setup-cli@v3
         with:
           version: latest
 
