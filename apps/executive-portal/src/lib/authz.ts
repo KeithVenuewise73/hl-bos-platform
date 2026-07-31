@@ -20,6 +20,7 @@ export type PortalView =
   | "home"
   | "operations"
   | "marketing"
+  | "references"
   | "tasks"
   | "search"
   | "applications"
@@ -95,6 +96,15 @@ export const VIEWS: ViewMeta[] = [
     label: "Marketing & Growth",
     description: "Herman Legacy Marketing — campaigns, studio, growth",
     group: "command",
+    sensitive: true,
+  },
+  {
+    view: "references",
+    path: "/references",
+    label: "Reference Implementations",
+    description:
+      "Herman Legacy, Venuewise, HSCS — the Factory's reference transformations",
+    group: "intelligence",
     sensitive: true,
   },
   {
@@ -301,6 +311,7 @@ const MATRIX: Record<PortalView, PortalRole[]> = {
   tasks: OPERATIONAL,
   operations: OPERATIONAL,
   marketing: OPERATIONAL,
+  references: OPERATIONAL,
   intelligence: OPERATIONAL,
   government: EXEC,
   commercial: EXEC,

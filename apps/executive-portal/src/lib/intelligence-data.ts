@@ -19,6 +19,7 @@ import {
   DEFAULT_CONFIG,
   customerManufacturingSystem,
   hermanLegacyMarketingSystem,
+  referenceLibrary,
   type GovOpportunity,
   type TransformationIntelligenceResult,
   type GovAssessment,
@@ -39,6 +40,14 @@ export function customerOperations() {
  */
 export function marketingUnit() {
   return hermanLegacyMarketingSystem();
+}
+
+/**
+ * The Herman Legacy Reference Implementation Library (Execution Phase 4).
+ * External metrics are UNKNOWN pending live scans; Factory readiness is measured.
+ */
+export function referenceImplementations() {
+  return referenceLibrary();
 }
 
 /** An explicitly illustrative assessment — NOT a real customer. */
