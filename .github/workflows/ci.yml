@@ -8,7 +8,7 @@ name: CI
 # from each action's own action.yml:
 #
 #   actions/checkout@v6      node24   (v4 = node20)
-#   actions/setup-node@v5    node24   (v4 = node20)
+#   actions/setup-node@v7    node24   (v4 = node20)
 #   pnpm/action-setup@v5     node24   (v4 = node20)
 #   gitleaks/gitleaks-action@v3  node24   (v2 = node20, fails at init)
 #
@@ -50,7 +50,7 @@ jobs:
         uses: pnpm/action-setup@v5
 
       - name: Setup Node
-        uses: actions/setup-node@v5
+        uses: actions/setup-node@v7
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: pnpm
@@ -206,7 +206,7 @@ jobs:
       # and canonical-registry consistency. Catches migration identity drift,
       # duplicate numbers, checksum mismatches and silent edits. See ADR-0002.
       - name: Setup Node
-        uses: actions/setup-node@v5
+        uses: actions/setup-node@v7
         with:
           node-version: ${{ env.NODE_VERSION }}
           # This job never installs pnpm — it only runs a dependency-free Node
