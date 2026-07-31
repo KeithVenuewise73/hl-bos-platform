@@ -79,6 +79,10 @@ jobs:
         uses: actions/setup-node@v5
         with:
           node-version: "22"
+          # Only dependency-free governance scripts run here; pnpm is never
+          # installed in this job. Disable setup-node's auto pnpm-cache, which
+          # would otherwise fail with "Unable to locate executable file: pnpm".
+          package-manager-cache: false
       - name: Guard — refuse to link a NON-canonical project
         run: |
           CANON=$(node -e "process.stdout.write(require('./.hlbos/canonical.json').canonicalProjectRef)")
@@ -117,6 +121,10 @@ jobs:
         uses: actions/setup-node@v5
         with:
           node-version: "22"
+          # Only dependency-free governance scripts run here; pnpm is never
+          # installed in this job. Disable setup-node's auto pnpm-cache, which
+          # would otherwise fail with "Unable to locate executable file: pnpm".
+          package-manager-cache: false
       - name: Guard — refuse to run without an armed, CANONICAL target
         run: |
           if [ -z "${{ vars.SUPABASE_PROJECT_REF }}" ]; then

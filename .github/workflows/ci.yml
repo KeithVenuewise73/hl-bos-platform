@@ -209,6 +209,11 @@ jobs:
         uses: actions/setup-node@v5
         with:
           node-version: ${{ env.NODE_VERSION }}
+          # This job never installs pnpm — it only runs a dependency-free Node
+          # script. setup-node@v5 otherwise auto-detects the packageManager field
+          # and tries to prime a pnpm cache, which fails ("Unable to locate
+          # executable file: pnpm"). No workspace deps here, so disable it.
+          package-manager-cache: false
       - name: Migration lineage governance
         run: node scripts/check-lineage.mjs
 
