@@ -3,6 +3,17 @@
 **For:** Keith Herman, CEO · **Date:** 2026-07-31 · **Branch:** `claude/hlvs-architectural-assessment-ltqs1b`
 **Status:** Implemented + **locally validated**, tested. **Not applied to any remote DB. Not merged, not deployed.** Awaiting CEO review.
 
+> **Corrected by Phase XI-2D (2026-07-31).** The local validation below ran
+> against a **stubbed** identity schema that did not enforce the real
+> `permissions_key_format` constraint. XI-2D validated against the real
+> constraint and found that the originally-seeded permission keys `graph.read`
+> and `graph.manage` were **invalid** (two-segment; the platform requires
+> three-segment `domain.resource.action`). They are now
+> **`graph.projection.read`** and **`graph.projection.manage`** throughout
+> migration 0028, re-validated on a constraint-faithful cluster. See
+> [../hlvs-phase-11-2d-preview-validation/README.md](../hlvs-phase-11-2d-preview-validation/README.md).
+> Permission-key names in this document have been updated to the corrected values.
+
 ---
 
 ## What existed
@@ -50,8 +61,8 @@ Applied on a **throwaway local Postgres 16 cluster** (initdb under the `postgres
 
 ## Security results
 
-- **Mutation denial:** `graph.nodes`/`graph.edges` have **no** insert/update/delete policies → authenticated/ordinary roles cannot write; only the SECURITY DEFINER publisher (gated on `graph.manage`) writes. (pgTAP asserts zero non-SELECT policies.)
-- **Read gating:** all reads require `graph.read`; `_can_see(scope, tenant)` enforces tenant isolation (`has_permission(tenant,…)`) and opportunity gating (`graph.opportunity.read`). `graph` schema is not PostgREST-exposed.
+- **Mutation denial:** `graph.nodes`/`graph.edges` have **no** insert/update/delete policies → authenticated/ordinary roles cannot write; only the SECURITY DEFINER publisher (gated on `graph.projection.manage`) writes. (pgTAP asserts zero non-SELECT policies.)
+- **Read gating:** all reads require `graph.projection.read`; `_can_see(scope, tenant)` enforces tenant isolation (`has_permission(tenant,…)`) and opportunity gating (`graph.opportunity.read`). `graph` schema is not PostgREST-exposed.
 - **RPC grants:** read RPCs `grant execute … to authenticated`, `revoke … from public, anon` (pgTAP asserts anon is denied).
 - **No unauthenticated access, no public browser, no write RPCs for consumers.**
 
@@ -80,7 +91,7 @@ No merge, no deployment, no DNS change, no production authentication change, no 
 
 ## Executive decisions required
 
-1. **Authorize applying migration `0028`** to a preview/branch DB (then production after acceptance) and **granting `graph.read`/`graph.manage`** to platform roles — the only steps that touch a real database. _Nothing else is blocked._
+1. **Authorize applying migration `0028`** to a preview/branch DB (then production after acceptance) and **granting `graph.projection.read`/`graph.projection.manage`** to platform roles — the only steps that touch a real database. _Nothing else is blocked._
 
 ## Recommended next phase (do not begin)
 

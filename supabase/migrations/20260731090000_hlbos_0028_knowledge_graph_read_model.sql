@@ -10,8 +10,8 @@
 -- Governance (house conventions): the `graph` schema is NOT exposed through
 -- PostgREST (config.toml exposes only `public`). Every table is RLS + FORCE.
 -- Ordinary/authenticated roles have NO write path — only the SECURITY DEFINER
--- publisher (gated on `graph.manage`) may write. Runtime reads go through
--- `public.graph_*` SECURITY DEFINER functions gated on `graph.read`.
+-- publisher (gated on `graph.projection.manage`) may write. Runtime reads go through
+-- `public.graph_*` SECURITY DEFINER functions gated on `graph.projection.read`.
 
 create schema if not exists graph;
 
@@ -141,9 +141,9 @@ create index if not exists graph_edges_kind on graph.edges (projection_id, edge_
 -- Permissions
 -- ==========================================================================
 insert into identity.permissions (key, description, scope) values
-  ('graph.read', 'Read the Enterprise Knowledge Graph read model', 'platform'),
+  ('graph.projection.read', 'Read the Enterprise Knowledge Graph read model', 'platform'),
   ('graph.opportunity.read', 'Read opportunity-scoped graph nodes', 'platform'),
-  ('graph.manage', 'Publish/activate/rollback graph projections', 'platform')
+  ('graph.projection.manage', 'Publish/activate/rollback graph projections', 'platform')
 on conflict (key) do nothing;
 
 -- ==========================================================================
@@ -166,14 +166,14 @@ create policy edge_kinds_select on graph.edge_kinds for select to authenticated 
 
 -- projections: platform read permission.
 create policy projections_select on graph.projections for select to authenticated
-  using (identity.has_platform_permission('graph.read'));
+  using (identity.has_platform_permission('graph.projection.read'));
 
 -- helper: may the caller see a node/edge of this scope?
 create or replace function graph._can_see(p_scope text, p_tenant uuid)
 returns boolean language sql stable security definer set search_path = '' as $$
   select case p_scope
-    when 'platform'    then identity.has_platform_permission('graph.read')
-    when 'tenant'      then p_tenant is not null and identity.has_permission(p_tenant, 'graph.read')
+    when 'platform'    then identity.has_platform_permission('graph.projection.read')
+    when 'tenant'      then p_tenant is not null and identity.has_permission(p_tenant, 'graph.projection.read')
     when 'opportunity' then identity.has_platform_permission('graph.opportunity.read')
     else false
   end;
@@ -185,12 +185,12 @@ create policy edges_select on graph.edges for select to authenticated
   using (graph._can_see(scope, tenant_id));
 
 -- ==========================================================================
--- Publisher (SECURITY DEFINER, gated on graph.manage). The ONLY write path.
+-- Publisher (SECURITY DEFINER, gated on graph.projection.manage). The ONLY write path.
 -- ==========================================================================
 create or replace function graph._require_manage()
 returns void language plpgsql stable security definer set search_path = '' as $$
 begin
-  if not identity.has_platform_permission('graph.manage') then
+  if not identity.has_platform_permission('graph.projection.manage') then
     raise exception 'insufficient privilege to manage graph projections'
       using errcode = 'insufficient_privilege';
   end if;
@@ -322,7 +322,7 @@ begin
 end $$;
 
 -- ==========================================================================
--- Read-only public.graph_* RPCs (SECURITY DEFINER, gated on graph.read).
+-- Read-only public.graph_* RPCs (SECURITY DEFINER, gated on graph.projection.read).
 -- Bounded, scope-aware, deterministic, explainable. NEVER mutate.
 -- ==========================================================================
 create or replace function graph._active_id()
@@ -334,7 +334,7 @@ create or replace function public.graph_active_projection_status()
 returns jsonb language plpgsql stable security definer set search_path = '' as $$
 declare v jsonb;
 begin
-  if not identity.has_platform_permission('graph.read') then
+  if not identity.has_platform_permission('graph.projection.read') then
     raise exception 'insufficient privilege' using errcode = 'insufficient_privilege';
   end if;
   select to_jsonb(p) - 'created_by' into v from graph.projections p where status = 'active' limit 1;
@@ -345,7 +345,7 @@ create or replace function public.graph_get_node(p_node_id text)
 returns jsonb language plpgsql stable security definer set search_path = '' as $$
 declare v jsonb; v_pid uuid;
 begin
-  if not identity.has_platform_permission('graph.read') then
+  if not identity.has_platform_permission('graph.projection.read') then
     raise exception 'insufficient privilege' using errcode = 'insufficient_privilege';
   end if;
   v_pid := graph._active_id();
@@ -360,7 +360,7 @@ create or replace function public.graph_get_neighbors(p_node_id text, p_limit in
 returns jsonb language plpgsql stable security definer set search_path = '' as $$
 declare v_pid uuid; v_out jsonb; v_in jsonb; v_lim int := least(greatest(coalesce(p_limit,100),1),500);
 begin
-  if not identity.has_platform_permission('graph.read') then
+  if not identity.has_platform_permission('graph.projection.read') then
     raise exception 'insufficient privilege' using errcode = 'insufficient_privilege';
   end if;
   v_pid := graph._active_id();
@@ -383,7 +383,7 @@ returns jsonb language plpgsql stable security definer set search_path = '' as $
 declare v_pid uuid; v_depth int := least(greatest(coalesce(p_max_depth,6),1),12);
         v_lim int := least(greatest(coalesce(p_limit,200),1),1000); v_nodes jsonb;
 begin
-  if not identity.has_platform_permission('graph.read') then
+  if not identity.has_platform_permission('graph.projection.read') then
     raise exception 'insufficient privilege' using errcode = 'insufficient_privilege';
   end if;
   v_pid := graph._active_id();
@@ -414,7 +414,7 @@ create or replace function public.graph_find_dependencies(
 returns jsonb language plpgsql stable security definer set search_path = '' as $$
 declare v_pid uuid; v_depth int := least(greatest(coalesce(p_max_depth,6),1),12); v_nodes jsonb;
 begin
-  if not identity.has_platform_permission('graph.read') then
+  if not identity.has_platform_permission('graph.projection.read') then
     raise exception 'insufficient privilege' using errcode = 'insufficient_privilege';
   end if;
   v_pid := graph._active_id();
@@ -437,7 +437,7 @@ create or replace function public.graph_find_capabilities_for_application(p_app_
 returns jsonb language plpgsql stable security definer set search_path = '' as $$
 declare v_pid uuid; v jsonb;
 begin
-  if not identity.has_platform_permission('graph.read') then
+  if not identity.has_platform_permission('graph.projection.read') then
     raise exception 'insufficient privilege' using errcode = 'insufficient_privilege';
   end if;
   v_pid := graph._active_id();
@@ -453,7 +453,7 @@ create or replace function public.graph_find_applications_for_capability(p_cap_n
 returns jsonb language plpgsql stable security definer set search_path = '' as $$
 declare v_pid uuid; v jsonb;
 begin
-  if not identity.has_platform_permission('graph.read') then
+  if not identity.has_platform_permission('graph.projection.read') then
     raise exception 'insufficient privilege' using errcode = 'insufficient_privilege';
   end if;
   v_pid := graph._active_id();
