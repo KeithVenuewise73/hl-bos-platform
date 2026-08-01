@@ -176,6 +176,35 @@ export const APPLICATIONS: ApplicationRecord[] = [
     evidence: "apps/herman-legacy-digital (Phase 6, Release 1); not deployed",
   },
   {
+    key: "venture-studio",
+    name: "Herman Legacy Venture Studio (HLVS V2)",
+    description:
+      "Internal, authenticated executive opportunity-intelligence app: capture opportunity → evidence → evaluate → deterministic HL-BOS reuse analysis → advisory recommendation → authoritative CEO decision → read-only Factory readiness. Assembled on HL-BOS — reuses @hl-bos/catalog and @hl-bos/venture-studio, HL-BOS identity, and the Executive Portal deployment pattern. V2-1: no external connectors; no duplicate identity/CRM/workflow systems.",
+    category: "executive_tooling",
+    repository: REPO,
+    owner: "KeithVenuewise73",
+    executiveOwner: "Keith Herman (CEO)",
+    currentBranch: "claude/hlvs-v2-foundation",
+    environment: "local",
+    developmentStatus: "built_undeployed",
+    deploymentStatus: "not_deployed",
+    productionUrl: null,
+    stagingUrl: null,
+    localUrl: "http://localhost:4500",
+    supabaseProject: CORE,
+    version: "0.1.0",
+    health: "unknown",
+    hosting: "none yet (Coolify pattern configured, not deployed)",
+    dependencies: ["@hl-bos/catalog", "@hl-bos/venture-studio", "@supabase/ssr"],
+    reusableModules: ["identity_core"],
+    softwareFactoryIntegration:
+      "Reads the hlvs Software Factory for readiness preview only; V2-1 creates no Factory work. Reuse analysis computed over @hl-bos/catalog.",
+    notes:
+      "V2-1 foundation: app + @hl-bos/venture-studio package + vstudio migration (written, UNAPPLIED pending CEO approval) + pgTAP. App tests + build green; pgTAP CI-verified.",
+    evidence:
+      "apps/venture-studio (HLVS V2, V2-1); migration 0029 unapplied; not deployed",
+  },
+  {
     key: "control-center",
     name: "CEO Development Control Center",
     description:

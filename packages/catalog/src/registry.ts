@@ -265,6 +265,46 @@ const ASSETS: Asset[] = [
     ],
     evidence: "apps/herman-legacy-digital (Phase 6, Release 1); built, not deployed",
   },
+  {
+    id: "app.venture-studio",
+    kind: "application",
+    name: "Herman Legacy Venture Studio (HLVS V2)",
+    summary:
+      "Internal executive opportunity-intelligence app (HLVS V2), assembled on HL-BOS. Reuses @hl-bos/catalog, @hl-bos/venture-studio and HL-BOS identity; reads the hlvs Factory for readiness preview only. V2-1 foundation built; vstudio migration unapplied pending CEO approval; not deployed.",
+    maturity: "built_undeployed",
+    reuse: ["commercial", "reusable"],
+    owner: "Herman Legacy Venture Studio",
+    layer: "HL-BTI",
+    key: "venture-studio",
+    location: "apps/venture-studio",
+    tags: ["executive", "intelligence", "internal", "opportunity"],
+    relationships: [
+      { kind: "consumes", to: "pkg.catalog" },
+      { kind: "uses", to: "pkg.venture-studio" },
+      { kind: "uses", to: "svc.identity" },
+      { kind: "owned_by", to: "repo.hl-bos-platform" },
+    ],
+    evidence: "apps/venture-studio (HLVS V2, V2-1); not deployed",
+  },
+  {
+    id: "pkg.venture-studio",
+    kind: "package",
+    name: "@hl-bos/venture-studio",
+    summary:
+      "Pure, tested domain logic for HLVS V2: opportunity statuses, evaluation dimensions, deterministic reuse scoring over @hl-bos/catalog, advisory-recommendation vs authoritative-decision separation, and read-only Factory readiness. No I/O.",
+    maturity: "live",
+    reuse: ["reusable"],
+    owner: "Herman Legacy Venture Studio",
+    layer: "HL-BTI",
+    key: "venture-studio",
+    location: "packages/venture-studio",
+    tags: ["package", "domain-logic", "reuse-scoring"],
+    relationships: [
+      { kind: "consumes", to: "pkg.catalog" },
+      { kind: "owned_by", to: "repo.hl-bos-platform" },
+    ],
+    evidence: "packages/venture-studio (HLVS V2, V2-1); tested",
+  },
 
   // ======================================================================
   // SHARED PACKAGES
