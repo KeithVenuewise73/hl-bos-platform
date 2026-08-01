@@ -10,8 +10,8 @@
 --   * NO external connectors / crawling (sources are in-code, package-side).
 --   * NO autonomous Factory work — decisions are recorded; the Factory handoff
 --     is a read-only preview computed in the app, never written here.
---   * AI recommendations are advisory: `recommendations.authoritative` is a
---     generated column fixed to FALSE — it can never be stored true.
+--   * AI recommendations are advisory: `recommendations.authoritative` defaults
+--     FALSE with a CHECK (authoritative = false) — it can never be stored true.
 --   * The CEO decision is the single authoritative act, gated on a dedicated
 --     platform permission (`vstudio.decision.record`) and insert-only.
 --
@@ -138,11 +138,13 @@ create table if not exists vstudio.recommendations (
   rationale      text not null default '',
   confidence     text check (confidence in ('high','medium','low')),
   reuse_snapshot jsonb not null default '{}'::jsonb,   -- deterministic reuse analysis captured at generation time
-  ai_run_id      uuid references ai.runs(id) on delete set null,  -- metered gateway provenance
+  ai_run_id      bigint references ai.runs(id) on delete set null,  -- metered gateway provenance (ai.runs.id is bigint identity)
   model          text,
   prompt_version text,
-  -- HARD INVARIANT: an AI recommendation can never be authoritative.
-  authoritative  boolean not null generated always as (false) stored,
+  -- HARD INVARIANT: an AI recommendation can never be authoritative. Enforced by
+  -- a CHECK (portable, unlike a constant generated column): any attempt to store
+  -- true is rejected. Default false; the app/RPC never sets it.
+  authoritative  boolean not null default false check (authoritative = false),
   created_by     uuid references auth.users(id) on delete set null,
   created_at     timestamptz not null default now()
 );
@@ -323,7 +325,7 @@ begin
     (opportunity_id, recommendation, rationale, confidence, reuse_snapshot, ai_run_id, model, prompt_version, created_by)
   values
     (p_opportunity, p_recommendation, coalesce(p_attrs->>'rationale',''), nullif(p_attrs->>'confidence',''),
-     coalesce(p_attrs->'reuse_snapshot','{}'::jsonb), nullif(p_attrs->>'ai_run_id','')::uuid,
+     coalesce(p_attrs->'reuse_snapshot','{}'::jsonb), nullif(p_attrs->>'ai_run_id','')::bigint,
      nullif(p_attrs->>'model',''), nullif(p_attrs->>'prompt_version',''), auth.uid())
   returning id into v_id;
   perform events.emit('vstudio.recommendation.generated', v_tenant, jsonb_build_object('opportunity', p_opportunity, 'recommendation', v_id));

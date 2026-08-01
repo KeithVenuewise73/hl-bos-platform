@@ -33,7 +33,7 @@ Executive Overview (`/`) · Opportunity Catalog (`/opportunities`, filterable) �
 | Evidence capture works         | `EvidenceForm` → `add_evidence`                                                 | pgTAP `t_owner_can_add_evidence`                                                        |
 | Evaluation works               | `record_evaluation` (composite excludes unknowns)                               | pgTAP `t_owner_can_record_evaluation`; unit tests                                       |
 | Reuse uses **real** catalog    | `analyzeReuse` over `@hl-bos/catalog`                                           | `reuse.test.ts` (determinism, real matches)                                             |
-| Recommendation advisory        | `authoritative` generated column = false                                        | pgTAP `t_recommendation_never_authoritative`; unit test                                 |
+| Recommendation advisory        | `authoritative` default false + CHECK                                           | pgTAP `t_recommendation_never_authoritative`; unit test                                 |
 | CEO decision separated         | `vstudio.decision.record` granted to platform_owner ONLY                        | pgTAP `t_non_ceo_cannot_record_decision` + `t_ceo_can_record_decision`; app `canDecide` |
 | Factory preview not executable | `computeFactoryReadiness` returns `executable:false` always                     | unit test invariant                                                                     |
 | No anonymous mutation          | middleware redirects unauth API calls (307); RPCs revoke anon                   | runtime: `POST /api/opportunities` → 307                                                |
