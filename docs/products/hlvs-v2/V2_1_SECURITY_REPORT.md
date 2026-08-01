@@ -26,13 +26,13 @@ Venture Studio adds **no new trust boundary**. It reuses HL-BOS identity, permis
 
 ## Permission model (least-privilege)
 
-| Permission                        | platform_owner (CEO) | platform_admin |
-| --------------------------------- | -------------------- | -------------- |
-| `vstudio.opportunity.read`        | ✅                   | ✅             |
-| `vstudio.opportunity.manage`      | ✅                   | ✅             |
-| `vstudio.evaluation.manage`       | ✅                   | ✅             |
+| Permission                      | platform_owner (CEO) | platform_admin |
+| ------------------------------- | -------------------- | -------------- |
+| `vstudio.opportunity.read`      | ✅                   | ✅             |
+| `vstudio.opportunity.manage`    | ✅                   | ✅             |
+| `vstudio.evaluation.manage`     | ✅                   | ✅             |
 | `vstudio.recommendation.create` | ✅                   | ✅             |
-| **`vstudio.decision.create`**     | ✅                   | ❌ (CEO-only)  |
+| **`vstudio.decision.create`**   | ✅                   | ❌ (CEO-only)  |
 
 ## Defense in depth
 
