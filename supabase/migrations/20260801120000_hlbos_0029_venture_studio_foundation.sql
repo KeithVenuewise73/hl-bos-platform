@@ -21,7 +21,7 @@
 --   (document refs). Nothing duplicated. See
 --   docs/products/hlvs-v2/V2_1_REUSE_AND_DUPLICATION_MATRIX.md.
 --
--- ROLLBACK (manual, pre-approval only — this migration is not auto-applied):
+-- rollback: (manual, pre-approval only — this migration is not auto-applied)
 --   DROP SCHEMA IF EXISTS vstudio CASCADE;
 --   DELETE FROM identity.role_permissions WHERE permission_key LIKE 'vstudio.%';
 --   DELETE FROM identity.permissions WHERE key LIKE 'vstudio.%';
