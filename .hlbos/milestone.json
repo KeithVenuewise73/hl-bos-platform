@@ -1,7 +1,7 @@
 {
   "$comment": "Live milestone state. Version-controlled so it is auditable, and updated by the AI engineer as work lands. The Control Center reads this -- it does not guess progress.",
   "milestone": "Platform Foundation v1.0 \u2014 Enterprise Knowledge Graph live in production",
-  "phase": "Migration 0028 applied to canonical production (XI-2L); graph installed and sealed (fail-closed) pending a permission grant",
+  "phase": "HLVS V2-1 foundation merged (PR #21) and migration 0029 (vstudio) applied to canonical production; Venture Studio app undeployed and vstudio not yet exposed to the API, pending CEO deploy authorization",
   "engineer": "Claude (AI engineer)",
   "startedOn": "2026-07-16",
   "tasks": [
@@ -91,6 +91,18 @@
     },
     {
       "title": "Grant graph permissions + publish the first production projection (145 nodes / 427 edges) — a separate CEO authorization; the graph is installed but dormant until then",
+      "done": false
+    },
+    {
+      "title": "HLVS V2-1 foundation merged to main via PR #21 (CI green: Validate, pgTAP incl. 22_venture_studio, Migration checks, Deno, Secret scan)",
+      "done": true
+    },
+    {
+      "title": "Deploy Production — migration 0029 (vstudio Venture Studio foundation) applied to canonical production (mvvtngiopdrgiedjmhfb); 6 tables, RLS forced, 5 permissions, 8 SECURITY DEFINER functions; purely additive; applied DDL byte-identical to the committed file (sha256 ee83df9…); recorded name matches, version timestamp differs (management-API stamp) and is reconciled by documentation (Option A)",
+      "done": true
+    },
+    {
+      "title": "Deploy Venture Studio app + expose vstudio to the API + choose VSTUDIO_TENANT_ID — a separate CEO authorization; migration is applied but the app is undeployed and the schema is not yet exposed until then",
       "done": false
     }
   ],
