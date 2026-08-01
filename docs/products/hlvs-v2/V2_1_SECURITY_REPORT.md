@@ -15,7 +15,7 @@ Venture Studio adds **no new trust boundary**. It reuses HL-BOS identity, permis
 | No anonymous access             | `revoke all … from anon` on schema + tables; RPCs `revoke … from anon`                                         | migration                                                 |
 | No anonymous mutation           | middleware redirects unauth requests (307); RPCs require permission                                            | runtime check (307); pgTAP                                |
 | No client service-role key      | browser client uses publishable key only; server client uses the viewer's cookies                              | `browser.ts`, `session.ts`; secret-scan gate              |
-| Server-side authz for decisions | `vstudio.decision.record` granted to **platform_owner only**; app `canDecide` mirrors it                       | pgTAP `t_non_ceo_cannot_record_decision`; `authz.test.ts` |
+| Server-side authz for decisions | `vstudio.decision.create` granted to **platform_owner only**; app `canDecide` mirrors it                       | pgTAP `t_non_ceo_cannot_record_decision`; `authz.test.ts` |
 | Writes via governed RPCs        | all writes are `SECURITY DEFINER` functions with `perform vstudio._require(perm)` and `auth.uid()` provenance  | migration                                                 |
 | Advisory ≠ authoritative        | `recommendations.authoritative` is a **default false + CHECK (authoritative = false)** — cannot be stored true | pgTAP `t_recommendation_never_authoritative`              |
 | Decision immutability           | `vstudio.decisions` insert-only (no update/delete RPC); event-sourced via `events.emit`                        | migration                                                 |
@@ -31,12 +31,12 @@ Venture Studio adds **no new trust boundary**. It reuses HL-BOS identity, permis
 | `vstudio.opportunity.read`        | ✅                   | ✅             |
 | `vstudio.opportunity.manage`      | ✅                   | ✅             |
 | `vstudio.evaluation.manage`       | ✅                   | ✅             |
-| `vstudio.recommendation.generate` | ✅                   | ✅             |
-| **`vstudio.decision.record`**     | ✅                   | ❌ (CEO-only)  |
+| `vstudio.recommendation.create` | ✅                   | ✅             |
+| **`vstudio.decision.create`**     | ✅                   | ❌ (CEO-only)  |
 
 ## Defense in depth
 
-Three independent layers block an unauthorized decision: (1) middleware auth gate, (2) app `canDecide` (server component, platform_owner only), (3) the database `vstudio._require('vstudio.decision.record')` inside the definer RPC. The database is authoritative; the app layers fail closed.
+Three independent layers block an unauthorized decision: (1) middleware auth gate, (2) app `canDecide` (server component, platform_owner only), (3) the database `vstudio._require('vstudio.decision.create')` inside the definer RPC. The database is authoritative; the app layers fail closed.
 
 ## Residual risk
 

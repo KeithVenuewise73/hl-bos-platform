@@ -13,7 +13,7 @@
 --   * AI recommendations are advisory: `recommendations.authoritative` defaults
 --     FALSE with a CHECK (authoritative = false) — it can never be stored true.
 --   * The CEO decision is the single authoritative act, gated on a dedicated
---     platform permission (`vstudio.decision.record`) and insert-only.
+--     platform permission (`vstudio.decision.create`) and insert-only.
 --
 -- Reuse:
 --   identity (auth + permissions), platform.tenants (tenancy), ai.runs (AI
@@ -162,7 +162,7 @@ create table if not exists vstudio.decisions (
   revisit_date   date,
   factory_authorized boolean not null default false     -- V2-1: informational; no Factory order is created
 );
-comment on table vstudio.decisions is 'The authoritative CEO decision — insert-only, distinct from any AI recommendation. Gated on vstudio.decision.record.';
+comment on table vstudio.decisions is 'The authoritative CEO decision — insert-only, distinct from any AI recommendation. Gated on vstudio.decision.create.';
 create index if not exists decisions_opportunity_idx on vstudio.decisions (opportunity_id);
 
 -- ---------------------------------------------------------------------------
@@ -189,18 +189,18 @@ insert into identity.permissions (key, description, scope) values
   ('vstudio.opportunity.read',    'Read Venture Studio opportunities, evidence, evaluations, recommendations and decisions.', 'platform'),
   ('vstudio.opportunity.manage',  'Create and update opportunities; attach evidence and notes.', 'platform'),
   ('vstudio.evaluation.manage',   'Record structured evaluations.', 'platform'),
-  ('vstudio.recommendation.generate', 'Generate advisory (non-authoritative) recommendations.', 'platform'),
-  ('vstudio.decision.record',     'Record the authoritative CEO decision (CEO-level only).', 'platform')
+  ('vstudio.recommendation.create', 'Generate advisory (non-authoritative) recommendations.', 'platform'),
+  ('vstudio.decision.create',     'Record the authoritative CEO decision (CEO-level only).', 'platform')
 on conflict (key) do nothing;
 
 -- Read + manage + evaluate + recommend go to owner and admin. The authoritative
 -- CEO decision is granted to platform_owner ONLY — the CEO-level role.
 insert into identity.role_permissions (role_key, permission_key)
 select r, p from unnest(array['platform_owner','platform_admin']) r,
-  unnest(array['vstudio.opportunity.read','vstudio.opportunity.manage','vstudio.evaluation.manage','vstudio.recommendation.generate']) p
+  unnest(array['vstudio.opportunity.read','vstudio.opportunity.manage','vstudio.evaluation.manage','vstudio.recommendation.create']) p
 on conflict do nothing;
 insert into identity.role_permissions (role_key, permission_key) values
-  ('platform_owner','vstudio.decision.record')
+  ('platform_owner','vstudio.decision.create')
 on conflict do nothing;
 
 -- ---------------------------------------------------------------------------
@@ -318,7 +318,7 @@ create or replace function vstudio.generate_recommendation(p_opportunity uuid, p
 returns uuid language plpgsql volatile security definer set search_path = '' as $$
 declare v_id uuid; v_tenant uuid;
 begin
-  perform vstudio._require('vstudio.recommendation.generate');
+  perform vstudio._require('vstudio.recommendation.create');
   select tenant_id into v_tenant from vstudio.opportunities where id = p_opportunity;
   if v_tenant is null then raise exception 'opportunity % not found', p_opportunity using errcode = 'no_data_found'; end if;
   insert into vstudio.recommendations
@@ -328,18 +328,18 @@ begin
      coalesce(p_attrs->'reuse_snapshot','{}'::jsonb), nullif(p_attrs->>'ai_run_id','')::bigint,
      nullif(p_attrs->>'model',''), nullif(p_attrs->>'prompt_version',''), auth.uid())
   returning id into v_id;
-  perform events.emit('vstudio.recommendation.generated', v_tenant, jsonb_build_object('opportunity', p_opportunity, 'recommendation', v_id));
+  perform events.emit('vstudio.recommendation.created', v_tenant, jsonb_build_object('opportunity', p_opportunity, 'recommendation', v_id));
   return v_id;
 end; $$;
 revoke all on function vstudio.generate_recommendation(uuid, vstudio.recommendation, jsonb) from public, anon;
 grant execute on function vstudio.generate_recommendation(uuid, vstudio.recommendation, jsonb) to authenticated;
 
--- The authoritative act. Gated on vstudio.decision.record (CEO-level only).
+-- The authoritative act. Gated on vstudio.decision.create (CEO-level only).
 create or replace function vstudio.record_decision(p_opportunity uuid, p_decision vstudio.decision, p_attrs jsonb default '{}'::jsonb)
 returns uuid language plpgsql volatile security definer set search_path = '' as $$
 declare v_id uuid; v_tenant uuid;
 begin
-  perform vstudio._require('vstudio.decision.record');
+  perform vstudio._require('vstudio.decision.create');
   select tenant_id into v_tenant from vstudio.opportunities where id = p_opportunity;
   if v_tenant is null then raise exception 'opportunity % not found', p_opportunity using errcode = 'no_data_found'; end if;
   insert into vstudio.decisions (opportunity_id, decision, rationale, conditions, decided_by, revisit_date, factory_authorized)
