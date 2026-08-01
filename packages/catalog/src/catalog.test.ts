@@ -115,9 +115,9 @@ describe("repository scan (ground truth)", () => {
     expect(inv.schemas).toContain("hlvs");
     expect(inv.schemas).toContain("bti");
     expect(inv.tables).toBeGreaterThanOrEqual(120);
-    // 28 migration files on disk (0028 knowledge-graph read model created in
-    // Phase XI-2C — created, locally validated, NOT applied to any remote DB).
-    expect(inv.migrations.length).toBe(28);
+    // 29 migration files on disk (0029 venture-studio foundation created in
+    // HLVS V2 V2-1 — written, NOT applied to any remote DB pending CEO approval).
+    expect(inv.migrations.length).toBe(29);
     expect(inv.edgeFunctions).toContain("ai-gateway");
     expect(inv.edgeFunctions).not.toContain("tests");
     expect(inv.apps).toEqual(

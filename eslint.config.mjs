@@ -179,6 +179,23 @@ export default tseslint.config(
     },
   },
 
+  // Herman Legacy Venture Studio (HLVS V2) env boundary — same rationale as the
+  // Executive Portal. Only the auth/session, middleware, browser client and
+  // health check read env directly; scoped to these files. Publishable key only;
+  // no service-role key is read anywhere.
+  {
+    files: [
+      "apps/venture-studio/src/lib/session.ts",
+      "apps/venture-studio/src/lib/browser.ts",
+      "apps/venture-studio/src/middleware.ts",
+      "apps/venture-studio/src/app/api/health/route.ts",
+    ],
+    rules: {
+      "no-restricted-properties": "off",
+      "no-restricted-syntax": "off",
+    },
+  },
+
   {
     files: ["**/*.{mjs,js}"],
     ...tseslint.configs.disableTypeChecked,

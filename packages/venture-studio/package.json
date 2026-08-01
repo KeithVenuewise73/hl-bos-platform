@@ -1,0 +1,25 @@
+{
+  "name": "@hl-bos/venture-studio",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Herman Legacy Venture Studio (HLVS V2) — pure, tested domain logic for opportunity intelligence: statuses, evaluation dimensions, deterministic reuse scoring over @hl-bos/catalog, advisory-recommendation vs authoritative-decision separation, and read-only Factory readiness. No I/O; the app and DB layers consume this.",
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint .",
+    "test": "vitest run",
+    "clean": "rm -rf dist *.tsbuildinfo"
+  },
+  "dependencies": {
+    "@hl-bos/catalog": "workspace:*"
+  },
+  "devDependencies": {
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  }
+}

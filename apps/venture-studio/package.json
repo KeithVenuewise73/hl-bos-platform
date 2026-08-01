@@ -1,0 +1,33 @@
+{
+  "name": "@hl-bos/venture-studio-app",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Herman Legacy Venture Studio (HLVS V2) — internal, authenticated executive opportunity-intelligence app. Assembled on HL-BOS: reuses @hl-bos/catalog and @hl-bos/venture-studio, HL-BOS identity (Supabase Auth), and the Executive Portal deployment pattern. No external connectors in V2-1; no new identity/CRM/workflow systems.",
+  "type": "module",
+  "scripts": {
+    "dev": "next dev --port 4500",
+    "build": "next build",
+    "start": "next start --port 4500",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint .",
+    "test": "vitest run",
+    "clean": "rm -rf .next dist *.tsbuildinfo"
+  },
+  "dependencies": {
+    "@hl-bos/catalog": "workspace:*",
+    "@hl-bos/venture-studio": "workspace:*",
+    "@supabase/ssr": "catalog:",
+    "@supabase/supabase-js": "catalog:",
+    "next": "catalog:",
+    "react": "catalog:",
+    "react-dom": "catalog:",
+    "server-only": "catalog:"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "@types/react": "catalog:",
+    "@types/react-dom": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  }
+}
