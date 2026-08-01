@@ -29,9 +29,11 @@ select tests.login_as(tests.uid('owner_a'));
 select is((select count(*) from vstudio.opportunities)::int, 0, 't_no_read_without_permission');
 select tests.logout();
 
--- Anonymous sees nothing.
+-- Anonymous is denied at the table-grant level (no SELECT privilege for anon).
 select tests.login_as_anon();
-select is((select count(*) from vstudio.opportunities)::int, 0, 't_anon_reads_nothing');
+select throws_ok(
+  'select count(*) from vstudio.opportunities',
+  '42501', null, 't_anon_cannot_read');
 select tests.logout();
 
 -- The owner can read, attach evidence, evaluate, and generate an advisory rec.
