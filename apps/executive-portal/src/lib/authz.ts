@@ -18,6 +18,9 @@ export type PortalRole =
 
 export type PortalView =
   | "home"
+  | "operations"
+  | "marketing"
+  | "references"
   | "tasks"
   | "search"
   | "applications"
@@ -78,6 +81,31 @@ export const VIEWS: ViewMeta[] = [
     description: "The executive operating dashboard",
     group: "command",
     sensitive: false,
+  },
+  {
+    view: "operations",
+    path: "/operations",
+    label: "CEO Operations",
+    description: "Customer Manufacturing System — one operating picture",
+    group: "command",
+    sensitive: true,
+  },
+  {
+    view: "marketing",
+    path: "/marketing",
+    label: "Marketing & Growth",
+    description: "Herman Legacy Marketing — campaigns, studio, growth",
+    group: "command",
+    sensitive: true,
+  },
+  {
+    view: "references",
+    path: "/references",
+    label: "Reference Implementations",
+    description:
+      "Herman Legacy, Venuewise, HSCS — the Factory's reference transformations",
+    group: "intelligence",
+    sensitive: true,
   },
   {
     view: "tasks",
@@ -281,6 +309,9 @@ const MATRIX: Record<PortalView, PortalRole[]> = {
   portfolio: ALL,
   deployment: OPERATIONAL,
   tasks: OPERATIONAL,
+  operations: OPERATIONAL,
+  marketing: OPERATIONAL,
+  references: OPERATIONAL,
   intelligence: OPERATIONAL,
   government: EXEC,
   commercial: EXEC,

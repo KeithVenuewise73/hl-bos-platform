@@ -244,6 +244,27 @@ const ASSETS: Asset[] = [
     ],
     evidence: "apps/executive-portal (Phase VII)",
   },
+  {
+    id: "app.herman-legacy-digital",
+    kind: "application",
+    name: "Herman Legacy Digital",
+    summary:
+      "The customer-facing AI-powered Business Transformation company (hermanlegacydigital.com): a public marketing + assessment-intake site and an authenticated client portal, assembled on HL-BOS. Reuses @hl-bos/catalog, @hl-bos/transformation-intelligence and HL-BOS identity; introduces no duplicate identity/CRM/workflow/portal systems. Release 1 built, not deployed.",
+    maturity: "built_undeployed",
+    reuse: ["commercial", "reusable"],
+    owner: "Herman Legacy Digital",
+    layer: "HL-BTI",
+    key: "herman-legacy-digital",
+    location: "apps/herman-legacy-digital",
+    tags: ["customer-facing", "website", "portal", "cloud"],
+    relationships: [
+      { kind: "consumes", to: "pkg.catalog" },
+      { kind: "uses", to: "pkg.transformation-intelligence" },
+      { kind: "uses", to: "svc.identity" },
+      { kind: "owned_by", to: "repo.hl-bos-platform" },
+    ],
+    evidence: "apps/herman-legacy-digital (Phase 6, Release 1); built, not deployed",
+  },
 
   // ======================================================================
   // SHARED PACKAGES

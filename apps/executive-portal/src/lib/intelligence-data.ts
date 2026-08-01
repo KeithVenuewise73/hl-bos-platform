@@ -17,10 +17,38 @@ import {
   assessGovOpportunity,
   ourCapabilities,
   DEFAULT_CONFIG,
+  customerManufacturingSystem,
+  hermanLegacyMarketingSystem,
+  referenceLibrary,
   type GovOpportunity,
   type TransformationIntelligenceResult,
   type GovAssessment,
 } from "@hl-bos/transformation-intelligence";
+
+/**
+ * The CEO Operations Dashboard — the assembled Customer Manufacturing System
+ * (Execution Phase 3). Pure composition of existing engines; the operational
+ * metrics are honestly zero until live customers exist.
+ */
+export function customerOperations() {
+  return customerManufacturingSystem();
+}
+
+/**
+ * Herman Legacy Marketing (Execution Phase 3A) — the assembled marketing unit.
+ * Growth metrics are honestly zero until campaigns publish.
+ */
+export function marketingUnit() {
+  return hermanLegacyMarketingSystem();
+}
+
+/**
+ * The Herman Legacy Reference Implementation Library (Execution Phase 4).
+ * External metrics are UNKNOWN pending live scans; Factory readiness is measured.
+ */
+export function referenceImplementations() {
+  return referenceLibrary();
+}
 
 /** An explicitly illustrative assessment — NOT a real customer. */
 const SAMPLE_ASSESSMENT: consulting.AssessmentInput = {

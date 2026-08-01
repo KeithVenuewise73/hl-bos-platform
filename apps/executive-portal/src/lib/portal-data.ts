@@ -43,6 +43,8 @@ import {
   serializeGraph,
   projectionStatus,
   GRAPH_MODEL_VERSION,
+  portfolioDashboard,
+  productCatalog,
   type Asset,
   type AssetKind,
   type ApplicationRecord,
@@ -193,6 +195,27 @@ export function deploymentStatus() {
 }
 
 /** Product portfolio with foundation readiness (from the assembler). */
+/**
+ * The Executive Portfolio (CEO) Dashboard — the standing Product Portfolio
+ * Management System view (Execution Phase 2, Part 6). Reuses the catalog's
+ * portfolioDashboard()/productCatalog(); adds no logic of its own.
+ */
+export function factoryPortfolio() {
+  const d = portfolioDashboard();
+  const products = productCatalog().map((p) => ({
+    key: p.key,
+    name: p.name,
+    line: p.manufacturingLine,
+    maturity: p.maturity,
+    assemblyPct: p.assemblyPct,
+    netNew: p.netNewCapabilities.length,
+    priority: p.engineeringPriority,
+    status: p.status,
+    assemblableNow: p.assemblableNow,
+  }));
+  return { dashboard: d, products };
+}
+
 export function productPortfolio() {
   return assembleAll().map((a) => {
     const c = compositionByKey(a.productKey)!;
