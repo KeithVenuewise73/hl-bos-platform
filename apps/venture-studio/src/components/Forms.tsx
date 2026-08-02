@@ -385,6 +385,35 @@ export function NotebookStatusControl({
   );
 }
 
+export function RelateButton({
+  from,
+  to,
+  type,
+  label,
+}: {
+  from: string;
+  to: string;
+  type: string;
+  label?: string;
+}) {
+  const { busy, msg, post } = useSubmit("/api/pipeline/relate", () =>
+    location.reload(),
+  );
+  return (
+    <span>
+      <button
+        type="button"
+        disabled={busy}
+        onClick={() => void post({ from, to, type })}
+        style={{ ...btn, fontSize: 12, padding: "5px 10px" }}
+      >
+        {busy ? "Linking…" : (label ?? "Link")}
+      </button>
+      <Note msg={msg} />
+    </span>
+  );
+}
+
 export function DecisionForm({ opportunityId }: { opportunityId: string }) {
   const { busy, msg, post } = useSubmit(`/api/opportunities/${opportunityId}/decision`);
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {

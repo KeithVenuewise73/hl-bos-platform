@@ -112,6 +112,14 @@
     {
       "title": "Apply migration 0030 (CEO Notebook) to production — a separate CEO authorization; written and CI-verified but UNAPPLIED",
       "done": false
+    },
+    {
+      "title": "Opportunity Intelligence Pipeline (Workstream B2, successor to the HLVS Think Tank): Inbox, Research Queue, relationships, deterministic duplicate detection, non-authoritative AI summaries, Executive Priority Queue, and 11 stubbed connectors (GitHub/Reddit/Product Hunt/Hacker News/Acquire/AppSumo/Microns/Flippa/Grants.gov/USPTO/Google Patents) reusing integrations+discovery+ai+catalog+graph. Migration 0031 additive UNAPPLIED; pnpm check + build green (407 tests), pgTAP CI-verified; PR opened, not merged",
+      "done": true
+    },
+    {
+      "title": "Apply migration 0031 (Opportunity Pipeline) to production — a separate CEO authorization; written and CI-verified but UNAPPLIED",
+      "done": false
     }
   ],
   "blockers": [
