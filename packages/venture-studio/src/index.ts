@@ -8,3 +8,4 @@ export * from "./sources";
 export * from "./evaluation";
 export * from "./reuse";
 export * from "./recommendation";
+export * from "./notebook";

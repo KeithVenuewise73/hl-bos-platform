@@ -1,7 +1,7 @@
 {
   "$comment": "Live milestone state. Version-controlled so it is auditable, and updated by the AI engineer as work lands. The Control Center reads this -- it does not guess progress.",
   "milestone": "Platform Foundation v1.0 \u2014 Enterprise Knowledge Graph live in production",
-  "phase": "HLVS V2-1 foundation merged (PR #21) and migration 0029 (vstudio) applied to canonical production; Venture Studio app undeployed and vstudio not yet exposed to the API, pending CEO deploy authorization",
+  "phase": "HLVS V2 Sprint Alpha: migration 0029 (vstudio) applied to production and internal tenant provisioned; CEO Notebook (B1) built on branch with migration 0030 UNAPPLIED and a PR; Venture Studio deployment (expose vstudio + Coolify + DNS) is blocked on CEO-controlled infrastructure access",
   "engineer": "Claude (AI engineer)",
   "startedOn": "2026-07-16",
   "tasks": [
@@ -103,6 +103,14 @@
     },
     {
       "title": "Deploy Venture Studio app + expose vstudio to the API + choose VSTUDIO_TENANT_ID — a separate CEO authorization; migration is applied but the app is undeployed and the schema is not yet exposed until then",
+      "done": false
+    },
+    {
+      "title": "CEO Notebook (Workstream B1): executive intelligence workspace assembled on vstudio.notes (migration 0030 additive, UNAPPLIED), living intelligence objects composing evidence/reuse/factory/decisions, six permanent Intelligence Programs; pnpm check + build green (397 tests), pgTAP CI-verified; PR opened, not merged",
+      "done": true
+    },
+    {
+      "title": "Apply migration 0030 (CEO Notebook) to production — a separate CEO authorization; written and CI-verified but UNAPPLIED",
       "done": false
     }
   ],

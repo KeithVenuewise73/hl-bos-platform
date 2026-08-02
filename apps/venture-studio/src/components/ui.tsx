@@ -154,7 +154,7 @@ export function Bar({ pct, tone = colors.accent }: { pct: number; tone?: string 
   );
 }
 
-export function Row({ k, v }: { k: string; v: ReactNode }) {
+export function Row({ k, v }: { k: ReactNode; v: ReactNode }) {
   return (
     <div
       style={{

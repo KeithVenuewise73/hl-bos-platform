@@ -1,6 +1,18 @@
 "use client";
 import { useState } from "react";
 
+// Vocabularies are passed in from server components as plain data, so this
+// client bundle never imports the domain package (which transitively pulls
+// @hl-bos/catalog + node:fs and cannot ship to the browser).
+export interface KindOption {
+  kind: string;
+  label: string;
+}
+export interface ProgramOption {
+  key: string;
+  name: string;
+}
+
 const input: React.CSSProperties = {
   width: "100%",
   boxSizing: "border-box",
@@ -249,6 +261,127 @@ export function EvidenceForm({ opportunityId }: { opportunityId: string }) {
       </button>
       <Note msg={msg} />
     </form>
+  );
+}
+
+export function NotebookEntryForm({
+  opportunityId,
+  kinds,
+  programs,
+  statuses,
+}: {
+  opportunityId?: string;
+  kinds: KindOption[];
+  programs: ProgramOption[];
+  statuses: readonly string[];
+}) {
+  const { busy, msg, post } = useSubmit("/api/notebook", () => location.reload());
+  async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    const f = new FormData(e.currentTarget);
+    const g = (n: string): string => {
+      const v = f.get(n);
+      return typeof v === "string" ? v : "";
+    };
+    const ok = await post({
+      kind: g("kind"),
+      title: g("title"),
+      body: g("body"),
+      program: g("program") || null,
+      status: g("status") || "open",
+      due_date: g("due_date") || null,
+      ...(opportunityId ? { opportunity_id: opportunityId } : {}),
+    });
+    if (ok) (e.target as HTMLFormElement).reset();
+  }
+  return (
+    <form onSubmit={(e) => void onSubmit(e)} style={{ maxWidth: 640 }}>
+      <label style={label}>
+        Entry kind *
+        <select name="kind" required style={input} defaultValue="observation">
+          {kinds.map((k) => (
+            <option key={k.kind} value={k.kind}>
+              {k.label}
+            </option>
+          ))}
+        </select>
+      </label>
+      <label style={label}>
+        Title
+        <input name="title" style={input} />
+      </label>
+      <label style={label}>
+        Body *<textarea name="body" required rows={3} style={input} />
+      </label>
+      <label style={label}>
+        Intelligence program
+        <select name="program" style={input}>
+          <option value="">—</option>
+          {programs.map((p) => (
+            <option key={p.key} value={p.key}>
+              {p.name}
+            </option>
+          ))}
+        </select>
+      </label>
+      <label style={label}>
+        Status (for tasks/requests)
+        <select name="status" style={input} defaultValue="open">
+          {statuses.map((s) => (
+            <option key={s} value={s}>
+              {s.replace("_", " ")}
+            </option>
+          ))}
+        </select>
+      </label>
+      <label style={label}>
+        Due date (optional)
+        <input name="due_date" type="date" style={input} />
+      </label>
+      <button type="submit" disabled={busy} style={btn}>
+        {busy ? "Saving…" : "Add notebook entry"}
+      </button>
+      <Note msg={msg} />
+    </form>
+  );
+}
+
+export function NotebookStatusControl({
+  id,
+  status,
+  statuses,
+}: {
+  id: string;
+  status: string;
+  statuses: readonly string[];
+}) {
+  const { busy, msg, post } = useSubmit(`/api/notebook/${id}/status`, () =>
+    location.reload(),
+  );
+  return (
+    <div>
+      <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+        {statuses.map((s) => (
+          <button
+            key={s}
+            type="button"
+            disabled={busy || s === status}
+            onClick={() => void post({ status: s })}
+            style={{
+              ...btn,
+              background: s === status ? "#232a33" : "#21262d",
+              color: s === status ? "#8b949e" : "#e6edf3",
+              cursor: s === status ? "default" : "pointer",
+              fontSize: 12,
+              padding: "6px 10px",
+            }}
+          >
+            {s.replace("_", " ")}
+          </button>
+        ))}
+      </div>
+      <Note msg={msg} />
+    </div>
   );
 }
 

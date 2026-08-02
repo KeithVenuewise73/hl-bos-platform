@@ -57,11 +57,30 @@ export const NOTE_TYPES = [
   "risk",
   "decision_input",
   "follow_up",
+  // CEO Notebook intelligence intents (additive; mirrors vstudio.note_type in 0030)
+  "research_request",
+  "ai_analysis_request",
+  "personal_task",
+  "executive_status",
 ] as const;
 export type NoteType = (typeof NOTE_TYPES)[number];
 
 export const NOTE_VISIBILITY = ["private", "executive", "team"] as const;
 export type NoteVisibility = (typeof NOTE_VISIBILITY)[number];
+
+/**
+ * Lifecycle status for task-like notebook entries (research requests, AI
+ * analysis requests, personal tasks, follow-ups). Mirrors vstudio.task_status
+ * (migration 0030). Non-task entries default to "open" and ignore it.
+ */
+export const TASK_STATUSES = [
+  "open",
+  "in_progress",
+  "blocked",
+  "done",
+  "archived",
+] as const;
+export type TaskStatus = (typeof TASK_STATUSES)[number];
 
 // --- Advisory recommendation (AI-assisted, never authoritative) -------------
 
