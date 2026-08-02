@@ -30,6 +30,8 @@ export type StudioView =
   | "reuse"
   | "decision"
   | "factory_preview"
+  | "notebook"
+  | "notebook_detail"
   | "settings";
 
 export interface ViewMeta {
@@ -62,6 +64,13 @@ export const VIEWS: ViewMeta[] = [
     label: "New Opportunity",
     description: "Capture an opportunity (manual intake)",
     operating: true,
+  },
+  {
+    view: "notebook",
+    path: "/notebook",
+    label: "CEO Notebook",
+    description: "Executive intelligence workspace — notes, requests, tasks",
+    operating: false,
   },
   {
     view: "settings",
