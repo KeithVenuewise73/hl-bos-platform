@@ -1,7 +1,7 @@
 {
   "$comment": "Live milestone state. Version-controlled so it is auditable, and updated by the AI engineer as work lands. The Control Center reads this -- it does not guess progress.",
   "milestone": "Platform Foundation v1.0 \u2014 Enterprise Knowledge Graph live in production",
-  "phase": "HLVS V2-1 foundation merged (PR #21) and migration 0029 (vstudio) applied to canonical production; Venture Studio app undeployed and vstudio not yet exposed to the API, pending CEO deploy authorization",
+  "phase": "HLVS V2-1 foundation merged and migration 0029 (vstudio) applied to canonical production; dedicated first-party internal tenant provisioned (canonical path); Venture Studio app undeployed and vstudio not yet exposed to the API, pending CEO deploy authorization",
   "engineer": "Claude (AI engineer)",
   "startedOn": "2026-07-16",
   "tasks": [
@@ -102,7 +102,11 @@
       "done": true
     },
     {
-      "title": "Deploy Venture Studio app + expose vstudio to the API + choose VSTUDIO_TENANT_ID — a separate CEO authorization; migration is applied but the app is undeployed and the schema is not yet exposed until then",
+      "title": "Provision dedicated first-party internal tenant 'Herman Legacy Group Internal' (slug herman-legacy-internal) via the canonical platform.provision_tenant path; CEO active tenant_owner; five vstudio permissions resolve for the CEO; isolated from HSCS Government; audited; VSTUDIO_TENANT_ID resolved (recorded privately)",
+      "done": true
+    },
+    {
+      "title": "Deploy Venture Studio app + expose vstudio to the API + configure VSTUDIO_TENANT_ID in Coolify — a separate CEO authorization; migration is applied and the internal tenant exists, but the app is undeployed and the schema is not yet exposed until then",
       "done": false
     }
   ],

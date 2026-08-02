@@ -28,24 +28,22 @@ Follows the proven Coolify pattern used by the Executive Portal and Herman Legac
 
 **Required for writes — runtime:**
 
-| Variable            | Purpose                                                                                                                                           |
-| ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `VSTUDIO_TENANT_ID` | The first-party tenant that owns records. Unset → honest "tenant not configured"; no fabrication. **See the open decision below before setting.** |
+| Variable            | Purpose                                                                                                                          |
+| ------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| `VSTUDIO_TENANT_ID` | The first-party tenant that owns records — **now resolved** (see below). Unset → honest "tenant not configured"; no fabrication. |
 
-### Tenant decision — OPEN (CEO input required)
+### Tenant decision — RESOLVED (2026-08-02)
 
-A read-only check of `platform.tenants` in production found **exactly one** first-party tenant:
+The CEO approved **Path A**: a dedicated first-party internal tenant was provisioned through the canonical HL-BOS path (`platform.provision_tenant`), so Herman Legacy internal records are never mixed with the HSCS Government (customer-facing) tenant.
 
-| Tenant          | UUID                                   | Kind        | Plan  |
-| --------------- | -------------------------------------- | ----------- | ----- |
-| HSCS Government | `0fa1e91a-4b8e-4637-9ce9-afdc6562c48e` | first_party | trial |
+| Tenant                                         | UUID (private)                         | Slug                     | Class       | Status |
+| ---------------------------------------------- | -------------------------------------- | ------------------------ | ----------- | ------ |
+| **Herman Legacy Group Internal** _(new)_       | `f1619fdb-9e14-4067-9cac-9182c9751c8e` | `herman-legacy-internal` | first_party | trial  |
+| HSCS Government _(unchanged; do NOT use here)_ | `0fa1e91a-4b8e-4637-9ce9-afdc6562c48e` | `hscs-government`        | first_party | trial  |
 
-There is **no dedicated "Herman Legacy internal" tenant** yet. Venture Studio is an internal executive tool, and using the HSCS Government tenant to own Herman Legacy opportunity records would conflate two distinct businesses. Two supported paths, both a CEO decision (nothing was created or modified):
+**`VSTUDIO_TENANT_ID = f1619fdb-9e14-4067-9cac-9182c9751c8e`** (Herman Legacy Group Internal). This value is recorded here in the private deployment-readiness record only — not in public-facing docs — and is **not yet configured in Coolify** (deployment is a separate authorized step).
 
-- **Path A (recommended):** create a dedicated first-party tenant (e.g. "Herman Legacy — internal") before deploy, then set `VSTUDIO_TENANT_ID` to its UUID. Cleanest data ownership; needs one CEO-approved tenant-provisioning step.
-- **Path B (interim):** deploy with `VSTUDIO_TENANT_ID` **unset**. The app runs in its honest read-only "tenant not configured" state — real deploy, no fabricated records — until a tenant is chosen.
-
-Until this is decided, `VSTUDIO_TENANT_ID` should remain **unset** (Path B). Do not point it at the HSCS Government tenant by default.
+Verified at provisioning: created via `platform.provision_tenant(... 'first_party' ...)` as the platform owner; CEO (`keith@venuewise.net`) is an **active** member with role **`tenant_owner`**; all five Venture Studio permissions resolve for the CEO; isolated from HSCS Government (no HSCS row or membership changed); audit trail written for the tenant, membership, and role inserts. Status is `trial` — the canonical initial state (identical to HSCS Government) and fully operable; promotion to `active` is an optional later lifecycle step, not required for Venture Studio.
 
 **Baked by the Dockerfile:** `NODE_ENV=production`, `HL_BOS_ENV=production` (these make the dev bypass impossible).
 **Must NOT be set:** `VSTUDIO_DEV_ROLE` (local dev only), any `SUPABASE_SERVICE_ROLE_KEY`.
@@ -66,4 +64,4 @@ Until this is decided, `VSTUDIO_TENANT_ID` should remain **unset** (Path B). Do 
 
 ## Not done in this phase (as instructed)
 
-No deploy, no DNS, no API exposure, no external connectors. (Migration 0029 is already applied — see above.) Deployment is a separate, CEO-authorized step.
+No deploy, no DNS, no API exposure, no external connectors, no Coolify configuration. (Migration 0029 is applied and the dedicated internal tenant is provisioned — see above.) The remaining gates are: expose `vstudio` to the API, configure Coolify with `VSTUDIO_TENANT_ID`, and deploy — all a separate, CEO-authorized step.
