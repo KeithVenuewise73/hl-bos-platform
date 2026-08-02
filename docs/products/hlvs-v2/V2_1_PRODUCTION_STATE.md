@@ -30,9 +30,13 @@
 
 **Purely additive.** Only new `vstudio` objects were created and 5 permission keys + role grants inserted (`on conflict do nothing`). No `ALTER`/`DROP` on any existing object. Latest applied migration before 0029 was `20260731090000` (0028); existing schemas and data untouched. Existing apps (executive-portal, hl-bti) do not reference `vstudio` and are unaffected.
 
+## Internal tenant (provisioned 2026-08-02)
+
+A dedicated first-party tenant **Herman Legacy Group Internal** (slug `herman-legacy-internal`) was created through the canonical `platform.provision_tenant` path to own Venture Studio records — kept separate from HSCS Government. CEO is an active `tenant_owner`; the five `vstudio` permissions resolve for the CEO; purely additive; audited. The resolved `VSTUDIO_TENANT_ID` is recorded privately in `V2_1_DEPLOYMENT_READINESS.md` (not printed here). Provisioning record: `V2_1_INTERNAL_TENANT_PROVISIONING.md`.
+
 ## Deployment / runtime boundary (unchanged)
 
-No Coolify Venture Studio resource · no domain · **`VSTUDIO_TENANT_ID` not configured** · no container started · DNS unchanged. `vstudio` PostgREST exposure: **not yet exposed** (see `V2_1_POSTGREST_EXPOSURE_PLAN.md`).
+No Coolify Venture Studio resource · no domain · **`VSTUDIO_TENANT_ID` resolved but not configured in Coolify** · no container started · DNS unchanged. `vstudio` PostgREST exposure: **not yet exposed** (see `V2_1_POSTGREST_EXPOSURE_PLAN.md`).
 
 ## Version-record mapping (governance truth)
 
