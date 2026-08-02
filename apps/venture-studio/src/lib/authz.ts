@@ -32,6 +32,7 @@ export type StudioView =
   | "factory_preview"
   | "notebook"
   | "notebook_detail"
+  | "pipeline"
   | "settings";
 
 export interface ViewMeta {
@@ -64,6 +65,13 @@ export const VIEWS: ViewMeta[] = [
     label: "New Opportunity",
     description: "Capture an opportunity (manual intake)",
     operating: true,
+  },
+  {
+    view: "pipeline",
+    path: "/pipeline",
+    label: "Opportunity Pipeline",
+    description: "Ingest, relate, score and prioritise opportunities",
+    operating: false,
   },
   {
     view: "notebook",

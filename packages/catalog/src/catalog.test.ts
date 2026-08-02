@@ -115,9 +115,10 @@ describe("repository scan (ground truth)", () => {
     expect(inv.schemas).toContain("hlvs");
     expect(inv.schemas).toContain("bti");
     expect(inv.tables).toBeGreaterThanOrEqual(120);
-    // 30 migration files on disk: 0029 (venture-studio foundation, applied to
-    // production) + 0030 (CEO Notebook — written, UNAPPLIED pending CEO approval).
-    expect(inv.migrations.length).toBe(30);
+    // 31 migration files on disk: 0029 (venture-studio foundation, applied to
+    // production) + 0030 (CEO Notebook) + 0031 (Opportunity Pipeline) — 0030 and
+    // 0031 written, UNAPPLIED pending CEO approval.
+    expect(inv.migrations.length).toBe(31);
     expect(inv.edgeFunctions).toContain("ai-gateway");
     expect(inv.edgeFunctions).not.toContain("tests");
     expect(inv.apps).toEqual(

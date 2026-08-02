@@ -200,9 +200,9 @@ export const APPLICATIONS: ApplicationRecord[] = [
     softwareFactoryIntegration:
       "Reads the hlvs Software Factory for readiness preview only; V2-1 creates no Factory work. Reuse analysis computed over @hl-bos/catalog.",
     notes:
-      "V2-1 foundation: app + @hl-bos/venture-studio package + vstudio migration 0029 (applied to production) + pgTAP. B1 CEO Notebook adds notebook entries over vstudio.notes (migration 0030, UNAPPLIED pending CEO approval). App tests + build green; pgTAP CI-verified.",
+      "V2-1 foundation: app + @hl-bos/venture-studio package + vstudio migration 0029 (applied to production) + pgTAP. B1 CEO Notebook (migration 0030) and B2 Opportunity Intelligence Pipeline (migration 0031: relationships, non-authoritative AI summaries, source/priority, 11 stubbed connectors) both UNAPPLIED pending CEO approval. App tests + build green; pgTAP CI-verified.",
     evidence:
-      "apps/venture-studio (HLVS V2); migration 0029 applied to production; 0030 (CEO Notebook) written UNAPPLIED; not deployed",
+      "apps/venture-studio (HLVS V2); migration 0029 applied to production; 0030 (CEO Notebook) + 0031 (Opportunity Pipeline) written UNAPPLIED; not deployed",
   },
   {
     key: "control-center",

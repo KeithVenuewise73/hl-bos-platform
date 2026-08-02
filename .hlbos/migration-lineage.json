@@ -3,7 +3,7 @@
   "schemaVersion": 1,
   "sourceDir": "supabase/migrations",
   "canonicalRepository": "KeithVenuewise73/hl-bos-platform",
-  "count": 30,
+  "count": 31,
   "migrations": [
     {
       "ordinal": 1,
@@ -243,6 +243,14 @@
       "filename": "20260802120000_hlbos_0030_ceo_notebook.sql",
       "version": "20260802120000",
       "sha256": "50329ccc4650208a660f2ff7e8416874c47f571790964e6aea00685f9722a1f3",
+      "foundation": false
+    },
+    {
+      "ordinal": 31,
+      "name": "hlbos_0031_opportunity_pipeline",
+      "filename": "20260802130000_hlbos_0031_opportunity_pipeline.sql",
+      "version": "20260802130000",
+      "sha256": "14fd6ffa2197d836728941ee9dc15848bc924b2f4f74026117b5734319394866",
       "foundation": false
     }
   ]
