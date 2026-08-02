@@ -1,6 +1,6 @@
 # HLVS V2 · V2-1 — Implementation Report
 
-**For:** Keith Herman, CEO · **Author:** Claude · **Date:** 2026-08-01 · **Branch:** `claude/hlvs-v2-foundation`
+**For:** Keith Herman, CEO · **Author:** Claude · **Date:** 2026-08-01 · **Merged to `main` via PR #21 (`7dc7ec2`); migration 0029 applied to production.**
 
 ## What was built (assembled on HL-BOS)
 
@@ -10,7 +10,7 @@ The smallest production-quality foundation that proves the whole workflow:
 | Layer            | Artifact                                                   | Notes                                                                                                                                                                             |
 | ---------------- | ---------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Domain logic** | `packages/venture-studio` (`@hl-bos/venture-studio`)       | Pure, tested: statuses, evaluation dimensions, **deterministic reuse scoring over `@hl-bos/catalog`**, advisory-vs-authoritative separation, read-only Factory readiness. No I/O. |
-| **Database**     | `supabase/migrations/…_0029_venture_studio_foundation.sql` | Thin `vstudio` schema: **6 tables**, RLS forced, 5 permissions, 7 definer RPCs. **Written, UNAPPLIED.**                                                                           |
+| **Database**     | `supabase/migrations/…_0029_venture_studio_foundation.sql` | Thin `vstudio` schema: **6 tables**, RLS forced, 5 permissions, 7 definer RPCs. **Applied to production 2026-08-01** (see `V2_1_PRODUCTION_STATE.md`).                            |
 | **DB tests**     | `supabase/tests/22_venture_studio.sql`                     | 11 pgTAP assertions (intake gate, CEO-only decision gate, advisory-never-authoritative, RLS/anon). CI-verified.                                                                   |
 | **App**          | `apps/venture-studio` (`@hl-bos/venture-studio-app`)       | Next.js standalone, port 4500, HL-BOS SSR auth, **10 pages**, 3 write route handlers.                                                                                             |
 | **Governance**   | `app-registry.ts` + `registry.ts` + lineage manifest (29)  | App + package registered; migration lineage regenerated + verified.                                                                                                               |
@@ -49,6 +49,6 @@ Executive Overview (`/`) · Opportunity Catalog (`/opportunities`, filterable) �
 
 ## Honest gaps / limits (V2-1)
 
-- Live persistence activates only **after** the CEO approves + applies migration 0029 and `vstudio` is exposed to the API; until then the app shows explicit "not provisioned" states (no fabricated data).
+- Migration 0029 is now **applied to production** (2026-08-01). Live persistence still requires `vstudio` to be **exposed to the API** and the app deployed; until then the app shows explicit "not provisioned" states (no fabricated data). See `V2_1_POSTGREST_EXPOSURE_PLAN.md`.
 - Writes need `VSTUDIO_TENANT_ID` (first-party tenant) set at deploy; unset → honest "tenant not configured".
 - No external connectors, no AI generation, no autonomous workers (by design; V2-2+).
