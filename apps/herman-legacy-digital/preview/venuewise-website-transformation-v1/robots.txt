@@ -1,0 +1,5 @@
+# Venuewise Website Preview — private review artifact.
+# This preview must never be indexed or crawled. It is not the live site.
+User-agent: *
+Disallow: /
+# No sitemap is published for this preview.
