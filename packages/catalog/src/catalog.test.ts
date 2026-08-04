@@ -98,8 +98,8 @@ describe("registry integrity", () => {
     expect(dangling, `dangling targets: ${dangling.join(", ")}`).toEqual([]);
   });
 
-  it("registers the 17 application databases and 8 edge functions", () => {
-    expect(assetsByKind(catalog, "database").length).toBe(17);
+  it("registers the 18 application databases and 8 edge functions", () => {
+    expect(assetsByKind(catalog, "database").length).toBe(18);
     expect(assetsByKind(catalog, "edge_function").length).toBe(8);
   });
 
@@ -111,13 +111,16 @@ describe("registry integrity", () => {
 describe("repository scan (ground truth)", () => {
   it("discovers the real schemas, functions, apps and packages", async () => {
     const inv = await scanRepository(REPO_ROOT);
-    expect(inv.schemas.length).toBe(17);
+    expect(inv.schemas.length).toBe(18);
     expect(inv.schemas).toContain("hlvs");
     expect(inv.schemas).toContain("bti");
+    expect(inv.schemas).toContain("intake");
     expect(inv.tables).toBeGreaterThanOrEqual(120);
-    // 30 migration files on disk: 0029 (venture-studio foundation, applied to
-    // production) + 0030 (CEO Notebook — written, UNAPPLIED pending CEO approval).
-    expect(inv.migrations.length).toBe(30);
+    // 31 migration files on disk: 0029 (venture-studio foundation, applied to
+    // production) + 0030 (CEO Notebook — written, UNAPPLIED pending CEO approval)
+    // + 0031 (Business Transformation intake — written, UNAPPLIED pending CEO
+    // approval).
+    expect(inv.migrations.length).toBe(31);
     expect(inv.edgeFunctions).toContain("ai-gateway");
     expect(inv.edgeFunctions).not.toContain("tests");
     expect(inv.apps).toEqual(
@@ -151,7 +154,7 @@ describe("executive metrics", () => {
     const catalog = buildCatalog();
     const inv = await scanRepository(REPO_ROOT);
     const m = metrics(catalog, completeness(catalog, inv));
-    expect(m.databases).toBe(17);
+    expect(m.databases).toBe(18);
     expect(m.edgeFunctions).toBe(8);
     expect(m.sharedServices).toBeGreaterThanOrEqual(12);
     expect(m.products).toBeGreaterThanOrEqual(3);

@@ -16,9 +16,36 @@ export const NAV_PRIMARY = [
 ];
 
 export const NAV_UTILITY = [
+  { label: "Book an Assessment", href: "/book" },
   { label: "Contact", href: "/contact" },
   { label: "Client Login", href: "/login" },
 ];
+
+/** The flagship call to action, used in the header and home hero. */
+export const PRIMARY_CTA = {
+  label: "Start Your Business Transformation",
+  href: "/business-transformation-intake",
+};
+
+/**
+ * Business Transformation Digital Intake (BTDI) — public copy as data. Clear,
+ * empathetic, non-technical. No exaggerated promises: completing the intake
+ * does not guarantee acceptance or results.
+ */
+export const BTDI = {
+  hero: {
+    headline: "Transform the Chaos That Is Stealing Your Time",
+    body: "Herman Legacy Digital helps business owners identify the operational, marketing, technology, and visibility problems creating unnecessary stress and limiting growth. Tell us about your business so we can begin building a practical transformation plan designed to create clarity, efficiency, and more freedom.",
+    cta: "Begin Your Assessment",
+  },
+  expectations: [
+    "The intake takes about 10–15 minutes. Your answers are saved as you move between steps.",
+    "We review your business, website, customer journey, visibility, operations, and market.",
+    "You receive a concise 3–5 page Executive Transformation Plan.",
+    "Completing the form does not guarantee acceptance or specific results.",
+    "A Herman Legacy Digital advisor will contact you about the next step.",
+  ],
+};
 
 export const POSITIONING =
   "Herman Legacy Digital helps organizations improve visibility, operations, customer acquisition, and growth through AI-powered business transformation.";

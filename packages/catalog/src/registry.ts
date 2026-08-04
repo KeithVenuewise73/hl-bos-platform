@@ -1032,6 +1032,13 @@ const ASSETS: Asset[] = [
     "The Software Factory — Product Intelligence Layer.",
   ),
   ...db("bti", "BTI", 14, "HL-BTI", "HL-BTI platform + analysis snapshots."),
+  ...db(
+    "intake",
+    "Business Transformation Intake",
+    1,
+    "HL-BOS",
+    "Public Business Transformation intake submissions (RLS-forced; anon writes via SECURITY DEFINER RPC only).",
+  ),
 
   // ======================================================================
   // WORKFLOWS

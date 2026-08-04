@@ -1,6 +1,6 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
-import { NAV_PRIMARY, NAV_UTILITY } from "@/lib/content";
+import { NAV_PRIMARY, NAV_UTILITY, PRIMARY_CTA } from "@/lib/content";
 
 // A restrained, executive palette. Professional, modern, trustworthy — no
 // gradients, no generic-AI imagery, no gimmicks. Styles are inline (CSP allows
@@ -61,7 +61,7 @@ export function SiteHeader() {
             </Link>
           ))}
           <Link
-            href="/book"
+            href={PRIMARY_CTA.href}
             style={{
               fontSize: 13.5,
               background: ACCENT,
@@ -71,7 +71,7 @@ export function SiteHeader() {
               textDecoration: "none",
             }}
           >
-            Book an Assessment
+            {PRIMARY_CTA.label}
           </Link>
         </div>
       </div>

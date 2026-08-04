@@ -169,6 +169,7 @@ export default tseslint.config(
       "apps/herman-legacy-digital/src/lib/session.ts",
       "apps/herman-legacy-digital/src/lib/browser.ts",
       "apps/herman-legacy-digital/src/lib/persist.ts",
+      "apps/herman-legacy-digital/src/lib/btdi-persist.ts",
       "apps/herman-legacy-digital/src/middleware.ts",
       "apps/herman-legacy-digital/src/app/api/health/route.ts",
       "apps/herman-legacy-digital/src/app/api/event/route.ts",
