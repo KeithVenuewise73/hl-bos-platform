@@ -20,13 +20,20 @@ website, and **not** connected to any production service.
 
 ## Routes (open `index.html` in any browser)
 
-| File                     | Page                        |
-| ------------------------ | --------------------------- |
-| `index.html`             | Homepage                    |
-| `founding-families.html` | Founding Families           |
-| `founding-partner.html`  | Founding Partner (4 tracks) |
-| `organizations.html`     | Organizations & Clubs       |
-| `coaches.html`           | Coaches                     |
+| File                     | Page                                                           |
+| ------------------------ | -------------------------------------------------------------- |
+| `index.html`             | Homepage                                                       |
+| `founding-families.html` | Founding Families                                              |
+| `founding-partner.html`  | Founding Partner — partnership hub (League/Org/Facility/Coach) |
+| `organizations.html`     | Organizations & Clubs (linked from the Partner hub)            |
+| `coaches.html`           | Coaches (linked from the Partner hub)                          |
+
+**Main navigation is two audience paths — Families and Partners.** Organizations
+and Coaches are sub-paths reached through the Founding Partner hub, which also
+carries dedicated League and Facility sections. Homepage CTA hierarchy: dominant
+"Become a Founding Family — Start Free", secondary "Explore Founding
+Partnerships". A homepage/family differentiator line and an honest founding-stage
+trust section are included; all commercial terms remain `TO BE CONFIRMED`.
 
 ## Safeguards (review-safe by construction)
 
