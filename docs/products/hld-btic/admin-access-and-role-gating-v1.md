@@ -151,6 +151,14 @@ Under `docs/products/hld-btic/screenshots/`:
 - `admin-access-05-reports-history.png` — Reports (current vs. history)
 - `admin-access-06-decisions.png` — Decisions
 - `admin-access-07-mobile-overview.png` — Venuewise Overview (mobile)
+- `admin-access-08-internal-nav.png` — internal BTIC nav entry on /portal (internal-only)
+- `admin-access-09-admin-login-mobile.png` — HLD Team Login (mobile)
+
+**Access-denied state:** the client-denied variant (`app_metadata` present but not
+internal) is covered by unit tests and rendered by `components/btic-access.tsx` and
+the `/admin-login` "Access restricted" screen; a live screenshot of it needs a real
+client account, which does not exist yet (only the single bootstrap owner), so it is
+not fabricated here.
 
 ## Not done (by design)
 
