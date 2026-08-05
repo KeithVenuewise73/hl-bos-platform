@@ -30,13 +30,10 @@ const config: NextConfig = {
             key: "Strict-Transport-Security",
             value: "max-age=63072000; includeSubDomains; preload",
           },
-          {
-            key: "Content-Security-Policy",
-            value:
-              "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; " +
-              "img-src 'self' data:; connect-src 'self' https://*.supabase.co; " +
-              "frame-ancestors 'none'; base-uri 'self'; form-action 'self'",
-          },
+          // Content-Security-Policy is intentionally NOT set here. It is emitted
+          // per-request (with a fresh nonce) from middleware.ts, which is the
+          // single authoritative CSP source — a static header cannot carry the
+          // nonce Next.js needs to hydrate under a strict policy.
         ],
       },
     ]);
