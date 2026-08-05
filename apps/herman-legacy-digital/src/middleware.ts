@@ -12,6 +12,40 @@ import { devInternalRoleFromEnv, roleFromClaims, isInternal } from "@/lib/authz"
 const CLIENT_PREFIX = "/portal";
 const BTIC_PREFIX = "/intelligence";
 
+// ---------------------------------------------------------------------------
+// Content-Security-Policy — nonce-based, one authoritative source (here).
+//
+// A static `script-src 'self'` blocks Next.js's own inline bootstrap/flight
+// scripts, so the App Router never hydrates and every client form is inert. We
+// mint a fresh nonce per request and hand it to Next (via the request CSP
+// header, which Next reads to nonce its framework scripts). `'strict-dynamic'`
+// then lets those trusted scripts load the chunked bundles. The policy stays
+// strict: NO `script-src 'unsafe-inline'`, and every other directive is
+// unchanged from the previous config. This is the minimum correction that makes
+// /login, /admin-login, /forgot-password, /reset-password and the intake forms
+// interactive in production.
+// ---------------------------------------------------------------------------
+function buildCsp(nonce: string): string {
+  return [
+    "default-src 'self'",
+    `script-src 'self' 'nonce-${nonce}' 'strict-dynamic'`,
+    "style-src 'self' 'unsafe-inline'",
+    "img-src 'self' data:",
+    "connect-src 'self' https://*.supabase.co",
+    "frame-ancestors 'none'",
+    "base-uri 'self'",
+    "form-action 'self'",
+  ].join("; ");
+}
+
+function makeNonce(): string {
+  const bytes = new Uint8Array(16);
+  crypto.getRandomValues(bytes);
+  let binary = "";
+  for (const b of bytes) binary += String.fromCharCode(b);
+  return btoa(binary);
+}
+
 function makeClient(req: NextRequest, res: NextResponse) {
   const url = process.env["NEXT_PUBLIC_SUPABASE_URL"];
   const key = process.env["NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY"];
@@ -34,19 +68,39 @@ function redirectTo(
   req: NextRequest,
   pathname: string,
   withNext: boolean,
+  csp: string,
 ): NextResponse {
   const url = req.nextUrl.clone();
   url.pathname = pathname;
   url.search = "";
   if (withNext) url.searchParams.set("next", req.nextUrl.pathname);
-  return NextResponse.redirect(url);
+  const res = NextResponse.redirect(url);
+  res.headers.set("content-security-policy", csp);
+  return res;
 }
 
 export async function middleware(req: NextRequest) {
+  // Per-request nonce + CSP, applied to every response (and forwarded to the
+  // app so Next.js nonces its scripts).
+  const nonce = makeNonce();
+  const csp = buildCsp(nonce);
+  const requestHeaders = new Headers(req.headers);
+  requestHeaders.set("x-nonce", nonce);
+  requestHeaders.set("content-security-policy", csp);
+
+  const pass = () => {
+    const res = NextResponse.next({ request: { headers: requestHeaders } });
+    res.headers.set("content-security-policy", csp);
+    return res;
+  };
+
   const { pathname } = req.nextUrl;
   const isBtic = pathname.startsWith(BTIC_PREFIX);
   const isPortal = pathname.startsWith(CLIENT_PREFIX);
-  if (!isBtic && !isPortal) return NextResponse.next();
+
+  // Public + auth pages (login, admin-login, forgot/reset-password, marketing):
+  // no gate, just the CSP.
+  if (!isBtic && !isPortal) return pass();
 
   // ---- BTIC: internal-role gate --------------------------------------------
   if (isBtic) {
@@ -58,22 +112,22 @@ export async function middleware(req: NextRequest) {
         devRole: process.env["HLD_DEV_ROLE"],
       })
     ) {
-      return NextResponse.next();
+      return pass();
     }
 
-    const res = NextResponse.next();
+    const res = pass();
     const supabase = makeClient(req, res);
-    if (!supabase) return redirectTo(req, "/admin-login", true);
+    if (!supabase) return redirectTo(req, "/admin-login", true, csp);
     const {
       data: { user },
     } = await supabase.auth.getUser();
-    if (!user) return redirectTo(req, "/admin-login", true);
+    if (!user) return redirectTo(req, "/admin-login", true, csp);
 
     const role = roleFromClaims(user.app_metadata, { authenticated: true });
     if (!isInternal(role)) {
       // Authenticated but client-only: not permitted into BTIC. Send to the
       // client portal (the page also renders an access-denied state).
-      return redirectTo(req, "/portal", false);
+      return redirectTo(req, "/portal", false, csp);
     }
     return res;
   }
@@ -86,10 +140,10 @@ export async function middleware(req: NextRequest) {
       devClient: process.env["HLD_DEV_CLIENT"],
     })
   ) {
-    return NextResponse.next();
+    return pass();
   }
 
-  const res = NextResponse.next();
+  const res = pass();
   const supabase = makeClient(req, res);
   let authenticated = false;
   if (supabase) {
@@ -98,7 +152,7 @@ export async function middleware(req: NextRequest) {
     } = await supabase.auth.getUser();
     authenticated = Boolean(user);
   }
-  if (!authenticated) return redirectTo(req, "/login", true);
+  if (!authenticated) return redirectTo(req, "/login", true, csp);
   return res;
 }
 
