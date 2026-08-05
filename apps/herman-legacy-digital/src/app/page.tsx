@@ -1,5 +1,5 @@
 import { Page, Hero, Section, Grid, Card, CTA } from "@/components/ui";
-import { PAGES, METHODOLOGY, FOCUS_MARKETS } from "@/lib/content";
+import { PAGES, METHODOLOGY, FOCUS_MARKETS, PRIMARY_CTA } from "@/lib/content";
 
 export const dynamic = "force-dynamic";
 
@@ -9,6 +9,7 @@ export default function HomePage() {
     <Page>
       <Hero title={c.title} lede={c.lede} />
       <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginBottom: 8 }}>
+        <CTA href={PRIMARY_CTA.href}>{PRIMARY_CTA.label}</CTA>
         <CTA href="/visibility-assessment">Request a Visibility Assessment</CTA>
         <CTA href="/transformation">How we transform businesses</CTA>
       </div>
