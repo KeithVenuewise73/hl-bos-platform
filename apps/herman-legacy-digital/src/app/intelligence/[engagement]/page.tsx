@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { getClientViewer } from "@/lib/session";
+import { getInternalViewer } from "@/lib/session";
 import { dossier, currentPhase, pendingDecisions } from "@/lib/btic-data";
 import { searchDossier } from "@/lib/btic-search";
 import { BticShell, DossierNav, Panel, StatBox, Pill } from "@/components/btic";
@@ -19,11 +19,11 @@ export default async function EngagementOverview({
 }) {
   const { engagement } = await params;
   const { q } = await searchParams;
-  const viewer = await getClientViewer();
+  const viewer = await getInternalViewer();
   const d = dossier(engagement);
   if (!d) notFound();
 
-  if (!viewer.authenticated) {
+  if (!viewer.canBTIC) {
     return (
       <BticShell
         email={null}
@@ -31,8 +31,9 @@ export default async function EngagementOverview({
         lede="Internal HLD workspace."
       >
         <p style={{ color: colors.MUTED }}>
-          Please <Link href={`/login?next=/intelligence/${engagement}`}>sign in</Link>{" "}
-          to view this dossier.
+          Please{" "}
+          <Link href={`/admin-login?next=/intelligence/${engagement}`}>sign in</Link> to
+          view this dossier.
         </p>
       </BticShell>
     );

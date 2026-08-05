@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { getClientViewer } from "@/lib/session";
+import { getInternalViewer } from "@/lib/session";
 import {
   dossier,
   reportSubjects,
@@ -27,16 +27,19 @@ export default async function ReportsView({
   params: Promise<{ engagement: string }>;
 }) {
   const { engagement } = await params;
-  const viewer = await getClientViewer();
+  const viewer = await getInternalViewer();
   const d = dossier(engagement);
   if (!d) notFound();
 
-  if (!viewer.authenticated) {
+  if (!viewer.canBTIC) {
     return (
       <BticShell email={null} title="Reports" lede="Internal HLD workspace.">
         <p style={{ color: colors.MUTED }}>
           Please{" "}
-          <Link href={`/login?next=/intelligence/${engagement}/reports`}>sign in</Link>.
+          <Link href={`/admin-login?next=/intelligence/${engagement}/reports`}>
+            sign in
+          </Link>
+          .
         </p>
       </BticShell>
     );

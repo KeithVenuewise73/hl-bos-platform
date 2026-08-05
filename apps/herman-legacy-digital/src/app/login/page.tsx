@@ -34,8 +34,24 @@ export default function LoginPage() {
     } catch {
       /* best-effort */
     }
-    const next = new URLSearchParams(window.location.search).get("next") || "/portal";
-    window.location.assign(next);
+
+    // Route by role: an internal user who happened to use Client Login is sent to
+    // the correct internal destination; a client goes to their portal. The
+    // server (/api/whoami) computes a safe destination with open-redirect
+    // protection; fall back to /portal if it is unavailable.
+    const next = new URLSearchParams(window.location.search).get("next");
+    let destination = next && next.startsWith("/") ? next : "/portal";
+    try {
+      const res = await fetch(
+        `/api/whoami${next ? `?next=${encodeURIComponent(next)}` : ""}`,
+        { cache: "no-store" },
+      );
+      const who = (await res.json()) as { destination: string };
+      if (who.destination) destination = who.destination;
+    } catch {
+      /* use the safe default */
+    }
+    window.location.assign(destination);
   }
 
   return (

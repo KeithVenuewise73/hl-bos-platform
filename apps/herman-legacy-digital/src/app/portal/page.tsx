@@ -1,9 +1,41 @@
 import Link from "next/link";
-import { getClientViewer } from "@/lib/session";
+import { getClientViewer, getInternalViewer } from "@/lib/session";
 import { clientPortal } from "@/lib/portal-data";
 import { colors } from "@/components/ui";
 
 export const dynamic = "force-dynamic";
+
+/**
+ * Internal-only nav entry into BTIC. Rendered ONLY for internal HLD roles;
+ * anonymous and client-only viewers never see it (it is not in the public
+ * navigation). Role is resolved server-side.
+ */
+async function InternalBticEntry() {
+  const internal = await getInternalViewer();
+  if (!internal.canBTIC) return null;
+  return (
+    <Link
+      href="/intelligence"
+      style={{
+        display: "block",
+        marginBottom: 16,
+        padding: "14px 16px",
+        borderRadius: 12,
+        border: `1px solid ${colors.LINE}`,
+        background: "#0f2740",
+        color: "#fff",
+        textDecoration: "none",
+      }}
+    >
+      <div style={{ fontSize: 14, fontWeight: 600 }}>
+        Business Transformation Intelligence (BTIC)
+      </div>
+      <div style={{ fontSize: 12.5, opacity: 0.85, marginTop: 2 }}>
+        Internal HLD workspace — engagements, reports, and intelligence.
+      </div>
+    </Link>
+  );
+}
 
 // The authenticated client portal (Release 1). Defense in depth: middleware
 // gates /portal, and this server component re-checks the viewer. Every section
@@ -25,6 +57,7 @@ export default async function PortalPage() {
 
   return (
     <Shell email={viewer.email}>
+      <InternalBticEntry />
       <div
         style={{
           display: "grid",

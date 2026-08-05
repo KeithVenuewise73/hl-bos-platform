@@ -1,5 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import type { ReactNode } from "react";
+import { getInternalViewer } from "@/lib/session";
+import { BticAccessNotice } from "@/components/btic-access";
 
 /**
  * The Intelligence Center is an internal, authenticated workspace. It must never
@@ -21,6 +23,15 @@ export const viewport: Viewport = {
   initialScale: 1,
 };
 
-export default function IntelligenceLayout({ children }: { children: ReactNode }) {
+export default async function IntelligenceLayout({
+  children,
+}: {
+  children: ReactNode;
+}) {
+  // Primary role gate for the whole section (defense-in-depth with the
+  // middleware edge check and each page's own server-side re-check). Anonymous
+  // and client-only viewers never see any BTIC content.
+  const viewer = await getInternalViewer();
+  if (!viewer.canBTIC) return <BticAccessNotice viewer={viewer} />;
   return children;
 }
