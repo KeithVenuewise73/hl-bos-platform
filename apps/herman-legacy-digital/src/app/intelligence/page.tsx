@@ -34,6 +34,15 @@ export default async function IntelligenceHome() {
       title="Business Transformation Intelligence Center"
       lede="HLD's institutional memory for every transformation engagement — where it stands, what is complete, which report is current truth, and what decisions are owed."
     >
+      <div style={{ display: "flex", gap: 16, flexWrap: "wrap", marginBottom: 16 }}>
+        <Link
+          href="/intelligence/pipeline"
+          style={{ fontSize: 13, color: colors.ACCENT, fontWeight: 600 }}
+        >
+          BTE Pipeline — engine output →
+        </Link>
+      </div>
+
       <div style={{ display: "grid", gap: 14 }}>
         {list.map((e) => {
           const d = dossier(e.id)!;
