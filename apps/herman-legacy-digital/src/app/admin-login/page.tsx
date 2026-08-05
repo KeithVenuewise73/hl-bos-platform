@@ -146,6 +146,11 @@ export default function AdminLoginPage() {
           {busy ? "Signing in…" : "Sign in"}
         </button>
       </form>
+      <p style={{ fontSize: 12, color: "#5b6672", marginTop: 16 }}>
+        <a href="/forgot-password" style={{ color: "#1f5f8b" }}>
+          Forgot password?
+        </a>
+      </p>
     </main>
   );
 }
