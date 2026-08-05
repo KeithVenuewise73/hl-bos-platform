@@ -2,12 +2,8 @@ import Link from "next/link";
 import { getInternalViewer } from "@/lib/session";
 import { engagements, dossier } from "@/lib/btic-data";
 import { deriveExecutive, type ExecSection } from "@/lib/executive-view";
-import {
-  deriveAdvisor,
-  type Recommendation,
-  type Priority,
-  type Effort,
-} from "@/lib/executive-advisor";
+import { deriveAdvisor } from "@/lib/executive-advisor";
+import { AdvisorReview } from "@/components/advisor-review";
 import { BticShell, Panel, StatBox, Pill, Provenance } from "@/components/btic";
 import { colors } from "@/components/ui";
 
@@ -25,91 +21,6 @@ const CONFIDENCE_STYLE: Record<string, { bg: string; fg: string; label: string }
   derived: { bg: "#e6f0f6", fg: "#1f5f8b", label: "Derived" },
   unknown: { bg: "#fbecec", fg: "#a3402f", label: "Gap — unknown" },
 };
-
-const PRIORITY_STYLE: Record<Priority, { bg: string; fg: string; label: string }> = {
-  critical: { bg: "#fbecec", fg: "#a3402f", label: "Critical" },
-  high: { bg: "#f3e9e0", fg: "#9a5b1f", label: "High" },
-  medium: { bg: "#e6f0f6", fg: "#1f5f8b", label: "Medium" },
-  informational: { bg: "#f2f3f5", fg: "#5b6672", label: "Informational" },
-};
-
-const EFFORT_LABEL: Record<Effort, string> = {
-  owner_decision: "Owner decision (no engineering)",
-  low: "Low",
-  medium: "Medium",
-  high: "High",
-  unknown: "Unknown — not sized",
-};
-
-function MetaRow({ label, value }: { label: string; value: string }) {
-  return (
-    <div style={{ display: "flex", gap: 8, fontSize: 12.5, lineHeight: 1.5 }}>
-      <span style={{ color: colors.MUTED, minWidth: 118, fontWeight: 600 }}>
-        {label}
-      </span>
-      <span style={{ color: colors.INK }}>{value}</span>
-    </div>
-  );
-}
-
-function RecommendationCard({ r, index }: { r: Recommendation; index: number }) {
-  const ps = PRIORITY_STYLE[r.priority];
-  const cs = CONFIDENCE_STYLE[r.confidence] ?? CONFIDENCE_STYLE["derived"]!;
-  return (
-    <div
-      style={{
-        border: `1px solid ${colors.LINE}`,
-        borderLeft: `3px solid ${ps.fg}`,
-        borderRadius: 10,
-        padding: 14,
-        background: "#fff",
-      }}
-    >
-      <div
-        style={{ display: "flex", gap: 8, alignItems: "baseline", flexWrap: "wrap" }}
-      >
-        <span style={{ fontSize: 12, color: colors.MUTED, fontWeight: 700 }}>
-          {index + 1}
-        </span>
-        <span style={{ fontSize: 14.5, fontWeight: 700, color: colors.INK }}>
-          {r.title}
-        </span>
-        <Pill bg={ps.bg} fg={ps.fg} label={ps.label} />
-        <Pill bg={cs.bg} fg={cs.fg} label={cs.label} />
-      </div>
-      <p style={{ fontSize: 13, color: colors.INK, lineHeight: 1.55, margin: "8px 0" }}>
-        {r.rationale}
-      </p>
-      <div style={{ display: "grid", gap: 3, marginTop: 8 }}>
-        <MetaRow label="Business impact" value={r.businessImpact} />
-        <MetaRow label="Estimated effort" value={EFFORT_LABEL[r.estimatedEffort]} />
-        <MetaRow label="Effort basis" value={r.effortBasis} />
-        <MetaRow label="BTIC section" value={r.relatedBticSection} />
-        <MetaRow label="Transformation phase" value={r.relatedPhase} />
-      </div>
-      <div style={{ marginTop: 10 }}>
-        <div style={{ fontSize: 11.5, color: colors.MUTED, fontWeight: 600 }}>
-          Supporting evidence
-        </div>
-        <ul style={{ margin: "4px 0 0", paddingLeft: 18 }}>
-          {r.supportingEvidence.map((e, i) => (
-            <li
-              key={i}
-              style={{
-                fontSize: 11.5,
-                color: "#7c8794",
-                marginBottom: 2,
-                lineHeight: 1.5,
-              }}
-            >
-              {e}
-            </li>
-          ))}
-        </ul>
-      </div>
-    </div>
-  );
-}
 
 function SectionCard({ s }: { s: ExecSection }) {
   const cs = CONFIDENCE_STYLE[s.confidence] ?? CONFIDENCE_STYLE["derived"]!;
@@ -227,8 +138,8 @@ export default async function ExecutiveCommandCenter() {
       </div>
 
       {/* Executive Advisor — prioritized, evidence-backed recommendations derived
-          from the sections below. What to do next, and why, with every claim
-          traced to a real record. */}
+          from the sections below, wrapped in a UI-only Executive Review preview.
+          What to do next, and why, with every claim traced to a real record. */}
       <div style={{ marginBottom: 18 }}>
         <Panel title="Executive Advisor — recommended actions, in priority order">
           <p
@@ -242,11 +153,7 @@ export default async function ExecutiveCommandCenter() {
             {advisor.basis}
           </p>
           {advisor.recommendations.length ? (
-            <div style={{ display: "grid", gap: 12 }}>
-              {advisor.recommendations.map((r, i) => (
-                <RecommendationCard key={r.id} r={r} index={i} />
-              ))}
-            </div>
+            <AdvisorReview recommendations={advisor.recommendations} />
           ) : (
             <p style={{ fontSize: 13, color: colors.MUTED }}>
               No evidence-backed recommendation could be derived from the current
