@@ -12,6 +12,8 @@ export const ANALYTICS_EVENTS = [
   "assessment_start",
   "assessment_submit",
   "consultation_request",
+  "transformation_intake_start",
+  "transformation_intake_submit",
   "client_login",
   "marketplace_view",
   "solution_interest_request",
