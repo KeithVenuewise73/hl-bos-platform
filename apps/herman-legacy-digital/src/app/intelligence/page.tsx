@@ -1,15 +1,81 @@
 import Link from "next/link";
 import { getInternalViewer } from "@/lib/session";
-import { engagements, dossier, currentPhase, pendingDecisions } from "@/lib/btic-data";
-import { BticShell, Panel, StatBox, Pill } from "@/components/btic";
+import { engagements, dossier } from "@/lib/btic-data";
+import { deriveExecutive, type ExecSection } from "@/lib/executive-view";
+import { deriveAdvisor } from "@/lib/executive-advisor";
+import { AdvisorReview } from "@/components/advisor-review";
+import { BticShell, Panel, StatBox, Pill, Provenance } from "@/components/btic";
 import { colors } from "@/components/ui";
 
 export const dynamic = "force-dynamic";
 
-// View 1 — Executive Home. Answers, at a glance: which engagements exist, where
-// each stands, and what is owed. Defense in depth: middleware gates /intelligence
-// and this server component re-checks the viewer.
-export default async function IntelligenceHome() {
+// The Executive Command Center — the FIRST page an internal user sees after
+// signing into BTIC. A 12-section executive summary DERIVED from the existing
+// dossier (no new data, no engine change, no persistence). Every section traces
+// to a real record; gaps are shown as gaps. Defense in depth: middleware +
+// layout + this server component all re-check the viewer.
+
+const CONFIDENCE_STYLE: Record<string, { bg: string; fg: string; label: string }> = {
+  verified: { bg: "#e7f4ec", fg: "#1a7f43", label: "Verified" },
+  reported: { bg: "#f3f0e6", fg: "#7a5c00", label: "Reported" },
+  derived: { bg: "#e6f0f6", fg: "#1f5f8b", label: "Derived" },
+  unknown: { bg: "#fbecec", fg: "#a3402f", label: "Gap — unknown" },
+};
+
+function SectionCard({ s }: { s: ExecSection }) {
+  const cs = CONFIDENCE_STYLE[s.confidence] ?? CONFIDENCE_STYLE["derived"]!;
+  return (
+    <Panel title={s.title}>
+      <div
+        style={{ display: "flex", gap: 10, alignItems: "baseline", flexWrap: "wrap" }}
+      >
+        <span
+          style={{
+            fontSize: 15,
+            fontWeight: 700,
+            color: s.hasData ? colors.INK : "#a3402f",
+          }}
+        >
+          {s.headline}
+        </span>
+        <Pill bg={cs.bg} fg={cs.fg} label={cs.label} />
+      </div>
+      {s.detail ? (
+        <p style={{ fontSize: 13, color: colors.INK, lineHeight: 1.55, marginTop: 8 }}>
+          {s.detail}
+        </p>
+      ) : null}
+      {s.items && s.items.length ? (
+        <ul style={{ margin: "8px 0 0", paddingLeft: 18 }}>
+          {s.items.map((it, i) => (
+            <li
+              key={i}
+              style={{
+                fontSize: 13,
+                color: colors.INK,
+                marginBottom: 3,
+                lineHeight: 1.5,
+              }}
+            >
+              {it.text}
+              {it.meta ? (
+                <span style={{ color: colors.MUTED, fontSize: 11.5 }}>
+                  {" "}
+                  · {it.meta}
+                </span>
+              ) : null}
+            </li>
+          ))}
+        </ul>
+      ) : null}
+      <div style={{ marginTop: 10 }}>
+        <Provenance>{s.basis}</Provenance>
+      </div>
+    </Panel>
+  );
+}
+
+export default async function ExecutiveCommandCenter() {
   const viewer = await getInternalViewer();
   if (!viewer.canBTIC) {
     return (
@@ -26,97 +92,134 @@ export default async function IntelligenceHome() {
     );
   }
 
-  const list = engagements();
+  const all = engagements();
+  const primary = all[0] ? dossier(all[0].id) : null;
+
+  if (!primary) {
+    return (
+      <BticShell
+        email={viewer.email}
+        title="Executive Command Center"
+        lede="No transformation engagements are recorded yet."
+      >
+        <p style={{ color: colors.MUTED, fontSize: 13 }}>
+          When an engagement is captured, its executive summary appears here.
+        </p>
+      </BticShell>
+    );
+  }
+
+  const view = deriveExecutive(primary);
+  const advisor = deriveAdvisor(primary);
 
   return (
     <BticShell
       email={viewer.email}
-      title="Business Transformation Intelligence Center"
-      lede="HLD's institutional memory for every transformation engagement — where it stands, what is complete, which report is current truth, and what decisions are owed."
+      title="Executive Command Center"
+      lede={`${view.engagementTitle} — the executive summary of where this transformation stands, derived from the engagement's own evidence. Every line traces to its source.`}
     >
-      <div style={{ display: "grid", gap: 14 }}>
-        {list.map((e) => {
-          const d = dossier(e.id)!;
-          const phase = currentPhase(d);
-          const pending = pendingDecisions(d);
-          const done = d.phases.filter((p) => p.status === "complete").length;
-          return (
-            <Panel key={e.id}>
-              <div
-                style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  gap: 12,
-                  flexWrap: "wrap",
-                  alignItems: "baseline",
-                }}
-              >
-                <div>
-                  <Link
-                    href={`/intelligence/${e.id}`}
-                    style={{
-                      fontSize: 17,
-                      fontWeight: 700,
-                      color: colors.INK,
-                      textDecoration: "none",
-                    }}
-                  >
-                    {e.title}
-                  </Link>
-                  <div style={{ fontSize: 12.5, color: colors.MUTED, marginTop: 2 }}>
-                    {e.client}
-                  </div>
-                </div>
-                <Pill
-                  bg={e.status === "active" ? "#e6f0f6" : "#f2f3f5"}
-                  fg={e.status === "active" ? "#1f5f8b" : "#5b6672"}
-                  label={e.status === "active" ? "Active" : e.status}
-                />
-              </div>
-
-              <p
-                style={{
-                  fontSize: 13.5,
-                  color: colors.INK,
-                  lineHeight: 1.55,
-                  marginTop: 12,
-                }}
-              >
-                {e.summary}
-              </p>
-
-              <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginTop: 6 }}>
-                <StatBox
-                  label="Transformation Score"
-                  value={
-                    e.transformationScore ? `${e.transformationScore.overall}/100` : "—"
-                  }
-                />
-                <StatBox label="Phases complete" value={`${done}/${d.phases.length}`} />
-                <StatBox
-                  label="Current phase"
-                  value={phase ? phase.name.split(" ").slice(0, 2).join(" ") : "—"}
-                />
-                <StatBox label="Decisions owed" value={String(pending.length)} />
-              </div>
-
-              <div style={{ marginTop: 14 }}>
-                <Link
-                  href={`/intelligence/${e.id}`}
-                  style={{ fontSize: 13, color: colors.ACCENT }}
-                >
-                  Open dossier →
-                </Link>
-              </div>
-            </Panel>
-          );
-        })}
+      {/* Headline strip */}
+      <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 16 }}>
+        <StatBox
+          label="Transformation Score"
+          value={view.overallScore !== null ? `${view.overallScore}/100` : "—"}
+        />
+        <StatBox
+          label="Stage"
+          value={view.sections[0]!.headline.split(" ").slice(0, 2).join(" ")}
+        />
+        <StatBox
+          label="Decisions owed"
+          value={String(
+            view.sections.find((s) => s.key === "decisions")?.items?.length ?? 0,
+          )}
+        />
+        <StatBox label="Engagement" value={view.status} />
       </div>
 
-      <p style={{ fontSize: 12, color: "#98a2b0", marginTop: 20, lineHeight: 1.6 }}>
-        V1 holds one seeded dossier (Venuewise) built only from verified internal
-        materials. Every record links to its source. This is a read/review workspace; it
-        does not yet capture new records from the UI.
+      {/* Executive Advisor — prioritized, evidence-backed recommendations derived
+          from the sections below, wrapped in a UI-only Executive Review preview.
+          What to do next, and why, with every claim traced to a real record. */}
+      <div style={{ marginBottom: 18 }}>
+        <Panel title="Executive Advisor — recommended actions, in priority order">
+          <p
+            style={{
+              fontSize: 12.5,
+              color: colors.MUTED,
+              lineHeight: 1.55,
+              margin: "0 0 12px",
+            }}
+          >
+            {advisor.basis}
+          </p>
+          {advisor.recommendations.length ? (
+            <AdvisorReview recommendations={advisor.recommendations} />
+          ) : (
+            <p style={{ fontSize: 13, color: colors.MUTED }}>
+              No evidence-backed recommendation could be derived from the current
+              records.
+            </p>
+          )}
+          {advisor.gapsNote ? (
+            <p
+              style={{
+                fontSize: 11.5,
+                color: "#a3402f",
+                marginTop: 12,
+                lineHeight: 1.55,
+              }}
+            >
+              <strong>Coverage note:</strong> {advisor.gapsNote}
+            </p>
+          ) : null}
+        </Panel>
+      </div>
+
+      {/* The 12 executive sections */}
+      <div style={{ display: "grid", gap: 14 }}>
+        {view.sections.map((s) => (
+          <SectionCard key={s.key} s={s} />
+        ))}
+      </div>
+
+      {/* Secondary navigation — the workspace behind the summary */}
+      <div style={{ marginTop: 20, display: "flex", gap: 18, flexWrap: "wrap" }}>
+        <Link
+          href={`/intelligence/${view.engagementId}`}
+          style={{ fontSize: 13, color: colors.ACCENT, fontWeight: 600 }}
+        >
+          Open the full {view.engagementTitle} dossier →
+        </Link>
+        <Link
+          href="/intelligence/pipeline"
+          style={{ fontSize: 13, color: colors.ACCENT, fontWeight: 600 }}
+        >
+          BTE Pipeline — engine output →
+        </Link>
+      </div>
+
+      {all.length > 1 ? (
+        <div style={{ marginTop: 18 }}>
+          <Panel title="All engagements">
+            <div style={{ display: "grid", gap: 6 }}>
+              {all.map((e) => (
+                <Link
+                  key={e.id}
+                  href={`/intelligence/${e.id}`}
+                  style={{ fontSize: 13.5, color: colors.ACCENT }}
+                >
+                  {e.title} — {e.client}
+                </Link>
+              ))}
+            </div>
+          </Panel>
+        </div>
+      ) : null}
+
+      <p style={{ fontSize: 12, color: "#98a2b0", marginTop: 18, lineHeight: 1.6 }}>
+        This summary is derived, read-only, from the seeded Venuewise dossier — no data
+        is stored and nothing is invented. Sections without a captured metric are shown
+        as gaps.
       </p>
     </BticShell>
   );
