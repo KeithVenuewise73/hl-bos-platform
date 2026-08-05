@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { getClientViewer } from "@/lib/session";
+import { getInternalViewer } from "@/lib/session";
 import { engagements, dossier, currentPhase, pendingDecisions } from "@/lib/btic-data";
 import { BticShell, Panel, StatBox, Pill } from "@/components/btic";
 import { colors } from "@/components/ui";
@@ -10,8 +10,8 @@ export const dynamic = "force-dynamic";
 // each stands, and what is owed. Defense in depth: middleware gates /intelligence
 // and this server component re-checks the viewer.
 export default async function IntelligenceHome() {
-  const viewer = await getClientViewer();
-  if (!viewer.authenticated) {
+  const viewer = await getInternalViewer();
+  if (!viewer.canBTIC) {
     return (
       <BticShell
         email={null}
@@ -19,7 +19,8 @@ export default async function IntelligenceHome() {
         lede="Internal HLD workspace."
       >
         <p style={{ color: colors.MUTED }}>
-          Please <Link href="/login?next=/intelligence">sign in</Link> to continue.
+          Please <Link href="/admin-login?next=/intelligence">sign in</Link> to
+          continue.
         </p>
       </BticShell>
     );

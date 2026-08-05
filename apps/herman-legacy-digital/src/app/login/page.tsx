@@ -34,8 +34,33 @@ export default function LoginPage() {
     } catch {
       /* best-effort */
     }
-    const next = new URLSearchParams(window.location.search).get("next") || "/portal";
-    window.location.assign(next);
+
+    // Route by role: an internal user who happened to use Client Login is sent to
+    // the correct internal destination; a client goes to their portal. The
+    // server (/api/whoami) computes a safe destination with open-redirect
+    // protection; fall back to /portal if it is unavailable.
+    const next = new URLSearchParams(window.location.search).get("next");
+    // Only a same-origin path is safe: a single leading "/", never "//" or "/\"
+    // (protocol-relative / absolute URLs like http(s):// don't start with "/"
+    // and are rejected too). Mirrors the server-side `safeNext` in authz.ts so
+    // the client fallback can never be turned into an open redirect.
+    const nextIsSafe =
+      typeof next === "string" &&
+      next.startsWith("/") &&
+      !next.startsWith("//") &&
+      !next.startsWith("/\\");
+    let destination = nextIsSafe ? next : "/portal";
+    try {
+      const res = await fetch(
+        `/api/whoami${next ? `?next=${encodeURIComponent(next)}` : ""}`,
+        { cache: "no-store" },
+      );
+      const who = (await res.json()) as { destination: string };
+      if (who.destination) destination = who.destination;
+    } catch {
+      /* use the safe default */
+    }
+    window.location.assign(destination);
   }
 
   return (

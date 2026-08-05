@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { getClientViewer } from "@/lib/session";
+import { getInternalViewer } from "@/lib/session";
 import { dossier, orderedPhases } from "@/lib/btic-data";
 import { BticShell, DossierNav, PhaseStatusBadge, Provenance } from "@/components/btic";
 import { colors } from "@/components/ui";
@@ -15,16 +15,18 @@ export default async function TimelineView({
   params: Promise<{ engagement: string }>;
 }) {
   const { engagement } = await params;
-  const viewer = await getClientViewer();
+  const viewer = await getInternalViewer();
   const d = dossier(engagement);
   if (!d) notFound();
 
-  if (!viewer.authenticated) {
+  if (!viewer.canBTIC) {
     return (
       <BticShell email={null} title="Timeline" lede="Internal HLD workspace.">
         <p style={{ color: colors.MUTED }}>
           Please{" "}
-          <Link href={`/login?next=/intelligence/${engagement}/timeline`}>sign in</Link>
+          <Link href={`/admin-login?next=/intelligence/${engagement}/timeline`}>
+            sign in
+          </Link>
           .
         </p>
       </BticShell>
