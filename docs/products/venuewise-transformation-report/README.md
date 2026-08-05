@@ -7,9 +7,9 @@ proposal, and no invented figures.
 
 ## Deliverables
 
-| File | Format |
-| --- | --- |
-| `Venuewise-Business-Transformation-Report.pdf` | PDF (Letter, cover, TOC, page numbers) |
+| File                                            | Format                                             |
+| ----------------------------------------------- | -------------------------------------------------- |
+| `Venuewise-Business-Transformation-Report.pdf`  | PDF (Letter, cover, TOC, page numbers)             |
 | `Venuewise-Business-Transformation-Report.docx` | Word (editable; TOC field updates on open in Word) |
 
 Both files are generated from a single shared content model, so their content is
