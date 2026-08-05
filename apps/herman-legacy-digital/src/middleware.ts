@@ -2,18 +2,20 @@ import { NextResponse, type NextRequest } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 import { devBypassEnabled } from "@/lib/access";
 
-// The public marketing site is unauthenticated. ONLY the client portal is gated.
-const PROTECTED_PREFIX = "/portal";
+// The public marketing site is unauthenticated. Only internal/authenticated areas
+// are gated: the client portal and the Business Transformation Intelligence Center.
+const PROTECTED_PREFIXES = ["/portal", "/intelligence"];
 
 /**
- * Authentication gate for the client portal. Unauthenticated requests to
- * `/portal/*` are redirected to /login (they receive no portal content).
- * Everything else — the public site, intake API, health — is public.
- * Reuses HL-BOS identity; no new auth system.
+ * Authentication gate for internal areas. Unauthenticated requests to a protected
+ * prefix (`/portal/*`, `/intelligence/*`) are redirected to /login (they receive
+ * no protected content). Everything else — the public site, intake API, health —
+ * is public. Reuses HL-BOS identity; no new auth system.
  */
 export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
-  if (!pathname.startsWith(PROTECTED_PREFIX)) return NextResponse.next();
+  const isProtected = PROTECTED_PREFIXES.some((p) => pathname.startsWith(p));
+  if (!isProtected) return NextResponse.next();
 
   if (
     devBypassEnabled({
