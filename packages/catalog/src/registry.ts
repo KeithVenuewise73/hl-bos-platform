@@ -366,6 +366,25 @@ const ASSETS: Asset[] = [
     evidence: "packages/transformation-intelligence (Phase VIII)",
   },
   {
+    id: "pkg.bte-pipeline",
+    kind: "package",
+    name: "@hl-bos/bte-pipeline",
+    summary:
+      "The Business Transformation Engine automated intake pipeline core: deterministic, DB-agnostic orchestration (12-state processing machine, evidence-status + finding-confidence model, 11-section draft report reusing @hl-bos/bti-engine, never-overwrite-approved versioning). Persistence, notification and delivery bind through injected adapters; no I/O and nothing sent on its own.",
+    maturity: "built_undeployed",
+    reuse: ["reusable", "commercial"],
+    owner: "Herman Legacy Digital",
+    layer: "HL-BTI",
+    key: "bte-pipeline",
+    location: "packages/bte-pipeline",
+    tags: ["package", "pipeline", "domain-logic", "deterministic"],
+    relationships: [
+      { kind: "uses", to: "pkg.bti-engine" },
+      { kind: "owned_by", to: "repo.hl-bos-platform" },
+    ],
+    evidence: "packages/bte-pipeline; 35 tests; docs/products/hld-bte-intake",
+  },
+  {
     id: "pkg.catalog",
     kind: "package",
     name: "@hl-bos/catalog",
