@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { analyst } from "@hl-bos/bti-engine";
-import { fetchSiteHtml } from "@/lib/scan/fetch-site";
+import { fetchSitePages } from "@/lib/scan/fetch-site";
 import { buildReportView } from "@/lib/scan/report-model";
 
 // The free AI Business Scan — the customer-acquisition front door.
@@ -67,8 +67,8 @@ export async function POST(req: Request) {
     );
   }
 
-  const fetched = await fetchSiteHtml(website);
-  if (!fetched.ok || !fetched.html) {
+  const fetched = await fetchSitePages(website, 5);
+  if (!fetched.ok || fetched.pages.length === 0) {
     return NextResponse.json(
       { status: "error", error: fetched.error ?? "We could not read that website." },
       { status: 422 },
@@ -77,11 +77,11 @@ export async function POST(req: Request) {
 
   let report;
   try {
-    const analysis = analyst.analyzeBusiness({
+    const analysis = analyst.analyzeBusinessPages({
       name,
-      website: fetched.finalUrl ?? website,
+      website: fetched.homepageUrl ?? website,
       industry,
-      html: fetched.html,
+      pages: fetched.pages,
       ...(location ? { location } : {}),
     });
     report = buildReportView(analysis, { analyzedAtIso: new Date().toISOString() });
@@ -100,7 +100,7 @@ export async function POST(req: Request) {
 
   return NextResponse.json({
     status: "ok",
-    scannedUrl: fetched.finalUrl ?? website,
+    scannedUrl: fetched.homepageUrl ?? website,
     report,
   });
 }

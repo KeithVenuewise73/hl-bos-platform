@@ -21,6 +21,13 @@ export interface FetchResult {
   error?: string;
 }
 
+export interface SitePagesResult {
+  ok: boolean;
+  pages: { url: string; html: string }[];
+  homepageUrl?: string;
+  error?: string;
+}
+
 const TIMEOUT_MS = 9_000;
 const MAX_BYTES = 2_000_000; // 2 MB of HTML is far more than a homepage needs
 const MAX_REDIRECTS = 4;
@@ -151,4 +158,108 @@ export async function fetchSiteHtml(rawUrl: string): Promise<FetchResult> {
   }
 
   return { ok: false, error: "That website redirected too many times." };
+}
+
+// Pages a real analyst reads first, in priority order. A same-domain link whose
+// path contains one of these keywords is fetched ahead of generic pages.
+const PRIORITY_KEYWORDS = [
+  "service",
+  "solution",
+  "product",
+  "about",
+  "contact",
+  "pricing",
+  "price",
+  "plan",
+  "work",
+  "portfolio",
+  "case",
+  "team",
+];
+const ASSET_RE = /\.(pdf|jpe?g|png|gif|webp|svg|zip|mp4|mov|css|js|xml|ico|woff2?)$/i;
+
+function sameSite(a: URL, b: URL): boolean {
+  const strip = (h: string) => h.replace(/^www\./, "");
+  return strip(a.hostname) === strip(b.hostname);
+}
+
+/**
+ * Extract up to `max` same-domain internal page URLs from a homepage's HTML,
+ * prioritizing the pages a consultant would read first (services, about,
+ * contact…). Fragments, query strings, and asset links are dropped; paths are
+ * de-duplicated. Pure and unit-tested.
+ */
+export function extractInternalLinks(
+  html: string,
+  base: string,
+  max: number,
+): string[] {
+  let baseUrl: URL;
+  try {
+    baseUrl = new URL(base);
+  } catch {
+    return [];
+  }
+  const hrefs = html.match(/<a[^>]+href=["']([^"']+)["']/gi) ?? [];
+  const seen = new Set<string>([baseUrl.pathname.replace(/\/$/, "") || "/"]);
+  const scored: { url: string; score: number }[] = [];
+  for (const tag of hrefs) {
+    const raw = tag.match(/href=["']([^"']+)["']/i)?.[1] ?? "";
+    if (!raw || raw.startsWith("#") || /^(mailto:|tel:|javascript:)/i.test(raw))
+      continue;
+    let u: URL;
+    try {
+      u = new URL(raw, baseUrl);
+    } catch {
+      continue;
+    }
+    if (u.protocol !== "http:" && u.protocol !== "https:") continue;
+    if (!sameSite(u, baseUrl)) continue;
+    if (ASSET_RE.test(u.pathname)) continue;
+    const path = u.pathname.replace(/\/$/, "") || "/";
+    if (seen.has(path)) continue;
+    seen.add(path);
+    const lower = path.toLowerCase();
+    const idx = PRIORITY_KEYWORDS.findIndex((k) => lower.includes(k));
+    const score = idx === -1 ? PRIORITY_KEYWORDS.length : idx;
+    u.hash = "";
+    u.search = "";
+    scored.push({ url: u.toString(), score });
+  }
+  scored.sort((a, b) => a.score - b.score);
+  return scored.slice(0, max).map((s) => s.url);
+}
+
+/**
+ * Read the site, not just the homepage: fetch the homepage, then fetch up to
+ * `maxPages - 1` priority internal pages, each through the same SSRF-safe path.
+ * Returns the pages actually read (always at least the homepage on success).
+ */
+export async function fetchSitePages(
+  rawUrl: string,
+  maxPages = 5,
+): Promise<SitePagesResult> {
+  const home = await fetchSiteHtml(rawUrl);
+  if (!home.ok || !home.html || !home.finalUrl) {
+    return {
+      ok: false,
+      pages: [],
+      error: home.error ?? "We could not read that website.",
+    };
+  }
+  const pages: { url: string; html: string }[] = [
+    { url: home.finalUrl, html: home.html },
+  ];
+  const links = extractInternalLinks(home.html, home.finalUrl, maxPages - 1);
+  for (const link of links) {
+    if (pages.length >= maxPages) break;
+    const res = await fetchSiteHtml(link);
+    if (res.ok && res.html && res.finalUrl) {
+      // Guard against a redirect collapsing two links to the same page.
+      if (!pages.some((p) => p.url === res.finalUrl)) {
+        pages.push({ url: res.finalUrl, html: res.html });
+      }
+    }
+  }
+  return { ok: true, pages, homepageUrl: home.finalUrl };
 }

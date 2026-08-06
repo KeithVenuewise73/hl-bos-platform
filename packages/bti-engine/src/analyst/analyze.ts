@@ -14,6 +14,7 @@
 // existing `ai` gateway; it is not needed for the working product.
 
 import { analyzeHtml, type SiteEvidence } from "./extract.ts";
+import { mergeEvidence } from "./merge.ts";
 import { hlServiceLabel } from "./services.ts";
 import {
   generateConsultingReport,
@@ -78,11 +79,22 @@ export interface ScorecardEntry {
 export interface BusinessAnalysis {
   business: { name: string; website: string; industry: string; location?: string };
   evidence: SiteEvidence;
+  pagesAnalyzed: number; // how many pages of the site the evidence was drawn from
   profile: ProfileObservation[]; // the Business Intelligence Profile (understanding, not scores)
   scorecard: ScorecardEntry[]; // every analyzed dimension, scored against benchmark
   report: ConsultingReport; // findings, roadmap, solutions, narrative, review
   proposal: { lines: ProposalLine[]; recommendedServices: string[] };
   coverageNote: string; // honest statement of what evidence could NOT observe
+}
+
+// Input for a multi-page analysis: the pages already fetched from the site.
+export interface BusinessPagesInput {
+  name: string;
+  website: string;
+  industry: string;
+  location?: string;
+  financial?: AssessmentInput["financial"];
+  pages: { url: string; html: string }[];
 }
 
 // A rubric row: an observed weakness signal → a dimension rating + an evidence fact.
@@ -237,9 +249,37 @@ function buildProfile(e: SiteEvidence, biz: BusinessInput): ProfileObservation[]
   return obs;
 }
 
+// Single-page analysis (the homepage). Kept for callers that already have one
+// page of HTML; internally it delegates to the shared evidence-driven core.
 export function analyzeBusiness(input: BusinessInput): BusinessAnalysis {
   const evidence = analyzeHtml(input.html, input.website);
+  return analyzeFromEvidence(evidence, input, 1);
+}
 
+// Multi-page analysis: read several pages of the site and reason over the merged
+// evidence, so findings speak for the whole site rather than just the homepage.
+export function analyzeBusinessPages(input: BusinessPagesInput): BusinessAnalysis {
+  const pageEvidence = input.pages.map((p) => analyzeHtml(p.html, p.url));
+  const evidence =
+    pageEvidence.length > 0
+      ? mergeEvidence(pageEvidence)
+      : analyzeHtml("", input.website);
+  const businessInput: BusinessInput = {
+    name: input.name,
+    website: input.website,
+    industry: input.industry,
+    html: input.pages[0]?.html ?? "",
+    ...(input.location ? { location: input.location } : {}),
+    ...(input.financial ? { financial: input.financial } : {}),
+  };
+  return analyzeFromEvidence(evidence, businessInput, Math.max(1, input.pages.length));
+}
+
+function analyzeFromEvidence(
+  evidence: SiteEvidence,
+  input: BusinessInput,
+  pagesAnalyzed: number,
+): BusinessAnalysis {
   // Derive dimension ratings + evidence facts from REAL signals (no manual scoring).
   const ratings: DimensionInput[] = [];
   const evidenceInputs: EvidenceInput[] = [];
@@ -330,8 +370,11 @@ export function analyzeBusiness(input: BusinessInput): BusinessAnalysis {
     });
   }
 
-  const coverageNote =
-    "This analysis is website-driven. Operations, financial, and deeper AI-readiness findings require documents or a short interview — HL-BTI does not infer what it cannot observe.";
+  const pagesPhrase =
+    pagesAnalyzed > 1
+      ? `This analysis read ${pagesAnalyzed} pages of your website.`
+      : "This analysis is based on your homepage.";
+  const coverageNote = `${pagesPhrase} Operations, financial, and deeper AI-readiness findings require documents or a short interview — HL-BTI does not infer what it cannot observe.`;
 
   return {
     business: {
@@ -341,6 +384,7 @@ export function analyzeBusiness(input: BusinessInput): BusinessAnalysis {
       ...(input.location ? { location: input.location } : {}),
     },
     evidence,
+    pagesAnalyzed,
     profile,
     scorecard,
     report,

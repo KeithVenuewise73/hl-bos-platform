@@ -36,10 +36,11 @@ function view(html: string, name = "Sample Co", industry = "transportation") {
 }
 
 describe("executive report view-model", () => {
-  it("carries business identity and analysis time", () => {
+  it("carries business identity, analysis time, and pages analyzed", () => {
     const v = view(WEAK_HTML, "Ace Movers");
     expect(v.business.name).toBe("Ace Movers");
     expect(v.analyzedAtIso).toBe("2026-08-06T12:00:00.000Z");
+    expect(v.pagesAnalyzed).toBe(1); // single-page helper
   });
 
   it("builds a scorecard covering every analyzed dimension with benchmark + confidence", () => {

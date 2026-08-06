@@ -262,6 +262,12 @@ export function ReportView({ report: r }: { report: TransformationReportView }) 
             <span>
               Website analyzed<b>{r.business.website}</b>
             </span>
+            <span>
+              Pages read
+              <b>
+                {r.pagesAnalyzed} page{r.pagesAnalyzed === 1 ? "" : "s"}
+              </b>
+            </span>
             {when ? (
               <span>
                 Analyzed<b>{when}</b>

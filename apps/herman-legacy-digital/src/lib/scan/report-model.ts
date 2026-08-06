@@ -176,6 +176,7 @@ export interface TransformationScope {
 export interface TransformationReportView {
   business: { name: string; website: string; industry: string; location?: string };
   analyzedAtIso: string;
+  pagesAnalyzed: number;
   score: number | null;
   scoreBand: string | null;
   headline: string;
@@ -790,6 +791,7 @@ export function buildReportView(
   return {
     business,
     analyzedAtIso: opts?.analyzedAtIso ?? "",
+    pagesAnalyzed: analysis.pagesAnalyzed,
     score: report.transformationScore,
     scoreBand: scoreBand(report.transformationScore),
     headline,
