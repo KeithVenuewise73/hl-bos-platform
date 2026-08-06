@@ -7,30 +7,31 @@
 **Status:** Definitive homepage blueprint — v1.0
 **Date:** 2026-08-06
 **Governed by:**
+
 - [HSCS Commercial Foundation v1.0](../hscs-commercial-foundation/README.md) — approved
 - [HSCS Website Information Architecture v1.0](../hscs-website-architecture/README.md) — approved
 
 ---
 
-> **What this document is.** The definitive content *architecture* for the HSCS homepage: every
+> **What this document is.** The definitive content _architecture_ for the HSCS homepage: every
 > section in order, what each is for, the business objective it accomplishes, the proof that
 > belongs in it, its messaging hierarchy, its calls-to-action, how it advances the visitor toward
 > requesting an Operations Assessment, and its desktop vs. mobile content priority. It is the
 > governing blueprint all future homepage copywriting and design must implement.
 >
 > **What this document is not.** It is **not** marketing copy, **not** visual design, **not**
-> mockups, and **not** code. It defines *what each section must accomplish and contain* — never
+> mockups, and **not** code. It defines _what each section must accomplish and contain_ — never
 > the words on the page or how they look. Any example phrasing is a directional placeholder, not
 > approved copy.
 >
 > **Positioning this homepage must reinforce (from Foundation v1.0):**
-> Transportation & Operations Consulting · *35 Years of Operational Experience. Enhanced by AI.* ·
-> *Built by a Business Owner. Designed for Operators.*
+> Transportation & Operations Consulting · _35 Years of Operational Experience. Enhanced by AI._ ·
+> _Built by a Business Owner. Designed for Operators._
 >
 > **Guiding doctrine (non-negotiable, inherited):**
 > **Operations lead. Technology supports. Operational expertise is the product. AI enhances
-> analysis, validation, and decision-making.** HSCS is a firm of *operators who consult — not
-> consultants who understand operations.* Technology (FleetHuddle, DispatchAI, TransportationAI,
+> analysis, validation, and decision-making.** HSCS is a firm of _operators who consult — not
+> consultants who understand operations._ Technology (FleetHuddle, DispatchAI, TransportationAI,
 > Executive Dashboards, Government Logistics) appears **only** as tools that support consulting —
 > never as products for sale. The single primary conversion is **Request an Operations Assessment.**
 
@@ -57,6 +58,7 @@
 4. [Calls-to-action summary](#4-calls-to-action-summary)
 5. [Desktop vs. mobile content priority](#5-desktop-vs-mobile-content-priority)
 6. [Funnel movement map](#6-funnel-movement-map)
+
 - [Appendix A — Alignment matrix](#appendix-a--alignment-matrix)
 - [Appendix B — Honesty & governance rules for homepage content](#appendix-b--honesty--governance-rules-for-homepage-content)
 
@@ -69,9 +71,9 @@ specified with a fixed template so copywriters and designers inherit the same br
 
 - **Order & name** — position in the top-to-bottom scroll.
 - **Purpose** — the visitor's job this section serves.
-- **Business objective** — what the *business* accomplishes here.
+- **Business objective** — what the _business_ accomplishes here.
 - **Proof / credibility** — the evidence that belongs (and only honest evidence, per Appendix B).
-- **Messaging hierarchy** — *Lead* (the one dominant message), *Support* (secondary), *Reinforce*
+- **Messaging hierarchy** — _Lead_ (the one dominant message), _Support_ (secondary), _Reinforce_
   (tertiary). Never more than one Lead per section.
 - **Primary CTA / Secondary CTA** — the action(s); the primary is always the assessment.
 - **Movement toward the Assessment** — how this section advances the funnel (IA §8).
@@ -103,15 +105,15 @@ journey spine (Credibility → Fit → Method/Trust → Ask):
 **The four value pillars (Foundation §4.2)** are each "owned" by a section, so the whole homepage
 covers them without repetition:
 
-| Pillar | Owned by | Homepage expression (theme, not copy) |
-| --- | --- | --- |
-| **Experience** | S2 strip + S3 lifecycle | "We've run every stage of the chain." |
-| **Evidence** | S6 method | "Every recommendation traces to proof." |
-| **Outcomes** | S10 what-you-get | "You leave with an assessment you keep and act on." |
+| Pillar          | Owned by                     | Homepage expression (theme, not copy)                          |
+| --------------- | ---------------------------- | -------------------------------------------------------------- |
+| **Experience**  | S2 strip + S3 lifecycle      | "We've run every stage of the chain."                          |
+| **Evidence**    | S6 method                    | "Every recommendation traces to proof."                        |
+| **Outcomes**    | S10 what-you-get             | "You leave with an assessment you keep and act on."            |
 | **Enhancement** | S7 AI clarifier + S8 toolbox | "AI and tools sharpen the analysis — they aren't the product." |
 
-**One-Lead rule:** across the whole page, exactly one message is dominant — *35 years of
-operational experience, enhanced by AI, from an operator to operators.* Every section's Lead is a
+**One-Lead rule:** across the whole page, exactly one message is dominant — _35 years of
+operational experience, enhanced by AI, from an operator to operators._ Every section's Lead is a
 facet of that single message.
 
 ---
@@ -125,8 +127,8 @@ facet of that single message.
 - **Business objective:** Keep the primary conversion reachable from any scroll position;
   establish the brand and the practice in three words ("Transportation & Operations Consulting").
 - **Proof / credibility:** Logo/wordmark; the descriptor line; nothing more (proof lives below).
-- **Messaging hierarchy:** *Lead* — brand + practice descriptor. *Support* — nav labels (IA §2.1).
-  *Reinforce* — persistent **Request an Assessment** button.
+- **Messaging hierarchy:** _Lead_ — brand + practice descriptor. _Support_ — nav labels (IA §2.1).
+  _Reinforce_ — persistent **Request an Assessment** button.
 - **Primary CTA:** Request an Operations Assessment. **Secondary:** primary nav (Services,
   Industries, Experience, Method, Insights, About).
 - **Movement toward the Assessment:** Guarantees the "Ask" is one click from every beat of the page
@@ -140,13 +142,13 @@ facet of that single message.
 - **Purpose:** In ~5 seconds, tell the operator exactly who HSCS is and why it's for them.
 - **Business objective:** Establish the approved positioning instantly and route intent to the
   assessment; set the operator-to-operator tone that governs the whole page.
-- **Proof / credibility:** The positioning claims themselves — *35 Years of Operational
-  Experience. Enhanced by AI.* and *Built by a Business Owner. Designed for Operators.* These are
+- **Proof / credibility:** The positioning claims themselves — _35 Years of Operational
+  Experience. Enhanced by AI._ and _Built by a Business Owner. Designed for Operators._ These are
   factual (Foundation §8) and are the credibility.
 - **Messaging hierarchy:**
-  - *Lead:* **35 Years of Operational Experience. Enhanced by AI.** (the headline promise)
-  - *Support:* **Built by a Business Owner. Designed for Operators.** (the subhead / who-it's-for)
-  - *Reinforce:* one line naming the practice — Transportation & Operations Consulting — and the
+  - _Lead:_ **35 Years of Operational Experience. Enhanced by AI.** (the headline promise)
+  - _Support:_ **Built by a Business Owner. Designed for Operators.** (the subhead / who-it's-for)
+  - _Reinforce:_ one line naming the practice — Transportation & Operations Consulting — and the
     operator-first idea (operators who consult, not consultants who understand operations).
 - **Primary CTA:** Request an Operations Assessment. **Secondary:** "Explore the operating
   lifecycle" (jump to S3) — for the not-yet-ready visitor.
@@ -168,8 +170,8 @@ facet of that single message.
   (Arctic Glacier), middle-mile (Amazon), retail final-mile (Lowe's, Sears, Bob's Discount
   Furniture), warehousing in food manufacturing (Sorrento/Lactalis). **Framed as operating
   history/experience, not as client endorsement or partnership** (Appendix B, rule 3).
-- **Messaging hierarchy:** *Lead:* "35 years across the entire supply chain." *Support:* the named
-  operations/roles as experience. *Reinforce:* a link to the full story (Experience page).
+- **Messaging hierarchy:** _Lead:_ "35 years across the entire supply chain." _Support:_ the named
+  operations/roles as experience. _Reinforce:_ a link to the full story (Experience page).
 - **Primary CTA:** (inherits header CTA; no in-strip button needed). **Secondary:** "See the full
   operating record" → `/experience/`.
 - **Movement toward the Assessment:** Removes the credibility objection early, so later sections
@@ -180,35 +182,35 @@ facet of that single message.
 ### S3 · The end-to-end operational lifecycle
 
 - **Order & name:** The signature differentiator section.
-- **Purpose:** Show that HSCS understands and has *operated* the complete lifecycle — not one link.
+- **Purpose:** Show that HSCS understands and has _operated_ the complete lifecycle — not one link.
 - **Business objective:** Establish the core competitive moat (end-to-end operating command) that
   neither big consultancies nor tech vendors can claim (Foundation §1.2, §8.3).
 - **Proof / credibility:** The lifecycle itself, in order, tied to real operations:
   **Manufacturing → Warehousing → Middle Mile → Distribution → Final Mile → White Glove.** Each
   stage names the operating lesson and (where honest) the operation behind it. The differentiator
-  message is the *connections between stages*, not just the list (Foundation §8.1).
-- **Messaging hierarchy:** *Lead:* "We've operated every stage — and we know how a decision in one
-  ripples through all of them." *Support:* the six stages in order. *Reinforce:* "operators who
+  message is the _connections between stages_, not just the list (Foundation §8.1).
+- **Messaging hierarchy:** _Lead:_ "We've operated every stage — and we know how a decision in one
+  ripples through all of them." _Support:_ the six stages in order. _Reinforce:_ "operators who
   consult, not consultants who understand operations."
 - **Primary CTA:** Request an Operations Assessment. **Secondary:** "See how each stage informs our
   work" → Experience / relevant Industry pages (IA §6.2 service↔industry bridges).
-- **Movement toward the Assessment:** Converts credibility into *relevance* — the visitor sees
+- **Movement toward the Assessment:** Converts credibility into _relevance_ — the visitor sees
   their own stage represented, which motivates "assess my operation."
 - **Desktop priority:** The full six-stage chain visualized left-to-right with the connective
   narrative. **Mobile priority:** Vertical, scrollable stage list in the same order; the chain's
-  *sequence and connectivity* must survive the reflow — order is meaning here.
+  _sequence and connectivity_ must survive the reflow — order is meaning here.
 
 ### S4 · Positioning & operator-first differentiation
 
 - **Order & name:** After the lifecycle establishes credibility.
 - **Purpose:** State plainly why HSCS is different from both the consultancies and the tech vendors.
 - **Business objective:** Own the strategic wedge (Foundation §1.2, §3.4) — the only firm that is
-  *high operating credibility AND high AI leverage* — and frame the buying decision on our terms.
+  _high operating credibility AND high AI leverage_ — and frame the buying decision on our terms.
 - **Proof / credibility:** The operator-first doctrine; the contrast between an operator who has
   run the operation and a consultant who has only studied one; the "built by a business owner" fact.
-- **Messaging hierarchy:** *Lead:* **Operators who consult — not consultants who understand
-  operations.** *Support:* the difference vs. big consultancies (never ran it) and vs. AI/tech
-  vendors (sell the tool, not the outcome). *Reinforce:* the doctrine line — operations lead,
+- **Messaging hierarchy:** _Lead:_ **Operators who consult — not consultants who understand
+  operations.** _Support:_ the difference vs. big consultancies (never ran it) and vs. AI/tech
+  vendors (sell the tool, not the outcome). _Reinforce:_ the doctrine line — operations lead,
   technology supports.
 - **Primary CTA:** Request an Operations Assessment. **Secondary:** "How we work" → S6 / Method page.
 - **Movement toward the Assessment:** Reframes the category so the assessment reads as "an
@@ -225,9 +227,9 @@ facet of that single message.
   while signaling depth (S1–S9) for buyers who need more.
 - **Proof / credibility:** The structured service ladder (Foundation §6): entry assessment → core
   engagements → programs → advisory. Credibility = the breadth and the operator's framing of each.
-- **Messaging hierarchy:** *Lead:* **Start with an Operations Assessment.** *Support:* the core
+- **Messaging hierarchy:** _Lead:_ **Start with an Operations Assessment.** _Support:_ the core
   engagement areas (Transportation & Fleet, Warehousing & Distribution, Final-Mile & White-Glove,
-  Turnaround & Margin, Technology Advisory). *Reinforce:* programs/advisory exist for deeper needs.
+  Turnaround & Margin, Technology Advisory). _Reinforce:_ programs/advisory exist for deeper needs.
 - **Primary CTA:** Request an Operations Assessment. **Secondary:** "See all services" → `/services/`.
 - **Movement toward the Assessment:** Explicitly positions S0 as the low-risk yes that precedes
   every other engagement (IA §8.2 — the hinge).
@@ -238,14 +240,14 @@ facet of that single message.
 ### S6 · How we work — the method & honesty guarantee
 
 - **Order & name:** Trust-builder, after the offer.
-- **Purpose:** Show the visitor *how* the work is done and why they can trust the recommendations.
+- **Purpose:** Show the visitor _how_ the work is done and why they can trust the recommendations.
 - **Business objective:** De-risk the decision by proving rigor and honesty — the emotional
   prerequisites to requesting the assessment.
 - **Proof / credibility:** The four-stage method — **Assess → Analyze → Recommend → Transform**
   (Foundation §9); the evidence-first commitment; **fact / inference / opinion labelling**; the
   **honesty guarantee** (unknowns are stated and measured, not guessed — Foundation §10.5).
-- **Messaging hierarchy:** *Lead:* "Every recommendation is backed by evidence." *Support:* the
-  four-stage method. *Reinforce:* the honesty guarantee — "when a baseline is unknown, we say so
+- **Messaging hierarchy:** _Lead:_ "Every recommendation is backed by evidence." _Support:_ the
+  four-stage method. _Reinforce:_ the honesty guarantee — "when a baseline is unknown, we say so
   and go measure it."
 - **Primary CTA:** Request an Operations Assessment. **Secondary:** "See the assessment framework"
   → `/method/operations-assessment-framework/`.
@@ -264,9 +266,9 @@ facet of that single message.
 - **Proof / credibility:** The doctrine, stated: **AI is not the product. Operational expertise
   is.** AI **enhances analysis, validation, and decision-making** (Foundation §3.3). The operator
   frames the questions and interprets the output; AI does the reading, not the deciding.
-- **Messaging hierarchy:** *Lead:* **AI is not the product. Operational expertise is.** *Support:*
+- **Messaging hierarchy:** _Lead:_ **AI is not the product. Operational expertise is.** _Support:_
   the four things AI enhances (analyze, identify opportunities, validate, improve decisions).
-  *Reinforce:* "Technology exists to support consulting — not replace it."
+  _Reinforce:_ "Technology exists to support consulting — not replace it."
 - **Primary CTA:** Request an Operations Assessment. **Secondary:** none (keep this section
   single-minded); optionally "How AI enhances our analysis" → Method.
 - **Movement toward the Assessment:** Neutralizes the "is this just AI hype?" objection so the
@@ -278,13 +280,13 @@ facet of that single message.
 
 - **Order & name:** After the AI clarifier — because it can only be shown once "tools ≠ product" is established.
 - **Purpose:** Show the tools an engagement may draw on, framed strictly as consulting enhancers.
-- **Business objective:** Present technology as depth/capability that *supports* consulting —
+- **Business objective:** Present technology as depth/capability that _supports_ consulting —
   turning the tooling into a credibility asset without ever becoming the offer (Foundation §18).
 - **Proof / credibility:** The toolbox — **Operational Assessments, FleetHuddle, DispatchAI,
   TransportationAI, Executive Dashboards, Government Logistics, AI-supported Operational
   Intelligence** — each labelled as an engagement enhancer, **none as a standalone product.**
-- **Messaging hierarchy:** *Lead:* "Consulting engagements draw on operational tools — as
-  enhancers, not products." *Support:* the named tools with their engagement role. *Reinforce:*
+- **Messaging hierarchy:** _Lead:_ "Consulting engagements draw on operational tools — as
+  enhancers, not products." _Support:_ the named tools with their engagement role. _Reinforce:_
   "The engagement is what we sell; the toolbox is how the work gets done."
 - **Primary CTA:** Request an Operations Assessment. **Secondary:** none that markets a tool — a
   tool must never have a "learn more / try it" CTA on the homepage (Appendix B, rule 4).
@@ -292,7 +294,7 @@ facet of that single message.
   the assessment's value without shifting the sale to software.
 - **Desktop priority:** A compact grid of tools, each visibly tagged "supports consulting."
   **Mobile priority:** Collapsible list; can be one of the first sections to compress if length is
-  a concern — it is reinforcement, not a gate. Order it *after* the clarifier at all breakpoints.
+  a concern — it is reinforcement, not a gate. Order it _after_ the clarifier at all breakpoints.
 
 ### S9 · Who we help
 
@@ -303,8 +305,8 @@ facet of that single message.
 - **Proof / credibility:** The named audience (CEOs, COOs, VPs/Directors of Operations,
   Transportation Directors, Fleet/Warehouse/Distribution/Plant Managers, Business Owners —
   Foundation §5.1) and the five industry verticals (Foundation §7), each linking to its page.
-- **Messaging hierarchy:** *Lead:* "Built for the people who run operations." *Support:* the roles
-  and the industries. *Reinforce:* "If you run any stage of the chain, we've operated it."
+- **Messaging hierarchy:** _Lead:_ "Built for the people who run operations." _Support:_ the roles
+  and the industries. _Reinforce:_ "If you run any stage of the chain, we've operated it."
 - **Primary CTA:** Request an Operations Assessment. **Secondary:** "Explore your industry" →
   `/industries/` (IA §6.2 bridges).
 - **Movement toward the Assessment:** Converts "is this for me?" into "this is for me" — the last
@@ -322,8 +324,8 @@ facet of that single message.
   prioritized evidence-backed findings, a recommended sequence, an executive summary the client
   keeps. **No invented client results, testimonials, or metrics** (Appendix B, rules 1–2). If a
   proof point isn't real yet, it is omitted — an honest section beats an inflated one.
-- **Messaging hierarchy:** *Lead:* "You leave with an evidence-backed assessment you keep and act
-  on." *Support:* what's in it (score, findings, priorities, roadmap). *Reinforce:* "prioritized by
+- **Messaging hierarchy:** _Lead:_ "You leave with an evidence-backed assessment you keep and act
+  on." _Support:_ what's in it (score, findings, priorities, roadmap). _Reinforce:_ "prioritized by
   impact — decision-ready, not a 200-page report."
 - **Primary CTA:** Request an Operations Assessment. **Secondary:** "See the assessment framework"
   → Method.
@@ -339,12 +341,12 @@ facet of that single message.
 - **Business objective:** Capture the primary conversion at the point of maximum conviction.
 - **Proof / credibility:** A restated positioning line as the emotional close (e.g. the operator-
   to-operator promise); no new claims introduced here.
-- **Messaging hierarchy:** *Lead:* **Request an Operations Assessment.** *Support:* a one-line
-  restatement of the core promise (35 years, enhanced by AI, operator to operator). *Reinforce:*
+- **Messaging hierarchy:** _Lead:_ **Request an Operations Assessment.** _Support:_ a one-line
+  restatement of the core promise (35 years, enhanced by AI, operator to operator). _Reinforce:_
   the low-risk framing (it's the first step, not a commitment to a program).
 - **Primary CTA:** Request an Operations Assessment → `/request-an-assessment/`. **Secondary:**
   "Not ready? Read Insights / download a guide" (micro-conversion capture — IA §8.4).
-- **Movement toward the Assessment:** This *is* the conversion moment; the secondary catches
+- **Movement toward the Assessment:** This _is_ the conversion moment; the secondary catches
   not-yet-ready visitors into the nurture funnel rather than losing them.
 - **Desktop priority:** Full-width band, primary CTA dominant. **Mobile priority:** Primary CTA
   button dominant and thumb-reachable; secondary is a subordinate text link.
@@ -357,8 +359,8 @@ facet of that single message.
   CTA for scanners who scroll straight down.
 - **Proof / credibility:** Full footer sitemap (IA §2.4); utility/legal links; approved boilerplate
   (Foundation §4.6) as the firm descriptor.
-- **Messaging hierarchy:** *Lead:* footer CTA band — Request an Operations Assessment. *Support:*
-  the four-column sitemap. *Reinforce:* boilerplate + legal/utility row.
+- **Messaging hierarchy:** _Lead:_ footer CTA band — Request an Operations Assessment. _Support:_
+  the four-column sitemap. _Reinforce:_ boilerplate + legal/utility row.
 - **Primary CTA:** Request an Operations Assessment. **Secondary:** Subscribe to Insights.
 - **Movement toward the Assessment:** Final safety-net conversion + routes non-converters into
   Insights/Guides nurture.
@@ -373,21 +375,21 @@ facet of that single message.
 `/request-an-assessment/` (Foundation §15.2; IA §5). No section competes with it; no section
 introduces a second primary.
 
-| Section | Primary CTA | Secondary CTA |
-| --- | --- | --- |
-| S0 Header | Request an Operations Assessment | Primary nav |
-| S1 Hero | Request an Operations Assessment | Explore the operating lifecycle (→S3) |
-| S2 Credibility strip | *(inherits header)* | See the full operating record (→Experience) |
-| S3 Lifecycle | Request an Operations Assessment | See how each stage informs our work (→Experience/Industries) |
-| S4 Positioning | Request an Operations Assessment | How we work (→S6/Method) |
-| S5 Service ladder | Request an Operations Assessment | See all services (→/services/) |
-| S6 Method | Request an Operations Assessment | See the assessment framework (→Method detail) |
-| S7 AI clarifier | Request an Operations Assessment | *(none / How AI enhances our analysis)* |
-| S8 Toolbox | Request an Operations Assessment | **none** (no tool may carry a CTA) |
-| S9 Who we help | Request an Operations Assessment | Explore your industry (→/industries/) |
-| S10 What you get | Request an Operations Assessment | See the assessment framework (→Method) |
-| S11 Conversion band | Request an Operations Assessment | Read Insights / download a guide (micro-conversion) |
-| S12 Footer | Request an Operations Assessment | Subscribe to Insights |
+| Section              | Primary CTA                      | Secondary CTA                                                |
+| -------------------- | -------------------------------- | ------------------------------------------------------------ |
+| S0 Header            | Request an Operations Assessment | Primary nav                                                  |
+| S1 Hero              | Request an Operations Assessment | Explore the operating lifecycle (→S3)                        |
+| S2 Credibility strip | _(inherits header)_              | See the full operating record (→Experience)                  |
+| S3 Lifecycle         | Request an Operations Assessment | See how each stage informs our work (→Experience/Industries) |
+| S4 Positioning       | Request an Operations Assessment | How we work (→S6/Method)                                     |
+| S5 Service ladder    | Request an Operations Assessment | See all services (→/services/)                               |
+| S6 Method            | Request an Operations Assessment | See the assessment framework (→Method detail)                |
+| S7 AI clarifier      | Request an Operations Assessment | _(none / How AI enhances our analysis)_                      |
+| S8 Toolbox           | Request an Operations Assessment | **none** (no tool may carry a CTA)                           |
+| S9 Who we help       | Request an Operations Assessment | Explore your industry (→/industries/)                        |
+| S10 What you get     | Request an Operations Assessment | See the assessment framework (→Method)                       |
+| S11 Conversion band  | Request an Operations Assessment | Read Insights / download a guide (micro-conversion)          |
+| S12 Footer           | Request an Operations Assessment | Subscribe to Insights                                        |
 
 **CTA doctrine (from Foundation §18 + IA §5):**
 
@@ -404,21 +406,21 @@ introduces a second primary.
 Mobile is not a shrunk desktop — it is a **prioritized** sequence. The rule: **preserve message
 order and the one-click/one-tap path to the assessment; compress reinforcement, never the Lead.**
 
-| Section | Desktop shows | Mobile priority (lead → defer/collapse) |
-| --- | --- | --- |
-| S0 Header | Full nav + CTA button | Sticky CTA button; nav in hamburger |
-| S1 Hero | Headline + subhead + 2 CTAs + visual | Headline → subhead → **primary CTA**; visual/secondary defer |
-| S2 Strip | Full operating-record row | Strongest few items or horizontal scroll |
-| S3 Lifecycle | Six stages L→R + connective narrative | Six stages vertical, **order preserved**; narrative condenses |
-| S4 Positioning | Statement + 3-way contrast | Statement leads; contrast → single key row |
-| S5 Ladder | "Start here" assessment + services grid | Assessment card first; services stack; deep tiers → link |
-| S6 Method | 4 stages + honesty guarantee | 4 stages stacked; honesty guarantee stays visible |
-| S7 AI clarifier | Clarifier + 4 enhancement points | One-line clarifier mandatory; points condense |
-| S8 Toolbox | Tool grid tagged "supports consulting" | Collapsible list; first to compress if page is long |
-| S9 Who we help | Roles + industries | Industries (linked) lead; roles condense |
-| S10 What you get | Deliverable components | Outcome line leads; components stack |
-| S11 Conversion band | Full-width band, dominant CTA | Thumb-reachable primary CTA; secondary = text link |
-| S12 Footer | 4-column sitemap + CTA band | CTA band above accordion columns |
+| Section             | Desktop shows                           | Mobile priority (lead → defer/collapse)                       |
+| ------------------- | --------------------------------------- | ------------------------------------------------------------- |
+| S0 Header           | Full nav + CTA button                   | Sticky CTA button; nav in hamburger                           |
+| S1 Hero             | Headline + subhead + 2 CTAs + visual    | Headline → subhead → **primary CTA**; visual/secondary defer  |
+| S2 Strip            | Full operating-record row               | Strongest few items or horizontal scroll                      |
+| S3 Lifecycle        | Six stages L→R + connective narrative   | Six stages vertical, **order preserved**; narrative condenses |
+| S4 Positioning      | Statement + 3-way contrast              | Statement leads; contrast → single key row                    |
+| S5 Ladder           | "Start here" assessment + services grid | Assessment card first; services stack; deep tiers → link      |
+| S6 Method           | 4 stages + honesty guarantee            | 4 stages stacked; honesty guarantee stays visible             |
+| S7 AI clarifier     | Clarifier + 4 enhancement points        | One-line clarifier mandatory; points condense                 |
+| S8 Toolbox          | Tool grid tagged "supports consulting"  | Collapsible list; first to compress if page is long           |
+| S9 Who we help      | Roles + industries                      | Industries (linked) lead; roles condense                      |
+| S10 What you get    | Deliverable components                  | Outcome line leads; components stack                          |
+| S11 Conversion band | Full-width band, dominant CTA           | Thumb-reachable primary CTA; secondary = text link            |
+| S12 Footer          | 4-column sitemap + CTA band             | CTA band above accordion columns                              |
 
 **Global mobile rules:**
 
@@ -456,7 +458,7 @@ the visitor one beat closer to the assessment request:
 **Conversion events on the homepage (IA §8.3):** primary = assessment request (S1/S5/S6/S10/S11
 CTAs → `/request-an-assessment/` → `/thank-you/`). Micro-conversions = guide download / subscribe
 (S11 secondary, S12) for not-yet-ready visitors. **Measurement is honest:** the homepage is
-instrumented to *measure* section engagement and conversion; it asserts **no** traffic or
+instrumented to _measure_ section engagement and conversion; it asserts **no** traffic or
 conversion numbers until real analytics exist (Foundation §12.5, §16.4; IA §8.5).
 
 ---
@@ -466,24 +468,24 @@ conversion numbers until real analytics exist (Foundation §12.5, §16.4; IA §8
 Every homepage section traces to the approved documents. If a governing document changes, the
 mapped section is revisited here.
 
-| Homepage section | Foundation v1.0 | Website IA v1.0 |
-| --- | --- | --- |
-| S0 Header | §11.4 (one primary CTA everywhere) | §2.1, §2.5 |
-| S1 Hero | §3.1–§3.2, §11.3 (1) | §5 (Home CTA), §4.3 |
-| S2 Credibility strip | §8 (operating record) | §7 (Experience/authority), §6.3 |
-| S3 Lifecycle | §8.1–§8.3 (end-to-end lifecycle) | §1 (/experience/), §2.3 |
-| S4 Positioning | §1.2, §3.3–§3.4 (wedge, doctrine) | §2.1 (nav order rationale) |
-| S5 Service ladder | §6 (S0–S9), §11.3 (3) | §1 (/services/), §2.2 |
-| S6 Method | §9, §10.5 (method + honesty) | §1 (/method/), §5 |
-| S7 AI clarifier | §3.3, §11.3 (6) | §5 (CTA rule 1) |
-| S8 Toolbox | §18 (tools ≠ products) | §5 (rule 1), Appendix B |
-| S9 Who we help | §5 (personas), §7 (verticals), §11.3 (5) | §1 (/industries/), §6.2 |
-| S10 What you get | §10.4 (assessment outputs) | §8.2 (assessment hinge) |
-| S11 Conversion band | §15.2 (assessment hinge), §11.3 (7) | §8.2–§8.3 |
-| S12 Footer | §4.6 (boilerplate) | §2.4 |
-| Narrative arc (§2) | §4.1–§4.2 (messaging arch, pillars) | §4.3 (journey spine) |
-| Funnel map (§6) | §15 (funnel) | §8 (funnel architecture) |
-| Honesty rules (Appendix B) | §4.5, §10.5, §12.5, §16.4; platform CLAUDE.md | §7, §8.5 |
+| Homepage section           | Foundation v1.0                               | Website IA v1.0                 |
+| -------------------------- | --------------------------------------------- | ------------------------------- |
+| S0 Header                  | §11.4 (one primary CTA everywhere)            | §2.1, §2.5                      |
+| S1 Hero                    | §3.1–§3.2, §11.3 (1)                          | §5 (Home CTA), §4.3             |
+| S2 Credibility strip       | §8 (operating record)                         | §7 (Experience/authority), §6.3 |
+| S3 Lifecycle               | §8.1–§8.3 (end-to-end lifecycle)              | §1 (/experience/), §2.3         |
+| S4 Positioning             | §1.2, §3.3–§3.4 (wedge, doctrine)             | §2.1 (nav order rationale)      |
+| S5 Service ladder          | §6 (S0–S9), §11.3 (3)                         | §1 (/services/), §2.2           |
+| S6 Method                  | §9, §10.5 (method + honesty)                  | §1 (/method/), §5               |
+| S7 AI clarifier            | §3.3, §11.3 (6)                               | §5 (CTA rule 1)                 |
+| S8 Toolbox                 | §18 (tools ≠ products)                        | §5 (rule 1), Appendix B         |
+| S9 Who we help             | §5 (personas), §7 (verticals), §11.3 (5)      | §1 (/industries/), §6.2         |
+| S10 What you get           | §10.4 (assessment outputs)                    | §8.2 (assessment hinge)         |
+| S11 Conversion band        | §15.2 (assessment hinge), §11.3 (7)           | §8.2–§8.3                       |
+| S12 Footer                 | §4.6 (boilerplate)                            | §2.4                            |
+| Narrative arc (§2)         | §4.1–§4.2 (messaging arch, pillars)           | §4.3 (journey spine)            |
+| Funnel map (§6)            | §15 (funnel)                                  | §8 (funnel architecture)        |
+| Honesty rules (Appendix B) | §4.5, §10.5, §12.5, §16.4; platform CLAUDE.md | §7, §8.5                        |
 
 ---
 
@@ -498,7 +500,7 @@ These bind all future homepage copywriting and design. They are the platform hon
 2. **Targets are labelled; unknowns are stated.** Any forward-looking number is a **TARGET**;
    any unmeasured baseline reads as **to be established** (Foundation §12.5, §16.4).
 3. **Operating record is experience, not endorsement.** Naming Herman Movers, Arctic Glacier,
-   Amazon, Lowe's, Sears, Bob's, Sorrento/Lactalis represents where the founder *operated*. It must
+   Amazon, Lowe's, Sears, Bob's, Sorrento/Lactalis represents where the founder _operated_. It must
    be framed as operating history, never as a claim of partnership, sponsorship, or client
    endorsement. Any logo usage must be truthful and permission-cleared before publication;
    default to text-based operating-record framing until cleared.
@@ -517,7 +519,7 @@ These bind all future homepage copywriting and design. They are the platform hon
 > **Operations lead. Technology supports. Operational expertise is the product. AI enhances
 > analysis, validation, and decision-making.**
 
-*This is the governing homepage blueprint. All future homepage copywriting and design build on it;
-they do not redefine it. Revise the architecture here — not by drift in the page it governs.*
+_This is the governing homepage blueprint. All future homepage copywriting and design build on it;
+they do not redefine it. Revise the architecture here — not by drift in the page it governs._
 
-*Version 1.0 — complete and ready for approval.*
+_Version 1.0 — complete and ready for approval._

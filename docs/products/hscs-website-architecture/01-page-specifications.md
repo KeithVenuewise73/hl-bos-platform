@@ -7,6 +7,7 @@
 **Status:** Definitive implementation specification — v1.0
 **Date:** 2026-08-06
 **Implements / governed by:**
+
 - [HSCS Website Information Architecture v1.0](./README.md) — approved (sitemap §1)
 - [HSCS Commercial Foundation v1.0](../hscs-commercial-foundation/README.md) — approved
 - [HSCS Homepage Content Architecture v1.0](../hscs-homepage-architecture/README.md) — approved
@@ -21,14 +22,14 @@
 > (10) Conversion objective.** It governs all future UI design and development.
 >
 > **What this is not.** It is not visual design, not page copy, not code, and not new pages
-> beyond the approved IA. It specifies *what each page must contain and accomplish* — never how it
+> beyond the approved IA. It specifies _what each page must contain and accomplish_ — never how it
 > looks or the words on it. (Homepage copy already exists as its own approved deliverable.)
 >
 > **Doctrine enforced on every page (non-negotiable):**
-> Transportation & Operations Consulting · *35 Years of Operational Experience. Enhanced by AI.* ·
-> *Built by a Business Owner. Designed for Operators.* · **Operations lead. Technology supports.
+> Transportation & Operations Consulting · _35 Years of Operational Experience. Enhanced by AI._ ·
+> _Built by a Business Owner. Designed for Operators._ · **Operations lead. Technology supports.
 > Operational expertise is the product. AI enhances analysis, validation, and decision-making.**
-> HSCS is a firm of *operators who consult — not consultants who understand operations.* No page
+> HSCS is a firm of _operators who consult — not consultants who understand operations._ No page
 > markets a tool as a product; the single primary conversion is **Request an Operations Assessment.**
 
 ---
@@ -50,6 +51,7 @@
    - [4.9 Conversion pages](#49-conversion-pages)
    - [4.10 Utility / system pages](#410-utility--system-pages)
 5. [Page inventory checklist](#5-page-inventory-checklist)
+
 - [Appendix A — Alignment matrix](#appendix-a--alignment-matrix)
 
 ---
@@ -64,7 +66,7 @@
   "the T-Service section pattern, plus these page-specific additions."
 - **Codes:** service codes (S0–S9) and slugs are from IA §1. SEO targets are from IA §7. CTA rules
   are from IA §5 and Homepage Architecture §4. Linking rules are from IA §6.
-- **Primary CTA default:** *Request an Operations Assessment* → `/request-an-assessment/`. Stated
+- **Primary CTA default:** _Request an Operations Assessment_ → `/request-an-assessment/`. Stated
   per page only where it differs (conversion/utility pages).
 
 ---
@@ -102,6 +104,7 @@ Shared **required-section patterns**, **default CTAs**, **trust defaults**, and 
 defaults** by page type. Per-page specs in §4 inherit these.
 
 ### T-Hub (Services, Industries, Insights, Guides hubs)
+
 - **Sections:** (a) Hub hero — section purpose in one line + primary CTA; (b) Child index — cards
   linking every child page; (c) Why-it-matters tie-in (operator/method/experience); (d) Conversion band.
 - **Primary CTA:** Request an Operations Assessment. **Secondary:** "browse children" (contextual).
@@ -109,6 +112,7 @@ defaults** by page type. Per-page specs in §4 inherit these.
 - **Linking:** links to all children; up to Home via breadcrumb; to the primary CTA. No dead-ends.
 
 ### T-Service (each service page S0–S9 + Government Logistics)
+
 - **Sections:** (1) Service hero — outcome promise + primary CTA; (2) The problem this solves
   (operator framing); (3) What the engagement covers (scope); (4) How we work (method summary →
   Method); (5) Relevant operating experience/proof; (6) Related industries (bridge); (7) What you
@@ -119,6 +123,7 @@ defaults** by page type. Per-page specs in §4 inherit these.
 - **Linking:** ↔ mapped industries (IA §6.2 table); → Method; → S0 Assessment; → primary CTA.
 
 ### T-Industry (each of 5 industry pages)
+
 - **Sections:** (1) Industry hero — "we've operated here" + primary CTA; (2) The operating proof
   (founder's experience in this vertical, as experience not endorsement); (3) Lifecycle placement
   (→ Experience anchor); (4) Operational challenges we address here; (5) Mapped services (bridge);
@@ -128,6 +133,7 @@ defaults** by page type. Per-page specs in §4 inherit these.
 - **Linking:** ↔ mapped services; → Experience anchor; → primary CTA.
 
 ### T-Narrative (Experience, About)
+
 - **Sections:** hero → long-form credibility narrative → proof structure → onward links to
   services/industries → conversion band. (Experience carries the six lifecycle-stage anchors;
   About carries the founder/firm story + honesty ethic.)
@@ -136,6 +142,7 @@ defaults** by page type. Per-page specs in §4 inherit these.
 - **Linking:** Experience → every industry (via stage anchors) + mapped services; About → Experience.
 
 ### T-Method (Method hub, Assessment Framework detail)
+
 - **Sections:** hero → four-stage method → evidence & claim classification → honesty guarantee →
   assessment-framework link/detail → conversion band.
 - **Primary CTA:** Request an Operations Assessment. **Secondary:** See the assessment framework.
@@ -143,6 +150,7 @@ defaults** by page type. Per-page specs in §4 inherit these.
 - **Linking:** → S0 Assessment; ← every service; → primary CTA.
 
 ### T-Pillar (each of 7 Insights pillar pages)
+
 - **Sections:** (1) Pillar hero (topic overview); (2) Operator POV framing; (3) Cluster index
   (links to articles); (4) Mapped-service tie-in; (5) Related gated guide; (6) Conversion band.
 - **Primary CTA:** Request an Operations Assessment. **Secondary:** download the related guide.
@@ -150,6 +158,7 @@ defaults** by page type. Per-page specs in §4 inherit these.
 - **Linking:** → all cluster articles; → mapped service; → guide; → primary CTA.
 
 ### T-Article (Insights article template — the L3 spoke)
+
 - **Sections:** (1) Header (title, founder author, date); (2) Long-form body; (3) Author/E-E-A-T
   block (operating record); (4) Related articles (2–4 siblings) + up to pillar; (5) Mapped-service
   link; (6) Inline + end conversion CTA (assessment or guide).
@@ -158,6 +167,7 @@ defaults** by page type. Per-page specs in §4 inherit these.
 - **Linking:** ↑ pillar, ↔ siblings, → mapped service, → primary CTA. No orphan articles.
 
 ### T-Guide (each of 5 gated guides + guide template)
+
 - **Sections:** (1) Guide landing (value of the guide); (2) What's inside; (3) Capture form;
   (4) Trust (privacy + what happens next); (5) Post-capture routing (→ thank-you/nurture).
 - **Primary CTA:** Download the guide (email capture — micro-conversion). **Secondary:** Request an
@@ -166,6 +176,7 @@ defaults** by page type. Per-page specs in §4 inherit these.
 - **Linking:** ← mapped Insights pillar; → assessment; landing indexable, body `noindex`.
 
 ### T-Convert (Request-an-Assessment, Contact)
+
 - **Sections:** hero (what you're requesting + value recap) → what you get → the form → what
   happens next (no-pressure process) → trust (honesty guarantee + privacy).
 - **Primary CTA:** Submit the request/message (form). **Secondary:** none that diverts (terminal).
@@ -173,6 +184,7 @@ defaults** by page type. Per-page specs in §4 inherit these.
 - **Linking:** minimal outbound (protect the conversion); success → `/thank-you/`.
 
 ### T-Utility (thank-you, subscribe, legal, 404)
+
 - **Sections:** minimal, purpose-specific. Thank-you: confirmation + next step (Insights/subscribe).
   Legal: content only. 404: search + links to top sections + primary CTA.
 - **Primary CTA:** context-appropriate (thank-you → keep engaged; 404 → back to value).
@@ -203,7 +215,8 @@ and **Homepage Copy v1.0**. This spec does not restate it. Summary for completen
 
 ### 4.2 Services
 
-#### /services/ — Services hub  *(T-Hub, L1)*
+#### /services/ — Services hub _(T-Hub, L1)_
+
 1. **Purpose:** Present the full service ladder and route to the Operations Assessment as the entry.
 2. **Audience:** Operators evaluating whether HSCS solves their problem (all personas).
 3. **Business objective:** Channel all service interest into the S0 front door; signal depth.
@@ -216,7 +229,8 @@ and **Homepage Copy v1.0**. This spec does not restate it. Summary for completen
 9. **Linking:** → all 11 service pages; → Method; → primary CTA.
 10. **Conversion objective:** Route to S0 / assessment request.
 
-#### /services/operations-assessment/ — S0 · Operations Assessment  *(T-Service, L2) ★ front door*
+#### /services/operations-assessment/ — S0 · Operations Assessment _(T-Service, L2) ★ front door_
+
 1. **Purpose:** Convert interest into the pivotal, low-risk first engagement.
 2. **Audience:** Any operator with a suspected but unquantified operational problem (esp. COO/owner).
 3. **Business objective:** Maximize assessment requests — this is the funnel hinge (IA §8.2).
@@ -229,7 +243,8 @@ and **Homepage Copy v1.0**. This spec does not restate it. Summary for completen
 9. **Linking:** ← every page/CTA funnels here; → Method framework; → related services; → primary CTA.
 10. **Conversion objective:** Assessment request (primary).
 
-#### /services/transportation-fleet-optimization/ — S1  *(T-Service, L2)*
+#### /services/transportation-fleet-optimization/ — S1 _(T-Service, L2)_
+
 1. **Purpose:** Win transportation/fleet buyers by proving operator credibility in their domain.
 2. **Audience:** Transportation Directors, Fleet Managers, VP/Director of Operations.
 3. **Business objective:** Generate qualified transportation engagements via the assessment.
@@ -242,7 +257,8 @@ and **Homepage Copy v1.0**. This spec does not restate it. Summary for completen
 9. **Linking:** ↔ Middle-Mile & Final-Mile industries (IA §6.2); → Method; → primary CTA.
 10. **Conversion objective:** Assessment request.
 
-#### /services/warehousing-distribution-improvement/ — S2  *(T-Service, L2)*
+#### /services/warehousing-distribution-improvement/ — S2 _(T-Service, L2)_
+
 1. **Purpose:** Win warehousing/distribution buyers with proven DC operating experience.
 2. **Audience:** Warehouse/Distribution Managers, Plant Managers, VP/Director of Operations.
 3. **Business objective:** Generate qualified warehousing/distribution engagements.
@@ -254,7 +270,8 @@ and **Homepage Copy v1.0**. This spec does not restate it. Summary for completen
 9. **Linking:** ↔ Warehousing & Fulfillment, D2C/Cold-Chain industries; → Method; → primary CTA.
 10. **Conversion objective:** Assessment request.
 
-#### /services/final-mile-white-glove-delivery/ — S3  *(T-Service, L2)*
+#### /services/final-mile-white-glove-delivery/ — S3 _(T-Service, L2)_
+
 1. **Purpose:** Win final-mile/white-glove buyers with high-touch delivery operating credibility.
 2. **Audience:** Final-mile & delivery ops leaders, retail/home-goods operators.
 3. **Business objective:** Generate qualified final-mile/white-glove engagements.
@@ -267,7 +284,8 @@ and **Homepage Copy v1.0**. This spec does not restate it. Summary for completen
 9. **Linking:** ↔ Final-Mile & White-Glove industries; → Method; → primary CTA.
 10. **Conversion objective:** Assessment request.
 
-#### /services/operational-turnaround-margin-recovery/ — S4  *(T-Service, L2)*
+#### /services/operational-turnaround-margin-recovery/ — S4 _(T-Service, L2)_
+
 1. **Purpose:** Capture urgent, high-intent buyers under margin/service pressure.
 2. **Audience:** COOs, owners, VP Operations in distress or margin compression.
 3. **Business objective:** Convert urgency into a fast-moving assessment → recovery engagement.
@@ -279,7 +297,8 @@ and **Homepage Copy v1.0**. This spec does not restate it. Summary for completen
 9. **Linking:** ↔ all industries (margin is universal); → Method; → primary CTA.
 10. **Conversion objective:** Assessment request (fast-track).
 
-#### /services/operations-technology-advisory/ — S5  *(T-Service, L2)*
+#### /services/operations-technology-advisory/ — S5 _(T-Service, L2)_
+
 1. **Purpose:** Win buyers weighing operations software with a vendor-neutral operator's read.
 2. **Audience:** COOs, Ops/IT leaders evaluating TMS/WMS/routing/telematics.
 3. **Business objective:** Position HSCS as the honest broker; convert to assessment/advisory.
@@ -292,7 +311,8 @@ and **Homepage Copy v1.0**. This spec does not restate it. Summary for completen
 9. **Linking:** → Insights "Operations technology advisory" pillar; → Method; → primary CTA.
 10. **Conversion objective:** Assessment/advisory request.
 
-#### /services/operations-transformation-program/ — S6  *(T-Service, L2)*
+#### /services/operations-transformation-program/ — S6 _(T-Service, L2)_
+
 1. **Purpose:** Specify the deeper, multi-quarter program for post-assessment buyers.
 2. **Audience:** Committed operators ready to execute a roadmap (COO/owner).
 3. **Business objective:** Grow engagement value; convert assessments into programs.
@@ -304,7 +324,8 @@ and **Homepage Copy v1.0**. This spec does not restate it. Summary for completen
 9. **Linking:** ← S0 (assessment precedes program); → Method; → primary CTA.
 10. **Conversion objective:** Assessment request (as the program's entry).
 
-#### /services/ai-enablement-for-operations/ — S7  *(T-Service, L2)*
+#### /services/ai-enablement-for-operations/ — S7 _(T-Service, L2)_
+
 1. **Purpose:** Offer guard-railed AI/automation **inside the operation**, framed as enhancement.
 2. **Audience:** Operators exploring AI/automation without losing operating control.
 3. **Business objective:** Capture AI-curious demand while holding the doctrine (AI enhances, not replaces).
@@ -317,7 +338,8 @@ and **Homepage Copy v1.0**. This spec does not restate it. Summary for completen
 9. **Linking:** → Method; → Insights "AI in operations" pillar; → primary CTA.
 10. **Conversion objective:** Assessment request (AI-readiness angle).
 
-#### /services/advisory-operations-leadership/ — S8  *(T-Service, L2)*
+#### /services/advisory-operations-leadership/ — S8 _(T-Service, L2)_
+
 1. **Purpose:** Specify recurring, operator-level advisory (fractional judgment on call).
 2. **Audience:** Leadership teams needing experienced operating judgment ongoing.
 3. **Business objective:** Create recurring-relationship revenue; expansion path.
@@ -329,7 +351,8 @@ and **Homepage Copy v1.0**. This spec does not restate it. Summary for completen
 9. **Linking:** ↔ Experience; → primary CTA / Contact.
 10. **Conversion objective:** Assessment or advisory inquiry.
 
-#### /services/executive-operations-dashboards/ — S9  *(T-Service, L2)*
+#### /services/executive-operations-dashboards/ — S9 _(T-Service, L2)_
+
 1. **Purpose:** Specify ongoing, evidence-based visibility as the instrument of an engagement.
 2. **Audience:** Executives wanting honest, ongoing operational visibility.
 3. **Business objective:** Support expansion/retention; deepen engagements.
@@ -342,7 +365,8 @@ and **Homepage Copy v1.0**. This spec does not restate it. Summary for completen
 9. **Linking:** ← S0; → Method; → primary CTA.
 10. **Conversion objective:** Assessment request (as the entry to ongoing visibility).
 
-#### /services/government-logistics/ — Government Logistics practice area  *(T-Service, L2)*
+#### /services/government-logistics/ — Government Logistics practice area _(T-Service, L2)_
+
 1. **Purpose:** Present government logistics as a **consulting practice area**, not a separate
    business or product (Foundation §6.5, §7.3).
 2. **Audience:** Public-sector logistics buyers; distinct compliance/accountability context.
@@ -359,7 +383,8 @@ and **Homepage Copy v1.0**. This spec does not restate it. Summary for completen
 
 ### 4.3 Industries
 
-#### /industries/ — Industries hub  *(T-Hub, L1)*
+#### /industries/ — Industries hub _(T-Hub, L1)_
+
 1. **Purpose:** Let operators self-select by vertical and prove end-to-end operating credibility.
 2. **Audience:** All personas, filtering by their industry.
 3. **Business objective:** Route vertical interest into services and the assessment.
@@ -373,20 +398,21 @@ and **Homepage Copy v1.0**. This spec does not restate it. Summary for completen
 
 **The five industry pages** (all **T-Industry, L2**) share fields 6–10 by template; unique fields below.
 
-| Page (slug) | 1 Purpose | 2 Audience | 3 Business obj. | 4 SEO objective | 8 Trust (operating proof) | 9 Key links |
-| --- | --- | --- | --- | --- | --- | --- |
-| `warehousing-fulfillment` | Win warehousing/DC buyers | Warehouse/Distribution/Plant Mgrs | Qualified warehousing engagements | "warehouse operations consulting" (+vertical); `Service`+`Article` | Warehousing inside a food manufacturer (Sorrento/Lactalis) | ↔ S2; → Experience #warehousing |
-| `middle-mile-logistics` | Win middle-mile/network buyers | Transportation/Network leaders | Qualified transportation engagements | "middle mile logistics consulting"; `Service`+`Article` | Middle-mile at national scale (Amazon) | ↔ S1; → Experience #middle-mile |
-| `direct-to-customer-cold-chain` | Win D2C/cold-chain buyers | Distribution leaders, F&B | Qualified distribution engagements | "direct-to-customer / cold chain distribution consulting"; `Service`+`Article` | D2C cold-chain distribution (Arctic Glacier) | ↔ S2; → Experience #distribution |
-| `final-mile-retail-delivery` | Win retail final-mile buyers | Retail final-mile/big-and-bulky leaders | Qualified final-mile engagements | "retail final mile / big-and-bulky delivery consulting"; `Service`+`Article` | Retail final mile (Lowe's, Sears, Bob's) | ↔ S3; → Experience #final-mile |
-| `white-glove-high-touch-delivery` | Win white-glove buyers | High-touch delivery/home-goods leaders | Qualified white-glove engagements | "white glove delivery operations consulting"; `Service`+`Article` | White-glove home delivery (Herman Movers) | ↔ S3; → Experience #white-glove |
+| Page (slug)                       | 1 Purpose                      | 2 Audience                              | 3 Business obj.                      | 4 SEO objective                                                                | 8 Trust (operating proof)                                  | 9 Key links                      |
+| --------------------------------- | ------------------------------ | --------------------------------------- | ------------------------------------ | ------------------------------------------------------------------------------ | ---------------------------------------------------------- | -------------------------------- |
+| `warehousing-fulfillment`         | Win warehousing/DC buyers      | Warehouse/Distribution/Plant Mgrs       | Qualified warehousing engagements    | "warehouse operations consulting" (+vertical); `Service`+`Article`             | Warehousing inside a food manufacturer (Sorrento/Lactalis) | ↔ S2; → Experience #warehousing  |
+| `middle-mile-logistics`           | Win middle-mile/network buyers | Transportation/Network leaders          | Qualified transportation engagements | "middle mile logistics consulting"; `Service`+`Article`                        | Middle-mile at national scale (Amazon)                     | ↔ S1; → Experience #middle-mile  |
+| `direct-to-customer-cold-chain`   | Win D2C/cold-chain buyers      | Distribution leaders, F&B               | Qualified distribution engagements   | "direct-to-customer / cold chain distribution consulting"; `Service`+`Article` | D2C cold-chain distribution (Arctic Glacier)               | ↔ S2; → Experience #distribution |
+| `final-mile-retail-delivery`      | Win retail final-mile buyers   | Retail final-mile/big-and-bulky leaders | Qualified final-mile engagements     | "retail final mile / big-and-bulky delivery consulting"; `Service`+`Article`   | Retail final mile (Lowe's, Sears, Bob's)                   | ↔ S3; → Experience #final-mile   |
+| `white-glove-high-touch-delivery` | Win white-glove buyers         | High-touch delivery/home-goods leaders  | Qualified white-glove engagements    | "white glove delivery operations consulting"; `Service`+`Article`              | White-glove home delivery (Herman Movers)                  | ↔ S3; → Experience #white-glove  |
 
 - **6 Primary CTA (all):** Request an Operations Assessment.
 - **7 Secondary CTA (all):** See the mapped service (S1/S2/S3).
 - **10 Conversion objective (all):** Assessment request (vertical-qualified).
 - **Trust caveat (all):** operating-record names are experience, not endorsement; permission-clear before publish (G4).
 
-### 4.4 Experience  (`/experience/`)  *(T-Narrative, L1)*
+### 4.4 Experience (`/experience/`) _(T-Narrative, L1)_
+
 1. **Purpose:** Prove the 35-year, end-to-end operating record — the site's credibility engine.
 2. **Audience:** Every persona, especially the Owner-Operator CEO (recognition/trust).
 3. **Business objective:** Convert credibility into relevance and route to the assessment.
@@ -394,7 +420,7 @@ and **Homepage Copy v1.0**. This spec does not restate it. Summary for completen
    `Person` + `AboutPage` (IA §7).
 5. **Required sections:** hero (35 yrs, enhanced by AI) → the through-line → **six lifecycle-stage
    sections with anchors** (`#manufacturing #warehousing #middle-mile #distribution #final-mile
-   #white-glove`) → why it matters to the buyer → onward to services/industries → conversion band.
+#white-glove`) → why it matters to the buyer → onward to services/industries → conversion band.
 6. **Primary CTA:** Request an Operations Assessment.
 7. **Secondary CTA:** Explore our services.
 8. **Trust:** the real operating record across all six stages; business-owner origin; honesty ethic.
@@ -404,8 +430,9 @@ and **Homepage Copy v1.0**. This spec does not restate it. Summary for completen
 
 ### 4.5 Method
 
-#### /method/ — Method hub  *(T-Method, L1)*
-1. **Purpose:** Show *how* the work is done and why it can be trusted.
+#### /method/ — Method hub _(T-Method, L1)_
+
+1. **Purpose:** Show _how_ the work is done and why it can be trusted.
 2. **Audience:** Evaluating operators (esp. evidence-driven COOs).
 3. **Business objective:** De-risk the decision; move Evaluation → assessment request.
 4. **SEO objective:** "how operations assessment works / evidence-based operations consulting";
@@ -419,7 +446,8 @@ and **Homepage Copy v1.0**. This spec does not restate it. Summary for completen
 9. **Linking:** → S0 Assessment; → framework detail; ← every service; → primary CTA.
 10. **Conversion objective:** Assessment request (trust-led).
 
-#### /method/operations-assessment-framework/ — Assessment framework detail  *(T-Method, L2)*
+#### /method/operations-assessment-framework/ — Assessment framework detail _(T-Method, L2)_
+
 1. **Purpose:** Detail the assessment instrument for buyers who need to see the rigor.
 2. **Audience:** Analytical buyers; technical/ops evaluators.
 3. **Business objective:** Convert scrutiny into confidence → assessment request.
@@ -434,7 +462,8 @@ and **Homepage Copy v1.0**. This spec does not restate it. Summary for completen
 
 ### 4.6 Insights
 
-#### /insights/ — Insights hub (blog root)  *(T-Hub, L1)*
+#### /insights/ — Insights hub (blog root) _(T-Hub, L1)_
+
 1. **Purpose:** Authority home base; entry for informational/topic search and LinkedIn traffic.
 2. **Audience:** Operators researching problems (top of funnel); the buyer on LinkedIn.
 3. **Business objective:** Build authority; feed the funnel toward the assessment.
@@ -449,22 +478,23 @@ and **Homepage Copy v1.0**. This spec does not restate it. Summary for completen
 **The seven pillar pages** (all **T-Pillar, L2**) — shared fields 6–10 by template; unique below.
 Each maps to a Foundation §12 cluster and IA §7 intent.
 
-| Pillar (slug under `/insights/`) | 1 Purpose | 4 SEO objective (theme) | Mapped service | Related guide |
-| --- | --- | --- | --- | --- |
-| `transportation-fleet-operations` | Own transportation/fleet topic authority | transportation ops / fleet utilization / dispatch | S1 | Transportation & Fleet guide |
-| `warehouse-distribution` | Own warehouse/DC topic authority | warehouse productivity / distribution network / throughput | S2 | Warehouse & Distribution guide |
-| `final-mile-white-glove` | Own final-mile/white-glove topic authority | final mile / white glove / big-and-bulky delivery | S3 | Final-Mile & White-Glove guide |
-| `operations-turnaround-margin` | Own turnaround/margin topic authority | operations turnaround / margin improvement | S4 | Operations Turnaround guide |
-| `operations-technology-advisory` | Own ops-tech advisory topic authority | TMS/WMS selection / routing software advisory | S5 | (tech advisory content) |
-| `ai-in-operations` | Own AI-in-ops topic (enhancement framing) | AI for logistics ops / automation ROI | S7 | (AI-readiness content) |
-| `operations-assessment` | Own the front-door topic | operations assessment / operations audit | S0 | Operations Assessment guide |
+| Pillar (slug under `/insights/`)  | 1 Purpose                                  | 4 SEO objective (theme)                                    | Mapped service | Related guide                  |
+| --------------------------------- | ------------------------------------------ | ---------------------------------------------------------- | -------------- | ------------------------------ |
+| `transportation-fleet-operations` | Own transportation/fleet topic authority   | transportation ops / fleet utilization / dispatch          | S1             | Transportation & Fleet guide   |
+| `warehouse-distribution`          | Own warehouse/DC topic authority           | warehouse productivity / distribution network / throughput | S2             | Warehouse & Distribution guide |
+| `final-mile-white-glove`          | Own final-mile/white-glove topic authority | final mile / white glove / big-and-bulky delivery          | S3             | Final-Mile & White-Glove guide |
+| `operations-turnaround-margin`    | Own turnaround/margin topic authority      | operations turnaround / margin improvement                 | S4             | Operations Turnaround guide    |
+| `operations-technology-advisory`  | Own ops-tech advisory topic authority      | TMS/WMS selection / routing software advisory              | S5             | (tech advisory content)        |
+| `ai-in-operations`                | Own AI-in-ops topic (enhancement framing)  | AI for logistics ops / automation ROI                      | S7             | (AI-readiness content)         |
+| `operations-assessment`           | Own the front-door topic                   | operations assessment / operations audit                   | S0             | Operations Assessment guide    |
 
 - **6 Primary CTA (all):** Request an Operations Assessment. **7 Secondary (all):** Download the related guide.
 - **8 Trust (all):** founder authorship + operating-record byline (E-E-A-T). **No AI-hype in the AI pillar** — enhancement framing only.
 - **9 Linking (all):** → all cluster articles; → mapped service; → related guide; → primary CTA.
 - **10 Conversion (all):** Guide download / subscribe (micro) → assessment.
 
-#### Insights article template (`/insights/<cluster>/<article>/`)  *(T-Article, L3)*
+#### Insights article template (`/insights/<cluster>/<article>/`) _(T-Article, L3)_
+
 1. **Purpose:** Capture long-tail topic intent; demonstrate operator thinking; feed the funnel.
 2. **Audience:** Operators researching a specific problem/question.
 3. **Business objective:** Organic acquisition + authority → assessment.
@@ -477,31 +507,32 @@ Each maps to a Foundation §12 cluster and IA §7 intent.
 9. **Linking:** ↑ pillar, ↔ 2–4 siblings, → mapped service, → primary CTA. **No orphan.**
 10. **Conversion objective:** Micro (guide/subscribe) → assessment.
 
-*[Note: individual articles are produced over time per the content plan (Foundation §13). This
-template governs each; no fixed article list is enumerated here — that is content, not IA.]*
+_[Note: individual articles are produced over time per the content plan (Foundation §13). This
+template governs each; no fixed article list is enumerated here — that is content, not IA.]_
 
 ### 4.7 Guides
 
-#### /guides/ — Guides hub  *(T-Hub, L1)*
+#### /guides/ — Guides hub _(T-Hub, L1)_
+
 1. **Purpose:** Present the lead-magnet library; top of the assessment funnel.
 2. **Audience:** Operators wanting a takeaway before talking to anyone.
 3. **Business objective:** Email capture → nurture → assessment.
 4. **SEO objective:** "operations guides / logistics operations resources"; `CollectionPage`.
 5. **Required sections:** T-Hub + index of the 5 guides.
 6. **Primary CTA:** Download a guide (capture). **7 Secondary:** Request an Operations Assessment.
-8. **Trust:** honest asset descriptions; privacy assurance.
-9. **Linking:** → 5 guides; ← Insights pillars; → primary CTA.
-10. **Conversion objective:** Guide download (micro-conversion).
+7. **Trust:** honest asset descriptions; privacy assurance.
+8. **Linking:** → 5 guides; ← Insights pillars; → primary CTA.
+9. **Conversion objective:** Guide download (micro-conversion).
 
 **The five gated guides** (all **T-Guide, G**) — shared fields by template; unique purpose/mapping below.
 
-| Guide (slug under `/guides/`) | 1 Purpose | 2 Audience | Mapped pillar/service |
-| --- | --- | --- | --- |
-| `transportation-fleet-operations-guide` | Capture transportation/fleet leads | Transportation/Fleet leaders | Transportation pillar / S1 |
-| `warehouse-distribution-guide` | Capture warehousing/DC leads | Warehouse/Distribution leaders | Warehouse pillar / S2 |
-| `final-mile-white-glove-guide` | Capture final-mile/white-glove leads | Final-mile/delivery leaders | Final-mile pillar / S3 |
-| `operations-turnaround-guide` | Capture turnaround/margin leads | COOs/owners under pressure | Turnaround pillar / S4 |
-| `operations-assessment-guide` | Explain what an assessment delivers; capture high-intent leads | Any assessment-curious operator | Assessment pillar / S0 |
+| Guide (slug under `/guides/`)           | 1 Purpose                                                      | 2 Audience                      | Mapped pillar/service      |
+| --------------------------------------- | -------------------------------------------------------------- | ------------------------------- | -------------------------- |
+| `transportation-fleet-operations-guide` | Capture transportation/fleet leads                             | Transportation/Fleet leaders    | Transportation pillar / S1 |
+| `warehouse-distribution-guide`          | Capture warehousing/DC leads                                   | Warehouse/Distribution leaders  | Warehouse pillar / S2      |
+| `final-mile-white-glove-guide`          | Capture final-mile/white-glove leads                           | Final-mile/delivery leaders     | Final-mile pillar / S3     |
+| `operations-turnaround-guide`           | Capture turnaround/margin leads                                | COOs/owners under pressure      | Turnaround pillar / S4     |
+| `operations-assessment-guide`           | Explain what an assessment delivers; capture high-intent leads | Any assessment-curious operator | Assessment pillar / S0     |
 
 - **3 Business objective (all):** email capture → nurture → assessment. **4 SEO (all):** landing
   indexable ("<topic> guide"), gated body `noindex`; `Article`.
@@ -510,7 +541,8 @@ template governs each; no fixed article list is enumerated here — that is cont
 - **9 Linking (all):** ← mapped pillar; → assessment; success → thank-you/nurture.
 - **10 Conversion (all):** Guide download (micro) → nurtured assessment request.
 
-### 4.8 About  (`/about/`)  *(T-Narrative, L1)*
+### 4.8 About (`/about/`) _(T-Narrative, L1)_
+
 1. **Purpose:** Establish the firm and the founder — "built by a business owner."
 2. **Audience:** Trust-checking buyers (esp. Owner-Operator CEO); referrals.
 3. **Business objective:** Convert trust into an assessment request.
@@ -525,7 +557,8 @@ template governs each; no fixed article list is enumerated here — that is cont
 
 ### 4.9 Conversion pages
 
-#### /request-an-assessment/ — Assessment intake  *(T-Convert, L1) ★ primary conversion*
+#### /request-an-assessment/ — Assessment intake _(T-Convert, L1) ★ primary conversion_
+
 1. **Purpose:** Capture the primary conversion with minimal friction and maximum reassurance.
 2. **Audience:** Ready-to-act operators from any journey.
 3. **Business objective:** Maximize completed assessment requests (the site's #1 goal).
@@ -540,28 +573,29 @@ template governs each; no fixed article list is enumerated here — that is cont
 9. **Linking:** minimal outbound (protect conversion); success → `/thank-you/`.
 10. **Conversion objective:** **Assessment request submitted (primary macro-conversion).**
 
-#### /contact/ — General contact  *(T-Convert, L1)*
+#### /contact/ — General contact _(T-Convert, L1)_
+
 1. **Purpose:** Capture non-assessment inquiries (advisory, government, press, general).
 2. **Audience:** Buyers/partners not entering via the assessment.
 3. **Business objective:** Route qualified inquiries to sales without losing them.
 4. **SEO objective:** brand + "contact"; `ContactPage`.
 5. **Required sections:** hero → contact form + methods → what happens next.
 6. **Primary CTA:** Send message (form). **7 Secondary:** Request an Operations Assessment.
-8. **Trust:** response expectation; privacy.
-9. **Linking:** → assessment; success → `/thank-you/`.
-10. **Conversion objective:** Contact submitted (secondary macro-conversion).
+7. **Trust:** response expectation; privacy.
+8. **Linking:** → assessment; success → `/thank-you/`.
+9. **Conversion objective:** Contact submitted (secondary macro-conversion).
 
-### 4.10 Utility / system pages  *(T-Utility, U)*
+### 4.10 Utility / system pages _(T-Utility, U)_
 
-| Page | 1 Purpose | 5 Required sections | 6 Primary CTA | 10 Conversion objective |
-| --- | --- | --- | --- | --- |
-| `/thank-you/` | Confirm a conversion; keep the visitor engaged | Confirmation + what-happens-next + next step | Read Insights / Subscribe | Retain engagement; nurture opt-in |
-| `/insights/subscribe/` | Confirm newsletter opt-in | Confirmation + expectation | Explore Insights | Confirmed subscription |
-| `/privacy-policy/` | Legal transparency (data handling) | Policy content | — (footer CTA only) | Trust/compliance |
-| `/terms-of-service/` | Legal terms | Terms content | — | Trust/compliance |
-| `/accessibility/` | Accessibility statement | Statement content | — | Trust/compliance |
-| `/404` | Recover lost visitors | Message + search + top-section links + CTA | Request an Operations Assessment | Recover to a value page |
-| `/sitemap.xml`, `/robots.txt` | Machine crawl/index directives | Generated from IA §1 tree | — | Crawl efficiency (G5) |
+| Page                          | 1 Purpose                                      | 5 Required sections                          | 6 Primary CTA                    | 10 Conversion objective           |
+| ----------------------------- | ---------------------------------------------- | -------------------------------------------- | -------------------------------- | --------------------------------- |
+| `/thank-you/`                 | Confirm a conversion; keep the visitor engaged | Confirmation + what-happens-next + next step | Read Insights / Subscribe        | Retain engagement; nurture opt-in |
+| `/insights/subscribe/`        | Confirm newsletter opt-in                      | Confirmation + expectation                   | Explore Insights                 | Confirmed subscription            |
+| `/privacy-policy/`            | Legal transparency (data handling)             | Policy content                               | — (footer CTA only)              | Trust/compliance                  |
+| `/terms-of-service/`          | Legal terms                                    | Terms content                                | —                                | Trust/compliance                  |
+| `/accessibility/`             | Accessibility statement                        | Statement content                            | —                                | Trust/compliance                  |
+| `/404`                        | Recover lost visitors                          | Message + search + top-section links + CTA   | Request an Operations Assessment | Recover to a value page           |
+| `/sitemap.xml`, `/robots.txt` | Machine crawl/index directives                 | Generated from IA §1 tree                    | —                                | Crawl efficiency (G5)             |
 
 - **2 Audience (all):** any visitor. **3 Business objective (all):** support trust, recovery, or
   crawlability without diluting the primary funnel. **4 SEO (all):** utility/legal typically
@@ -575,18 +609,18 @@ template governs each; no fixed article list is enumerated here — that is cont
 
 Every page in IA §1 is specified above. Coverage:
 
-| IA section | Pages | Specified in |
-| --- | --- | --- |
-| Home | 1 | §4.1 (+ Homepage Architecture/Copy) |
-| Services | hub + 10 services + Government Logistics (12) | §4.2 |
-| Industries | hub + 5 industries (6) | §4.3 |
-| Experience | 1 | §4.4 |
-| Method | hub + framework (2) | §4.5 |
-| Insights | hub + 7 pillars + article template (9) | §4.6 |
-| Guides | hub + 5 guides (6) | §4.7 |
-| About | 1 | §4.8 |
-| Conversion | Request-an-Assessment + Contact (2) | §4.9 |
-| Utility/system | thank-you, subscribe, 3 legal, 404, sitemap/robots (7) | §4.10 |
+| IA section     | Pages                                                  | Specified in                        |
+| -------------- | ------------------------------------------------------ | ----------------------------------- |
+| Home           | 1                                                      | §4.1 (+ Homepage Architecture/Copy) |
+| Services       | hub + 10 services + Government Logistics (12)          | §4.2                                |
+| Industries     | hub + 5 industries (6)                                 | §4.3                                |
+| Experience     | 1                                                      | §4.4                                |
+| Method         | hub + framework (2)                                    | §4.5                                |
+| Insights       | hub + 7 pillars + article template (9)                 | §4.6                                |
+| Guides         | hub + 5 guides (6)                                     | §4.7                                |
+| About          | 1                                                      | §4.8                                |
+| Conversion     | Request-an-Assessment + Contact (2)                    | §4.9                                |
+| Utility/system | thank-you, subscribe, 3 legal, 404, sitemap/robots (7) | §4.10                               |
 
 **Total: every L0/L1/L2 page + the L3 article and G guide templates + utility/system pages.** No
 page in the approved IA is unspecified; no page outside the approved IA is introduced.
@@ -595,26 +629,26 @@ page in the approved IA is unspecified; no page outside the approved IA is intro
 
 ## Appendix A — Alignment matrix
 
-| This spec | Source of truth |
-| --- | --- |
-| Page set (§4, §5) | IA §1 sitemap |
-| Required-section templates (§3) | IA §3.3 template classes; Homepage Architecture (Home) |
-| Primary/secondary CTAs (§2 G2, §3, §4) | IA §5; Homepage Architecture §4 |
-| SEO objectives (§4) | IA §7 SEO page mapping |
-| Internal linking (§2 G6, §3, §4) | IA §6 linking strategy |
-| Conversion objectives (§4) | IA §8 funnel architecture |
-| Trust & credibility (§2 G4, §3, §4) | Foundation §8, §10.5; §4.5 honesty rules |
-| Doctrine constraints (§2 G3) | Foundation §3.3, §18 |
-| Audience per page (§4) | Foundation §5 personas |
-| Honesty (no invented data; names = experience) | Foundation §4.5, §12.5, §16.4; platform CLAUDE.md |
+| This spec                                      | Source of truth                                        |
+| ---------------------------------------------- | ------------------------------------------------------ |
+| Page set (§4, §5)                              | IA §1 sitemap                                          |
+| Required-section templates (§3)                | IA §3.3 template classes; Homepage Architecture (Home) |
+| Primary/secondary CTAs (§2 G2, §3, §4)         | IA §5; Homepage Architecture §4                        |
+| SEO objectives (§4)                            | IA §7 SEO page mapping                                 |
+| Internal linking (§2 G6, §3, §4)               | IA §6 linking strategy                                 |
+| Conversion objectives (§4)                     | IA §8 funnel architecture                              |
+| Trust & credibility (§2 G4, §3, §4)            | Foundation §8, §10.5; §4.5 honesty rules               |
+| Doctrine constraints (§2 G3)                   | Foundation §3.3, §18                                   |
+| Audience per page (§4)                         | Foundation §5 personas                                 |
+| Honesty (no invented data; names = experience) | Foundation §4.5, §12.5, §16.4; platform CLAUDE.md      |
 
 ---
 
 > **Operations lead. Technology supports. Operational expertise is the product. AI enhances
 > analysis, validation, and decision-making.**
 
-*This is the implementation specification. UI design and development build on it; they do not
+_This is the implementation specification. UI design and development build on it; they do not
 redefine it. New or changed pages are specified here first — in the sitemap (IA §1) and this
-document — before they are designed or built.*
+document — before they are designed or built._
 
-*Version 1.0 — complete and ready for approval.*
+_Version 1.0 — complete and ready for approval._

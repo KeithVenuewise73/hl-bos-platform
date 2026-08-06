@@ -7,6 +7,7 @@
 **Status:** Definitive visual & UX standard — v1.0
 **Date:** 2026-08-06
 **Governed by / reflects:**
+
 - [HSCS Commercial Foundation v1.0](../hscs-commercial-foundation/README.md) — approved
 - [Website IA v1.0](../hscs-website-architecture/README.md) · [Homepage Architecture v1.0](../hscs-homepage-architecture/README.md) · [Homepage Copy v1.0](../hscs-homepage-architecture/01-homepage-copy.md) · [Page Specifications v1.0](../hscs-website-architecture/01-page-specifications.md)
 
@@ -18,13 +19,13 @@
 > component and governance rules.
 >
 > **What this is not.** It is **not** page designs, **not** mockups, and **not** code. It specifies
-> the *standards* design and development must implement — token **values** are given (that is the
+> the _standards_ design and development must implement — token **values** are given (that is the
 > standard), but no page is laid out and no code is written here. Values are expressed as tables,
 > not stylesheets.
 >
 > **The brand this system must express (Foundation v1.0):**
-> Transportation & Operations Consulting · *35 Years of Operational Experience. Enhanced by AI.* ·
-> *Built by a Business Owner. Designed for Operators.*
+> Transportation & Operations Consulting · _35 Years of Operational Experience. Enhanced by AI._ ·
+> _Built by a Business Owner. Designed for Operators._
 >
 > **Doctrine the visual language must obey:** **Operations lead. Technology supports. Operational
 > expertise is the product. AI enhances analysis, validation, and decision-making.** The system is
@@ -53,6 +54,7 @@
 15. [Responsive behavior](#15-responsive-behavior)
 16. [Component inventory](#16-component-inventory)
 17. [Design governance rules](#17-design-governance-rules)
+
 - [Appendix A — Alignment matrix](#appendix-a--alignment-matrix)
 
 ---
@@ -68,14 +70,14 @@ Seven principles govern every design decision. When a choice is unclear, the ear
    whitespace, few typefaces, a tight palette, and squared, engineered forms read as competence.
    Ornament is suspect.
 3. **Structure like a well-run operation.** Strong grid, clear hierarchy, predictable rhythm.
-   The layout itself should feel *operationally sound* — organized, legible, dependable.
+   The layout itself should feel _operationally sound_ — organized, legible, dependable.
 4. **Evidence over decoration.** Data, proof, and specifics are design features. Numbers, labels,
    and evidence get their own treatment (mono type, keylines) rather than being buried.
 5. **Operator-legible.** Designed for people who read between shifts on real devices. High contrast,
    large tap targets, plain layouts, fast pages. Legibility beats cleverness every time.
 6. **Honest by default.** No fabricated metrics, fake dashboards, or invented proof in any asset.
    Empty states explain themselves. A UI never implies a capability that isn't there (mirrors the
-   platform rule: *never leave a control that controls nothing*).
+   platform rule: _never leave a control that controls nothing_).
 7. **Industrial, not startup.** Sturdy, engineered, grounded — steel, ink, signage. Never neon
    gradients, glassmorphism, glowing "AI" motifs, or playful mascotry.
 
@@ -86,14 +88,14 @@ Seven principles govern every design decision. When a choice is unclear, the ear
 Six brand adjectives, each translated into concrete design direction. This is the bridge from
 Foundation positioning to visual decisions.
 
-| Adjective | Feels like | Design translation |
-| --- | --- | --- |
-| **Professional** | A firm you'd put in front of your board | Disciplined grid, one display + one text + one mono typeface, tight palette, no clutter |
-| **Executive** | Boardroom credibility | Deep navy + ink, serif-free authority, generous margins, confident large headings |
-| **Operational** | A well-run dock/DC | Mono data labels, keylines, status/step patterns, structured tables, legible density |
-| **Industrial** | Steel, freight, signage | Squared corners (2–6px radius), strong borders over soft shadows, hi-vis amber signal accent |
-| **Modern** | Current, not dated or trendy | Grotesque display type, flat surfaces, restrained motion, crisp spacing |
-| **Trustworthy** | Says only what's true | High contrast, honest empty states, evidence-forward, no dark patterns, accessible by default |
+| Adjective        | Feels like                              | Design translation                                                                            |
+| ---------------- | --------------------------------------- | --------------------------------------------------------------------------------------------- |
+| **Professional** | A firm you'd put in front of your board | Disciplined grid, one display + one text + one mono typeface, tight palette, no clutter       |
+| **Executive**    | Boardroom credibility                   | Deep navy + ink, serif-free authority, generous margins, confident large headings             |
+| **Operational**  | A well-run dock/DC                      | Mono data labels, keylines, status/step patterns, structured tables, legible density          |
+| **Industrial**   | Steel, freight, signage                 | Squared corners (2–6px radius), strong borders over soft shadows, hi-vis amber signal accent  |
+| **Modern**       | Current, not dated or trendy            | Grotesque display type, flat surfaces, restrained motion, crisp spacing                       |
+| **Trustworthy**  | Says only what's true                   | High contrast, honest empty states, evidence-forward, no dark patterns, accessible by default |
 
 **Personality guardrails (what HSCS is NOT):** not a tech startup, not a SaaS dashboard brand, not
 "AI-first," not playful, not luxury-consumer. When a design decision drifts toward any of those,
@@ -106,30 +108,30 @@ honest — expressed visually.
 
 **Type families** (all open-source / SIL OFL — no licensing barrier; secure webfont hosting before launch):
 
-| Role | Typeface | Fallback stack | Why |
-| --- | --- | --- | --- |
-| **Display / Headings** | **Archivo** (grotesque) | "Neue Haas Grotesk", Inter, Arial, sans-serif | Sturdy, engineered, modern-industrial without novelty |
-| **Body / UI** | **Inter** | system-ui, "Segoe UI", Roboto, Arial, sans-serif | Highly legible at all sizes; neutral, professional |
-| **Data / Labels / Eyebrows** | **IBM Plex Mono** | ui-monospace, "SFMono-Regular", Menlo, monospace | Signals "operational / engineered / evidence"; used for metrics, labels, overlines |
+| Role                         | Typeface                | Fallback stack                                   | Why                                                                                |
+| ---------------------------- | ----------------------- | ------------------------------------------------ | ---------------------------------------------------------------------------------- |
+| **Display / Headings**       | **Archivo** (grotesque) | "Neue Haas Grotesk", Inter, Arial, sans-serif    | Sturdy, engineered, modern-industrial without novelty                              |
+| **Body / UI**                | **Inter**               | system-ui, "Segoe UI", Roboto, Arial, sans-serif | Highly legible at all sizes; neutral, professional                                 |
+| **Data / Labels / Eyebrows** | **IBM Plex Mono**       | ui-monospace, "SFMono-Regular", Menlo, monospace | Signals "operational / engineered / evidence"; used for metrics, labels, overlines |
 
-*[Alternate single-family option if consolidation is preferred: IBM Plex Sans + IBM Plex Mono
-throughout. Decision belongs to Keith/brand; default recommendation is the three-role system above.]*
+_[Alternate single-family option if consolidation is preferred: IBM Plex Sans + IBM Plex Mono
+throughout. Decision belongs to Keith/brand; default recommendation is the three-role system above.]_
 
 **Type scale** (base 16px = 1rem; ratio ≈1.2–1.25; sizes in px/rem):
 
-| Token | Size | Weight | Line-height | Letter-spacing | Use |
-| --- | --- | --- | --- | --- | --- |
-| `display-xl` | 56 / 3.5rem | 700 | 1.05 | −0.02em | Hero H1 (desktop) |
-| `display-l` | 44 / 2.75rem | 700 | 1.08 | −0.02em | Major section openers |
-| `h1` | 36 / 2.25rem | 700 | 1.12 | −0.01em | Page titles |
-| `h2` | 28 / 1.75rem | 600 | 1.2 | −0.01em | Section headings |
-| `h3` | 22 / 1.375rem | 600 | 1.3 | 0 | Sub-sections |
-| `h4` | 18 / 1.125rem | 600 | 1.4 | 0 | Card titles, labels |
-| `body-l` | 18 / 1.125rem | 400 | 1.6 | 0 | Lead paragraphs |
-| `body` | 16 / 1rem | 400 | 1.6 | 0 | Default body |
-| `body-s` | 14 / 0.875rem | 400 | 1.55 | 0 | Secondary text, captions |
-| `label` | 13 / 0.8125rem | 500 (mono) | 1.4 | +0.08em, UPPERCASE | Data labels, metadata |
-| `eyebrow` | 12 / 0.75rem | 500 (mono) | 1.3 | +0.12em, UPPERCASE | Section eyebrows (e.g., "TRANSPORTATION & OPERATIONS CONSULTING") |
+| Token        | Size           | Weight     | Line-height | Letter-spacing     | Use                                                               |
+| ------------ | -------------- | ---------- | ----------- | ------------------ | ----------------------------------------------------------------- |
+| `display-xl` | 56 / 3.5rem    | 700        | 1.05        | −0.02em            | Hero H1 (desktop)                                                 |
+| `display-l`  | 44 / 2.75rem   | 700        | 1.08        | −0.02em            | Major section openers                                             |
+| `h1`         | 36 / 2.25rem   | 700        | 1.12        | −0.01em            | Page titles                                                       |
+| `h2`         | 28 / 1.75rem   | 600        | 1.2         | −0.01em            | Section headings                                                  |
+| `h3`         | 22 / 1.375rem  | 600        | 1.3         | 0                  | Sub-sections                                                      |
+| `h4`         | 18 / 1.125rem  | 600        | 1.4         | 0                  | Card titles, labels                                               |
+| `body-l`     | 18 / 1.125rem  | 400        | 1.6         | 0                  | Lead paragraphs                                                   |
+| `body`       | 16 / 1rem      | 400        | 1.6         | 0                  | Default body                                                      |
+| `body-s`     | 14 / 0.875rem  | 400        | 1.55        | 0                  | Secondary text, captions                                          |
+| `label`      | 13 / 0.8125rem | 500 (mono) | 1.4         | +0.08em, UPPERCASE | Data labels, metadata                                             |
+| `eyebrow`    | 12 / 0.75rem   | 500 (mono) | 1.3         | +0.12em, UPPERCASE | Section eyebrows (e.g., "TRANSPORTATION & OPERATIONS CONSULTING") |
 
 **Rules:** one display face, one text face, one mono — never introduce a fourth. Headings 600–700
 only. Body max line length ~70ch. Mono is reserved for labels, eyebrows, and numeric data (the
@@ -145,52 +147,52 @@ signage) used sparingly for the single most important action.
 
 **Core / brand**
 
-| Token | Hex | Use |
-| --- | --- | --- |
-| `ink` | `#12181F` | Primary text; near-black, cool |
-| `navy` | `#13293D` | Primary brand; headers, primary surfaces, executive authority |
-| `navy-deep` | `#0D1E2E` | Navy hover/pressed; footer |
-| `steel` | `#34506B` | Secondary brand; accents, secondary buttons |
-| `slate` | `#55677A` | Muted/secondary text |
-| `graphite` | `#2A333D` | Strong borders, industrial dividers |
+| Token       | Hex       | Use                                                           |
+| ----------- | --------- | ------------------------------------------------------------- |
+| `ink`       | `#12181F` | Primary text; near-black, cool                                |
+| `navy`      | `#13293D` | Primary brand; headers, primary surfaces, executive authority |
+| `navy-deep` | `#0D1E2E` | Navy hover/pressed; footer                                    |
+| `steel`     | `#34506B` | Secondary brand; accents, secondary buttons                   |
+| `slate`     | `#55677A` | Muted/secondary text                                          |
+| `graphite`  | `#2A333D` | Strong borders, industrial dividers                           |
 
 **Neutrals**
 
-| Token | Hex | Use |
-| --- | --- | --- |
-| `surface` | `#FFFFFF` | Cards, primary surfaces |
-| `paper` | `#F6F7F9` | Page background |
-| `mist` | `#ECEFF3` | Subtle section backgrounds, wells |
-| `line` | `#D3D9E0` | Default borders/dividers |
-| `line-strong` | `#B7C0CA` | Emphasized borders |
+| Token         | Hex       | Use                               |
+| ------------- | --------- | --------------------------------- |
+| `surface`     | `#FFFFFF` | Cards, primary surfaces           |
+| `paper`       | `#F6F7F9` | Page background                   |
+| `mist`        | `#ECEFF3` | Subtle section backgrounds, wells |
+| `line`        | `#D3D9E0` | Default borders/dividers          |
+| `line-strong` | `#B7C0CA` | Emphasized borders                |
 
 **Signal accent (operational) — use sparingly**
 
-| Token | Hex | Use |
-| --- | --- | --- |
-| `signal` | `#C8621A` | Primary CTA fill; the single highest-emphasis action; key indicators |
-| `signal-deep` | `#A94F12` | Signal hover/pressed |
-| `signal-wash` | `#F6E9DD` | Rare tinted background behind a signal element |
+| Token         | Hex       | Use                                                                  |
+| ------------- | --------- | -------------------------------------------------------------------- |
+| `signal`      | `#C8621A` | Primary CTA fill; the single highest-emphasis action; key indicators |
+| `signal-deep` | `#A94F12` | Signal hover/pressed                                                 |
+| `signal-wash` | `#F6E9DD` | Rare tinted background behind a signal element                       |
 
 **Semantic (muted, professional)**
 
-| Token | Hex | Use |
-| --- | --- | --- |
+| Token     | Hex       | Use                      |
+| --------- | --------- | ------------------------ |
 | `success` | `#2E7D5B` | Positive/verified states |
-| `warning` | `#C88A1A` | Caution |
-| `error` | `#B3261E` | Errors, destructive |
-| `info` | `#2B5B84` | Informational |
+| `warning` | `#C88A1A` | Caution                  |
+| `error`   | `#B3261E` | Errors, destructive      |
+| `info`    | `#2B5B84` | Informational            |
 
 **Contrast pairings & compliance** (target WCAG 2.1 AA; **verify exact ratios in build before ship**):
 
-| Foreground / Background | Intended use | Target |
-| --- | --- | --- |
-| `ink` on `paper`/`surface` | Body text | AAA (≈14:1) |
-| `navy` on `surface` | Headings | AAA |
-| `slate` on `surface` | Secondary text | AA (≥4.5:1) — verify |
-| `white` on `navy` | Nav, primary-navy buttons | AAA |
-| **`ink` on `signal`** | **Primary CTA label (hi-vis signage look)** | AA — verify ≥4.5:1; this pairing is chosen for safe contrast |
-| `white` on `signal` | Avoid unless verified | Often <4.5:1 — do **not** use without measurement |
+| Foreground / Background    | Intended use                                | Target                                                       |
+| -------------------------- | ------------------------------------------- | ------------------------------------------------------------ |
+| `ink` on `paper`/`surface` | Body text                                   | AAA (≈14:1)                                                  |
+| `navy` on `surface`        | Headings                                    | AAA                                                          |
+| `slate` on `surface`       | Secondary text                              | AA (≥4.5:1) — verify                                         |
+| `white` on `navy`          | Nav, primary-navy buttons                   | AAA                                                          |
+| **`ink` on `signal`**      | **Primary CTA label (hi-vis signage look)** | AA — verify ≥4.5:1; this pairing is chosen for safe contrast |
+| `white` on `signal`        | Avoid unless verified                       | Often <4.5:1 — do **not** use without measurement            |
 
 **Rules:** amber `signal` appears on **one** primary action per view (the assessment CTA) — never
 as a broad background or on multiple competing elements. Navy/steel carry brand; neutrals carry
@@ -204,20 +206,20 @@ mapping later only if a product surface needs it (out of scope for v1.0; note, d
 
 Base unit **4px**. All spacing, padding, and layout gaps use the scale — no arbitrary values.
 
-| Token | px | Typical use |
-| --- | --- | --- |
-| `space-1` | 4 | Icon-to-label, tight inline |
-| `space-2` | 8 | Compact padding, chip padding |
-| `space-3` | 12 | Input padding, small gaps |
-| `space-4` | 16 | Default element gap, button padding-x |
-| `space-5` | 24 | Card padding, grid gutter |
-| `space-6` | 32 | Component spacing |
-| `space-7` | 40 | Small section rhythm |
-| `space-8` | 48 | Sub-section spacing |
-| `space-9` | 64 | Section padding (mobile) |
-| `space-10` | 80 | Section padding |
-| `space-11` | 96 | Section padding (desktop default) |
-| `space-12` | 128 | Major section separation (desktop) |
+| Token      | px  | Typical use                           |
+| ---------- | --- | ------------------------------------- |
+| `space-1`  | 4   | Icon-to-label, tight inline           |
+| `space-2`  | 8   | Compact padding, chip padding         |
+| `space-3`  | 12  | Input padding, small gaps             |
+| `space-4`  | 16  | Default element gap, button padding-x |
+| `space-5`  | 24  | Card padding, grid gutter             |
+| `space-6`  | 32  | Component spacing                     |
+| `space-7`  | 40  | Small section rhythm                  |
+| `space-8`  | 48  | Sub-section spacing                   |
+| `space-9`  | 64  | Section padding (mobile)              |
+| `space-10` | 80  | Section padding                       |
+| `space-11` | 96  | Section padding (desktop default)     |
+| `space-12` | 128 | Major section separation (desktop)    |
 
 **Vertical rhythm:** section padding is `space-11`/`space-12` (96–128px) on desktop, `space-9`
 (56–64px) on mobile. Card internal padding `space-5` (24px). **Radii:** `radius-sm` 2px (inputs,
@@ -256,21 +258,21 @@ signal (Principle 3).
 
 **Variants**
 
-| Variant | Fill | Text | Border | Use |
-| --- | --- | --- | --- | --- |
-| **Primary** | `signal` (amber) | `ink` | none | The single primary action (assessment CTA) |
-| **Secondary** | `navy` | `white` | none | Important non-primary actions |
-| **Tertiary / Outline** | transparent | `navy` | 1px `navy` | Lower-emphasis actions |
-| **Ghost / Text** | transparent | `steel` | none | Inline/low-emphasis (e.g., "See all services") |
-| **Destructive** | transparent | `error` | 1px `error` | Rare; software UI only |
+| Variant                | Fill             | Text    | Border      | Use                                            |
+| ---------------------- | ---------------- | ------- | ----------- | ---------------------------------------------- |
+| **Primary**            | `signal` (amber) | `ink`   | none        | The single primary action (assessment CTA)     |
+| **Secondary**          | `navy`           | `white` | none        | Important non-primary actions                  |
+| **Tertiary / Outline** | transparent      | `navy`  | 1px `navy`  | Lower-emphasis actions                         |
+| **Ghost / Text**       | transparent      | `steel` | none        | Inline/low-emphasis (e.g., "See all services") |
+| **Destructive**        | transparent      | `error` | 1px `error` | Rare; software UI only                         |
 
 **Sizes** (height / padding-x / text):
 
-| Size | Height | Padding-x | Text |
-| --- | --- | --- | --- |
-| `lg` | 52px | 24px | `body-l` 600 | Hero/section CTAs |
-| `md` | 44px | 20px | `body` 600 | Default (meets 44px min tap target) |
-| `sm` | 36px | 16px | `body-s` 600 | Dense UI / inline |
+| Size | Height | Padding-x | Text         |
+| ---- | ------ | --------- | ------------ |
+| `lg` | 52px   | 24px      | `body-l` 600 | Hero/section CTAs                   |
+| `md` | 44px   | 20px      | `body` 600   | Default (meets 44px min tap target) |
+| `sm` | 36px   | 16px      | `body-s` 600 | Dense UI / inline                   |
 
 **States (all variants):** default · hover (`signal`→`signal-deep`, `navy`→`navy-deep`, outline
 gains subtle fill) · active/pressed (slightly darker) · focus (visible 2px focus ring, offset 2px,
@@ -288,16 +290,16 @@ optional, 20px, left or right with `space-2` gap. Minimum target 44×44px includ
 **Anatomy (top-to-bottom):** label → (optional helper) → input → (validation message). Labels are
 always visible (never placeholder-only). Placeholder is an example, not a label.
 
-| Element | Standard |
-| --- | --- |
-| **Label** | `label`/`body-s` 500, `ink`, above the field, `space-2` below |
-| **Input** | height 48px, padding `space-3` (12px), 1px `line` border, `radius-sm` (2px), `surface` bg, `ink` text |
-| **Focus** | 2px `steel` ring/border, visible; never suppressed |
-| **Helper text** | `body-s`, `slate`, `space-2` above field-bottom |
-| **Error** | 1px `error` border, `error` message below with icon, `body-s`; message is specific and actionable |
-| **Success/verified** | optional `success` indicator for validated fields |
-| **Disabled/readonly** | `mist` bg, `slate` text, clearly non-interactive |
-| **Required** | marked in the label ("required"), not by color alone |
+| Element               | Standard                                                                                              |
+| --------------------- | ----------------------------------------------------------------------------------------------------- |
+| **Label**             | `label`/`body-s` 500, `ink`, above the field, `space-2` below                                         |
+| **Input**             | height 48px, padding `space-3` (12px), 1px `line` border, `radius-sm` (2px), `surface` bg, `ink` text |
+| **Focus**             | 2px `steel` ring/border, visible; never suppressed                                                    |
+| **Helper text**       | `body-s`, `slate`, `space-2` above field-bottom                                                       |
+| **Error**             | 1px `error` border, `error` message below with icon, `body-s`; message is specific and actionable     |
+| **Success/verified**  | optional `success` indicator for validated fields                                                     |
+| **Disabled/readonly** | `mist` bg, `slate` text, clearly non-interactive                                                      |
+| **Required**          | marked in the label ("required"), not by color alone                                                  |
 
 **Field spacing:** `space-5` (24px) between fields; `space-6` before the submit button.
 **Groups/fieldsets:** labelled; related fields grouped with a legend.
@@ -322,15 +324,15 @@ optional `e1` on hover only. Anatomy: (optional eyebrow/label) → title (`h4`) 
 
 **Card types:**
 
-| Card | Purpose | Distinct elements |
-| --- | --- | --- |
-| **Service card** | Services hub / home ladder | Service name, one-line outcome, "start here" flag on Operations Assessment |
-| **Industry card** | Industries hub / home | Vertical name, operating-proof line, links to industry page |
-| **Insight card** | Insights hub / related | Title, mono date/author label, pillar tag |
-| **Guide card** | Guides hub | Guide title, "what's inside" one-liner, download action (micro-CTA) |
-| **Stat / evidence card** | Proof, method, assessment preview | Mono figure + label; **only real, sourced numbers — never invented** |
-| **Toolbox card** | Home S8 / method | Tool name + engagement role + visible "supports consulting" tag; **no product CTA** |
-| **Lifecycle stage card** | Home S3 / Experience | Stage name (mono step index) + operating lesson; order preserved |
+| Card                     | Purpose                           | Distinct elements                                                                   |
+| ------------------------ | --------------------------------- | ----------------------------------------------------------------------------------- |
+| **Service card**         | Services hub / home ladder        | Service name, one-line outcome, "start here" flag on Operations Assessment          |
+| **Industry card**        | Industries hub / home             | Vertical name, operating-proof line, links to industry page                         |
+| **Insight card**         | Insights hub / related            | Title, mono date/author label, pillar tag                                           |
+| **Guide card**           | Guides hub                        | Guide title, "what's inside" one-liner, download action (micro-CTA)                 |
+| **Stat / evidence card** | Proof, method, assessment preview | Mono figure + label; **only real, sourced numbers — never invented**                |
+| **Toolbox card**         | Home S8 / method                  | Tool name + engagement role + visible "supports consulting" tag; **no product CTA** |
+| **Lifecycle stage card** | Home S3 / Experience              | Stage name (mono step index) + operating lesson; order preserved                    |
 
 **Rules:** consistent padding and border across a set; hover elevation subtle; a card is fully
 clickable only if it has one clear destination. **Stat cards may never display a fabricated metric**
@@ -365,8 +367,8 @@ supported (§14).
 
 The CTA system is where the doctrine is most visible. It inherits IA §5 and Homepage Architecture §4.
 
-- **One primary per view.** Exactly one **Primary (amber)** button — always *Request an Operations
-  Assessment* — per viewport/section. Secondary actions use navy/outline/ghost, never amber.
+- **One primary per view.** Exactly one **Primary (amber)** button — always _Request an Operations
+  Assessment_ — per viewport/section. Secondary actions use navy/outline/ghost, never amber.
 - **Amber = the assessment, and only the assessment.** The signal color is reserved for the single
   primary conversion. It never marks a tool, a download, or a nav item.
 - **Placement:** header (persistent) + at least one in-body CTA band + footer band on every
@@ -390,7 +392,7 @@ The CTA system is where the doctrine is most visible. It inherits IA §5 and Hom
   pallets, docks, dashboards/gauges, checklists, maps. Icons should look like they belong on
   operations signage, not a consumer app.
 - **AI restraint:** **no "sparkle," glowing-brain, robot, or magic-wand icons.** Where AI is
-  referenced, use a restrained, technical mark (e.g., a node/analysis motif) in the *supporting*
+  referenced, use a restrained, technical mark (e.g., a node/analysis motif) in the _supporting_
   register — small, `steel`, never the focal point.
 - **Usage:** icons support labels, they don't replace them; decorative icons get `aria-hidden`;
   meaningful icons get accessible labels. Consistent size within a set. Never use an icon to imply a
@@ -464,35 +466,35 @@ The catalog every HSCS surface draws from. **Status is honest: all are _specifie
 built_** — no HSCS front-end code exists in this repository, and this document does not create any
 (Principle 6; no invented "done"). Build status is tracked when implementation begins.
 
-| # | Component | Purpose | Key variants | Status |
-| --- | --- | --- | --- | --- |
-| 1 | Button | Actions | primary/secondary/outline/ghost/destructive · lg/md/sm | Spec only |
-| 2 | Link / Text-CTA | Inline navigation | default/hover/visited | Spec only |
-| 3 | Input / Textarea | Data entry | default/focus/error/disabled | Spec only |
-| 4 | Select / Checkbox / Radio | Structured input | states as §8 | Spec only |
-| 5 | Form / Fieldset | Grouped input | assessment intake, contact | Spec only |
-| 6 | Header / Nav bar | Global nav | desktop mega-menu / mobile sticky | Spec only |
-| 7 | Mega-menu / Dropdown | Section nav | services / industries | Spec only |
-| 8 | Footer | Global footer + CTA band | 4-column | Spec only |
-| 9 | Breadcrumbs | Wayfinding | L2/L3 | Spec only |
-| 10 | Card (base) | Container | see §9 types | Spec only |
-| 11 | Service / Industry / Insight / Guide card | Content | per §9 | Spec only |
-| 12 | Stat / Evidence card | Real proof | real numbers only | Spec only |
-| 13 | Toolbox card | Tools-as-enhancers | no product CTA | Spec only |
-| 14 | Lifecycle stage card | Chain narrative | ordered | Spec only |
-| 15 | CTA band | Conversion | navy / mist | Spec only |
-| 16 | Section wrapper | Layout rhythm | eyebrow+heading+body+CTA | Spec only |
-| 17 | Eyebrow / Label (mono) | Metadata/evidence texture | uppercase mono | Spec only |
-| 18 | Tag / Chip | Categorization | pillar tags, "supports consulting" | Spec only |
-| 19 | Table | Structured data | operational data | Spec only |
-| 20 | Accordion | Mobile nav / FAQ | expand/collapse | Spec only |
-| 21 | Icon | Support labels | 24px line set | Spec only |
-| 22 | Media / Image frame | Operations imagery | duotone option | Spec only |
-| 23 | Toast / Inline alert | Feedback (software UI) | success/warning/error/info | Spec only |
-| 24 | Empty state | Honest "no data yet" | explains why (Principle 6) | Spec only |
+| #   | Component                                 | Purpose                   | Key variants                                           | Status    |
+| --- | ----------------------------------------- | ------------------------- | ------------------------------------------------------ | --------- |
+| 1   | Button                                    | Actions                   | primary/secondary/outline/ghost/destructive · lg/md/sm | Spec only |
+| 2   | Link / Text-CTA                           | Inline navigation         | default/hover/visited                                  | Spec only |
+| 3   | Input / Textarea                          | Data entry                | default/focus/error/disabled                           | Spec only |
+| 4   | Select / Checkbox / Radio                 | Structured input          | states as §8                                           | Spec only |
+| 5   | Form / Fieldset                           | Grouped input             | assessment intake, contact                             | Spec only |
+| 6   | Header / Nav bar                          | Global nav                | desktop mega-menu / mobile sticky                      | Spec only |
+| 7   | Mega-menu / Dropdown                      | Section nav               | services / industries                                  | Spec only |
+| 8   | Footer                                    | Global footer + CTA band  | 4-column                                               | Spec only |
+| 9   | Breadcrumbs                               | Wayfinding                | L2/L3                                                  | Spec only |
+| 10  | Card (base)                               | Container                 | see §9 types                                           | Spec only |
+| 11  | Service / Industry / Insight / Guide card | Content                   | per §9                                                 | Spec only |
+| 12  | Stat / Evidence card                      | Real proof                | real numbers only                                      | Spec only |
+| 13  | Toolbox card                              | Tools-as-enhancers        | no product CTA                                         | Spec only |
+| 14  | Lifecycle stage card                      | Chain narrative           | ordered                                                | Spec only |
+| 15  | CTA band                                  | Conversion                | navy / mist                                            | Spec only |
+| 16  | Section wrapper                           | Layout rhythm             | eyebrow+heading+body+CTA                               | Spec only |
+| 17  | Eyebrow / Label (mono)                    | Metadata/evidence texture | uppercase mono                                         | Spec only |
+| 18  | Tag / Chip                                | Categorization            | pillar tags, "supports consulting"                     | Spec only |
+| 19  | Table                                     | Structured data           | operational data                                       | Spec only |
+| 20  | Accordion                                 | Mobile nav / FAQ          | expand/collapse                                        | Spec only |
+| 21  | Icon                                      | Support labels            | 24px line set                                          | Spec only |
+| 22  | Media / Image frame                       | Operations imagery        | duotone option                                         | Spec only |
+| 23  | Toast / Inline alert                      | Feedback (software UI)    | success/warning/error/info                             | Spec only |
+| 24  | Empty state                               | Honest "no data yet"      | explains why (Principle 6)                             | Spec only |
 
-*[Notably included: an **Empty state** component. Per the honesty doctrine, an empty panel that
-explains itself is a first-class component — not an afterthought.]*
+_[Notably included: an **Empty state** component. Per the honesty doctrine, an empty panel that
+explains itself is a first-class component — not an afterthought.]_
 
 ---
 
@@ -501,7 +503,7 @@ explains itself is a first-class component — not an afterthought.]*
 1. **This document is the single source of truth** for HSCS visual/UX standards. Tokens (type,
    color, spacing, grid) are defined here; implementations reference these values, they do not
    invent new ones. New tokens are added here first.
-2. **Doctrine gate.** Every design must pass: *operations lead, technology supports?* No design may
+2. **Doctrine gate.** Every design must pass: _operations lead, technology supports?_ No design may
    headline AI, present a tool as a product, or give a tool a CTA (Foundation §18). Amber is the
    assessment CTA only.
 3. **Anti-startup / anti-AI-cliché gate.** No neon gradients, glassmorphism, glowing orbs, sparkle/
@@ -527,25 +529,25 @@ explains itself is a first-class component — not an afterthought.]*
 
 ## Appendix A — Alignment matrix
 
-| Design-system element | Source of truth |
-| --- | --- |
-| Principles & personality (§1–§2) | Foundation §1–§4 (positioning, doctrine, voice) |
-| "Operations lead; tech supports" visual weighting | Foundation §3.3, §18 |
-| Amber = assessment CTA only (§4, §11) | IA §5; Homepage Architecture §4; Foundation §15 |
-| Typography/data-mono "evidence" texture (§3) | Foundation §10 (evidence), §4.2 (pillars) |
-| Card set incl. toolbox & lifecycle (§9) | Homepage Architecture S3/S8; Foundation §8/§18 |
-| Nav standards (§10) | IA §2; Page Spec §2 (G1) |
-| Accessibility (§14) | Page Spec G7; Foundation trust/values |
-| Responsive content-priority (§15) | Homepage Architecture §5; IA §3.1 |
-| Honesty gates & empty state (§6, §9, §16, §17) | Platform CLAUDE.md; Foundation §4.5, §10.5 |
-| Imagery honesty & permission (§13) | Foundation §8, §14; homepage governance |
+| Design-system element                             | Source of truth                                 |
+| ------------------------------------------------- | ----------------------------------------------- |
+| Principles & personality (§1–§2)                  | Foundation §1–§4 (positioning, doctrine, voice) |
+| "Operations lead; tech supports" visual weighting | Foundation §3.3, §18                            |
+| Amber = assessment CTA only (§4, §11)             | IA §5; Homepage Architecture §4; Foundation §15 |
+| Typography/data-mono "evidence" texture (§3)      | Foundation §10 (evidence), §4.2 (pillars)       |
+| Card set incl. toolbox & lifecycle (§9)           | Homepage Architecture S3/S8; Foundation §8/§18  |
+| Nav standards (§10)                               | IA §2; Page Spec §2 (G1)                        |
+| Accessibility (§14)                               | Page Spec G7; Foundation trust/values           |
+| Responsive content-priority (§15)                 | Homepage Architecture §5; IA §3.1               |
+| Honesty gates & empty state (§6, §9, §16, §17)    | Platform CLAUDE.md; Foundation §4.5, §10.5      |
+| Imagery honesty & permission (§13)                | Foundation §8, §14; homepage governance         |
 
 ---
 
 > **Operations lead. Technology supports. Operational expertise is the product. AI enhances
 > analysis, validation, and decision-making.**
 
-*This is the governing visual & UX standard. Every future page, asset, and interface inherits it;
-none redefines it. Revise the system here — not by drift in the surfaces it governs.*
+_This is the governing visual & UX standard. Every future page, asset, and interface inherits it;
+none redefines it. Revise the system here — not by drift in the surfaces it governs._
 
-*Version 1.0 — complete and ready for approval.*
+_Version 1.0 — complete and ready for approval._

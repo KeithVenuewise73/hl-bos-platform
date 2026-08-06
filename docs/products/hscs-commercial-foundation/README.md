@@ -51,6 +51,7 @@
 16. [Lead Generation Strategy](#16-lead-generation-strategy)
 17. [Technology Roadmap](#17-technology-roadmap)
 18. [The HSCS Operational Toolbox](#18-the-hscs-operational-toolbox)
+
 - [Appendix A — Naming & terminology](#appendix-a--naming--terminology)
 - [Appendix B — What is real today vs. what is a target](#appendix-b--what-is-real-today-vs-what-is-a-target)
 
@@ -64,8 +65,8 @@
 
 HSCS is a firm of **operators who consult — not consultants who understand operations.** That
 word order is the strategy, not a slogan. A consultant studies the operation from the outside;
-an operator has *run* it. Everything below is a consequence of that distinction. If a decision
-does not make Keith's 35 years of *running* operations more visible, more credible, or more
+an operator has _run_ it. Everything below is a consequence of that distinction. If a decision
+does not make Keith's 35 years of _running_ operations more visible, more credible, or more
 useful to another operator, it is off-strategy.
 
 **Operations lead. Technology supports.** Operational expertise is the product; AI enhances
@@ -75,10 +76,10 @@ analysis, validation, and decision-making.
 
 The consulting market is loud with two kinds of firm, and both leave a gap:
 
-| Competitor type | What they sell | Where they are weak |
-| --- | --- | --- |
-| **Big-name management consultancies** | Frameworks, MBAs, slide decks | Never ran a dock, a route, or a P&L; expensive; slow; junior teams |
-| **AI/tech vendors** | Software, dashboards, "automation" | Sell the tool, not the outcome; no operating judgment; leave the client to figure out what to do |
+| Competitor type                       | What they sell                     | Where they are weak                                                                              |
+| ------------------------------------- | ---------------------------------- | ------------------------------------------------------------------------------------------------ |
+| **Big-name management consultancies** | Frameworks, MBAs, slide decks      | Never ran a dock, a route, or a P&L; expensive; slow; junior teams                               |
+| **AI/tech vendors**                   | Software, dashboards, "automation" | Sell the tool, not the outcome; no operating judgment; leave the client to figure out what to do |
 
 HSCS occupies the gap between them: **a practitioner who has actually run the operation,
 now equipped with AI that makes his analysis faster and more rigorous than either camp can
@@ -91,7 +92,7 @@ delivered at software speed.
 1. **Operators who consult — not consultants who understand operations.** The lead fact in
    every touchpoint is the operating record — manufacturing, warehousing, middle mile,
    distribution, final mile, and white glove — not the technology. HSCS does not "understand"
-   operations from the outside; HSCS has *run* them, end to end.
+   operations from the outside; HSCS has _run_ them, end to end.
 2. **AI as force-multiplier, never as headline.** AI is how we work, not what we sell.
    The website, proposals, and sales conversations lead with outcomes and experience;
    AI appears as the reason we can deliver those outcomes faster and with more evidence.
@@ -107,7 +108,7 @@ delivered at software speed.
 
 ### 1.4 What success looks like (24-month horizon)
 
-- HSCS is known in transportation & operations circles as *"the operator's consultant."*
+- HSCS is known in transportation & operations circles as _"the operator's consultant."_
 - A prospect can articulate our positioning back to us in one sentence.
 - Every engagement produces an evidence-backed assessment the client keeps and refers to.
 - A measurable, qualified pipeline of operations-transformation opportunities exists
@@ -132,18 +133,18 @@ delivered at software speed.
 
 ### 2.3 Core values
 
-| Value | What it means in practice |
-| --- | --- |
-| **Operator-first** | We are operators who consult — not consultants who understand operations. We speak the language of the dock, the route, and the P&L because we have run them. Operations lead; technology supports. |
-| **Evidence over opinion** | Every recommendation traces to a rating, a measurement, or a stated assumption. We separate fact, inference, and opinion — and we label them. |
-| **Honesty is the product** | We never invent a result, a metric, or a success. An unknown baseline is stated as unknown and then measured. A hard truth delivered early beats a comfortable one delivered late. |
-| **AI in service of judgment** | Technology exists to support consulting, not replace it. AI sharpens the operator's judgment; it never substitutes for it. |
-| **Outcomes we can stand behind** | We measure what we recommend. Success metrics are defined up front and reported honestly, whether they are met or not. |
-| **Respect the operator's time** | Operators are busy. Deliverables are decision-ready, plain-English, and short enough to read between shifts. |
+| Value                            | What it means in practice                                                                                                                                                                           |
+| -------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Operator-first**               | We are operators who consult — not consultants who understand operations. We speak the language of the dock, the route, and the P&L because we have run them. Operations lead; technology supports. |
+| **Evidence over opinion**        | Every recommendation traces to a rating, a measurement, or a stated assumption. We separate fact, inference, and opinion — and we label them.                                                       |
+| **Honesty is the product**       | We never invent a result, a metric, or a success. An unknown baseline is stated as unknown and then measured. A hard truth delivered early beats a comfortable one delivered late.                  |
+| **AI in service of judgment**    | Technology exists to support consulting, not replace it. AI sharpens the operator's judgment; it never substitutes for it.                                                                          |
+| **Outcomes we can stand behind** | We measure what we recommend. Success metrics are defined up front and reported honestly, whether they are met or not.                                                                              |
+| **Respect the operator's time**  | Operators are busy. Deliverables are decision-ready, plain-English, and short enough to read between shifts.                                                                                        |
 
 These values are not decoration. They are the same honesty rules that govern this platform's
-engineering: *never claim something works unless you proved it; never invent data; never leave
-a control that controls nothing.* The consulting brand and the software are built on one ethic.
+engineering: _never claim something works unless you proved it; never invent data; never leave
+a control that controls nothing._ The consulting brand and the software are built on one ethic.
 
 ---
 
@@ -158,9 +159,9 @@ a control that controls nothing.* The consulting brand and the software are buil
 
 ### 3.2 The tagline set
 
-- **Primary:** *35 Years of Operational Experience. Enhanced by AI.*
-- **Founder line:** *Built by a Business Owner. Designed for Operators.*
-- **Clarifying line (used near any AI claim):** *AI is not the product. Operational expertise is.*
+- **Primary:** _35 Years of Operational Experience. Enhanced by AI._
+- **Founder line:** _Built by a Business Owner. Designed for Operators._
+- **Clarifying line (used near any AI claim):** _AI is not the product. Operational expertise is._
 
 ### 3.3 The positioning doctrine — memorize this
 
@@ -182,9 +183,9 @@ AI enhances our ability to:
 
 **Technology exists to support consulting — not to replace it.**
 
-Practical rule for every writer, designer, and salesperson: *lead with the operator and the
+Practical rule for every writer, designer, and salesperson: _lead with the operator and the
 outcome; introduce AI only as the reason we can deliver that outcome faster and with more
-evidence.* If a headline could have been written by a software vendor, rewrite it.
+evidence._ If a headline could have been written by a software vendor, rewrite it.
 
 ### 3.4 Positioning map
 
@@ -205,7 +206,7 @@ evidence.* If a headline could have been written by a software vendor, rewrite i
                  LOW operating credibility
 ```
 
-HSCS is deliberately the only entry in the upper-right: **high operating credibility *and*
+HSCS is deliberately the only entry in the upper-right: **high operating credibility _and_
 high AI leverage.** No competitor category occupies it, because it requires a real operator
 who also runs modern AI tooling. That is the moat.
 
@@ -232,12 +233,12 @@ LEVEL 3  Calls to action  "Request an operations assessment."
 
 ### 4.2 The four value pillars (every page maps to one)
 
-| Pillar | Promise | Proof |
-| --- | --- | --- |
-| **Experience** | "We've run the operation you're trying to fix — the whole chain of it." | The end-to-end lifecycle: manufacturing, warehousing, middle mile, distribution, final mile, white glove (§8) |
-| **Evidence** | "Every recommendation is backed by data and reasoning." | The assessment framework; fact/inference/opinion labelling (§10) |
-| **Outcomes** | "We measure what we recommend." | Defined success metrics per engagement (§9) |
-| **Enhancement** | "AI makes our analysis faster and more rigorous — it doesn't replace the operator." | Positioning doctrine (§3.3); technology roadmap (§17) |
+| Pillar          | Promise                                                                             | Proof                                                                                                         |
+| --------------- | ----------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------- |
+| **Experience**  | "We've run the operation you're trying to fix — the whole chain of it."             | The end-to-end lifecycle: manufacturing, warehousing, middle mile, distribution, final mile, white glove (§8) |
+| **Evidence**    | "Every recommendation is backed by data and reasoning."                             | The assessment framework; fact/inference/opinion labelling (§10)                                              |
+| **Outcomes**    | "We measure what we recommend."                                                     | Defined success metrics per engagement (§9)                                                                   |
+| **Enhancement** | "AI makes our analysis faster and more rigorous — it doesn't replace the operator." | Positioning doctrine (§3.3); technology roadmap (§17)                                                         |
 
 ### 4.3 Voice & tone
 
@@ -249,12 +250,12 @@ LEVEL 3  Calls to action  "Request an operations assessment."
 
 ### 4.4 Message-by-audience matrix
 
-| Audience | The line that lands | What they fear |
-| --- | --- | --- |
-| **CEO / Owner** | "An operator who's carried a P&L, not a consultant who's read about one." | Paying for slides that don't change results |
-| **COO / VP Operations** | "Faster, evidence-backed analysis of where your operation is losing money." | Advice that ignores how the operation actually runs |
-| **Director of Operations / Transportation** | "Someone who's run your kind of operation and can tell you what to fix first." | Generic best-practices that don't fit their network |
-| **Fleet / Warehouse / Distribution / Plant Manager** | "Practical fixes you can act on this quarter, prioritized by impact." | A big-bang transformation that stalls the floor |
+| Audience                                             | The line that lands                                                            | What they fear                                      |
+| ---------------------------------------------------- | ------------------------------------------------------------------------------ | --------------------------------------------------- |
+| **CEO / Owner**                                      | "An operator who's carried a P&L, not a consultant who's read about one."      | Paying for slides that don't change results         |
+| **COO / VP Operations**                              | "Faster, evidence-backed analysis of where your operation is losing money."    | Advice that ignores how the operation actually runs |
+| **Director of Operations / Transportation**          | "Someone who's run your kind of operation and can tell you what to fix first." | Generic best-practices that don't fit their network |
+| **Fleet / Warehouse / Distribution / Plant Manager** | "Practical fixes you can act on this quarter, prioritized by impact."          | A big-bang transformation that stalls the floor     |
 
 ### 4.5 Language rules (hard constraints)
 
@@ -266,13 +267,13 @@ LEVEL 3  Calls to action  "Request an operations assessment."
 
 ### 4.6 Boilerplate (approved short description)
 
-> *Herman Supply Chain Solutions (HSCS) is a transportation & operations consulting firm
+> _Herman Supply Chain Solutions (HSCS) is a transportation & operations consulting firm
 > built by a business owner and designed for operators. We are operators who consult — not
 > consultants who understand operations. We combine thirty-five years of hands-on experience
 > across the complete supply chain — manufacturing, warehousing, middle mile, distribution,
 > final mile, and white glove — with AI that makes our analysis faster, deeper, and more
 > defensible. Operations lead; technology supports. AI is not the product — operational
-> expertise is.*
+> expertise is._
 
 ---
 
@@ -290,35 +291,35 @@ requires messaging both — see §4.4.
 
 ### 5.2 Ideal Customer Profile (firmographics)
 
-| Dimension | Fit |
-| --- | --- |
-| **Industry** | Transportation, logistics, distribution, warehousing, last-mile delivery, manufacturing with heavy operations |
-| **Size** | Mid-market: roughly $10M–$500M revenue; enough scale to have real operational complexity, small enough that leadership is reachable |
-| **Operating model** | One or more of: fleet operations, multi-node distribution, high-touch delivery, D2C fulfillment, warehousing |
-| **Trigger events** | Margin compression, service failures, a growth surge outrunning operations, a new leader taking over, a failed software rollout, rising labor/fuel cost |
-| **Disqualifiers** | Pure tech buyers who want software with no operating change; enterprises seeking a big-firm brand; companies unwilling to be measured honestly |
+| Dimension           | Fit                                                                                                                                                     |
+| ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Industry**        | Transportation, logistics, distribution, warehousing, last-mile delivery, manufacturing with heavy operations                                           |
+| **Size**            | Mid-market: roughly $10M–$500M revenue; enough scale to have real operational complexity, small enough that leadership is reachable                     |
+| **Operating model** | One or more of: fleet operations, multi-node distribution, high-touch delivery, D2C fulfillment, warehousing                                            |
+| **Trigger events**  | Margin compression, service failures, a growth surge outrunning operations, a new leader taking over, a failed software rollout, rising labor/fuel cost |
+| **Disqualifiers**   | Pure tech buyers who want software with no operating change; enterprises seeking a big-firm brand; companies unwilling to be measured honestly          |
 
 ### 5.3 Buyer personas
 
 **Persona A — "The Owner-Operator CEO"**
 Runs the company they built or bought. Carries the P&L personally. Distrusts consultants who
-have never met a payroll. *Wins when:* they hear "built by a business owner." *Buys:*
+have never met a payroll. _Wins when:_ they hear "built by a business owner." _Buys:_
 operations assessment → transformation roadmap.
 
 **Persona B — "The COO under margin pressure"**
-Accountable for cost and service. Has data but not the time to synthesize it. *Wins when:*
+Accountable for cost and service. Has data but not the time to synthesize it. _Wins when:_
 they see how fast AI-accelerated analysis turns their data into a prioritized action list.
-*Buys:* operations assessment → targeted improvement engagement.
+_Buys:_ operations assessment → targeted improvement engagement.
 
 **Persona C — "The Transportation / Fleet Director"**
 Deep in routing, utilization, dispatch, and driver issues. Skeptical of generic advice.
-*Wins when:* they hear middle-mile/final-mile/fleet experience described in their own terms.
-*Buys:* transportation & fleet optimization engagement.
+_Wins when:_ they hear middle-mile/final-mile/fleet experience described in their own terms.
+_Buys:_ transportation & fleet optimization engagement.
 
 **Persona D — "The Distribution / Warehouse / Plant Manager"**
-Owns throughput, labor, and layout. Needs practical, floor-level fixes. *Wins when:* the
+Owns throughput, labor, and layout. Needs practical, floor-level fixes. _Wins when:_ the
 recommendations are things they can start this quarter without stopping the operation.
-*Buys:* warehousing/distribution assessment → process improvement.
+_Buys:_ warehousing/distribution assessment → process improvement.
 
 ### 5.4 Jobs-to-be-done
 
@@ -338,12 +339,12 @@ demonstrates value, then deeper engagements, then ongoing/advisory relationships
 
 ### 6.1 Tier 0 — Entry / diagnostic
 
-**S0. Operations Assessment** *(the front door — every funnel points here)*
+**S0. Operations Assessment** _(the front door — every funnel points here)_
 An AI-accelerated, evidence-backed diagnostic of the client's operation across defined
 domains (operations, transportation/fleet, warehousing/distribution, technology, growth,
 financial, AI-readiness). Delivers a scored current-state, a prioritized findings list, and
 a recommended sequence of moves. Deliverable: an executive assessment the client keeps.
-*Positioning:* proves the method, establishes real baselines, earns the next engagement.
+_Positioning:_ proves the method, establishes real baselines, earns the next engagement.
 
 ### 6.2 Tier 1 — Core consulting engagements
 
@@ -361,7 +362,7 @@ pressure: rapid diagnosis, stabilization, and a measured recovery plan.
 
 **S5. Operations Technology Advisory** — independent, operator's-eye evaluation of operations
 software (TMS/WMS/routing/telematics): what to buy, what to skip, how to make a stalled
-rollout work. *Explicitly vendor-neutral — we advise on outcomes, not licenses.*
+rollout work. _Explicitly vendor-neutral — we advise on outcomes, not licenses._
 
 ### 6.3 Tier 2 — Transformation & program work
 
@@ -369,17 +370,17 @@ rollout work. *Explicitly vendor-neutral — we advise on outcomes, not licenses
 assessment's roadmap, with defined success metrics reported honestly at each stage.
 
 **S7. AI-Enablement for Operations** — identifying and piloting high-value, guard-railed AI
-and automation inside the client's operation. *Framed as enhancement of the operation, with
-the operator's judgment governing every deployment.*
+and automation inside the client's operation. _Framed as enhancement of the operation, with
+the operator's judgment governing every deployment._
 
 ### 6.4 Tier 3 — Ongoing relationship
 
 **S8. Fractional / Advisory Operations Leadership** — recurring operator-level advisory for
 leadership teams that need experienced judgment on call.
 
-**S9. Executive Operations Dashboards** *(tooling-enhanced)* — ongoing, evidence-based
-visibility into the operation, powered by HSCS tooling (see §17). *Sold as the ongoing
-instrument of an engagement, not as a standalone software subscription.*
+**S9. Executive Operations Dashboards** _(tooling-enhanced)_ — ongoing, evidence-based
+visibility into the operation, powered by HSCS tooling (see §17). _Sold as the ongoing
+instrument of an engagement, not as a standalone software subscription._
 
 ### 6.5 Practice area — Government logistics
 
@@ -389,7 +390,7 @@ assessment frameworks (§10) to the distinct requirements of public-sector logis
 compliance, accountability, and service obligations that differ from commercial work. **The
 practice leads; software supports it.** HSCS's existing Government Logistics platform
 (Appendix B) is a real asset that can support engagements in this practice — but no engagement
-is sold as "the platform." It is sold as government-logistics *consulting*, enhanced where
+is sold as "the platform." It is sold as government-logistics _consulting_, enhanced where
 appropriate by that tooling (see the toolbox, §18). This keeps the firm's identity as
 transportation & operations consulting intact while making its government experience available
 to the buyers who need it.
@@ -411,13 +412,13 @@ proven experience, then by adjacency.
 
 ### 7.1 Tier-1 verticals (proven operating experience)
 
-| Vertical | Operating proof (see §8) | Buyer |
-| --- | --- | --- |
-| **White-Glove & High-Touch Delivery** | Herman Movers | Delivery ops leaders, home-goods retailers |
-| **Direct-to-Customer / Cold-Chain Distribution** | Arctic Glacier | D2C & cold-chain distribution leaders |
-| **Middle-Mile Logistics** | Amazon | Middle-mile & network operations leaders |
-| **Final-Mile Retail Delivery** | Lowe's, Sears, Bob's Discount Furniture | Retail final-mile & big-and-bulky leaders |
-| **Warehousing & Fulfillment** | Sorrento / Lactalis | Warehouse, DC, and plant leaders |
+| Vertical                                         | Operating proof (see §8)                | Buyer                                      |
+| ------------------------------------------------ | --------------------------------------- | ------------------------------------------ |
+| **White-Glove & High-Touch Delivery**            | Herman Movers                           | Delivery ops leaders, home-goods retailers |
+| **Direct-to-Customer / Cold-Chain Distribution** | Arctic Glacier                          | D2C & cold-chain distribution leaders      |
+| **Middle-Mile Logistics**                        | Amazon                                  | Middle-mile & network operations leaders   |
+| **Final-Mile Retail Delivery**                   | Lowe's, Sears, Bob's Discount Furniture | Retail final-mile & big-and-bulky leaders  |
+| **Warehousing & Fulfillment**                    | Sorrento / Lactalis                     | Warehouse, DC, and plant leaders           |
 
 ### 7.2 Tier-2 verticals (strong adjacency)
 
@@ -431,7 +432,7 @@ proven experience, then by adjacency.
 **Government logistics is a consulting practice area within HSCS, not a separate business and
 not the identity of the firm.** HSCS is a transportation & operations consulting firm;
 government logistics is one arena in which that operating expertise is applied. The existing
-Government Logistics platform (Appendix B) is a real asset that can *support* this practice —
+Government Logistics platform (Appendix B) is a real asset that can _support_ this practice —
 but **the practice comes first and the software supports it, never the reverse.** The practice
 is defined in the service catalog at §6.5 and appears in the toolbox at §18; it is noted here
 only because its buyer and compliance context differ from the commercial verticals above.
@@ -459,7 +460,7 @@ Thirty-five years, one discipline seen from every angle: **moving goods through 
 supply chain, and running the operations that move them — from the plant floor to the
 customer's living room.**
 
-Most consultants know one link in the chain and infer the rest. HSCS has *operated* across the
+Most consultants know one link in the chain and infer the rest. HSCS has _operated_ across the
 whole of it:
 
 ```
@@ -480,7 +481,7 @@ who consult — not consultants who understand operations.** This is what that m
 ### 8.2 The chain, stage by stage
 
 **1 · Manufacturing — Lactalis (food manufacturing).**
-Running warehousing and distribution *inside a major food manufacturer* put HSCS at the source
+Running warehousing and distribution _inside a major food manufacturer_ put HSCS at the source
 of the chain, where production rhythm, throughput, and inventory flow originate and set the
 constraints everything downstream inherits. Taught how the plant's cadence governs the whole
 operation, and how an upstream decision becomes a downstream service outcome.
@@ -506,7 +507,7 @@ final-mile network design, appointment and routing complexity, retailer service 
 and the operational reality of the last mile in retail.
 
 **6 · White Glove — Herman Movers.**
-High-touch, in-home, damage-sensitive delivery where the customer experience *is* the product —
+High-touch, in-home, damage-sensitive delivery where the customer experience _is_ the product —
 the final and most demanding touch in the chain. Taught service design, handling quality, claims
 control, and running an operation where every touch is visible to the customer.
 
@@ -526,7 +527,7 @@ experience is applied faster and with more evidence; the experience is what earn
 - Each stage above becomes a website section, an SEO cluster, a content pillar, and a video
   narrative (§11–§14) — and the **connections between stages** are their own content lane, because
   the end-to-end view is what no competitor can copy.
-- Always name the stage *and* the operating lesson — not just the logo — and, wherever possible,
+- Always name the stage _and_ the operating lesson — not just the logo — and, wherever possible,
   show how it links to the stages on either side of it.
 - Client-specific metrics require Keith's sign-off and a real source. Until then: describe the
   role and the discipline, never a fabricated result.
@@ -596,15 +597,15 @@ the engine of the ANALYZE/RECOMMEND stages.
 
 **Assessed domains (default set):**
 
-| Domain | Example dimensions |
-| --- | --- |
-| **Operations** | Automation, scheduling, reporting, process maturity |
-| **Transportation / Fleet** | Routing, utilization, dispatch, telematics, fleet cost |
+| Domain                         | Example dimensions                                              |
+| ------------------------------ | --------------------------------------------------------------- |
+| **Operations**                 | Automation, scheduling, reporting, process maturity             |
+| **Transportation / Fleet**     | Routing, utilization, dispatch, telematics, fleet cost          |
 | **Warehousing / Distribution** | Throughput, labor productivity, layout/slotting, inventory flow |
-| **Technology** | Architecture, integration, security, technical debt |
-| **Growth** | Lead generation, conversion, website, SEO |
-| **Financial** | Cost structure, automation ROI, margin |
-| **AI Readiness** | Internal AI workflows, automation opportunities, data readiness |
+| **Technology**                 | Architecture, integration, security, technical debt             |
+| **Growth**                     | Lead generation, conversion, website, SEO                       |
+| **Financial**                  | Cost structure, automation ROI, margin                          |
+| **AI Readiness**               | Internal AI workflows, automation opportunities, data readiness |
 
 ### 10.2 Scoring and evidence model
 
@@ -615,10 +616,10 @@ the engine of the ANALYZE/RECOMMEND stages.
 - Every finding closes with a **claim classification** — FACT / INFERENCE / OPINION.
 - Domain scores roll up to an overall Transformation Score.
 
-*(This is the exact structure the HL-BTI consulting engine already generates deterministically
+_(This is the exact structure the HL-BTI consulting engine already generates deterministically
 — see `docs/products/hl-bti-consulting/08-hscs-executive-case-study.md` for a worked, clearly
 labelled illustrative sample. The framework is real and running; live client scores are
-produced from live client inputs, never fabricated.)*
+produced from live client inputs, never fabricated.)_
 
 ### 10.3 Supporting frameworks
 
@@ -628,7 +629,7 @@ produced from live client inputs, never fabricated.)*
 - **Operations Technology Fit Review** — for S5: evaluating a TMS/WMS/routing/telematics
   decision against the operation's real needs.
 - **AI-Readiness Review** — for S7: where guard-railed AI/automation can safely add value.
-- **VisibilityAI digital baseline** *(where relevant)* — website/SEO/brand/funnel baselines,
+- **VisibilityAI digital baseline** _(where relevant)_ — website/SEO/brand/funnel baselines,
   established by a live scan, never assumed. Until scanned, these read as **unknown**.
 
 ### 10.4 Output artifacts
@@ -648,8 +649,8 @@ produced from live client inputs, never fabricated.)*
 
 ## 11. Website Information Architecture
 
-> Reminder: this document does **not** redesign the site. It specifies the *information
-> architecture* the future site must implement, so design and copy can proceed on a fixed map.
+> Reminder: this document does **not** redesign the site. It specifies the _information
+> architecture_ the future site must implement, so design and copy can proceed on a fixed map.
 
 ### 11.1 Top-level navigation
 
@@ -679,30 +680,30 @@ Home
 
 ### 11.2 Page inventory & primary intent
 
-| Page | Primary job | Primary CTA |
-| --- | --- | --- |
-| **Home** | State positioning in 5 seconds; route to Services/Industries | Request an Assessment |
-| **Service pages (×N)** | Explain the outcome, method, and fit for each service | Request an Assessment |
-| **Industry pages (×5)** | Prove operating credibility per vertical (§8) | Request an Assessment |
-| **Experience** | Tell the 35-year, five-model story (§8) | Request an Assessment |
-| **Method** | Show the evidence-backed methodology and honesty guarantee | Request an Assessment |
-| **Insights** | SEO/content hub; authority building (§13) | Subscribe / Request an Assessment |
-| **Contact** | Convert intent to a booked assessment | Submit intake |
+| Page                    | Primary job                                                  | Primary CTA                       |
+| ----------------------- | ------------------------------------------------------------ | --------------------------------- |
+| **Home**                | State positioning in 5 seconds; route to Services/Industries | Request an Assessment             |
+| **Service pages (×N)**  | Explain the outcome, method, and fit for each service        | Request an Assessment             |
+| **Industry pages (×5)** | Prove operating credibility per vertical (§8)                | Request an Assessment             |
+| **Experience**          | Tell the 35-year, five-model story (§8)                      | Request an Assessment             |
+| **Method**              | Show the evidence-backed methodology and honesty guarantee   | Request an Assessment             |
+| **Insights**            | SEO/content hub; authority building (§13)                    | Subscribe / Request an Assessment |
+| **Contact**             | Convert intent to a booked assessment                        | Submit intake                     |
 
 ### 11.3 Home page message hierarchy (top to bottom)
 
-1. **Hero:** *"35 Years of Operational Experience. Enhanced by AI."* + subhead: *"Built by a
-   business owner. Designed for operators."* + primary CTA.
+1. **Hero:** _"35 Years of Operational Experience. Enhanced by AI."_ + subhead: _"Built by a
+   business owner. Designed for operators."_ + primary CTA.
 2. **The end-to-end operating lifecycle** (proof strip): Manufacturing · Warehousing · Middle Mile · Distribution · Final Mile · White Glove.
 3. **What we do** (service ladder, entry = Operations Assessment).
 4. **How we work** (the method; the AI-enhancement doctrine + honesty guarantee).
 5. **Who we help** (audience/industries).
-6. **The AI clarifier:** *"AI is not the product. Operational expertise is."*
+6. **The AI clarifier:** _"AI is not the product. Operational expertise is."_
 7. **Final CTA:** Request an Operations Assessment.
 
 ### 11.4 Global IA rules
 
-- **One primary CTA everywhere:** *Request an Operations Assessment.* Every page funnels to S0.
+- **One primary CTA everywhere:** _Request an Operations Assessment._ Every page funnels to S0.
 - **AI never headlines a page.** It appears as an enhancer within "How we work."
 - **Experience is one click from every page.** The résumé is the conversion asset.
 - **No empty or placeholder metrics.** If a stat isn't real yet, the section doesn't claim one
@@ -723,15 +724,15 @@ topics competitors literally cannot write from experience.
 Each cluster = one pillar page + supporting articles, all interlinked, mapped to a service
 and/or industry.
 
-| Cluster (pillar) | Representative intents | Maps to |
-| --- | --- | --- |
-| **Transportation & fleet operations consulting** | "transportation operations consultant", "fleet utilization consultant", "dispatch optimization" | S1 / Middle-Mile, Final-Mile |
-| **Warehouse & distribution consulting** | "warehouse productivity consultant", "distribution network design", "DC throughput" | S2 / Warehousing |
-| **Final-mile & white-glove delivery** | "final mile consulting", "white glove delivery operations", "big and bulky delivery" | S3 / Final-Mile, White-Glove |
-| **Operations turnaround & margin** | "operations turnaround consultant", "logistics margin improvement" | S4 |
-| **Operations technology advisory** | "TMS selection consultant", "WMS advisory", "should I buy routing software" | S5 |
-| **AI in operations (enhancement framing)** | "AI for logistics operations", "operations automation ROI" | S7 (enhancement, not product) |
-| **Operations assessment** | "operations assessment", "logistics operations audit" | S0 (front door) |
+| Cluster (pillar)                                 | Representative intents                                                                          | Maps to                       |
+| ------------------------------------------------ | ----------------------------------------------------------------------------------------------- | ----------------------------- |
+| **Transportation & fleet operations consulting** | "transportation operations consultant", "fleet utilization consultant", "dispatch optimization" | S1 / Middle-Mile, Final-Mile  |
+| **Warehouse & distribution consulting**          | "warehouse productivity consultant", "distribution network design", "DC throughput"             | S2 / Warehousing              |
+| **Final-mile & white-glove delivery**            | "final mile consulting", "white glove delivery operations", "big and bulky delivery"            | S3 / Final-Mile, White-Glove  |
+| **Operations turnaround & margin**               | "operations turnaround consultant", "logistics margin improvement"                              | S4                            |
+| **Operations technology advisory**               | "TMS selection consultant", "WMS advisory", "should I buy routing software"                     | S5                            |
+| **AI in operations (enhancement framing)**       | "AI for logistics operations", "operations automation ROI"                                      | S7 (enhancement, not product) |
+| **Operations assessment**                        | "operations assessment", "logistics operations audit"                                           | S0 (front door)               |
 
 ### 12.3 On-page & technical foundations
 
@@ -762,7 +763,7 @@ invented traffic numbers appear anywhere.
 
 **Turn 35 years of operating experience into a content library no competitor can copy.**
 The operator has stories, failure modes, and hard-won lessons from five logistics models.
-Competitors can write *about* operations; HSCS writes *from having run them.*
+Competitors can write _about_ operations; HSCS writes _from having run them._
 
 ### 13.2 Content pillars (map to §8 and §12)
 
@@ -775,16 +776,16 @@ Competitors can write *about* operations; HSCS writes *from having run them.*
 
 ### 13.3 Formats & cadence
 
-| Format | Purpose | Cadence (TARGET) |
-| --- | --- | --- |
-| Pillar articles | SEO authority per cluster | 1 per cluster at launch, then refreshed |
-| Supporting articles | Long-tail capture, internal linking | Weekly build-out, prioritized by cluster |
-| Executive briefs / guides | Lead magnets (gated → intake) | 1 per Tier-1 vertical |
-| Short video (§14) | Authority + reach; the operator on camera | Aligned to pillars |
-| LinkedIn field notes | Founder-led distribution to the buyer | Ongoing |
+| Format                    | Purpose                                   | Cadence (TARGET)                         |
+| ------------------------- | ----------------------------------------- | ---------------------------------------- |
+| Pillar articles           | SEO authority per cluster                 | 1 per cluster at launch, then refreshed  |
+| Supporting articles       | Long-tail capture, internal linking       | Weekly build-out, prioritized by cluster |
+| Executive briefs / guides | Lead magnets (gated → intake)             | 1 per Tier-1 vertical                    |
+| Short video (§14)         | Authority + reach; the operator on camera | Aligned to pillars                       |
+| LinkedIn field notes      | Founder-led distribution to the buyer     | Ongoing                                  |
 
-*(Cadence numbers are TARGETs to be confirmed against capacity, not commitments to report as
-achieved.)*
+_(Cadence numbers are TARGETs to be confirmed against capacity, not commitments to report as
+achieved.)_
 
 ### 13.4 Distribution
 
@@ -814,19 +815,19 @@ client requires a real, approved source.
 Video makes the **operator** visible and human — the single most persuasive asset for a
 credibility-led brand. AI production tools let HSCS produce a professional media library at a
 fraction of traditional cost and time. **Note the reflexivity, and use it carefully:** HSCS
-uses AI to *produce* media efficiently, but the brand message remains "AI is not the product."
+uses AI to _produce_ media efficiently, but the brand message remains "AI is not the product."
 Video content leads with the operator and the operating record; AI is the production method,
 not the subject.
 
 ### 14.2 Video library (mapped to IA and pillars)
 
-| Series | Content | Placement |
-| --- | --- | --- |
-| **Founder / Positioning film** | The 35-year story, the end-to-end lifecycle, the doctrine | Home hero, Experience page |
-| **Industry films (×5)** | One per operating model (§8) | Industry pages |
-| **Method explainer** | How the evidence-backed assessment works + honesty guarantee | Method page |
-| **The Operator's Desk (shorts)** | Field-note lessons; social-native | LinkedIn, Insights |
-| **Assessment walkthrough** | What a client receives from S0 | Services / Contact |
+| Series                           | Content                                                      | Placement                  |
+| -------------------------------- | ------------------------------------------------------------ | -------------------------- |
+| **Founder / Positioning film**   | The 35-year story, the end-to-end lifecycle, the doctrine    | Home hero, Experience page |
+| **Industry films (×5)**          | One per operating model (§8)                                 | Industry pages             |
+| **Method explainer**             | How the evidence-backed assessment works + honesty guarantee | Method page                |
+| **The Operator's Desk (shorts)** | Field-note lessons; social-native                            | LinkedIn, Insights         |
+| **Assessment walkthrough**       | What a client receives from S0                               | Services / Contact         |
 
 ### 14.3 Production approach
 
@@ -882,16 +883,16 @@ Low friction in, high value out. Everything upstream drives to it; everything do
 
 ### 15.3 Stage conversion model (TARGETs — no invented history)
 
-| Transition | Instrument | Metric (to baseline then TARGET) |
-| --- | --- | --- |
-| Awareness → Interest | Content/CTA | Lead-magnet conversion rate |
-| Interest → Evaluation | Assessment offer | Assessment request rate |
-| Evaluation → Decision | Assessment + roadmap | Assessment→proposal rate |
-| Decision → Engagement | Proposal | Proposal win rate |
-| Engagement → Expansion | Delivery + dashboards | Expansion/renewal rate |
+| Transition             | Instrument            | Metric (to baseline then TARGET) |
+| ---------------------- | --------------------- | -------------------------------- |
+| Awareness → Interest   | Content/CTA           | Lead-magnet conversion rate      |
+| Interest → Evaluation  | Assessment offer      | Assessment request rate          |
+| Evaluation → Decision  | Assessment + roadmap  | Assessment→proposal rate         |
+| Decision → Engagement  | Proposal              | Proposal win rate                |
+| Engagement → Expansion | Delivery + dashboards | Expansion/renewal rate           |
 
-*Pipeline currently starts at zero — this is a launch. These are targets to measure against,
-not results to report.*
+_Pipeline currently starts at zero — this is a launch. These are targets to measure against,
+not results to report._
 
 ### 15.4 Sales motion
 
@@ -914,7 +915,7 @@ money, with evidence." The AI shortens time-to-insight; the operator closes on j
 4. **Referrals & network** — a 35-year operating career is a warm network; structured referral asks.
 5. **PR / trade earned media** — credibility placements in transportation/logistics outlets.
 6. **Targeted outbound** — to the named ICP (§5.2) in Tier-1 verticals, offering the assessment.
-7. **Paid (later, measured)** — search/LinkedIn paid *after* organic baselines exist, so spend
+7. **Paid (later, measured)** — search/LinkedIn paid _after_ organic baselines exist, so spend
    is measured against a real baseline — never launched blind.
 
 ### 16.2 The offer that converts
@@ -949,34 +950,34 @@ baseline once scanned; until then, digital metrics read as unknown.)
 
 ## 17. Technology Roadmap
 
-> **The doctrine governs the roadmap.** Every tool below exists to *enhance consulting
-> engagements* — to make the operator's analysis faster, deeper, and more defensible. None is
+> **The doctrine governs the roadmap.** Every tool below exists to _enhance consulting
+> engagements_ — to make the operator's analysis faster, deeper, and more defensible. None is
 > sold as a standalone product that replaces the consulting. **Operations lead. Technology
 > supports. Operational expertise is the product; AI enhances analysis, validation, and
-> decision-making.** The tools are catalogued for engagement use in §18, *The HSCS Operational
-> Toolbox*.
+> decision-making.** The tools are catalogued for engagement use in §18, _The HSCS Operational
+> Toolbox_.
 
 ### 17.1 Now — the analysis engine (launch)
 
 - **HL-BTI (Business Transformation Intelligence)** — the assessment/consulting engine that
-  produces the deterministic, evidence-backed Transformation Assessment (§10). *Status: built
+  produces the deterministic, evidence-backed Transformation Assessment (§10). _Status: built
   and tested in this repository (schema, scoring, engagement lifecycle, CEO dashboard);
-  never yet applied to a live client engagement (see Appendix B).* This is the engine behind
+  never yet applied to a live client engagement (see Appendix B)._ This is the engine behind
   Service S0 and the ANALYZE/RECOMMEND stages.
 - **VisibilityAI** — establishes honest digital baselines (website/SEO/brand/funnel) via a
-  live scan; feeds the growth-domain of the assessment. *Status: gated; not yet run for HSCS.*
+  live scan; feeds the growth-domain of the assessment. _Status: gated; not yet run for HSCS._
 - **Executive Dashboards** — evidence-split (measured vs. unknown) views for engagements
-  (Service S9). *Status: dashboard exists in the platform; live-client data pending a live
-  engagement.*
+  (Service S9). _Status: dashboard exists in the platform; live-client data pending a live
+  engagement._
 
 ### 17.2 Next — engagement-enhancing tools
 
 - **TransportationAI** — transportation/fleet analysis to deepen S1 engagements (routing,
-  utilization, network). *Status: ~83% assemblable per the existing HSCS reference blueprint;
-  one net-new route-assessment engine to build. A target, not a shipped product.*
+  utilization, network). _Status: ~83% assemblable per the existing HSCS reference blueprint;
+  one net-new route-assessment engine to build. A target, not a shipped product._
 - **DispatchAI** — dispatch-focused analysis/automation support for transportation engagements.
-  *Status: planned; enhancement tool, not a standalone product.*
-- **FleetHuddle** — fleet operations tooling to enhance fleet engagements. *Status: planned.*
+  _Status: planned; enhancement tool, not a standalone product._
+- **FleetHuddle** — fleet operations tooling to enhance fleet engagements. _Status: planned._
 
 ### 17.3 Later — platform leverage
 
@@ -984,7 +985,7 @@ baseline once scanned; until then, digital metrics read as unknown.)
 - **Executive Dashboards productized as the S9 ongoing instrument** — the recurring,
   evidence-based visibility layer of a live engagement.
 - **Government logistics practice support** — the existing Government Logistics platform
-  advanced as *support for the government-logistics consulting practice area* (§6.5, §7.3):
+  advanced as _support for the government-logistics consulting practice area_ (§6.5, §7.3):
   the practice leads, the software supports.
 
 ### 17.4 Sequencing principles
@@ -1022,15 +1023,15 @@ product. AI enhances analysis, validation, and decision-making.**
 Consulting engagements may utilize different operational tools depending on the work. Each is an
 enhancer of the engagement — never the offer:
 
-| Tool | What it does in an engagement | Standalone product? |
-| --- | --- | --- |
-| **Operational Assessments** | The core instrument (§10): AI-accelerated, evidence-backed diagnosis that anchors every engagement. | **No** — it *is* the method, delivered as a service (S0). |
-| **FleetHuddle** | Enhances fleet-operations analysis — utilization, cost, driver and asset visibility — within fleet engagements. | **No** — an engagement enhancer. |
-| **DispatchAI** | Supports dispatch analysis and workflow within transportation engagements. | **No** — an engagement enhancer. |
-| **TransportationAI** | Deepens transportation and network analysis — routing, utilization, network design — within S1 work. | **No** — an engagement enhancer. |
-| **Executive Dashboards** | Ongoing, evidence-split visibility (measured vs. unknown) for the client's leadership during and after an engagement (S9). | **No** — the instrument of a live engagement. |
-| **Government Logistics** | The platform asset that *supports* the government-logistics consulting practice area (§6.5, §7.3). | **No** — supports the practice; the practice leads. |
-| **AI-supported Operational Intelligence** | The cross-cutting capability that lets HSCS read more data, correlate across the entire lifecycle, and validate recommendations faster than a human team. | **No** — it is *how* HSCS analyzes; it is never the offer. |
+| Tool                                      | What it does in an engagement                                                                                                                             | Standalone product?                                        |
+| ----------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------- |
+| **Operational Assessments**               | The core instrument (§10): AI-accelerated, evidence-backed diagnosis that anchors every engagement.                                                       | **No** — it _is_ the method, delivered as a service (S0).  |
+| **FleetHuddle**                           | Enhances fleet-operations analysis — utilization, cost, driver and asset visibility — within fleet engagements.                                           | **No** — an engagement enhancer.                           |
+| **DispatchAI**                            | Supports dispatch analysis and workflow within transportation engagements.                                                                                | **No** — an engagement enhancer.                           |
+| **TransportationAI**                      | Deepens transportation and network analysis — routing, utilization, network design — within S1 work.                                                      | **No** — an engagement enhancer.                           |
+| **Executive Dashboards**                  | Ongoing, evidence-split visibility (measured vs. unknown) for the client's leadership during and after an engagement (S9).                                | **No** — the instrument of a live engagement.              |
+| **Government Logistics**                  | The platform asset that _supports_ the government-logistics consulting practice area (§6.5, §7.3).                                                        | **No** — supports the practice; the practice leads.        |
+| **AI-supported Operational Intelligence** | The cross-cutting capability that lets HSCS read more data, correlate across the entire lifecycle, and validate recommendations faster than a human team. | **No** — it is _how_ HSCS analyzes; it is never the offer. |
 
 ### 18.3 How the toolbox reaches the client
 
@@ -1039,7 +1040,7 @@ enhancer of the engagement — never the offer:
 2. **Chosen for the job.** Different engagements draw different tools from the box; an engagement
    uses only what genuinely improves its analysis.
 3. **Framed as enhancement.** In every proposal, deliverable, and conversation, a tool is
-   described as *how we sharpen the analysis* — never as the product being purchased.
+   described as _how we sharpen the analysis_ — never as the product being purchased.
 4. **Honest about status.** Several tools are built, partially built, or planned (Appendix B). A
    tool is described as enhancing an engagement only once it truly can. Built ≠ live.
 
@@ -1061,7 +1062,7 @@ enhancer of the engagement — never the offer:
 - **HSCS Consulting** — the consulting practice and commercial motion (the subject of this doc).
 - **Government logistics** — a **consulting practice area** within HSCS (§6.5, §7.3), not a
   separate business and not the firm's identity. The existing Government Logistics platform (live
-  in the legacy environment) is a tool that *supports* this practice; the practice leads.
+  in the legacy environment) is a tool that _supports_ this practice; the practice leads.
 - **HL-BTI** — Business Transformation Intelligence; the assessment/consulting engine.
 - **VisibilityAI** — the digital-baseline (website/SEO/brand/funnel) scanning capability.
 - **TransportationAI / DispatchAI / FleetHuddle / Executive Dashboards** — engagement-enhancing
@@ -1076,17 +1077,17 @@ Honesty is a brand asset (§4) and a platform rule (`CLAUDE.md`). This appendix 
 document truthful about the gap between what exists and what is planned, so nothing downstream
 inherits a false claim.
 
-| Item | Real today | Target / planned |
-| --- | --- | --- |
-| Keith's 35-year operating record (the end-to-end lifecycle, §8) | **Real** (factual; specific client metrics need Keith's sign-off before publication) | — |
-| Operations Assessment method & HL-BTI engine (§9–§10) | **Real & tested** in this repo; deterministic, evidence-backed | Applied to a **live** client engagement |
-| Government Logistics platform (§6.5, §7.3) | **Real & live** in the legacy environment (not managed from this repo) | Advanced as *support for the government-logistics consulting practice*; the practice leads |
-| VisibilityAI digital baselines (§12, §16) | Capability exists; **not yet run** for HSCS | Run the scan → real baselines |
-| Executive Dashboards (§17) | Dashboard exists in-platform | Live-client data from a live engagement |
-| TransportationAI (§17) | ~83% assemblable per existing blueprint | Build route-assessment engine; ship as enhancer |
-| DispatchAI, FleetHuddle (§17) | Planned | Build as engagement enhancers |
-| Sales pipeline / funnel metrics (§15–§16) | **Zero — this is a launch** | Baseline, then TARGET, then measure |
-| Website (§11) | IA specified here; **not redesigned** (out of scope by instruction) | Designed later, on this foundation |
+| Item                                                            | Real today                                                                           | Target / planned                                                                           |
+| --------------------------------------------------------------- | ------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------ |
+| Keith's 35-year operating record (the end-to-end lifecycle, §8) | **Real** (factual; specific client metrics need Keith's sign-off before publication) | —                                                                                          |
+| Operations Assessment method & HL-BTI engine (§9–§10)           | **Real & tested** in this repo; deterministic, evidence-backed                       | Applied to a **live** client engagement                                                    |
+| Government Logistics platform (§6.5, §7.3)                      | **Real & live** in the legacy environment (not managed from this repo)               | Advanced as _support for the government-logistics consulting practice_; the practice leads |
+| VisibilityAI digital baselines (§12, §16)                       | Capability exists; **not yet run** for HSCS                                          | Run the scan → real baselines                                                              |
+| Executive Dashboards (§17)                                      | Dashboard exists in-platform                                                         | Live-client data from a live engagement                                                    |
+| TransportationAI (§17)                                          | ~83% assemblable per existing blueprint                                              | Build route-assessment engine; ship as enhancer                                            |
+| DispatchAI, FleetHuddle (§17)                                   | Planned                                                                              | Build as engagement enhancers                                                              |
+| Sales pipeline / funnel metrics (§15–§16)                       | **Zero — this is a launch**                                                          | Baseline, then TARGET, then measure                                                        |
+| Website (§11)                                                   | IA specified here; **not redesigned** (out of scope by instruction)                  | Designed later, on this foundation                                                         |
 
 **Rule for everyone downstream:** if you need a number this document does not provide, it is
 **to be established** — measure it, do not invent it. That discipline is why operators will
@@ -1097,7 +1098,7 @@ trust HSCS.
 > **Operations lead. Technology supports. Operational expertise is the product. AI enhances
 > analysis, validation, and decision-making.**
 
-*This document is the foundation. The website, SEO, content, videos, proposals, and software
-all build on it. Revise it deliberately and here — not by drift in the artifacts it governs.*
+_This document is the foundation. The website, SEO, content, videos, proposals, and software
+all build on it. Revise it deliberately and here — not by drift in the artifacts it governs._
 
-*Version 1.0 — complete and ready for approval.*
+_Version 1.0 — complete and ready for approval._
