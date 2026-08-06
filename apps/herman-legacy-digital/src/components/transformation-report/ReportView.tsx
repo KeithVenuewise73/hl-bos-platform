@@ -332,6 +332,19 @@ export function ReportView({ report: r }: { report: TransformationReportView }) 
             <p>{r.executiveBriefing.pathForward}</p>
           </div>
         </div>
+
+        <div className="htr-opp">
+          <div className="htr-opp-head">The 90-day opportunity</div>
+          <p className="htr-opp-lede">
+            If we worked together over the next 90 days, these are the business outcomes
+            we believe we can realistically improve:
+          </p>
+          <ul className="htr-opp-list">
+            {r.executiveOutcomes.map((o, i) => (
+              <li key={i}>{o}</li>
+            ))}
+          </ul>
+        </div>
       </section>
 
       {/* The connected picture — synthesis across themes */}
@@ -768,6 +781,14 @@ const CSS = `
 .htr-why li::before{content:"";position:absolute;left:0;top:7px;width:9px;height:9px;border-radius:2px;background:var(--brass)}
 .htr-begin{margin-top:18px;background:var(--paper);border:1px solid var(--line);border-left:4px solid var(--brass);border-radius:10px;padding:14px 16px}
 .htr-begin p{margin:5px 0 0;font-size:14.5px;line-height:1.5;color:var(--ink);font-family:var(--serif)}
+
+/* Executive opportunity summary */
+.htr-opp{margin-top:20px;background:linear-gradient(180deg,var(--navy),var(--navy2));color:#eaf1f6;border-radius:14px;padding:22px;border-left:4px solid var(--brass)}
+.htr-opp-head{font-family:var(--serif);font-size:19px;font-weight:600;color:#fff}
+.htr-opp-lede{font-size:14px;color:#c6d6e2;margin:6px 0 12px;max-width:44em;line-height:1.5}
+.htr-opp-list{list-style:none;padding:0;margin:0;display:grid;gap:9px}
+.htr-opp-list li{position:relative;padding-left:26px;font-size:15px;line-height:1.45;color:#fff;font-family:var(--serif)}
+.htr-opp-list li::before{content:"→";position:absolute;left:0;top:0;color:var(--brass);font-weight:700}
 
 @media (max-width:760px){ .htr-why{grid-template-columns:1fr} }
 

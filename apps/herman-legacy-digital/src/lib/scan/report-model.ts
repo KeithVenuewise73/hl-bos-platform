@@ -173,6 +173,25 @@ export interface TransformationScope {
   notYetAssessed: { area: string; note: string }[];
 }
 
+// A consulting engagement the prospect can choose to begin with. This is a
+// sales-process step, NOT a checkout: no prices are fabricated, and investment is
+// scoped in a conversation.
+export interface EngagementTrack {
+  id: string;
+  name: string;
+  outcome: string; // the business result, not the service label
+  covers: string[]; // the prospect's own findings/areas this track addresses
+  timeline: string; // qualitative, honest
+  investment: string; // engagement shape — never a fabricated price
+  recommended: boolean; // the one "we'd begin here"
+}
+
+export interface EngagementPlan {
+  recommendedId: string;
+  recommendationReason: string;
+  tracks: EngagementTrack[];
+}
+
 export interface TransformationReportView {
   business: { name: string; website: string; industry: string; location?: string };
   analyzedAtIso: string;
@@ -185,6 +204,8 @@ export interface TransformationReportView {
   dimensionsTotal: number;
   evidenceLimitation: string;
   executiveBriefing: ExecutiveBriefing;
+  executiveOutcomes: string[];
+  engagement: EngagementPlan;
   connectedInsight: string;
   synthesisThemes: SynthesisTheme[];
   transformationScope: TransformationScope;
@@ -386,6 +407,104 @@ const WHY_HERMAN_LEGACY: string[] = [
   "Every finding is backed by evidence from your own site and labeled fact, inference, or opinion. We never invent a number.",
   "You leave with a staged plan — 30 days, 90 days, 12 months — not a list of problems.",
   "We implement, not just advise: the team that finds it fixes it, and keeps improving it month over month.",
+];
+
+// The business OUTCOME each weak dimension maps to — for the Executive Opportunity
+// Summary ("outcomes we believe we can realistically improve"). Qualitative only,
+// no fabricated numbers; framed as what a CEO buys, not what an SEO does.
+const OUTCOME_BY_DIM: Record<string, string> = {
+  ai_search_optimization:
+    "Show up when buyers ask AI assistants for a business like yours.",
+  seo: "Rank for the searches your buyers are already making.",
+  google_business_profile:
+    "Win more local buyers at the moment they're choosing who to call.",
+  lead_generation: "Capture more of the interest your site already attracts.",
+  conversion: "Turn more of your visitors into real inquiries.",
+  content: "Give buyers a clear reason to choose you over the alternative.",
+  social_media: "Build visible trust while buyers are still deciding.",
+  website: "Make your website a measurable sales asset, not a brochure.",
+  technology_stack: "See what's working so budget flows to what performs.",
+  security: "Protect the trust your brand depends on.",
+};
+
+// The consulting engagements a prospect can begin with. `dims` ties each track to
+// the prospect's real findings so the recommendation is evidence-driven, never a
+// blind upsell. Investment is an engagement SHAPE, never a fabricated price.
+const PRIORITY_WEIGHT: Record<Priority, number> = {
+  critical: 3,
+  high: 2,
+  medium: 1,
+  low: 0,
+};
+interface TrackDef {
+  id: string;
+  name: string;
+  outcome: string;
+  dims: string[]; // empty = spans everything (the complete program)
+  timeline: string;
+  investment: string;
+}
+const SPRINT_INVEST =
+  "A focused sprint or an ongoing monthly partnership — scoped with you in the strategy session.";
+const TRACK_DEFS: TrackDef[] = [
+  {
+    id: "visibility_seo",
+    name: "Visibility & SEO",
+    outcome: "Get found by buyers in search, on maps, and in AI answers.",
+    dims: ["ai_search_optimization", "seo", "google_business_profile"],
+    timeline: "First visibility gains in 30–90 days; compounding over 3–6 months.",
+    investment: SPRINT_INVEST,
+  },
+  {
+    id: "ai_transformation",
+    name: "AI Business Transformation",
+    outcome: "Put AI to work in how you're found and how you operate.",
+    dims: ["ai_search_optimization", "technology_stack"],
+    timeline: "First AI-readiness wins in 30–90 days; staged over 6–12 months.",
+    investment: SPRINT_INVEST,
+  },
+  {
+    id: "reputation",
+    name: "Reputation",
+    outcome: "Build the trust and proof that make buyers choose you.",
+    dims: ["content", "social_media"],
+    timeline: "Momentum builds over 60–90 days as proof accumulates.",
+    investment: SPRINT_INVEST,
+  },
+  {
+    id: "crm_automation",
+    name: "CRM & Automation",
+    outcome: "Capture every lead and follow up automatically.",
+    dims: ["lead_generation", "conversion"],
+    timeline: "Live in 30–60 days; refined over the first quarter.",
+    investment: SPRINT_INVEST,
+  },
+  {
+    id: "website",
+    name: "Website Modernization",
+    outcome: "Turn your website into a measurable sales asset.",
+    dims: ["website", "conversion", "technology_stack"],
+    timeline: "A modern, converting site in 45–90 days.",
+    investment: SPRINT_INVEST,
+  },
+  {
+    id: "lead_generation",
+    name: "Lead Generation",
+    outcome: "Create a repeatable flow of qualified inquiries.",
+    dims: ["lead_generation", "conversion", "google_business_profile"],
+    timeline: "First measurable lift in 30–90 days.",
+    investment: SPRINT_INVEST,
+  },
+  {
+    id: "complete",
+    name: "Complete Business Transformation",
+    outcome:
+      "Transform the whole business — visibility, acquisition, reputation, and operations — in one coordinated program.",
+    dims: [],
+    timeline: "Staged across 12 months, with the first wins in the first 30 days.",
+    investment:
+      "An ongoing transformation partnership — scoped with you in the strategy session.",
+  },
 ];
 
 // Outcome framing for Herman Legacy products — the result each delivers, not a
@@ -616,6 +735,84 @@ function buildBeginNow(findings: ReportFinding[]): string {
   return "These gaps compound. As buyers move to AI-assisted and local search, every month an un-cited, hard-to-find site stays that way is demand that quietly goes elsewhere. The fastest-payback fixes can begin within 30 days — the sooner they are live, the sooner they work in your favor.";
 }
 
+// The Executive Opportunity Summary — the handful of business outcomes we believe
+// we can realistically improve, derived from the real top findings. What a CEO
+// buys, not a list of title tags.
+function buildExecutiveOutcomes(engineFindings: Finding[]): string[] {
+  const outcomes = engineFindings
+    .map((f) => OUTCOME_BY_DIM[f.dimension])
+    .filter((o): o is string => Boolean(o));
+  const unique = [...new Set(outcomes)].slice(0, 5);
+  if (unique.length > 0) return unique;
+  return [
+    "Extend your strong digital foundation into operations and AI.",
+    "Turn your visibility advantage into a measurable pipeline.",
+    "Instrument the business so every improvement can be proven.",
+  ];
+}
+
+// "Choose Your Starting Point" — recommend the engagement to begin with based on
+// the prospect's actual findings, so the recommendation feels inevitable, not
+// sold. Deterministic; no fabricated prices.
+function buildEngagement(
+  engineFindings: Finding[],
+  byDim: Map<string, ReportFinding>,
+  distinctWeakThemes: number,
+): EngagementPlan {
+  const scoreFor = (dims: string[]): number =>
+    engineFindings
+      .filter((f) => dims.includes(f.dimension))
+      .reduce((s, f) => s + (PRIORITY_WEIGHT[f.priority] ?? 0), 0);
+
+  const totalCritical = engineFindings.filter((f) => f.priority === "critical").length;
+
+  let recommendedId: string;
+  let recommendationReason: string;
+  if (engineFindings.length === 0) {
+    recommendedId = "ai_transformation";
+    recommendationReason =
+      "Your website is already strong, so we'd begin where the next advantage is: putting AI to work across how you're found and how you operate.";
+  } else if (distinctWeakThemes >= 3 || totalCritical >= 2) {
+    recommendedId = "complete";
+    recommendationReason = `Because the gaps span ${distinctWeakThemes} connected areas of your business, a coordinated program will out-perform fixing one channel at a time.`;
+  } else {
+    const focused = TRACK_DEFS.filter((t) => t.dims.length > 0);
+    let best = focused[0]!;
+    let bestScore = -1;
+    for (const t of focused) {
+      const sc = scoreFor(t.dims);
+      if (sc > bestScore) {
+        bestScore = sc;
+        best = t;
+      }
+    }
+    recommendedId = best.id;
+    recommendationReason = `Your highest-priority findings cluster here, so this is the fastest path to a result you can measure.`;
+  }
+
+  const tracks: EngagementTrack[] = TRACK_DEFS.map((t) => {
+    const covers =
+      t.dims.length === 0
+        ? [
+            `All ${engineFindings.length} finding${engineFindings.length === 1 ? "" : "s"} across your business`,
+          ]
+        : engineFindings
+            .filter((f) => t.dims.includes(f.dimension))
+            .map((f) => byDim.get(f.dimension)?.title ?? f.label);
+    return {
+      id: t.id,
+      name: t.name,
+      outcome: t.outcome,
+      covers,
+      timeline: t.timeline,
+      investment: t.investment,
+      recommended: t.id === recommendedId,
+    };
+  });
+
+  return { recommendedId, recommendationReason, tracks };
+}
+
 // ---- Main builder ---------------------------------------------------------
 
 export function buildReportView(
@@ -787,6 +984,12 @@ export function buildReportView(
   );
   const transformationScope = buildTransformationScope(synthesisThemes);
   const beginNow = buildBeginNow(findings);
+  const executiveOutcomes = buildExecutiveOutcomes(report.findings);
+  const engagement = buildEngagement(
+    report.findings,
+    findingsByDim,
+    synthesisThemes.length,
+  );
 
   return {
     business,
@@ -800,6 +1003,8 @@ export function buildReportView(
     dimensionsTotal,
     evidenceLimitation,
     executiveBriefing,
+    executiveOutcomes,
+    engagement,
     connectedInsight,
     synthesisThemes,
     transformationScope,

@@ -170,6 +170,44 @@ describe("executive report view-model", () => {
     // Urgency must not fabricate a dollar/percent/rank figure.
     expect(v.beginNow).not.toMatch(/\$\s?\d|\d+%|\d+\s*(rank|ranking|leads?)/i);
   });
+
+  it("summarizes ≤5 CEO-level outcomes with no fabricated numbers", () => {
+    const v = view(WEAK_HTML);
+    expect(v.executiveOutcomes.length).toBeGreaterThan(0);
+    expect(v.executiveOutcomes.length).toBeLessThanOrEqual(5);
+    for (const o of v.executiveOutcomes) {
+      expect(o.length).toBeGreaterThan(0);
+      expect(o).not.toMatch(/\$\s?\d|\d+%/); // outcomes, not fabricated metrics
+    }
+  });
+
+  it("offers all engagement tracks with exactly one evidence-driven recommendation", () => {
+    const v = view(WEAK_HTML);
+    const ids = v.engagement.tracks.map((t) => t.id);
+    expect(ids).toContain("visibility_seo");
+    expect(ids).toContain("complete");
+    expect(ids.length).toBe(7);
+    const recommended = v.engagement.tracks.filter((t) => t.recommended);
+    expect(recommended).toHaveLength(1);
+    expect(recommended[0]!.id).toBe(v.engagement.recommendedId);
+    expect(v.engagement.recommendationReason.length).toBeGreaterThan(0);
+  });
+
+  it("never fabricates a price in any engagement track (sales process, not checkout)", () => {
+    const v = view(WEAK_HTML);
+    for (const t of v.engagement.tracks) {
+      expect(t.investment).not.toMatch(/\$\s?\d|\d+\s*(usd|dollars|\/mo|per month)/i);
+      expect(t.investment.length).toBeGreaterThan(0);
+      expect(t.timeline.length).toBeGreaterThan(0);
+      expect(t.outcome.length).toBeGreaterThan(0);
+    }
+  });
+
+  it("recommends the complete program when weakness spans many areas", () => {
+    // The weak homepage fails most dimensions across ≥3 themes → complete program.
+    const v = view(WEAK_HTML);
+    expect(v.engagement.recommendedId).toBe("complete");
+  });
 });
 
 describe("workflowStages", () => {

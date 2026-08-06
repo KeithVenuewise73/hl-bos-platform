@@ -203,75 +203,149 @@ export function BlueprintExperience() {
         </div>
       )}
 
-      {/* Implementation Marketplace — each product is a real, bookable engagement. */}
-      <div style={{ ...card, background: INK, borderColor: INK }}>
-        <div
-          style={{
-            fontSize: 12,
-            color: "#9fb3c2",
-            textTransform: "uppercase",
-            letterSpacing: 0.4,
-          }}
-        >
-          Implement with Herman Legacy
-        </div>
-        {report.recommendedTransformations.length > 0 ? (
-          <div style={{ display: "grid", gap: 8, marginTop: 12 }}>
-            {report.recommendedTransformations.map((r) => (
-              <div
-                key={r.product}
-                style={{
-                  display: "flex",
-                  gap: 12,
-                  alignItems: "center",
-                  justifyContent: "space-between",
-                  flexWrap: "wrap",
-                  background: "rgba(255,255,255,0.06)",
-                  borderRadius: 9,
-                  padding: "12px 14px",
-                }}
-              >
-                <div>
-                  <div style={{ color: "#fff", fontWeight: 600 }}>{r.product}</div>
-                  <div style={{ fontSize: 11.5, color: "#9fb3c2", marginTop: 2 }}>
-                    {r.type === "recurring"
-                      ? "Ongoing subscription"
-                      : "One-time engagement"}{" "}
-                    · justified by {r.supportedBy.length} finding
-                    {r.supportedBy.length === 1 ? "" : "s"}
-                  </div>
-                </div>
-                <Link
-                  href={`/book?intent=implement&product=${encodeURIComponent(r.product)}`}
+      {/* Choose Your Starting Point — the consulting sales step (not a checkout). */}
+      <ChooseStartingPoint plan={report.engagement} />
+    </div>
+  );
+}
+
+const BRASS = "#b98a2e";
+
+function ChooseStartingPoint({
+  plan,
+}: {
+  plan: TransformationReportView["engagement"];
+}) {
+  const ordered = [
+    ...plan.tracks.filter((t) => t.recommended),
+    ...plan.tracks.filter((t) => !t.recommended),
+  ];
+  const recommended = plan.tracks.find((t) => t.recommended);
+  return (
+    <div style={{ ...card, background: INK, borderColor: INK }}>
+      <div
+        style={{
+          fontSize: 12,
+          color: "#9fb3c2",
+          textTransform: "uppercase",
+          letterSpacing: 0.4,
+        }}
+      >
+        Choose your starting point
+      </div>
+      <div style={{ color: "#fff", fontSize: 18, fontWeight: 700, marginTop: 6 }}>
+        Based on our analysis, we&apos;d begin here.
+      </div>
+      <div style={{ fontSize: 13, color: "#c7d3dc", marginTop: 4, lineHeight: 1.5 }}>
+        {plan.recommendationReason}
+      </div>
+
+      <div style={{ display: "grid", gap: 10, marginTop: 14 }}>
+        {ordered.map((t) => (
+          <div
+            key={t.id}
+            style={{
+              background: t.recommended
+                ? "rgba(185,138,46,0.14)"
+                : "rgba(255,255,255,0.05)",
+              border: `1px solid ${t.recommended ? BRASS : "rgba(255,255,255,0.12)"}`,
+              borderRadius: 10,
+              padding: "12px 14px",
+            }}
+          >
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 8,
+                flexWrap: "wrap",
+              }}
+            >
+              <span style={{ color: "#fff", fontWeight: 700, fontSize: 15 }}>
+                {t.name}
+              </span>
+              {t.recommended ? (
+                <span
                   style={{
-                    background: "#fff",
-                    color: INK,
-                    fontWeight: 600,
-                    fontSize: 13,
-                    padding: "9px 15px",
-                    borderRadius: 8,
-                    textDecoration: "none",
-                    whiteSpace: "nowrap",
+                    fontSize: 10.5,
+                    fontWeight: 700,
+                    letterSpacing: 0.4,
+                    textTransform: "uppercase",
+                    color: "#20160a",
+                    background: BRASS,
+                    borderRadius: 999,
+                    padding: "2px 9px",
                   }}
                 >
-                  Implement {r.product}
-                </Link>
+                  Recommended
+                </span>
+              ) : null}
+            </div>
+            <div style={{ fontSize: 13.5, color: "#e7edf1", marginTop: 5 }}>
+              {t.outcome}
+            </div>
+            {t.covers.length > 0 ? (
+              <div style={{ fontSize: 11.5, color: "#9fb3c2", marginTop: 6 }}>
+                Addresses: {t.covers.slice(0, 3).join(" · ")}
+                {t.covers.length > 3 ? ` +${t.covers.length - 3} more` : ""}
               </div>
-            ))}
+            ) : null}
+            <div
+              style={{
+                display: "flex",
+                gap: 16,
+                marginTop: 8,
+                flexWrap: "wrap",
+                fontSize: 11.5,
+                color: "#9fb3c2",
+              }}
+            >
+              <span>
+                Timeline: <span style={{ color: "#e7edf1" }}>{t.timeline}</span>
+              </span>
+              <span>
+                Investment: <span style={{ color: "#e7edf1" }}>{t.investment}</span>
+              </span>
+            </div>
           </div>
-        ) : (
-          <div style={{ fontSize: 13, color: "#c7d3dc", marginTop: 8 }}>
-            No product implementations were triggered by this scan.
-          </div>
-        )}
-        <div
-          style={{ fontSize: 11.5, color: "#9fb3c2", marginTop: 14, lineHeight: 1.5 }}
+        ))}
+      </div>
+
+      <div style={{ display: "flex", gap: 10, marginTop: 16, flexWrap: "wrap" }}>
+        <Link
+          href={`/book?intent=strategy&track=${encodeURIComponent(recommended?.id ?? "")}`}
+          style={{
+            background: BRASS,
+            color: "#20160a",
+            fontWeight: 700,
+            fontSize: 14,
+            padding: "12px 20px",
+            borderRadius: 10,
+            textDecoration: "none",
+          }}
         >
-          Implementation books a Herman Legacy engagement. Direct in-platform checkout
-          and the ongoing Executive Operating System — where you track revenue,
-          visibility, leads, and your Transformation Score — are the next stages of this
-          workflow.
-        </div>
+          Book a Strategy Session
+        </Link>
+        <Link
+          href={`/contact?intent=start&track=${encodeURIComponent(recommended?.id ?? "")}`}
+          style={{
+            background: "transparent",
+            color: "#eaf1f6",
+            border: "1px solid rgba(255,255,255,0.35)",
+            fontWeight: 700,
+            fontSize: 14,
+            padding: "12px 20px",
+            borderRadius: 10,
+            textDecoration: "none",
+          }}
+        >
+          Start Your Transformation
+        </Link>
+      </div>
+      <div style={{ fontSize: 11.5, color: "#9fb3c2", marginTop: 12, lineHeight: 1.5 }}>
+        A strategy session is a conversation, not a commitment — investment is scoped
+        with you there. From your engagement grows the Transformation Operating System:
+        monthly executive reviews and continuous AI monitoring.
       </div>
     </div>
   );
