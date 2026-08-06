@@ -14,6 +14,7 @@
     "clean": "rm -rf .next dist *.tsbuildinfo"
   },
   "dependencies": {
+    "@hl-bos/bti-engine": "workspace:*",
     "@hl-bos/catalog": "workspace:*",
     "@hl-bos/transformation-intelligence": "workspace:*",
     "@supabase/ssr": "catalog:",
