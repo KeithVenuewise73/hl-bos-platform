@@ -133,6 +133,42 @@ describe("executive report view-model", () => {
       expect(h.evidenceRequired.length).toBeGreaterThan(0);
     }
   });
+
+  it("de-templates the business-impact line — impacts differ across findings", () => {
+    const v = view(WEAK_HTML);
+    const impacts = v.findings.map((f) => f.businessImpact);
+    // The old engine template repeated one sentence; specific impacts must vary.
+    if (impacts.length > 1) expect(new Set(impacts).size).toBeGreaterThan(1);
+    for (const i of impacts)
+      expect(i).not.toMatch(/limits new-customer acquisition and revenue\.$/);
+  });
+
+  it("synthesizes connected themes from real findings", () => {
+    const v = view(WEAK_HTML);
+    expect(v.connectedInsight.length).toBeGreaterThan(40);
+    for (const t of v.synthesisThemes) {
+      expect(t.findings.length).toBeGreaterThan(0); // themes only appear with findings
+      expect(t.name.length).toBeGreaterThan(0);
+    }
+  });
+
+  it("surfaces the full transformation surface with unknowns kept unknown", () => {
+    const v = view(WEAK_HTML);
+    expect(v.transformationScope.notYetAssessed.length).toBeGreaterThan(0);
+    for (const a of v.transformationScope.notYetAssessed) {
+      expect(a.note.toLowerCase()).toContain("not yet assessed");
+    }
+    // Assessed areas correspond to themes actually found.
+    expect(v.transformationScope.assessed.length).toBe(v.synthesisThemes.length);
+  });
+
+  it("carries differentiation and qualitative urgency (no fabricated numbers)", () => {
+    const v = view(WEAK_HTML);
+    expect(v.whyHermanLegacy.length).toBeGreaterThanOrEqual(3);
+    expect(v.beginNow.length).toBeGreaterThan(0);
+    // Urgency must not fabricate a dollar/percent/rank figure.
+    expect(v.beginNow).not.toMatch(/\$\s?\d|\d+%|\d+\s*(rank|ranking|leads?)/i);
+  });
 });
 
 describe("workflowStages", () => {

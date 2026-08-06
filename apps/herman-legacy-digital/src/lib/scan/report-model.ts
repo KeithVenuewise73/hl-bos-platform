@@ -161,6 +161,18 @@ export interface ExecutiveBriefing {
   pathForward: string;
 }
 
+export interface SynthesisTheme {
+  name: string;
+  summary: string;
+  findings: string[]; // the finding titles that fall under this theme
+  solutions: string[];
+}
+
+export interface TransformationScope {
+  assessed: { area: string; note: string }[];
+  notYetAssessed: { area: string; note: string }[];
+}
+
 export interface TransformationReportView {
   business: { name: string; website: string; industry: string; location?: string };
   analyzedAtIso: string;
@@ -172,6 +184,11 @@ export interface TransformationReportView {
   dimensionsTotal: number;
   evidenceLimitation: string;
   executiveBriefing: ExecutiveBriefing;
+  connectedInsight: string;
+  synthesisThemes: SynthesisTheme[];
+  transformationScope: TransformationScope;
+  whyHermanLegacy: string[];
+  beginNow: string;
   scorecard: ScorecardRow[];
   findings: ReportFinding[];
   priorityTable: PriorityRow[];
@@ -228,58 +245,147 @@ const STATUS_LABEL: Record<ScorecardEntry["status"], string> = {
 // entry is a business-oriented headline + a plain-language problem statement for
 // a finding that ALREADY EXISTS (weak dimensions only). Qualitative only — never
 // a number — and always shown beside the engine's real evidence and claim class.
-const DIMENSION_COPY: Record<string, { headline: string; problem: string }> = {
+const DIMENSION_COPY: Record<
+  string,
+  { headline: string; problem: string; impact: string }
+> = {
   ai_search_optimization: {
     headline: "Your business is hard for AI answer engines to cite",
     problem:
       "AI assistants increasingly answer buyer questions from structured data. With little on your site for them to read, you are often left out of the answer entirely.",
+    impact:
+      "As buyers shift to AI-assisted search, demand that begins as an AI query never reaches you.",
   },
   seo: {
     headline: "Search engines can't fully understand or rank your site",
     problem:
       "Weak on-page and technical SEO foundations keep you from ranking for the terms your buyers actually search.",
+    impact:
+      "You miss qualified traffic from buyers who are actively searching for what you offer.",
   },
   google_business_profile: {
     headline: "Your local presence is sending weak signals",
     problem:
       "Buyers searching locally lean on profile and location signals your site isn't reinforcing, so you surface less often at the moment of intent.",
+    impact: "You lose local buyers at the exact moment they are choosing who to call.",
   },
   social_media: {
     headline: "Your social presence is thin or unmanaged",
     problem:
       "Few visible social signals mean less reach and weaker trust while buyers are still researching you.",
+    impact:
+      "You forfeit reach and social proof while prospects are still deciding whether to trust you.",
   },
   content: {
     headline: "Your content gives buyers little reason to choose you",
     problem:
       "Limited, unstructured content leaves both buyers and search engines without the depth that builds authority and answers real questions.",
+    impact:
+      "Without depth, prospects can't tell why you're the better choice — and neither can search engines.",
   },
   conversion: {
     headline: "Visitors have no clear path to act",
     problem:
       "Without a strong conversion path, the traffic you already earn tends to leave without converting into inquiries.",
+    impact:
+      "Traffic you already pay for or earn leaves without ever becoming a conversation.",
   },
   lead_generation: {
     headline: "Your site isn't capturing leads",
     problem:
       "With no on-page capture, interested visitors have no easy way to become an inquiry — and you can't measure the demand you're losing.",
+    impact:
+      "Interested visitors have no way to raise their hand, so demand goes uncounted and uncaptured.",
   },
   website: {
     headline: "Your website underperforms as a sales asset",
     problem:
       "Gaps in speed, clarity, or conversion blunt the impact of everything else you invest in growth.",
+    impact:
+      "Every marketing dollar works harder or softer depending on this — and right now it's leaking.",
   },
   technology_stack: {
     headline: "Your growth technology is fragmented",
     problem:
       "A disconnected marketing stack makes it hard to attribute results and act on what's working.",
+    impact:
+      "You can't see what's working, so budget and effort flow to places you can't measure.",
   },
   security: {
     headline: "Security gaps put customer trust at risk",
     problem:
       "Weaknesses in access control or data protection can undermine trust and expose the business to avoidable risk.",
+    impact:
+      "A trust or security lapse can cost a deal — or a reputation — in an instant.",
   },
 };
+
+// Business themes that connect individual website findings into one story — so
+// the report reads as Business Transformation, not a channel-by-channel audit.
+// Each dimension maps to exactly one theme.
+const THEMES: { key: string; name: string; dims: string[]; summary: string }[] = [
+  {
+    key: "visibility",
+    name: "Visibility & Findability",
+    dims: ["ai_search_optimization", "seo", "google_business_profile"],
+    summary:
+      "How easily buyers find you at the moment of intent — in search, on maps, and now in AI answers.",
+  },
+  {
+    key: "acquisition",
+    name: "Customer Acquisition & Conversion",
+    dims: ["lead_generation", "conversion", "website"],
+    summary:
+      "Whether the interest you earn turns into inquiries you can measure and win.",
+  },
+  {
+    key: "reputation",
+    name: "Content, Brand & Reputation",
+    dims: ["content", "social_media"],
+    summary:
+      "The authority and trust that make a buyer choose you over the alternative.",
+  },
+  {
+    key: "foundation",
+    name: "Digital Foundation & Security",
+    dims: ["technology_stack", "security"],
+    summary: "The reliability and instrumentation everything else depends on.",
+  },
+];
+
+// The full Business Transformation surface. A website scan can only observe the
+// digital front door; these deeper areas are HONESTLY marked not-yet-assessed —
+// unknown stays unknown — and are the reason Herman Legacy is a transformation
+// partner, not an SEO vendor.
+const TRANSFORMATION_SCOPE_UNSEEN: { area: string; note: string }[] = [
+  {
+    area: "Operations & Workflow",
+    note: "Not yet assessed — requires a short operations review.",
+  },
+  {
+    area: "AI Readiness & Automation",
+    note: "Not yet assessed — requires a look at your tools and workflows.",
+  },
+  {
+    area: "Internal Efficiency",
+    note: "Not yet assessed — requires a process walkthrough.",
+  },
+  {
+    area: "Financial Performance & ROI",
+    note: "Not yet assessed — requires your financial inputs.",
+  },
+  {
+    area: "Long-term Growth Strategy",
+    note: "Not yet assessed — defined in a full Transformation Assessment.",
+  },
+];
+
+const WHY_HERMAN_LEGACY: string[] = [
+  "We connect the whole business — visibility, acquisition, reputation, operations, and AI — not one channel in isolation.",
+  "Every finding is backed by evidence from your own site and labeled fact, inference, or opinion. We never invent a number.",
+  "You leave with a staged plan — 30 days, 90 days, 12 months — not a list of problems.",
+  "We implement, not just advise: the team that finds it fixes it, and keeps improving it month over month.",
+];
 
 // Outcome framing for Herman Legacy products — the result each delivers, not a
 // label. Products without an entry fall back to a rationale derived from the
@@ -318,6 +424,9 @@ function findingTitle(f: Finding): string {
 function findingProblem(f: Finding): string {
   return DIMENSION_COPY[f.dimension]?.problem ?? f.businessImpact;
 }
+function findingImpact(f: Finding): string {
+  return DIMENSION_COPY[f.dimension]?.impact ?? f.businessImpact;
+}
 function capitalize(s: string): string {
   return s.length ? s[0]!.toUpperCase() + s.slice(1) : s;
 }
@@ -337,7 +446,7 @@ function mapFinding(f: Finding, i: number): ReportFinding {
     severity: f.severity,
     problem: findingProblem(f),
     evidence: evidence.length > 0 ? evidence : ratingEvidence,
-    businessImpact: f.businessImpact,
+    businessImpact: findingImpact(f),
     recommendedAction: f.recommendedAction,
     expectedOutcome:
       f.successMetrics.length > 0
@@ -448,6 +557,62 @@ function mapHorizon(
       priority: i.priority,
     })),
   };
+}
+
+// Group findings into business themes so the report reads as one connected story.
+function buildThemes(
+  engineFindings: Finding[],
+  byDim: Map<string, ReportFinding>,
+): SynthesisTheme[] {
+  const out: SynthesisTheme[] = [];
+  for (const t of THEMES) {
+    const present = engineFindings.filter((f) => t.dims.includes(f.dimension));
+    if (present.length === 0) continue;
+    const findingTitles = present.map((f) => byDim.get(f.dimension)?.title ?? f.label);
+    const solutions = [
+      ...new Set(
+        present.flatMap((f) => byDim.get(f.dimension)?.solutions ?? f.services),
+      ),
+    ];
+    out.push({ name: t.name, summary: t.summary, findings: findingTitles, solutions });
+  }
+  return out;
+}
+
+// A synthesized paragraph connecting the themes — qualitative, no fabricated
+// numbers. This is what makes the report read as transformation, not an audit.
+function buildConnectedInsight(
+  themes: SynthesisTheme[],
+  findings: ReportFinding[],
+  name: string,
+): string {
+  if (findings.length === 0 || themes.length === 0) {
+    return `${name}'s website is fundamentally sound. The highest-value opportunities are most likely in areas a website scan cannot see — operations, AI readiness, and financial performance — which a full Transformation Assessment would surface.`;
+  }
+  const names = themes.map((t) => t.name.toLowerCase());
+  const themeList =
+    names.length > 1
+      ? `${names.slice(0, -1).join(", ")} and ${names[names.length - 1]}`
+      : names[0]!;
+  const count = findings.length;
+  return `These are not isolated website issues. Across ${themes.length} connected area${themes.length === 1 ? "" : "s"} of your business — ${themeList} — ${count} finding${count === 1 ? "" : "s"} point to the same pattern: growth is lost between the moment a buyer looks for you and the moment they decide. Fixed together and in sequence, they compound; fixed piecemeal, they don't. That is the difference between a website project and a business transformation.`;
+}
+
+function buildTransformationScope(themes: SynthesisTheme[]): TransformationScope {
+  return {
+    assessed: themes.map((t) => ({
+      area: t.name,
+      note: "Assessed from your website in this scan.",
+    })),
+    notYetAssessed: TRANSFORMATION_SCOPE_UNSEEN,
+  };
+}
+
+function buildBeginNow(findings: ReportFinding[]): string {
+  if (findings.length === 0) {
+    return "Your digital foundation is strong — the opportunity now is to extend that discipline into the parts of the business a website cannot show. The sooner that is mapped, the sooner it compounds.";
+  }
+  return "These gaps compound. As buyers move to AI-assisted and local search, every month an un-cited, hard-to-find site stays that way is demand that quietly goes elsewhere. The fastest-payback fixes can begin within 30 days — the sooner they are live, the sooner they work in your favor.";
 }
 
 // ---- Main builder ---------------------------------------------------------
@@ -613,6 +778,15 @@ export function buildReportView(
   const evidenceLimitation =
     "This report is based on your public website only. Financial impact, competitor performance, live search rankings, Google Business Profile status, reviews, backlinks, and Core Web Vitals are not yet measured and are marked as such — never estimated.";
 
+  const synthesisThemes = buildThemes(report.findings, findingsByDim);
+  const connectedInsight = buildConnectedInsight(
+    synthesisThemes,
+    findings,
+    business.name,
+  );
+  const transformationScope = buildTransformationScope(synthesisThemes);
+  const beginNow = buildBeginNow(findings);
+
   return {
     business,
     analyzedAtIso: opts?.analyzedAtIso ?? "",
@@ -624,6 +798,11 @@ export function buildReportView(
     dimensionsTotal,
     evidenceLimitation,
     executiveBriefing,
+    connectedInsight,
+    synthesisThemes,
+    transformationScope,
+    whyHermanLegacy: WHY_HERMAN_LEGACY,
+    beginNow,
     scorecard: scorecardRows,
     findings,
     priorityTable,

@@ -328,10 +328,43 @@ export function ReportView({ report: r }: { report: TransformationReportView }) 
         </div>
       </section>
 
-      {/* Scorecard */}
+      {/* The connected picture — synthesis across themes */}
       <section className="htr-sec">
         <div className="htr-sechead">
           <span className="htr-n">02</span>
+          <h2>The connected picture</h2>
+        </div>
+        <p className="htr-insight">{r.connectedInsight}</p>
+        {r.synthesisThemes.length > 0 ? (
+          <div className="htr-themes">
+            {r.synthesisThemes.map((t) => (
+              <div key={t.name} className="htr-theme">
+                <div className="htr-theme-name">{t.name}</div>
+                <div className="htr-theme-sum">{t.summary}</div>
+                <ul className="htr-theme-find">
+                  {t.findings.map((f, i) => (
+                    <li key={i}>{f}</li>
+                  ))}
+                </ul>
+                {t.solutions.length > 0 ? (
+                  <div className="htr-theme-sol">
+                    {t.solutions.map((s) => (
+                      <span key={s} className="htr-theme-chip">
+                        {s}
+                      </span>
+                    ))}
+                  </div>
+                ) : null}
+              </div>
+            ))}
+          </div>
+        ) : null}
+      </section>
+
+      {/* Scorecard */}
+      <section className="htr-sec">
+        <div className="htr-sechead">
+          <span className="htr-n">03</span>
           <h2>Where you stand — the scorecard</h2>
         </div>
         <p className="htr-lead">
@@ -345,7 +378,7 @@ export function ReportView({ report: r }: { report: TransformationReportView }) 
       {/* Findings */}
       <section className="htr-sec">
         <div className="htr-sechead">
-          <span className="htr-n">03</span>
+          <span className="htr-n">04</span>
           <h2>Findings ({r.findings.length})</h2>
         </div>
         {r.findings.length === 0 ? (
@@ -367,17 +400,57 @@ export function ReportView({ report: r }: { report: TransformationReportView }) 
       {r.priorityTable.length > 0 ? (
         <section className="htr-sec">
           <div className="htr-sechead">
-            <span className="htr-n">04</span>
+            <span className="htr-n">05</span>
             <h2>Priorities at a glance</h2>
           </div>
           <PriorityTable rows={r.priorityTable} />
         </section>
       ) : null}
 
+      {/* Beyond your website — the full transformation surface */}
+      <section className="htr-sec">
+        <div className="htr-sechead">
+          <span className="htr-n">06</span>
+          <h2>Beyond your website — the full transformation</h2>
+        </div>
+        <p className="htr-lead">
+          This scan reads your digital front door. Herman Legacy transforms the whole
+          business — the areas below are <b>not yet assessed</b> from a website alone
+          and are where the deeper opportunities usually live. We never estimate what we
+          haven&apos;t measured.
+        </p>
+        <div className="htr-scope">
+          <div className="htr-scope-col">
+            <div className="htr-flabel">Assessed in this report</div>
+            <ul className="htr-scope-list htr-scope-done">
+              {r.transformationScope.assessed.map((a) => (
+                <li key={a.area}>
+                  <b>{a.area}</b>
+                  <span>{a.note}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+          <div className="htr-scope-col">
+            <div className="htr-flabel">
+              Not yet assessed — unlock with a full assessment
+            </div>
+            <ul className="htr-scope-list htr-scope-todo">
+              {r.transformationScope.notYetAssessed.map((a) => (
+                <li key={a.area}>
+                  <b>{a.area}</b>
+                  <span>{a.note}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </div>
+      </section>
+
       {/* Blueprint */}
       <section className="htr-sec">
         <div className="htr-sechead">
-          <span className="htr-n">05</span>
+          <span className="htr-n">07</span>
           <h2>Your transformation blueprint</h2>
         </div>
         <div className="htr-timeline">
@@ -423,7 +496,7 @@ export function ReportView({ report: r }: { report: TransformationReportView }) 
       {/* Recommended transformations */}
       <section className="htr-sec">
         <div className="htr-sechead">
-          <span className="htr-n">06</span>
+          <span className="htr-n">08</span>
           <h2>Recommended transformations</h2>
         </div>
         <p className="htr-lead">
@@ -469,6 +542,23 @@ export function ReportView({ report: r }: { report: TransformationReportView }) 
             ))}
           </div>
         )}
+      </section>
+
+      {/* Why Herman Legacy + urgency */}
+      <section className="htr-sec">
+        <div className="htr-sechead">
+          <span className="htr-n">09</span>
+          <h2>Why Herman Legacy</h2>
+        </div>
+        <ul className="htr-why">
+          {r.whyHermanLegacy.map((w, i) => (
+            <li key={i}>{w}</li>
+          ))}
+        </ul>
+        <div className="htr-begin">
+          <div className="htr-flabel">Why begin now</div>
+          <p>{r.beginNow}</p>
+        </div>
       </section>
 
       {/* CTA */}
@@ -643,15 +733,43 @@ const CSS = `
   .htr-cover{grid-template-columns:1fr}
   .htr-cover-score{justify-self:start}
   .htr-kpis{grid-template-columns:1fr}
-  .htr-brief,.htr-fgrid,.htr-fsolve,.htr-timeline,.htr-xf{grid-template-columns:1fr}
+  .htr-brief,.htr-fgrid,.htr-fsolve,.htr-timeline,.htr-xf,.htr-themes,.htr-scope{grid-template-columns:1fr}
   .htr-scrow{grid-template-columns:120px 1fr 52px;gap:10px}
 }
+
+/* Connected picture */
+.htr-insight{font-family:var(--serif);font-size:18px;line-height:1.5;max-width:44em;margin:0 0 18px;color:var(--ink)}
+.htr-themes{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.htr-theme{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px;border-top:3px solid var(--accent)}
+.htr-theme-name{font-family:var(--serif);font-size:16px;font-weight:600}
+.htr-theme-sum{font-size:12.5px;color:var(--muted);margin-top:4px;line-height:1.45}
+.htr-theme-find{margin:11px 0 0;padding-left:17px;font-size:13px;color:var(--ink);display:grid;gap:4px}
+.htr-theme-sol{display:flex;gap:6px;flex-wrap:wrap;margin-top:11px}
+.htr-theme-chip{font-size:11.5px;font-weight:600;color:var(--accent);background:#eef4f8;border-radius:7px;padding:3px 9px}
+
+/* Beyond your website — transformation scope */
+.htr-scope{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:6px}
+.htr-scope-list{list-style:none;padding:0;margin:8px 0 0;display:grid;gap:8px}
+.htr-scope-list li{border-left:3px solid var(--line);padding:2px 0 2px 12px}
+.htr-scope-list li b{display:block;font-size:13.5px;color:var(--ink)}
+.htr-scope-list li span{font-size:12px;color:var(--muted)}
+.htr-scope-done li{border-left-color:var(--good)}
+.htr-scope-todo li{border-left-color:var(--brass)}
+
+/* Why Herman Legacy + urgency */
+.htr-why{list-style:none;padding:0;margin:0;display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.htr-why li{position:relative;padding-left:22px;font-size:14px;line-height:1.5;color:var(--ink)}
+.htr-why li::before{content:"";position:absolute;left:0;top:7px;width:9px;height:9px;border-radius:2px;background:var(--brass)}
+.htr-begin{margin-top:18px;background:var(--paper);border:1px solid var(--line);border-left:4px solid var(--brass);border-radius:10px;padding:14px 16px}
+.htr-begin p{margin:5px 0 0;font-size:14.5px;line-height:1.5;color:var(--ink);font-family:var(--serif)}
+
+@media (max-width:760px){ .htr-why{grid-template-columns:1fr} }
 
 @media print{
   .htr{font-size:11.5px}
   .htr-cta,.htr-btn{display:none !important}
   .htr *{-webkit-print-color-adjust:exact;print-color-adjust:exact}
-  .htr-sec,.htr-finding,.htr-phase,.htr-xcard,.htr-kpi{break-inside:avoid}
+  .htr-sec,.htr-finding,.htr-phase,.htr-xcard,.htr-kpi,.htr-theme{break-inside:avoid}
   .htr-cover{break-inside:avoid}
 }
 @media (prefers-reduced-motion:reduce){ .htr-gauge-arc{transition:none} }
