@@ -30,19 +30,35 @@ export interface TransformationOption {
   tradeoffs: string;
 }
 
+// How a success metric can be observed — honest about what's available today.
+export type MeasurementSource =
+  "Available now" | "Instrumentation required" | "Client data required";
+export interface Measurement {
+  metric: string;
+  source: MeasurementSource;
+}
+
 export type Recommendation =
   | {
       mode: "selected";
       optionTitle: string;
       why: string;
-      whyNotOthers: string;
+      whyNotLighter: string; // "" when no lighter option exists
+      whyNotHeavier: string; // "" when no heavier option exists
       dependencies: string;
       unknowns: string;
       changeTrigger: string;
       capabilities: string[];
       expectedOutcome: string;
+      measurement: Measurement[];
     }
-  | { mode: "single"; note: string; capabilities: string[]; expectedOutcome: string }
+  | {
+      mode: "single";
+      note: string;
+      capabilities: string[];
+      expectedOutcome: string;
+      measurement: Measurement[];
+    }
   | { mode: "discovery"; note: string };
 
 export interface FindingReasoning {
@@ -340,24 +356,78 @@ export function classifyRootCause(
   };
 }
 
-const SEVERITY_WORD = (severity: number): string =>
-  severity >= 4 ? "critical" : severity === 3 ? "high" : "moderate";
+// The context each recommendation is assembled from — real, finding-specific
+// inputs so the prose is reasoning, not a reused wrapper.
+export interface RecommendContext {
+  evidenceHint?: string; // the top specific evidence line for this finding
+  rootCause: string;
+  successMetrics: string[]; // the engine's kb metrics for this dimension
+  fallbackAction: string;
+  goal?: { desiredState: string; observable: boolean; aligned: boolean };
+}
+
+// Lowercase the first letter so a sentence fragment can flow mid-sentence —
+// but leave a leading acronym (CRM, HTTPS, SEO, AI) intact: "cRM" reads as a typo.
+function lcFirst(s: string): string {
+  if (!s.length) return s;
+  if (/^[A-Z]{2,}/.test(s)) return s; // leading all-caps acronym — don't touch
+  return s[0]!.toLowerCase() + s.slice(1);
+}
+function noPeriod(s: string): string {
+  return s.replace(/\s*\.\s*$/, "");
+}
+
+// Turn an option's `whyFit` into a clause that reads correctly after "because".
+// Many are phrased "Fits when …" — a bare verb that needs a subject ("it fits
+// when …"); the rest are observations ("No structured data was found …") that
+// already flow after "because". Nothing is invented — only the connector adapts.
+function fitReason(whyFit: string): string {
+  const s = noPeriod(whyFit);
+  if (/^Fits\b/.test(s)) return "it " + lcFirst(s);
+  return lcFirst(s);
+}
+
+// Classify a success metric by how it can actually be observed. Honest by
+// design: most business KPIs need instrumentation or client data; only signals
+// we can re-read from the site itself are "Available now". Metrics are the
+// engine's own — none are invented here.
+export function classifyMetric(metric: string): MeasurementSource {
+  const s = metric.toLowerCase();
+  if (/\bcost\b|revenue|\broi\b|margin|per month|\/\s*month|per lead|per unit/.test(s))
+    return "Client data required";
+  if (/structured[-\s]?data|schema|https|core web vitals/.test(s))
+    return "Available now";
+  return "Instrumentation required";
+}
+function measurementsFrom(metrics: string[]): Measurement[] {
+  return metrics.map((m) => ({ metric: m, source: classifyMetric(m) }));
+}
+
+// A discovery caveat, added only when the client's stated goal lives beyond what
+// a website can evaluate — we never manufacture relevance to an operational goal.
+function goalCaveat(goal?: RecommendContext["goal"]): string {
+  if (goal && !goal.observable) {
+    return " This recommendation addresses the observable digital condition, but operational discovery is required before determining its contribution to your stated goal.";
+  }
+  return "";
+}
 
 // Choose the recommended transformation — only when the evidence supports it.
 export function recommend(
   options: TransformationOption[],
   severity: number,
   confidence: "High" | "Moderate" | "Low",
-  goalAligned: boolean,
-  goalObservable: boolean,
-  fallbackAction: string,
+  ctx: RecommendContext,
 ): Recommendation {
+  const measurement = measurementsFrom(ctx.successMetrics);
+
   if (options.length === 0) {
     return {
       mode: "single",
-      note: `A single credible correction applies here: ${fallbackAction.toLowerCase()}.`,
+      note: `A single credible correction applies here: ${lcFirst(noPeriod(ctx.fallbackAction))}.${goalCaveat(ctx.goal)}`,
       capabilities: [],
       expectedOutcome: "Improvement measured against the benchmark for this dimension.",
+      measurement,
     };
   }
 
@@ -369,66 +439,79 @@ export function recommend(
     };
   }
 
+  const evidence = ctx.evidenceHint ? noPeriod(ctx.evidenceHint) : ctx.rootCause;
+
   if (options.length === 1) {
     const o = options[0]!;
     return {
       mode: "selected",
       optionTitle: o.title,
-      why: `This is the only credible approach the evidence supports — ${o.whyFit.toLowerCase()}`,
-      whyNotOthers:
-        "No materially different alternative is warranted by what the scan can see.",
+      why: `${evidence} — ${lcFirst(noPeriod(o.whatChanges))} is the one correct response, and ${lcFirst(noPeriod(o.whyFit))}.${goalCaveat(ctx.goal)}`,
+      whyNotLighter: "",
+      whyNotHeavier: `There is no lighter or heavier alternative worth weighing: ${lcFirst(noPeriod(o.tradeoffs))}.`,
       dependencies: o.dependencies,
-      unknowns: goalObservable
-        ? "None material from the website evidence."
-        : "The underlying business cause needs operational discovery to confirm.",
-      changeTrigger:
-        "New evidence — e.g., an existing system already in place — would change this.",
+      unknowns:
+        ctx.goal && !ctx.goal.observable
+          ? "How much this moves your stated goal needs operational discovery to confirm."
+          : "None material from the website evidence for this specific fix.",
+      changeTrigger: `Nothing the scan could add would change this — ${lcFirst(noPeriod(o.whyFit))}, and that condition is already met.`,
       capabilities: o.capabilities,
       expectedOutcome: o.expectedOutcome,
+      measurement,
     };
   }
 
   // Multiple options: pick a depth that matches severity, nudged by the goal.
   const maxDepth = Math.max(...options.map((o) => o.depth));
   let target = severity >= 4 ? 3 : severity === 3 ? 2 : 1;
-  if (goalAligned) target = Math.max(target, 2); // a stated goal warrants a connected approach
+  if (ctx.goal?.aligned) target = Math.max(target, 2); // a stated, aligned goal warrants a connected approach
   target = Math.min(target, maxDepth);
 
   const sorted = options.slice().sort((a, b) => a.depth - b.depth);
-  // Nearest option at or below target; else the smallest available.
   const atOrBelow = sorted.filter((o) => o.depth <= target);
   const chosen = (atOrBelow.length > 0 ? atOrBelow[atOrBelow.length - 1] : sorted[0])!;
   const lighter = sorted.find((o) => o.depth < chosen.depth);
   const heavier = sorted.find((o) => o.depth > chosen.depth);
 
-  const why =
-    `${goalAligned ? "This bears directly on the outcome you told us you want, and " : ""}` +
-    `it matches the ${SEVERITY_WORD(severity)} severity and ${confidence.toLowerCase()} confidence of this finding — ${chosen.whyFit.toLowerCase()}`;
-  const whyParts: string[] = [];
-  if (lighter)
-    whyParts.push(
-      `“${lighter.title}” would leave part of the gap open given the ${SEVERITY_WORD(severity)} severity.`,
-    );
-  if (heavier)
-    whyParts.push(
-      `“${heavier.title}” adds dependencies (${heavier.dependencies.toLowerCase().replace(/\.$/, "")}) the current evidence doesn't yet justify.`,
-    );
+  // WHY THIS — assembled from the finding's own evidence + the chosen option,
+  // and tied to the client's desired state when the goal actually aligns.
+  const goalLead =
+    ctx.goal?.aligned && ctx.goal.observable
+      ? `You want ${noPeriod(ctx.goal.desiredState)}. `
+      : "";
+  const why = `${goalLead}${evidence} — ${lcFirst(noPeriod(chosen.whatChanges))} because ${fitReason(chosen.whyFit)}.${goalCaveat(ctx.goal)}`;
+
+  // WHY NOT LIGHTER — the lighter option's own trade-off, not a universal line.
+  const whyNotLighter = lighter
+    ? `“${lighter.title}” ${lcFirst(noPeriod(lighter.tradeoffs))} — it would ${lighter.delivery === "One-time" ? "correct the surface issue without the connected follow-through this needs" : "start the motion but stop short of the workflow this finding calls for"}.`
+    : "";
+
+  // WHY NOT HEAVIER — the heavier option's actual added requirement, not "too heavy".
+  const whyNotHeavier = heavier
+    ? `“${heavier.title}” would go further, but it requires ${lcFirst(noPeriod(heavier.dependencies))} — a commitment the current website evidence doesn't yet justify.`
+    : "";
+
+  // WHAT COULD CHANGE IT — tied to specific, nameable evidence.
+  const changeTrigger = heavier
+    ? `Evidence that ${lcFirst(noPeriod(heavier.dependencies))} is already in place would justify escalating to “${heavier.title}”.`
+    : ctx.goal && !ctx.goal.observable
+      ? "Operational discovery — your current tools, staffing, and response times — could change how far this needs to go."
+      : `Evidence that the lighter “${lighter?.title ?? "focused"}” step was already tried and fell short would confirm this depth; otherwise it is already the proportionate call.`;
 
   return {
     mode: "selected",
     optionTitle: chosen.title,
     why,
-    whyNotOthers:
-      whyParts.length > 0
-        ? whyParts.join(" ")
-        : "No materially different alternative is warranted by the current evidence.",
+    whyNotLighter,
+    whyNotHeavier,
     dependencies: chosen.dependencies,
-    unknowns: goalObservable
-      ? "None material from the website evidence; operational discovery would refine scope."
-      : "Part of this goal lives in operations a website can't see — discovery would confirm scope.",
-    changeTrigger:
-      "New evidence from operational discovery — e.g., an existing CRM, booking system, or team process — would change this recommendation.",
+    unknowns:
+      ctx.goal && !ctx.goal.observable
+        ? "Part of your stated goal lives in operations a website can't see — discovery would confirm scope."
+        : "None material from the website evidence; a short operational review would refine scope.",
+    changeTrigger,
     capabilities: chosen.capabilities,
     expectedOutcome: chosen.expectedOutcome,
+    measurement,
   };
 }

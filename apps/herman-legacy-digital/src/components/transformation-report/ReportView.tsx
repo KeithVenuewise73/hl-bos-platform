@@ -103,6 +103,11 @@ const CERTAINTY_KEY: Record<string, string> = {
   Inferred: "inferred",
   "Discovery required": "discovery",
 };
+const SRC_KEY: Record<string, string> = {
+  "Available now": "now",
+  "Instrumentation required": "instr",
+  "Client data required": "client",
+};
 
 function FindingCard({ f }: { f: ReportFinding }) {
   const r = f.reasoning;
@@ -118,6 +123,7 @@ function FindingCard({ f }: { f: ReportFinding }) {
     rec.mode === "discovery"
       ? "Defined once the right transformation is selected."
       : rec.expectedOutcome;
+  const measurement = rec.mode === "discovery" ? [] : rec.measurement;
 
   return (
     <article className={`htr-finding htr-sev-${f.priority}`}>
@@ -208,9 +214,16 @@ function FindingCard({ f }: { f: ReportFinding }) {
             <p className="htr-fbody">
               <b>{rec.optionTitle}.</b> {rec.why}
             </p>
-            <p className="htr-fbody htr-rec-alt">
-              <b>Why not the alternatives:</b> {rec.whyNotOthers}
-            </p>
+            {rec.whyNotLighter ? (
+              <p className="htr-fbody htr-rec-alt">
+                <b>Why not a lighter step:</b> {rec.whyNotLighter}
+              </p>
+            ) : null}
+            {rec.whyNotHeavier ? (
+              <p className="htr-fbody htr-rec-alt">
+                <b>Why not a bigger program:</b> {rec.whyNotHeavier}
+              </p>
+            ) : null}
             <div className="htr-recmeta">
               <span>
                 Dependencies<b>{rec.dependencies}</b>
@@ -247,6 +260,23 @@ function FindingCard({ f }: { f: ReportFinding }) {
         <div>
           <span className="htr-flabel">Expected outcome</span>
           <p className="htr-fbody">{outcome}</p>
+          {measurement.length > 0 ? (
+            <>
+              <span className="htr-flabel" style={{ marginTop: 12, display: "block" }}>
+                How success will be measured
+              </span>
+              <ul className="htr-measure">
+                {measurement.map((m) => (
+                  <li key={m.metric}>
+                    <span className="htr-measure-metric">{m.metric}</span>
+                    <span className={`htr-measure-src htr-src-${SRC_KEY[m.source]}`}>
+                      {m.source}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </>
+          ) : null}
         </div>
       </div>
     </article>
@@ -852,6 +882,13 @@ const CSS = `
 .htr-rec{margin-top:16px;padding:14px 16px;background:#eef4f8;border:1px solid var(--line);border-left:4px solid var(--accent);border-radius:10px}
 .htr-rec .htr-fbody{font-size:13.5px;margin:4px 0 0;line-height:1.5}
 .htr-rec-alt{color:var(--muted)}
+.htr-measure{list-style:none;padding:0;margin:6px 0 0;display:grid;gap:5px}
+.htr-measure li{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.htr-measure-metric{font-size:13px;color:var(--ink)}
+.htr-measure-src{font-size:10px;font-weight:700;letter-spacing:.03em;text-transform:uppercase;border-radius:5px;padding:1px 7px}
+.htr-src-now{background:#e7f2ec;color:#1c6a41}
+.htr-src-instr{background:#eaf1f7;color:#1f5f8b}
+.htr-src-client{background:#f5edda;color:#8a6416}
 .htr-disc{font-size:13.5px;color:#8a6416;background:#f5edda;border-radius:8px;padding:10px 12px;margin:6px 0 0;line-height:1.5}
 .htr-recmeta{display:grid;gap:8px;margin-top:12px;padding-top:10px;border-top:1px solid var(--line)}
 .htr-recmeta > span{display:grid;grid-template-columns:120px 1fr;gap:10px;font-size:11px;letter-spacing:.05em;text-transform:uppercase;color:var(--soft);font-weight:700}

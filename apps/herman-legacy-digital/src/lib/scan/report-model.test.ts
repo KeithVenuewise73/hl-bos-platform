@@ -325,13 +325,50 @@ describe("options-based reasoning per finding", () => {
       const rec = f.reasoning.recommendation;
       if (rec.mode === "selected") {
         expect(rec.why.length).toBeGreaterThan(0);
-        expect(rec.whyNotOthers.length).toBeGreaterThan(0);
+        // Every selected recommendation weighs at least one alternative — a
+        // lighter one, a heavier one, or (single-option) the "no alternative"
+        // statement. Empty on BOTH sides would mean an unweighed pick.
+        expect(rec.whyNotLighter.length + rec.whyNotHeavier.length).toBeGreaterThan(0);
       } else if (rec.mode === "discovery") {
         expect(rec.note.toLowerCase()).toContain("discovery");
       } else {
         expect(rec.note.length).toBeGreaterThan(0);
       }
     }
+  });
+
+  it("assembles each why-not from the option's OWN trade-off — not a shared wrapper", () => {
+    const v = viewGoal(WEAK_HTML);
+    const selected = v.findings
+      .map((f) => f.reasoning.recommendation)
+      .filter((r) => r.mode === "selected");
+    // Across unrelated findings the comparative prose must differ — a templated
+    // wrapper would repeat verbatim. Compare the why-not-heavier lines that exist.
+    const heavier = selected.map((r) => r.whyNotHeavier).filter((s) => s.length > 0);
+    if (heavier.length > 1) {
+      expect(new Set(heavier).size).toBeGreaterThan(1);
+    }
+    // And the why itself is not one repeated sentence across findings.
+    const whys = selected.map((r) => r.why);
+    if (whys.length > 1) expect(new Set(whys).size).toBeGreaterThan(1);
+  });
+
+  it("surfaces a classified success measurement on every selected recommendation", () => {
+    const v = viewGoal(WEAK_HTML);
+    const VALID = ["Available now", "Instrumentation required", "Client data required"];
+    let sawSelected = false;
+    for (const f of v.findings) {
+      const rec = f.reasoning.recommendation;
+      if (rec.mode === "selected") {
+        sawSelected = true;
+        expect(rec.measurement.length).toBeGreaterThan(0);
+        for (const m of rec.measurement) {
+          expect(m.metric.length).toBeGreaterThan(0);
+          expect(VALID).toContain(m.source);
+        }
+      }
+    }
+    expect(sawSelected).toBe(true);
   });
 
   it("lets the client goal shape the recommendation reasoning", () => {
@@ -341,10 +378,34 @@ describe("options-based reasoning per finding", () => {
     );
     expect(aligned).toBeTruthy();
     if (aligned && aligned.reasoning.recommendation.mode === "selected") {
+      // The why opens from the customer's own desired state, verbatim.
       expect(aligned.reasoning.recommendation.why.toLowerCase()).toContain(
-        "outcome you told us",
+        "strong visibility everywhere buyers look",
       );
     }
+  });
+
+  it("adds the operational-discovery caveat only when the goal isn't observable", () => {
+    const CAVEAT = "operational discovery is required";
+    // An observable, aligned goal never triggers the caveat.
+    const observable = viewGoal(WEAK_HTML, "online_visibility");
+    for (const f of observable.findings) {
+      const rec = f.reasoning.recommendation;
+      if (rec.mode === "selected" && f.goalAligned) {
+        expect(rec.why.toLowerCase()).not.toContain(CAVEAT);
+      }
+    }
+    // An operational goal a website can't see attaches the caveat verbatim.
+    const operational = viewGoal(WEAK_HTML, "reduce_labor");
+    const caveated = operational.findings.some((f) => {
+      const rec = f.reasoning.recommendation;
+      const prose =
+        rec.mode === "selected" ? rec.why : rec.mode === "single" ? rec.note : "";
+      return prose.toLowerCase().includes(CAVEAT);
+    });
+    // reduce_labor maps to technology_stack, which a website cannot fully assess —
+    // at least one recommendation must carry the operational-discovery caveat.
+    expect(caveated).toBe(true);
   });
 
   it("recommends no capability without a justified need (traces to an option)", () => {
@@ -374,8 +435,10 @@ describe("options-based reasoning per finding", () => {
       if (r.recommendation.mode === "selected") {
         strings.push(
           r.recommendation.why,
-          r.recommendation.whyNotOthers,
+          r.recommendation.whyNotLighter,
+          r.recommendation.whyNotHeavier,
           r.recommendation.expectedOutcome,
+          ...r.recommendation.measurement.map((m) => m.metric),
         );
       }
       for (const s of strings) expect(s).not.toMatch(NUM);

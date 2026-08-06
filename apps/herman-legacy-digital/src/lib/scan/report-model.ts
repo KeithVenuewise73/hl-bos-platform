@@ -578,12 +578,8 @@ function capitalize(s: string): string {
   return s.length ? s[0]!.toUpperCase() + s.slice(1) : s;
 }
 
-function mapFinding(
-  f: Finding,
-  i: number,
-  goalDims: string[] = [],
-  goalObservable = true,
-): ReportFinding {
+function mapFinding(f: Finding, i: number, goal?: DiscoveryGoal): ReportFinding {
+  const goalDims = goal?.dims ?? [];
   const attached = f.supportingEvidence.filter((e) =>
     e.startsWith("Attached evidence:"),
   );
@@ -597,14 +593,21 @@ function mapFinding(
   const reasoning: FindingReasoning = {
     rootCause: classifyRootCause(f.rootCause, attached.length > 0),
     options,
-    recommendation: recommend(
-      options,
-      f.severity,
-      confidence,
-      goalAligned,
-      goalObservable,
-      f.recommendedAction,
-    ),
+    recommendation: recommend(options, f.severity, confidence, {
+      ...(evidence[0] ? { evidenceHint: evidence[0] } : {}),
+      rootCause: f.rootCause,
+      successMetrics: f.successMetrics,
+      fallbackAction: f.recommendedAction,
+      ...(goal
+        ? {
+            goal: {
+              desiredState: goal.desiredState,
+              observable: goal.observable,
+              aligned: goalAligned,
+            },
+          }
+        : {}),
+    }),
   };
   return {
     id: `${f.domain}.${f.dimension}.${i}`,
@@ -956,7 +959,6 @@ export function buildReportView(
   const { report, business, proposal, coverageNote, scorecard } = analysis;
   const goal = goalById(opts?.goalId);
   const goalDims = goal?.dims ?? [];
-  const goalObservable = goal?.observable ?? true;
 
   const findings: ReportFinding[] = report.findings
     .slice()
@@ -969,7 +971,7 @@ export function buildReportView(
       if (ga !== 0) return ga;
       return b.severity - a.severity;
     })
-    .map((f, i) => mapFinding(f, i, goalDims, goalObservable));
+    .map((f, i) => mapFinding(f, i, goal));
 
   const scorecardRows: ScorecardRow[] = scorecard
     .slice()
@@ -995,7 +997,7 @@ export function buildReportView(
   // Findings indexed by dimension key for blueprint/solution joins.
   const findingsByDim = new Map<string, ReportFinding>();
   report.findings.forEach((f, i) =>
-    findingsByDim.set(f.dimension, mapFinding(f, i, goalDims, goalObservable)),
+    findingsByDim.set(f.dimension, mapFinding(f, i, goal)),
   );
 
   const horizons: HorizonPlan[] = [
