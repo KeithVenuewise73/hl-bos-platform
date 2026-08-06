@@ -15,6 +15,7 @@
 // never a number, and always shown beside the real evidence and claim class.
 
 import type { analyst, consulting } from "@hl-bos/bti-engine";
+import { goalById, type DiscoveryGoal } from "./discovery";
 
 type BusinessAnalysis = analyst.BusinessAnalysis;
 type ScorecardEntry = analyst.ScorecardEntry;
@@ -112,6 +113,7 @@ export interface ReportFinding {
   confidence: ConfidenceLabel;
   solutions: string[];
   claims: ClaimView[];
+  goalAligned: boolean; // this finding directly bears on the customer's stated goal
 }
 
 export interface PriorityRow {
@@ -161,6 +163,21 @@ export interface ExecutiveBriefing {
   pathForward: string;
 }
 
+// The Executive Discovery answer + the Current → Desired → Gap spine it drives.
+export interface Discovery {
+  hasGoal: boolean;
+  goalLabel?: string; // the customer's own words / chosen goal
+  desiredState?: string; // "what success looks like"
+  ownWords?: string; // optional free-text the customer typed
+  observable: boolean; // whether the website scan can substantially assess it
+}
+
+export interface TransformationSpine {
+  currentState: string;
+  desiredState: string; // present when a goal was captured; else a neutral prompt
+  theGap: string;
+}
+
 export interface SynthesisTheme {
   name: string;
   summary: string;
@@ -198,11 +215,14 @@ export interface TransformationReportView {
   pagesAnalyzed: number;
   score: number | null;
   scoreBand: string | null;
+  scoreExplanation: string;
   headline: string;
   criticalHighCount: number;
   dimensionsBelowBenchmark: number;
   dimensionsTotal: number;
   evidenceLimitation: string;
+  discovery: Discovery;
+  transformation: TransformationSpine;
   executiveBriefing: ExecutiveBriefing;
   executiveOutcomes: string[];
   engagement: EngagementPlan;
@@ -551,7 +571,7 @@ function capitalize(s: string): string {
   return s.length ? s[0]!.toUpperCase() + s.slice(1) : s;
 }
 
-function mapFinding(f: Finding, i: number): ReportFinding {
+function mapFinding(f: Finding, i: number, goalDims: string[] = []): ReportFinding {
   const evidence = f.supportingEvidence
     .filter((e) => e.startsWith("Attached evidence:"))
     .map((e) => e.replace(/^Attached evidence:\s*/, ""));
@@ -580,6 +600,7 @@ function mapFinding(f: Finding, i: number): ReportFinding {
       type: capitalize(c.type) as ClaimClass,
       text: c.text,
     })),
+    goalAligned: goalDims.includes(f.dimension),
   };
 }
 
@@ -758,6 +779,7 @@ function buildEngagement(
   engineFindings: Finding[],
   byDim: Map<string, ReportFinding>,
   distinctWeakThemes: number,
+  goal: DiscoveryGoal | undefined,
 ): EngagementPlan {
   const scoreFor = (dims: string[]): number =>
     engineFindings
@@ -768,13 +790,27 @@ function buildEngagement(
 
   let recommendedId: string;
   let recommendationReason: string;
+
+  // When the customer told us their goal AND their findings support the track it
+  // points to (and the picture isn't broadly critical), we begin exactly where
+  // they asked — the recommendation becomes their own words made actionable.
+  const goalTrack = goal ? TRACK_DEFS.find((t) => t.id === goal.trackId) : undefined;
+  const goalTrackHasSupport =
+    goalTrack && goalTrack.dims.length > 0 && scoreFor(goalTrack.dims) > 0;
+
   if (engineFindings.length === 0) {
-    recommendedId = "ai_transformation";
-    recommendationReason =
-      "Your website is already strong, so we'd begin where the next advantage is: putting AI to work across how you're found and how you operate.";
+    recommendedId = goal?.trackId ?? "ai_transformation";
+    recommendationReason = goal
+      ? `You told us you want ${goal.desiredState}. Your website is already strong, so we'd begin extending that strength toward exactly that outcome.`
+      : "Your website is already strong, so we'd begin where the next advantage is: putting AI to work across how you're found and how you operate.";
   } else if (distinctWeakThemes >= 3 || totalCritical >= 2) {
     recommendedId = "complete";
-    recommendationReason = `Because the gaps span ${distinctWeakThemes} connected areas of your business, a coordinated program will out-perform fixing one channel at a time.`;
+    recommendationReason = goal
+      ? `You want ${goal.desiredState}. Because the gaps span ${distinctWeakThemes} connected areas of your business, a coordinated program is the fastest path to that outcome.`
+      : `Because the gaps span ${distinctWeakThemes} connected areas of your business, a coordinated program will out-perform fixing one channel at a time.`;
+  } else if (goalTrackHasSupport && goalTrack) {
+    recommendedId = goalTrack.id;
+    recommendationReason = `You told us you want ${goal!.desiredState}. Your findings cluster in exactly the area this addresses, so it's the fastest path to that outcome.`;
   } else {
     const focused = TRACK_DEFS.filter((t) => t.dims.length > 0);
     let best = focused[0]!;
@@ -787,7 +823,9 @@ function buildEngagement(
       }
     }
     recommendedId = best.id;
-    recommendationReason = `Your highest-priority findings cluster here, so this is the fastest path to a result you can measure.`;
+    recommendationReason = goal
+      ? `You want ${goal.desiredState}. Your highest-priority findings cluster here, so this is the fastest path to that outcome.`
+      : `Your highest-priority findings cluster here, so this is the fastest path to a result you can measure.`;
   }
 
   const tracks: EngagementTrack[] = TRACK_DEFS.map((t) => {
@@ -813,22 +851,95 @@ function buildEngagement(
   return { recommendedId, recommendationReason, tracks };
 }
 
+// Answer "why was my business scored 47?" before the customer can ask it — the
+// overall score is the roll-up of the dimensions below, and the biggest drag is
+// named explicitly. Nothing here is invented; it reads straight off the scorecard.
+function buildScoreExplanation(score: number | null, rows: ScorecardRow[]): string {
+  if (score === null || rows.length === 0) return "";
+  const weakest = rows
+    .slice()
+    .sort((a, b) => a.score - b.score)
+    .slice(0, 3)
+    .map((r) => `${r.label} (${r.score})`);
+  return `Your ${score}/100 is the roll-up of the ${rows.length} dimensions below — each scored from real signals on your site. The biggest drag came from ${weakest.join(", ")}. Raise those and the score rises with them.`;
+}
+
+// The consulting spine: Current State → Desired State → The Gap. The Desired State
+// is the customer's own goal (Executive Discovery); the Gap connects it to what
+// the scan actually found. Qualitative, evidence-anchored, no invented numbers.
+function buildTransformationSpine(
+  name: string,
+  score: number | null,
+  band: string | null,
+  scorecardRows: ScorecardRow[],
+  goalAlignedFindings: ReportFinding[],
+  allFindings: ReportFinding[],
+  goal: DiscoveryGoal | undefined,
+): TransformationSpine {
+  const strengths = scorecardRows.filter((r) => r.status === "strength");
+  const weakest = scorecardRows
+    .slice()
+    .sort((a, b) => a.score - b.score)
+    .slice(0, 2)
+    .map((r) => r.label);
+  const scoreClause =
+    score === null ? "was not scored in this scan" : `scores ${score}/100 (${band})`;
+  const currentState =
+    `Today, ${name}'s digital presence ${scoreClause}. ` +
+    (strengths.length > 0
+      ? `You're already strong in ${strengths
+          .slice(0, 2)
+          .map((s) => s.label)
+          .join(" and ")}; `
+      : "") +
+    (weakest.length > 0 ? `the clearest drag is ${weakest.join(" and ")}.` : "");
+
+  if (!goal) {
+    return {
+      currentState,
+      desiredState:
+        "Tell us what a better business looks like for you and we'll frame the gap against exactly that goal.",
+      theGap: "",
+    };
+  }
+
+  const goalFindingTitles = goalAlignedFindings.slice(0, 3).map((f) => f.title);
+  const gapCore =
+    goalAlignedFindings.length > 0
+      ? `The gaps standing most directly between you and that goal: ${goalFindingTitles.join("; ")}.`
+      : allFindings.length > 0
+        ? `Your website doesn't show an obvious block to that goal, but ${allFindings.length} related gap${allFindings.length === 1 ? "" : "s"} still hold back the surrounding fundamentals.`
+        : "Your website shows no obvious block to that goal.";
+  const unseen = goal.observable
+    ? ""
+    : " Part of this goal lives in operations or finance a website scan can't see — we map that in a full assessment, and never estimate what we haven't measured.";
+  const theGap = `You want ${goal.desiredState}. ${gapCore}${unseen} Closing them is the path from where you are to where you want to be.`;
+
+  return { currentState, desiredState: goal.desiredState, theGap };
+}
+
 // ---- Main builder ---------------------------------------------------------
 
 export function buildReportView(
   analysis: BusinessAnalysis,
-  opts?: { analyzedAtIso?: string },
+  opts?: { analyzedAtIso?: string; goalId?: string; goalOwnWords?: string },
 ): TransformationReportView {
   const { report, business, proposal, coverageNote, scorecard } = analysis;
+  const goal = goalById(opts?.goalId);
+  const goalDims = goal?.dims ?? [];
 
   const findings: ReportFinding[] = report.findings
     .slice()
-    .sort(
-      (a, b) =>
-        PRIORITY_RANK[a.priority] - PRIORITY_RANK[b.priority] ||
-        b.severity - a.severity,
-    )
-    .map(mapFinding);
+    .sort((a, b) => {
+      const p = PRIORITY_RANK[a.priority] - PRIORITY_RANK[b.priority];
+      if (p !== 0) return p;
+      // Within the same priority, findings that bear on the customer's goal first.
+      const ga =
+        Number(goalDims.includes(b.dimension)) - Number(goalDims.includes(a.dimension));
+      if (ga !== 0) return ga;
+      return b.severity - a.severity;
+    })
+    .map((f, i) => mapFinding(f, i, goalDims));
 
   const scorecardRows: ScorecardRow[] = scorecard
     .slice()
@@ -853,7 +964,9 @@ export function buildReportView(
 
   // Findings indexed by dimension key for blueprint/solution joins.
   const findingsByDim = new Map<string, ReportFinding>();
-  report.findings.forEach((f, i) => findingsByDim.set(f.dimension, mapFinding(f, i)));
+  report.findings.forEach((f, i) =>
+    findingsByDim.set(f.dimension, mapFinding(f, i, goalDims)),
+  );
 
   const horizons: HorizonPlan[] = [
     mapHorizon(
@@ -989,7 +1102,30 @@ export function buildReportView(
     report.findings,
     findingsByDim,
     synthesisThemes.length,
+    goal,
   );
+
+  const scoreExplanation = buildScoreExplanation(
+    report.transformationScore,
+    scorecardRows,
+  );
+  const goalAlignedFindings = findings.filter((f) => f.goalAligned);
+  const transformation = buildTransformationSpine(
+    business.name,
+    report.transformationScore,
+    scoreBand(report.transformationScore),
+    scorecardRows,
+    goalAlignedFindings,
+    findings,
+    goal,
+  );
+  const ownWords = (opts?.goalOwnWords ?? "").trim();
+  const discovery: Discovery = {
+    hasGoal: Boolean(goal),
+    ...(goal ? { goalLabel: goal.label, desiredState: goal.desiredState } : {}),
+    ...(ownWords ? { ownWords } : {}),
+    observable: goal?.observable ?? true,
+  };
 
   return {
     business,
@@ -997,11 +1133,14 @@ export function buildReportView(
     pagesAnalyzed: analysis.pagesAnalyzed,
     score: report.transformationScore,
     scoreBand: scoreBand(report.transformationScore),
+    scoreExplanation,
     headline,
     criticalHighCount,
     dimensionsBelowBenchmark,
     dimensionsTotal,
     evidenceLimitation,
+    discovery,
+    transformation,
     executiveBriefing,
     executiveOutcomes,
     engagement,

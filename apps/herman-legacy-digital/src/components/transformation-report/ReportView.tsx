@@ -101,6 +101,9 @@ function FindingCard({ f }: { f: ReportFinding }) {
           {PRIORITY_LABEL[f.priority]}
         </span>
         <span className="htr-pill htr-pill-dim">{f.dimension}</span>
+        {f.goalAligned ? (
+          <span className="htr-pill htr-pill-goal">Supports your goal</span>
+        ) : null}
         <span className="htr-conf">
           Confidence: <b>{f.confidence}</b>
         </span>
@@ -308,6 +311,32 @@ export function ReportView({ report: r }: { report: TransformationReportView }) 
         <b>Evidence basis.</b> {r.evidenceLimitation}
       </p>
 
+      {/* The transformation — Current State → Desired State → The Gap */}
+      <div className="htr-spine">
+        <div className="htr-spine-col">
+          <div className="htr-spine-lab">Current state</div>
+          <p className="htr-spine-body">{r.transformation.currentState}</p>
+        </div>
+        <div className="htr-spine-arrow" aria-hidden="true">
+          →
+        </div>
+        <div className="htr-spine-col">
+          <div className="htr-spine-lab htr-spine-lab-goal">
+            {r.discovery.hasGoal ? "Desired state — your goal" : "Desired state"}
+          </div>
+          <p className="htr-spine-body">{r.transformation.desiredState}</p>
+          {r.discovery.ownWords ? (
+            <p className="htr-spine-quote">“{r.discovery.ownWords}”</p>
+          ) : null}
+        </div>
+      </div>
+      {r.transformation.theGap ? (
+        <div className="htr-gap">
+          <div className="htr-spine-lab">The gap</div>
+          <p className="htr-gap-body">{r.transformation.theGap}</p>
+        </div>
+      ) : null}
+
       {/* Executive briefing */}
       <section className="htr-sec">
         <div className="htr-sechead">
@@ -386,6 +415,11 @@ export function ReportView({ report: r }: { report: TransformationReportView }) 
           <span className="htr-n">03</span>
           <h2>Where you stand — the scorecard</h2>
         </div>
+        {r.scoreExplanation ? (
+          <p className="htr-lead">
+            <b>{r.scoreExplanation}</b>
+          </p>
+        ) : null}
         <p className="htr-lead">
           Each dimension is scored 0–100 from real signals on your site and set against
           the benchmark the engine holds every dimension to. The gaps, not the averages,
@@ -781,6 +815,21 @@ const CSS = `
 .htr-why li::before{content:"";position:absolute;left:0;top:7px;width:9px;height:9px;border-radius:2px;background:var(--brass)}
 .htr-begin{margin-top:18px;background:var(--paper);border:1px solid var(--line);border-left:4px solid var(--brass);border-radius:10px;padding:14px 16px}
 .htr-begin p{margin:5px 0 0;font-size:14.5px;line-height:1.5;color:var(--ink);font-family:var(--serif)}
+
+/* Transformation spine — Current → Desired → Gap */
+.htr-spine{display:grid;grid-template-columns:1fr auto 1fr;gap:16px;align-items:stretch;margin-top:14px}
+.htr-spine-col{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px}
+.htr-spine-col:last-of-type{border-color:var(--brass);box-shadow:0 0 0 1px rgba(185,138,46,.15)}
+.htr-spine-lab{font-size:10.5px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--soft)}
+.htr-spine-lab-goal{color:var(--brass)}
+.htr-spine-body{font-family:var(--serif);font-size:15.5px;line-height:1.45;color:var(--ink);margin:6px 0 0}
+.htr-spine-quote{font-size:13px;color:var(--muted);font-style:italic;margin:8px 0 0}
+.htr-spine-arrow{align-self:center;color:var(--brass);font-size:26px;font-weight:700}
+.htr-gap{margin-top:14px;background:var(--navy);color:#eaf1f6;border-radius:12px;padding:18px;border-left:4px solid var(--brass)}
+.htr-gap .htr-spine-lab{color:var(--brass)}
+.htr-gap-body{font-family:var(--serif);font-size:17px;line-height:1.5;color:#fff;margin:6px 0 0;max-width:52em}
+.htr-pill-goal{color:var(--brass) !important;border-color:var(--brass) !important}
+@media (max-width:760px){ .htr-spine{grid-template-columns:1fr} .htr-spine-arrow{transform:rotate(90deg)} }
 
 /* Executive opportunity summary */
 .htr-opp{margin-top:20px;background:linear-gradient(180deg,var(--navy),var(--navy2));color:#eaf1f6;border-radius:14px;padding:22px;border-left:4px solid var(--brass)}

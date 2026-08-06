@@ -210,6 +210,70 @@ describe("executive report view-model", () => {
   });
 });
 
+describe("executive discovery threading", () => {
+  function viewGoal(html: string, goalId: string, ownWords?: string) {
+    const analysis = analyst.analyzeBusiness({
+      name: "Sample Co",
+      website: "https://sample.example.com",
+      industry: "transportation",
+      html,
+    });
+    return buildReportView(analysis, {
+      analyzedAtIso: "2026-08-06T12:00:00.000Z",
+      goalId,
+      ...(ownWords ? { goalOwnWords: ownWords } : {}),
+    });
+  }
+
+  it("captures the desired state and builds the Current→Desired→Gap spine", () => {
+    const v = viewGoal(WEAK_HTML, "more_customers", "we keep missing calls");
+    expect(v.discovery.hasGoal).toBe(true);
+    expect(v.discovery.goalLabel).toBeTruthy();
+    expect(v.discovery.ownWords).toBe("we keep missing calls");
+    expect(v.transformation.desiredState).toBe(v.discovery.desiredState);
+    expect(v.transformation.desiredState).toContain("customers");
+    expect(v.transformation.currentState.length).toBeGreaterThan(20);
+    expect(v.transformation.theGap.length).toBeGreaterThan(20);
+  });
+
+  it("omits the gap and prompts for a goal when none is given", () => {
+    const v = view(WEAK_HTML);
+    expect(v.discovery.hasGoal).toBe(false);
+    expect(v.transformation.theGap).toBe("");
+    expect(v.transformation.desiredState.toLowerCase()).toContain("tell us");
+  });
+
+  it("answers 'why was I scored X' from the scorecard, without fabrication", () => {
+    const v = view(WEAK_HTML);
+    if (v.score !== null) {
+      expect(v.scoreExplanation).toContain(String(v.score));
+      expect(v.scoreExplanation.toLowerCase()).toContain("roll-up");
+    }
+    expect(v.scoreExplanation).not.toMatch(/\$\s?\d/);
+  });
+
+  it("aligns findings to the goal and ties the recommendation to it", () => {
+    const v = viewGoal(WEAK_HTML, "online_visibility");
+    expect(v.findings.some((f) => f.goalAligned)).toBe(true);
+    // The recommendation reason references what the customer said they want.
+    expect(v.engagement.recommendationReason.toLowerCase()).toContain("you");
+    expect(v.engagement.recommendationReason).toContain(
+      v.discovery.desiredState ?? "___",
+    );
+  });
+
+  it("never fabricates a number in the transformation spine", () => {
+    const v = viewGoal(WEAK_HTML, "more_customers");
+    for (const s of [
+      v.transformation.currentState,
+      v.transformation.desiredState,
+      v.transformation.theGap,
+    ]) {
+      expect(s).not.toMatch(/\$\s?\d|\d+%/);
+    }
+  });
+});
+
 describe("workflowStages", () => {
   it("defines the journey spine with a single active stage", () => {
     const stages = workflowStages();

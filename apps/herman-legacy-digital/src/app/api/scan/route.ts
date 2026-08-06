@@ -59,6 +59,8 @@ export async function POST(req: Request) {
   const name = str(b["name"]) || "Your business";
   const industry = str(b["industry"]) || "general";
   const location = str(b["location"]);
+  const goalId = str(b["goalId"]);
+  const goalOwnWords = str(b["goalOwnWords"]).slice(0, 400);
 
   if (!website) {
     return NextResponse.json(
@@ -84,7 +86,11 @@ export async function POST(req: Request) {
       pages: fetched.pages,
       ...(location ? { location } : {}),
     });
-    report = buildReportView(analysis, { analyzedAtIso: new Date().toISOString() });
+    report = buildReportView(analysis, {
+      analyzedAtIso: new Date().toISOString(),
+      ...(goalId ? { goalId } : {}),
+      ...(goalOwnWords ? { goalOwnWords } : {}),
+    });
   } catch {
     // The engine is deterministic; a throw here means malformed evidence, not a
     // customer error. Fail honestly rather than returning a fabricated result.

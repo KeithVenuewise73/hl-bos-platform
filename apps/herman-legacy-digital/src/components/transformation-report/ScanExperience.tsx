@@ -2,6 +2,7 @@
 
 import { useState, type CSSProperties, type FormEvent } from "react";
 import { INDUSTRY_OPTIONS } from "@/lib/scan/industries";
+import { DISCOVERY_GOALS } from "@/lib/scan/discovery";
 import type { TransformationReportView } from "@/lib/scan/report-model";
 import { ReportView } from "./ReportView";
 
@@ -53,6 +54,7 @@ export function ScanExperience() {
   const [phase, setPhase] = useState<Phase>("idle");
   const [error, setError] = useState<string | null>(null);
   const [report, setReport] = useState<TransformationReportView | null>(null);
+  const [goalId, setGoalId] = useState<string>("");
 
   async function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -62,6 +64,8 @@ export function ScanExperience() {
       name: fieldValue(form, "name"),
       industry: fieldValue(form, "industry") || "general",
       location: fieldValue(form, "location"),
+      goalId,
+      goalOwnWords: fieldValue(form, "goalOwnWords"),
     };
     if (!payload.website.trim()) {
       setError("Enter your website address to run a scan.");
@@ -140,6 +144,53 @@ export function ScanExperience() {
         padding: 22,
       }}
     >
+      <div>
+        <div style={{ fontSize: 15.5, fontWeight: 700, color: INK }}>
+          First — what would a better business look like for you?
+        </div>
+        <div style={{ fontSize: 12.5, color: MUTED, marginTop: 3 }}>
+          Your goal, in your words. It shapes the entire analysis — we frame everything
+          against where you want to go.
+        </div>
+        <div
+          style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 12 }}
+          role="group"
+          aria-label="Your primary goal"
+        >
+          {DISCOVERY_GOALS.map((g) => {
+            const selected = goalId === g.id;
+            return (
+              <button
+                key={g.id}
+                type="button"
+                onClick={() => setGoalId(selected ? "" : g.id)}
+                aria-pressed={selected}
+                style={{
+                  fontSize: 13,
+                  fontWeight: selected ? 700 : 500,
+                  color: selected ? "#fff" : INK,
+                  background: selected ? ACCENT : "#fff",
+                  border: `1px solid ${selected ? ACCENT : LINE}`,
+                  borderRadius: 999,
+                  padding: "8px 14px",
+                  cursor: "pointer",
+                }}
+              >
+                {g.label}
+              </button>
+            );
+          })}
+        </div>
+        <textarea
+          name="goalOwnWords"
+          rows={2}
+          placeholder="Or tell us in your own words (optional)…"
+          style={{ ...input, marginTop: 10, resize: "vertical" }}
+        />
+      </div>
+
+      <div style={{ height: 1, background: LINE, margin: "2px 0" }} />
+
       <div>
         <label style={labelStyle} htmlFor="website">
           Website address <span style={{ color: "#b42318" }}>*</span>
