@@ -274,6 +274,137 @@ describe("executive discovery threading", () => {
   });
 });
 
+describe("options-based reasoning per finding", () => {
+  const NUM =
+    /\$\s?\d|\d+\s?%|\b\d+\s*(rankings?|leads?|visitors?|conversions?|roi)\b/i;
+
+  function viewGoal(html: string, goalId?: string) {
+    const analysis = analyst.analyzeBusiness({
+      name: "Sample Co",
+      website: "https://sample.example.com",
+      industry: "transportation",
+      html,
+    });
+    return buildReportView(analysis, {
+      analyzedAtIso: "2026-08-06T12:00:00.000Z",
+      ...(goalId ? { goalId } : {}),
+    });
+  }
+
+  it("surfaces a truthfully-classified root cause on every finding", () => {
+    const v = viewGoal(WEAK_HTML);
+    expect(v.findings.length).toBeGreaterThan(0);
+    for (const f of v.findings) {
+      expect(f.reasoning.rootCause.statement.length).toBeGreaterThan(0);
+      // Never overstated: a website scan cannot verify a business cause.
+      expect(["Inferred", "Discovery required"]).toContain(
+        f.reasoning.rootCause.certainty,
+      );
+    }
+  });
+
+  it("shows evidence-gated options that are not forced to three", () => {
+    const v = viewGoal(WEAK_HTML);
+    const counts = v.findings.map((f) => f.reasoning.options.length);
+    for (const c of counts) expect(c).toBeLessThanOrEqual(3);
+    // Not every finding has the same number of options (no artificial choice).
+    expect(new Set(counts).size).toBeGreaterThan(1);
+    // Where >1 option, they differ materially.
+    for (const f of v.findings) {
+      const os = f.reasoning.options;
+      if (os.length > 1) {
+        expect(new Set(os.map((o) => o.title)).size).toBe(os.length);
+        expect(new Set(os.map((o) => o.depth)).size).toBe(os.length);
+      }
+    }
+  });
+
+  it("recommends with a why and a why-not, or honestly defers", () => {
+    const v = viewGoal(WEAK_HTML);
+    for (const f of v.findings) {
+      const rec = f.reasoning.recommendation;
+      if (rec.mode === "selected") {
+        expect(rec.why.length).toBeGreaterThan(0);
+        expect(rec.whyNotOthers.length).toBeGreaterThan(0);
+      } else if (rec.mode === "discovery") {
+        expect(rec.note.toLowerCase()).toContain("discovery");
+      } else {
+        expect(rec.note.length).toBeGreaterThan(0);
+      }
+    }
+  });
+
+  it("lets the client goal shape the recommendation reasoning", () => {
+    const v = viewGoal(WEAK_HTML, "online_visibility");
+    const aligned = v.findings.find(
+      (f) => f.goalAligned && f.reasoning.recommendation.mode === "selected",
+    );
+    expect(aligned).toBeTruthy();
+    if (aligned && aligned.reasoning.recommendation.mode === "selected") {
+      expect(aligned.reasoning.recommendation.why.toLowerCase()).toContain(
+        "outcome you told us",
+      );
+    }
+  });
+
+  it("recommends no capability without a justified need (traces to an option)", () => {
+    const v = viewGoal(WEAK_HTML);
+    for (const f of v.findings) {
+      const rec = f.reasoning.recommendation;
+      if (rec.mode === "selected" && f.reasoning.options.length > 0) {
+        const optionCaps = new Set(f.reasoning.options.flatMap((o) => o.capabilities));
+        for (const c of rec.capabilities) expect(optionCaps.has(c)).toBe(true);
+      }
+    }
+  });
+
+  it("never emits an unsupported dollar/percent/metric anywhere in the reasoning", () => {
+    const v = viewGoal(WEAK_HTML, "more_customers");
+    for (const f of v.findings) {
+      const r = f.reasoning;
+      const strings = [
+        r.rootCause.statement,
+        ...r.options.flatMap((o) => [
+          o.whatChanges,
+          o.whyFit,
+          o.expectedOutcome,
+          o.tradeoffs,
+        ]),
+      ];
+      if (r.recommendation.mode === "selected") {
+        strings.push(
+          r.recommendation.why,
+          r.recommendation.whyNotOthers,
+          r.recommendation.expectedOutcome,
+        );
+      }
+      for (const s of strings) expect(s).not.toMatch(NUM);
+    }
+  });
+
+  it("produces materially different reasoning for strong vs weak evidence", () => {
+    const weak = viewGoal(WEAK_HTML);
+    const strong = buildReportView(
+      analyst.analyzeBusiness({
+        name: "Summit",
+        website: "https://s.example.com",
+        industry: "transportation",
+        html: STRONG_HTML,
+      }),
+      { analyzedAtIso: "2026-08-06T12:00:00.000Z" },
+    );
+    const weakOptionCount = weak.findings.reduce(
+      (n, f) => n + f.reasoning.options.length,
+      0,
+    );
+    const strongOptionCount = strong.findings.reduce(
+      (n, f) => n + f.reasoning.options.length,
+      0,
+    );
+    expect(weakOptionCount).toBeGreaterThan(strongOptionCount);
+  });
+});
+
 describe("workflowStages", () => {
   it("defines the journey spine with a single active stage", () => {
     const stages = workflowStages();

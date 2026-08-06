@@ -16,6 +16,12 @@
 
 import type { analyst, consulting } from "@hl-bos/bti-engine";
 import { goalById, type DiscoveryGoal } from "./discovery";
+import {
+  optionsFor,
+  classifyRootCause,
+  recommend,
+  type FindingReasoning,
+} from "./reasoning";
 
 type BusinessAnalysis = analyst.BusinessAnalysis;
 type ScorecardEntry = analyst.ScorecardEntry;
@@ -114,6 +120,7 @@ export interface ReportFinding {
   solutions: string[];
   claims: ClaimView[];
   goalAligned: boolean; // this finding directly bears on the customer's stated goal
+  reasoning: FindingReasoning; // root cause → options → comparative recommendation
 }
 
 export interface PriorityRow {
@@ -571,13 +578,34 @@ function capitalize(s: string): string {
   return s.length ? s[0]!.toUpperCase() + s.slice(1) : s;
 }
 
-function mapFinding(f: Finding, i: number, goalDims: string[] = []): ReportFinding {
-  const evidence = f.supportingEvidence
-    .filter((e) => e.startsWith("Attached evidence:"))
-    .map((e) => e.replace(/^Attached evidence:\s*/, ""));
+function mapFinding(
+  f: Finding,
+  i: number,
+  goalDims: string[] = [],
+  goalObservable = true,
+): ReportFinding {
+  const attached = f.supportingEvidence.filter((e) =>
+    e.startsWith("Attached evidence:"),
+  );
+  const evidence = attached.map((e) => e.replace(/^Attached evidence:\s*/, ""));
   const ratingEvidence = f.supportingEvidence.filter(
     (e) => !e.startsWith("Attached evidence:"),
   );
+  const confidence = CONFIDENCE_LABEL[confidenceFromClaims(f)] ?? "Moderate";
+  const goalAligned = goalDims.includes(f.dimension);
+  const options = optionsFor(f.dimension);
+  const reasoning: FindingReasoning = {
+    rootCause: classifyRootCause(f.rootCause, attached.length > 0),
+    options,
+    recommendation: recommend(
+      options,
+      f.severity,
+      confidence,
+      goalAligned,
+      goalObservable,
+      f.recommendedAction,
+    ),
+  };
   return {
     id: `${f.domain}.${f.dimension}.${i}`,
     title: findingTitle(f),
@@ -594,13 +622,14 @@ function mapFinding(f: Finding, i: number, goalDims: string[] = []): ReportFindi
         : "Improvement measured against benchmark.",
     effort: DIFFICULTY_LABEL[f.difficulty] ?? f.difficulty,
     timeline: TIMELINE_LABEL[f.timeline] ?? f.timeline,
-    confidence: CONFIDENCE_LABEL[confidenceFromClaims(f)] ?? "Moderate",
+    confidence,
     solutions: f.services,
     claims: f.claims.map((c) => ({
       type: capitalize(c.type) as ClaimClass,
       text: c.text,
     })),
-    goalAligned: goalDims.includes(f.dimension),
+    goalAligned,
+    reasoning,
   };
 }
 
@@ -927,6 +956,7 @@ export function buildReportView(
   const { report, business, proposal, coverageNote, scorecard } = analysis;
   const goal = goalById(opts?.goalId);
   const goalDims = goal?.dims ?? [];
+  const goalObservable = goal?.observable ?? true;
 
   const findings: ReportFinding[] = report.findings
     .slice()
@@ -939,7 +969,7 @@ export function buildReportView(
       if (ga !== 0) return ga;
       return b.severity - a.severity;
     })
-    .map((f, i) => mapFinding(f, i, goalDims));
+    .map((f, i) => mapFinding(f, i, goalDims, goalObservable));
 
   const scorecardRows: ScorecardRow[] = scorecard
     .slice()
@@ -965,7 +995,7 @@ export function buildReportView(
   // Findings indexed by dimension key for blueprint/solution joins.
   const findingsByDim = new Map<string, ReportFinding>();
   report.findings.forEach((f, i) =>
-    findingsByDim.set(f.dimension, mapFinding(f, i, goalDims)),
+    findingsByDim.set(f.dimension, mapFinding(f, i, goalDims, goalObservable)),
   );
 
   const horizons: HorizonPlan[] = [

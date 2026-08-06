@@ -93,9 +93,35 @@ function ClaimChips({ claims }: { claims: ClaimView[] }) {
   );
 }
 
+const DEPTH_LABEL: Record<number, string> = {
+  1: "Focused correction",
+  2: "Connected workflow",
+  3: "Broad transformation",
+};
+const CERTAINTY_KEY: Record<string, string> = {
+  Verified: "verified",
+  Inferred: "inferred",
+  "Discovery required": "discovery",
+};
+
 function FindingCard({ f }: { f: ReportFinding }) {
+  const r = f.reasoning;
+  const rec = r.recommendation;
+  const recommendedTitle = rec.mode === "selected" ? rec.optionTitle : null;
+  const capabilities =
+    rec.mode === "discovery"
+      ? []
+      : rec.capabilities.length > 0
+        ? rec.capabilities
+        : f.solutions;
+  const outcome =
+    rec.mode === "discovery"
+      ? "Defined once the right transformation is selected."
+      : rec.expectedOutcome;
+
   return (
     <article className={`htr-finding htr-sev-${f.priority}`}>
+      {/* 1 · Discover */}
       <div className="htr-fpills">
         <span className={`htr-pill htr-pri-${f.priority}`}>
           {PRIORITY_LABEL[f.priority]}
@@ -111,51 +137,116 @@ function FindingCard({ f }: { f: ReportFinding }) {
       <h3 className="htr-fh">{f.title}</h3>
       <p className="htr-fproblem">{f.problem}</p>
 
-      <div className="htr-fgrid">
-        <div>
+      {/* 2 Evidence · 3 Root cause · 4 Business impact */}
+      <div className="htr-reason">
+        <div className="htr-step">
           <div className="htr-flabel">Evidence from your site</div>
           <ul className="htr-evi">
             {f.evidence.map((e, i) => (
               <li key={i}>{e}</li>
             ))}
           </ul>
+          <ClaimChips claims={f.claims} />
         </div>
-        <div>
-          <div className="htr-flabel">Business impact</div>
-          <p className="htr-fbody">{f.businessImpact}</p>
-          <div className="htr-flabel" style={{ marginTop: 12 }}>
-            Recommended action
+        <div className="htr-step">
+          <div className="htr-flabel">
+            Root cause{" "}
+            <span
+              className={`htr-cert htr-cert-${CERTAINTY_KEY[r.rootCause.certainty]}`}
+            >
+              {r.rootCause.certainty}
+            </span>
           </div>
-          <p className="htr-fbody">{f.recommendedAction}</p>
+          <p className="htr-fbody">{r.rootCause.statement}.</p>
+          <div className="htr-flabel" style={{ marginTop: 12 }}>
+            Business impact
+          </div>
+          <p className="htr-fbody">{f.businessImpact}</p>
         </div>
       </div>
 
-      <div className="htr-fmeta">
-        <span>
-          Expected outcome<b>{f.expectedOutcome}</b>
-        </span>
-        <span>
-          Effort<b>{f.effort}</b>
-        </span>
-        <span>
-          Timeline<b>{f.timeline}</b>
-        </span>
+      {/* 5 · Transformation options */}
+      <div className="htr-options">
+        <div className="htr-flabel">Transformation options</div>
+        {r.options.length === 0 ? (
+          <p className="htr-fbody">
+            A single credible correction applies here — see the recommendation below.
+          </p>
+        ) : (
+          <div className="htr-optlist">
+            {r.options.map((o) => {
+              const isRec = o.title === recommendedTitle;
+              return (
+                <div key={o.title} className={`htr-opt${isRec ? " htr-opt-rec" : ""}`}>
+                  <div className="htr-opt-head">
+                    <span className="htr-opt-title">{o.title}</span>
+                    <span className="htr-opt-depth">{DEPTH_LABEL[o.depth]}</span>
+                    {isRec ? <span className="htr-opt-tag">Recommended</span> : null}
+                  </div>
+                  <div className="htr-opt-what">{o.whatChanges}</div>
+                  <div className="htr-opt-meta">
+                    Effort: {o.effort} · {o.delivery}
+                    {o.capabilities.length > 0 ? ` · ${o.capabilities.join(", ")}` : ""}
+                  </div>
+                  <div className="htr-opt-trade">Trade-off: {o.tradeoffs}</div>
+                </div>
+              );
+            })}
+          </div>
+        )}
       </div>
 
+      {/* 6 · Recommended transformation */}
+      <div className="htr-rec">
+        <div className="htr-flabel">Recommended transformation</div>
+        {rec.mode === "discovery" ? (
+          <p className="htr-disc">{rec.note}</p>
+        ) : rec.mode === "single" ? (
+          <p className="htr-fbody">{rec.note}</p>
+        ) : (
+          <>
+            <p className="htr-fbody">
+              <b>{rec.optionTitle}.</b> {rec.why}
+            </p>
+            <p className="htr-fbody htr-rec-alt">
+              <b>Why not the alternatives:</b> {rec.whyNotOthers}
+            </p>
+            <div className="htr-recmeta">
+              <span>
+                Dependencies<b>{rec.dependencies}</b>
+              </span>
+              <span>
+                Still unknown<b>{rec.unknowns}</b>
+              </span>
+              <span>
+                Would change if<b>{rec.changeTrigger}</b>
+              </span>
+            </div>
+          </>
+        )}
+      </div>
+
+      {/* 7 Implementation · 8 Expected outcome */}
       <div className="htr-fsolve">
         <div>
-          <span className="htr-flabel">Herman Legacy solution</span>
-          <div className="htr-chips">
-            {f.solutions.map((s) => (
-              <span key={s} className="htr-solchip">
-                {s}
-              </span>
-            ))}
-          </div>
+          <span className="htr-flabel">
+            Implementation — Herman Legacy capabilities
+          </span>
+          {capabilities.length > 0 ? (
+            <div className="htr-chips">
+              {capabilities.map((s) => (
+                <span key={s} className="htr-solchip">
+                  {s}
+                </span>
+              ))}
+            </div>
+          ) : (
+            <p className="htr-fbody htr-muted">Determined after discovery.</p>
+          )}
         </div>
         <div>
-          <span className="htr-flabel">Claim basis</span>
-          <ClaimChips claims={f.claims} />
+          <span className="htr-flabel">Expected outcome</span>
+          <p className="htr-fbody">{outcome}</p>
         </div>
       </div>
     </article>
@@ -740,6 +831,33 @@ const CSS = `
 .htr-claim-inference{background:#eaf1f7;color:#1f5f8b}
 .htr-claim-opinion{background:#f5edda;color:#8a6416}
 
+/* Reasoning chain: root cause · options · recommendation */
+.htr-reason{display:grid;grid-template-columns:1fr 1fr;gap:18px 26px;margin-top:16px}
+.htr-step .htr-fbody{font-size:13.5px;margin:4px 0 0;line-height:1.5}
+.htr-cert{display:inline-block;font-size:9.5px;font-weight:700;letter-spacing:.04em;border-radius:5px;padding:1px 6px;margin-left:6px;vertical-align:middle;text-transform:uppercase}
+.htr-cert-verified{background:#e7f2ec;color:#1c6a41}
+.htr-cert-inferred{background:#eaf1f7;color:#1f5f8b}
+.htr-cert-discovery{background:#f5edda;color:#8a6416}
+.htr-options{margin-top:16px;padding-top:14px;border-top:1px solid var(--line)}
+.htr-optlist{display:grid;gap:8px;margin-top:8px}
+.htr-opt{border:1px solid var(--line);border-radius:10px;padding:11px 13px;background:var(--paper)}
+.htr-opt-rec{border-color:var(--brass);background:#fbf6ea}
+.htr-opt-head{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.htr-opt-title{font-size:14px;font-weight:600;color:var(--ink)}
+.htr-opt-depth{font-size:10.5px;color:var(--soft);border:1px solid var(--line);border-radius:5px;padding:1px 6px}
+.htr-opt-tag{font-size:10px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:#20160a;background:var(--brass);border-radius:999px;padding:2px 8px}
+.htr-opt-what{font-size:13px;color:var(--ink);margin-top:5px;line-height:1.45}
+.htr-opt-meta{font-size:11.5px;color:var(--muted);margin-top:5px}
+.htr-opt-trade{font-size:11.5px;color:var(--soft);margin-top:3px;font-style:italic}
+.htr-rec{margin-top:16px;padding:14px 16px;background:#eef4f8;border:1px solid var(--line);border-left:4px solid var(--accent);border-radius:10px}
+.htr-rec .htr-fbody{font-size:13.5px;margin:4px 0 0;line-height:1.5}
+.htr-rec-alt{color:var(--muted)}
+.htr-disc{font-size:13.5px;color:#8a6416;background:#f5edda;border-radius:8px;padding:10px 12px;margin:6px 0 0;line-height:1.5}
+.htr-recmeta{display:grid;gap:8px;margin-top:12px;padding-top:10px;border-top:1px solid var(--line)}
+.htr-recmeta > span{display:grid;grid-template-columns:120px 1fr;gap:10px;font-size:11px;letter-spacing:.05em;text-transform:uppercase;color:var(--soft);font-weight:700}
+.htr-recmeta > span b{font-weight:400;letter-spacing:0;text-transform:none;font-size:12.5px;color:var(--ink)}
+.htr-muted{color:var(--muted)}
+
 .htr-tblwrap{overflow-x:auto}
 .htr-tbl{width:100%;border-collapse:collapse;font-size:13px;min-width:720px}
 .htr-tbl th{font-size:10px;letter-spacing:.09em;text-transform:uppercase;color:var(--soft);text-align:left;padding:0 11px 9px;font-weight:700}
@@ -786,7 +904,8 @@ const CSS = `
   .htr-cover{grid-template-columns:1fr}
   .htr-cover-score{justify-self:start}
   .htr-kpis{grid-template-columns:1fr}
-  .htr-brief,.htr-fgrid,.htr-fsolve,.htr-timeline,.htr-xf,.htr-themes,.htr-scope{grid-template-columns:1fr}
+  .htr-brief,.htr-fgrid,.htr-fsolve,.htr-timeline,.htr-xf,.htr-themes,.htr-scope,.htr-reason{grid-template-columns:1fr}
+  .htr-recmeta > span{grid-template-columns:1fr}
   .htr-scrow{grid-template-columns:120px 1fr 52px;gap:10px}
 }
 
