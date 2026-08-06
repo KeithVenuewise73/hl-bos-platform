@@ -144,7 +144,12 @@ export function ScanExperience() {
         <label style={labelStyle} htmlFor="website">
           Website address <span style={{ color: "#b42318" }}>*</span>
         </label>
-        <input id="website" name="website" placeholder="yourbusiness.com" style={input} />
+        <input
+          id="website"
+          name="website"
+          placeholder="yourbusiness.com"
+          style={input}
+        />
         <div style={{ fontSize: 11.5, color: MUTED, marginTop: 5 }}>
           We read your live homepage and analyze it in real time. Nothing is stored.
         </div>
@@ -174,7 +179,12 @@ export function ScanExperience() {
           <label style={labelStyle} htmlFor="location">
             Location
           </label>
-          <input id="location" name="location" placeholder="City, State" style={input} />
+          <input
+            id="location"
+            name="location"
+            placeholder="City, State"
+            style={input}
+          />
         </div>
       </div>
 
@@ -207,7 +217,9 @@ export function ScanExperience() {
           cursor: phase === "scanning" ? "default" : "pointer",
         }}
       >
-        {phase === "scanning" ? "Analyzing your website…" : "Run my free AI Business Scan"}
+        {phase === "scanning"
+          ? "Analyzing your website…"
+          : "Run my free AI Business Scan"}
       </button>
       <div style={{ fontSize: 11.5, color: MUTED, textAlign: "center" }}>
         Free · No account required · Results in under a minute

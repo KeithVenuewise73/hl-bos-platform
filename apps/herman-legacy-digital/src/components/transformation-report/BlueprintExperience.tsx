@@ -36,6 +36,25 @@ interface Stored {
   report: TransformationReportView;
 }
 
+function Meta({ label, value }: { label: string; value: string }) {
+  return (
+    <div style={{ display: "grid", gridTemplateColumns: "150px 1fr", gap: 10 }}>
+      <dt
+        style={{
+          fontSize: 10.5,
+          letterSpacing: 0.6,
+          textTransform: "uppercase",
+          color: MUTED,
+          fontWeight: 700,
+        }}
+      >
+        {label}
+      </dt>
+      <dd style={{ margin: 0, fontSize: 12.5, color: INK }}>{value}</dd>
+    </div>
+  );
+}
+
 export function BlueprintExperience() {
   const [state, setState] = useState<"loading" | "empty" | "ready">("loading");
   const [data, setData] = useState<Stored | null>(null);
@@ -115,7 +134,7 @@ export function BlueprintExperience() {
       ) : (
         <div style={{ display: "grid", gap: 14 }}>
           {horizonsWithItems.map((h) => (
-            <div key={h.key} style={card}>
+            <div key={h.key} style={{ ...card, borderTop: `3px solid ${ACCENT}` }}>
               <div
                 style={{
                   fontSize: 12,
@@ -127,25 +146,58 @@ export function BlueprintExperience() {
               >
                 {h.window}
               </div>
-              <ul style={{ margin: "10px 0 0", padding: 0, listStyle: "none", display: "grid", gap: 8 }}>
+              <div style={{ fontSize: 16, fontWeight: 600, color: INK, marginTop: 4 }}>
+                {h.objective}
+              </div>
+              <ul
+                style={{
+                  margin: "12px 0 0",
+                  padding: 0,
+                  listStyle: "none",
+                  display: "grid",
+                  gap: 9,
+                }}
+              >
                 {h.items.map((it, i) => {
                   const color = PRIORITY_COLOR[it.priority] ?? MUTED;
                   return (
                     <li
                       key={i}
-                      style={{
-                        borderLeft: `3px solid ${color}`,
-                        paddingLeft: 12,
-                      }}
+                      style={{ borderLeft: `3px solid ${color}`, paddingLeft: 12 }}
                     >
-                      <div style={{ fontSize: 14, fontWeight: 600, color: INK }}>{it.label}</div>
-                      <div style={{ fontSize: 13, color: MUTED, marginTop: 2, lineHeight: 1.45 }}>
+                      <div style={{ fontSize: 14, fontWeight: 600, color: INK }}>
+                        {it.label}
+                      </div>
+                      <div
+                        style={{
+                          fontSize: 13,
+                          color: MUTED,
+                          marginTop: 2,
+                          lineHeight: 1.45,
+                        }}
+                      >
                         {it.action}
                       </div>
                     </li>
                   );
                 })}
               </ul>
+              <dl
+                style={{
+                  margin: "14px 0 0",
+                  paddingTop: 12,
+                  borderTop: `1px solid ${LINE}`,
+                  display: "grid",
+                  gap: 8,
+                }}
+              >
+                <Meta label="Expected change" value={h.expectedChange} />
+                {h.solutions.length > 0 ? (
+                  <Meta label="Herman Legacy solution" value={h.solutions.join(", ")} />
+                ) : null}
+                <Meta label="Dependencies" value={h.dependencies} />
+                <Meta label="Evidence still required" value={h.evidenceRequired} />
+              </dl>
             </div>
           ))}
         </div>
@@ -153,7 +205,14 @@ export function BlueprintExperience() {
 
       {/* Implementation Marketplace — each product is a real, bookable engagement. */}
       <div style={{ ...card, background: INK, borderColor: INK }}>
-        <div style={{ fontSize: 12, color: "#9fb3c2", textTransform: "uppercase", letterSpacing: 0.4 }}>
+        <div
+          style={{
+            fontSize: 12,
+            color: "#9fb3c2",
+            textTransform: "uppercase",
+            letterSpacing: 0.4,
+          }}
+        >
           Implement with Herman Legacy
         </div>
         {report.recommendedTransformations.length > 0 ? (
@@ -175,8 +234,10 @@ export function BlueprintExperience() {
                 <div>
                   <div style={{ color: "#fff", fontWeight: 600 }}>{r.product}</div>
                   <div style={{ fontSize: 11.5, color: "#9fb3c2", marginTop: 2 }}>
-                    {r.type === "recurring" ? "Ongoing subscription" : "One-time engagement"} ·
-                    justified by {r.supportedBy.length} finding
+                    {r.type === "recurring"
+                      ? "Ongoing subscription"
+                      : "One-time engagement"}{" "}
+                    · justified by {r.supportedBy.length} finding
                     {r.supportedBy.length === 1 ? "" : "s"}
                   </div>
                 </div>
@@ -203,10 +264,13 @@ export function BlueprintExperience() {
             No product implementations were triggered by this scan.
           </div>
         )}
-        <div style={{ fontSize: 11.5, color: "#9fb3c2", marginTop: 14, lineHeight: 1.5 }}>
-          Implementation books a Herman Legacy engagement. Direct in-platform checkout and
-          the ongoing Executive Operating System — where you track revenue, visibility,
-          leads, and your Transformation Score — are the next stages of this workflow.
+        <div
+          style={{ fontSize: 11.5, color: "#9fb3c2", marginTop: 14, lineHeight: 1.5 }}
+        >
+          Implementation books a Herman Legacy engagement. Direct in-platform checkout
+          and the ongoing Executive Operating System — where you track revenue,
+          visibility, leads, and your Transformation Score — are the next stages of this
+          workflow.
         </div>
       </div>
     </div>

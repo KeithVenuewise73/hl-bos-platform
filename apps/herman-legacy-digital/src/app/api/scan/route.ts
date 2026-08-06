@@ -84,12 +84,16 @@ export async function POST(req: Request) {
       html: fetched.html,
       ...(location ? { location } : {}),
     });
-    report = buildReportView(analysis);
+    report = buildReportView(analysis, { analyzedAtIso: new Date().toISOString() });
   } catch {
     // The engine is deterministic; a throw here means malformed evidence, not a
     // customer error. Fail honestly rather than returning a fabricated result.
     return NextResponse.json(
-      { status: "error", error: "We read your site but could not complete the analysis. Please try again." },
+      {
+        status: "error",
+        error:
+          "We read your site but could not complete the analysis. Please try again.",
+      },
       { status: 500 },
     );
   }

@@ -92,7 +92,15 @@ describe("isBlockedIp", () => {
   });
 
   it("blocks IPv6 loopback / ULA / link-local / mapped-private", () => {
-    for (const ip of ["::1", "::", "fe80::1", "fc00::1", "fd12::9", "::ffff:127.0.0.1", "::ffff:10.0.0.1"]) {
+    for (const ip of [
+      "::1",
+      "::",
+      "fe80::1",
+      "fc00::1",
+      "fd12::9",
+      "::ffff:127.0.0.1",
+      "::ffff:10.0.0.1",
+    ]) {
       expect(isBlockedIp(ip), ip).toBe(true);
     }
   });

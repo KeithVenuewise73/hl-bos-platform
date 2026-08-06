@@ -2,88 +2,141 @@ import { describe, it, expect } from "vitest";
 import { analyst } from "@hl-bos/bti-engine";
 import { buildReportView, workflowStages } from "./report-model";
 
-// Drive the real engine over its own sample homepage (no network) and assert the
-// view-model is well-formed and HONEST — nothing fabricated, unknowns preserved.
-function sampleView() {
+// Drive the real engine over representative homepage HTML (no network) and assert
+// the executive view-model is well-formed and HONEST — nothing quantitative
+// invented, unknowns preserved, recommendations evidence-gated.
+
+const WEAK_HTML = `<!doctype html><html><head><title>Ace Movers</title></head>
+<body><h1>Ace Movers</h1><p>We move things.</p></body></html>`;
+
+const STRONG_HTML = `<!doctype html><html lang="en"><head>
+<title>Summit Logistics — Freight & Fleet Solutions</title>
+<meta name="description" content="Summit Logistics provides reliable regional freight, warehousing, and fleet management.">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="canonical" href="https://summit.example.com">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"Organization","name":"Summit Logistics","telephone":"+1-555-0100","address":"100 Dock St"}</script>
+<script src="https://www.googletagmanager.com/gtag/js"></script>
+</head><body>
+<h1>Summit Logistics</h1><h2>Freight</h2><h2>Warehousing</h2><h2>Fleet</h2>
+<p>${"Reliable regional freight and warehousing for growing businesses. ".repeat(20)}</p>
+<img src="/a.jpg" alt="warehouse"><img src="/b.jpg" alt="truck">
+<a href="/contact">Contact</a><a href="mailto:hi@summit.example.com">Email us</a>
+<a href="https://facebook.com/summit">Facebook</a><a href="https://linkedin.com/company/summit">LinkedIn</a>
+<form action="/lead"><input name="email"><button>Get a quote</button></form>
+</body></html>`;
+
+function view(html: string, name = "Sample Co", industry = "transportation") {
   const analysis = analyst.analyzeBusiness({
-    name: analyst.SAMPLE_BUSINESS.name,
-    website: analyst.SAMPLE_BUSINESS.website,
-    industry: analyst.SAMPLE_BUSINESS.industry,
-    location: analyst.SAMPLE_BUSINESS.location,
-    html: analyst.SAMPLE_HTML,
+    name,
+    website: "https://sample.example.com",
+    industry,
+    html,
   });
-  return buildReportView(analysis);
+  return buildReportView(analysis, { analyzedAtIso: "2026-08-06T12:00:00.000Z" });
 }
 
-describe("buildReportView", () => {
-  it("carries the business identity through", () => {
-    const v = sampleView();
-    expect(v.business.name).toBe(analyst.SAMPLE_BUSINESS.name);
-    expect(v.business.website).toContain("rivertown");
+describe("executive report view-model", () => {
+  it("carries business identity and analysis time", () => {
+    const v = view(WEAK_HTML, "Ace Movers");
+    expect(v.business.name).toBe("Ace Movers");
+    expect(v.analyzedAtIso).toBe("2026-08-06T12:00:00.000Z");
   });
 
-  it("produces evidence-backed findings with valid priority and confidence", () => {
-    const v = sampleView();
-    expect(v.findings.length).toBeGreaterThan(0);
-    for (const f of v.findings) {
-      expect(["critical", "high", "medium", "low"]).toContain(f.priority);
-      expect(["High", "Moderate", "Low"]).toContain(f.confidence);
-      expect(typeof f.businessImpact).toBe("string");
-      expect(f.title.length).toBeGreaterThan(0);
+  it("builds a scorecard covering every analyzed dimension with benchmark + confidence", () => {
+    const v = view(WEAK_HTML);
+    expect(v.scorecard.length).toBeGreaterThan(0);
+    expect(v.dimensionsTotal).toBe(v.scorecard.length);
+    for (const s of v.scorecard) {
+      expect(s.score).toBeGreaterThanOrEqual(0);
+      expect(s.score).toBeLessThanOrEqual(100);
+      expect(s.benchmark).toBe(80);
+      expect(["High", "Moderate", "Low"]).toContain(s.confidence);
+      expect(s.statusLabel.length).toBeGreaterThan(0);
     }
   });
 
-  it("sorts findings by priority (critical/high first)", () => {
-    const v = sampleView();
-    const rank = { critical: 0, high: 1, medium: 2, low: 3 } as const;
-    for (let i = 1; i < v.findings.length; i++) {
-      expect(rank[v.findings[i]!.priority]).toBeGreaterThanOrEqual(
-        rank[v.findings[i - 1]!.priority],
+  it("derives a business-specific executive briefing from the top findings", () => {
+    const v = view(WEAK_HTML, "Ace Movers");
+    expect(v.executiveBriefing.situation).toContain("Ace Movers");
+    expect(v.executiveBriefing.situation.length).toBeGreaterThan(40);
+    // The constraint names the actual top finding's dimension, not a fixed string.
+    if (v.findings.length > 0) {
+      expect(v.executiveBriefing.primaryConstraint.toLowerCase()).toContain(
+        v.findings[0]!.dimension.toLowerCase(),
       );
     }
   });
 
-  it("does NOT fabricate ROI when no financials were provided", () => {
-    const v = sampleView();
+  it("de-templates findings — no repeated 'rated N/5 — below target' skeleton", () => {
+    const v = view(WEAK_HTML);
+    for (const f of v.findings) {
+      expect(f.title).not.toMatch(/rated \d\/5 — below target/i);
+      expect(f.problem.length).toBeGreaterThan(0);
+      expect(["High", "Moderate", "Low"]).toContain(f.confidence);
+      // Claim classification is surfaced.
+      expect(
+        f.claims.every((c) => ["Fact", "Inference", "Opinion"].includes(c.type)),
+      ).toBe(true);
+    }
+    // Titles are not all identical (real de-templating).
+    const titles = new Set(v.findings.map((f) => f.title));
+    if (v.findings.length > 1) expect(titles.size).toBeGreaterThan(1);
+  });
+
+  it("does NOT fabricate ROI without financial inputs", () => {
+    const v = view(WEAK_HTML);
     expect(v.roi.quantified).toBe(false);
     expect(v.roi.lines).toEqual([]);
-    expect(v.roi.note.toLowerCase()).toContain("financial");
-  });
-
-  it("exposes the four planning horizons", () => {
-    const v = sampleView();
-    expect(v.horizons.map((h) => h.key)).toEqual([
-      "immediate",
-      "shortTerm",
-      "mediumTerm",
-      "longTerm",
-    ]);
-  });
-
-  it("recommends only Herman Legacy products that findings support", () => {
-    const v = sampleView();
-    for (const r of v.recommendedTransformations) {
-      expect(r.supportedBy.length).toBeGreaterThan(0);
-      expect(["recurring", "one_time"]).toContain(r.type);
+    expect(v.roi.note.toLowerCase()).toContain("not yet quantified");
+    for (const t of v.recommendedTransformations) {
+      expect(t.price).toBe("To be confirmed");
+      expect(t.roi.toLowerCase()).toContain("not quantified");
     }
   });
 
-  it("hands off to the blueprint stage", () => {
-    const v = sampleView();
-    expect(v.next.href).toBe("/transformation-blueprint");
-    expect(v.next.stage).toBe("blueprint");
-    expect(v.next.cta.length).toBeGreaterThan(0);
+  it("evidence-gates recommendations — every one traces to findings", () => {
+    const v = view(WEAK_HTML);
+    for (const t of v.recommendedTransformations) {
+      expect(t.supportedBy.length).toBeGreaterThan(0);
+      expect(t.outcome.length).toBeGreaterThan(0);
+    }
   });
 
-  it("carries provenance meta (deterministic, nothing fabricated)", () => {
-    const v = sampleView();
-    expect(v.meta.engineVersion.length).toBeGreaterThan(0);
-    expect(v.meta.dimensionsRated).toBeGreaterThan(0);
+  it("produces materially different reports for strong vs weak sites", () => {
+    const weak = view(WEAK_HTML, "Ace Movers");
+    const strong = view(STRONG_HTML, "Summit Logistics");
+    // A stronger site should score higher and surface fewer high-priority gaps.
+    expect(strong.score ?? 0).toBeGreaterThan(weak.score ?? 0);
+    expect(strong.criticalHighCount).toBeLessThanOrEqual(weak.criticalHighCount);
+    expect(strong.executiveBriefing.situation).not.toBe(
+      weak.executiveBriefing.situation,
+    );
+  });
+
+  it("provides an evidence-limitation statement and honest coverage note", () => {
+    const v = view(WEAK_HTML);
+    expect(v.evidenceLimitation.toLowerCase()).toContain("not yet measured");
+    expect(v.coverageNote.length).toBeGreaterThan(0);
+  });
+
+  it("hands off to blueprint and to a real advisor contact path", () => {
+    const v = view(WEAK_HTML);
+    expect(v.next.href).toBe("/transformation-blueprint");
+    expect(v.secondary.href).toBe("/book");
+  });
+
+  it("enriches blueprint horizons with objective and evidence gating", () => {
+    const v = view(WEAK_HTML);
+    for (const h of v.horizons) {
+      expect(h.objective.length).toBeGreaterThan(0);
+      expect(h.dependencies.length).toBeGreaterThan(0);
+      expect(h.evidenceRequired.length).toBeGreaterThan(0);
+    }
   });
 });
 
 describe("workflowStages", () => {
-  it("defines the full journey spine with a single active stage", () => {
+  it("defines the journey spine with a single active stage", () => {
     const stages = workflowStages();
     expect(stages.map((s) => s.id)).toEqual([
       "analysis",

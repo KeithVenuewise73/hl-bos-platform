@@ -15,15 +15,27 @@
 
 import { analyzeHtml, type SiteEvidence } from "./extract.ts";
 import { hlServiceLabel } from "./services.ts";
-import { generateConsultingReport } from "../consulting/index.ts";
+import {
+  generateConsultingReport,
+  FINDING_THRESHOLD,
+  severityOf,
+  confidenceOf,
+} from "../consulting/index.ts";
 import type {
   AssessmentInput,
   DimensionInput,
   EvidenceInput,
   ConsultingReport,
   Finding,
+  Confidence,
 } from "../consulting/index.ts";
+import { DOMAINS } from "../catalog.ts";
 import type { DomainKey } from "../types.ts";
+
+function dimensionLabel(domain: DomainKey, dimension: string): string {
+  const d = DOMAINS.find((x) => x.key === domain);
+  return d?.dimensions.find((x) => x.key === dimension)?.name ?? dimension;
+}
 
 export interface BusinessInput {
   name: string;
@@ -46,10 +58,28 @@ export interface ProposalLine {
   type: "one_time" | "recurring";
 }
 
+// A single dimension's standing — one row of the visible scorecard. Every field
+// is derived from the same real, website-observed rating the findings use, so the
+// overall score is auditable dimension by dimension. No new scoring: this simply
+// surfaces what analyzeBusiness already computes.
+export interface ScorecardEntry {
+  domain: DomainKey;
+  dimension: string;
+  label: string;
+  rating: number; // 0-5, from real site signals
+  score: number; // rating * 20, on a 0-100 scale
+  benchmark: number; // the target the engine holds every dimension to (0-100)
+  isStrength: boolean; // rating above the finding threshold
+  status: "strength" | "below_benchmark" | "critical";
+  confidence: Confidence; // engine confidence in the rating
+  interpretation: string; // the real evidence signal behind the rating
+}
+
 export interface BusinessAnalysis {
   business: { name: string; website: string; industry: string; location?: string };
   evidence: SiteEvidence;
   profile: ProfileObservation[]; // the Business Intelligence Profile (understanding, not scores)
+  scorecard: ScorecardEntry[]; // every analyzed dimension, scored against benchmark
   report: ConsultingReport; // findings, roadmap, solutions, narrative, review
   proposal: { lines: ProposalLine[]; recommendedServices: string[] };
   coverageNote: string; // honest statement of what evidence could NOT observe
@@ -235,6 +265,34 @@ export function analyzeBusiness(input: BusinessInput): BusinessAnalysis {
     ...(input.financial ? { financial: input.financial } : {}),
   };
 
+  // Visible scorecard — one row per analyzed dimension, from the same ratings and
+  // evidence facts the findings use (surfaced, not recomputed).
+  const factByDim = new Map<string, string>();
+  for (const e of evidenceInputs) if (e.dimension) factByDim.set(e.dimension, e.label);
+  const benchmark = (FINDING_THRESHOLD + 1) * 20;
+  const scorecard: ScorecardEntry[] = ratings.map((r) => {
+    const isStrength = r.rating > FINDING_THRESHOLD;
+    const severity = severityOf(r.rating);
+    const status: ScorecardEntry["status"] = isStrength
+      ? "strength"
+      : severity >= 4
+        ? "critical"
+        : "below_benchmark";
+    const fact = factByDim.get(r.dimension) ?? "";
+    return {
+      domain: r.domain,
+      dimension: r.dimension,
+      label: dimensionLabel(r.domain, r.dimension),
+      rating: r.rating,
+      score: r.rating * 20,
+      benchmark,
+      isStrength,
+      status,
+      confidence: confidenceOf(r.rating, fact ? 1 : 0),
+      interpretation: fact,
+    };
+  });
+
   const report = generateConsultingReport(assessment);
   // Relabel every finding's services to Herman Legacy product names for display.
   for (const f of report.findings)
@@ -284,6 +342,7 @@ export function analyzeBusiness(input: BusinessInput): BusinessAnalysis {
     },
     evidence,
     profile,
+    scorecard,
     report,
     proposal: {
       lines,
