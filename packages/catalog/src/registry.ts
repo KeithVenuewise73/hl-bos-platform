@@ -385,6 +385,23 @@ const ASSETS: Asset[] = [
     evidence: "packages/bte-pipeline; 35 tests; docs/products/hld-bte-intake",
   },
   {
+    id: "pkg.bti-cycle",
+    kind: "package",
+    name: "@hl-bos/bti-cycle",
+    summary:
+      "BTI V1 — one transformation cycle, Customer Goal → Measurement Contract, implementing the approved BTI constitution (Reasoning Ledger, Confidence State Machine, Evidence Appetite, Recommendation Stability, Measurement Contract). Deterministic and DB-agnostic: it caps its own confidence, refuses to score what it cannot size, prioritises the evidence most likely to prove it wrong, and emits one of four permitted outputs. Reasoning spine only — no persistence, execution or UI.",
+    maturity: "built_undeployed",
+    reuse: ["reusable", "commercial"],
+    owner: "Herman Legacy Digital",
+    layer: "HL-BTI",
+    key: "bti-cycle",
+    location: "packages/bti-cycle",
+    tags: ["package", "reasoning", "methodology", "deterministic", "truth-mode"],
+    relationships: [{ kind: "owned_by", to: "repo.hl-bos-platform" }],
+    evidence:
+      "packages/bti-cycle; 23 tests incl. the real Saffer proof (src/saffer.test.ts)",
+  },
+  {
     id: "pkg.catalog",
     kind: "package",
     name: "@hl-bos/catalog",
