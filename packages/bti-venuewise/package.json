@@ -1,0 +1,27 @@
+{
+  "name": "@hl-bos/bti-venuewise",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Venuewise startup-analysis pipeline — runs Venuewise through the BTI reasoning contract adapted to a startup value chain (Problem → … → Margin). Reuses @hl-bos/bti-cycle's confidence state machine, evidence model and four permitted outputs; adds the startup value chain, the real (source-labeled) Venuewise evidence, a Reasoning Ledger, a Measurement Contract, and a decision-ready Business Transformation Report. Deterministic and DB-agnostic; invents no data; no UI, APIs, persistence, execution or migrations.",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "default": "./src/index.ts"
+    }
+  },
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run",
+    "report": "node --experimental-strip-types --experimental-transform-types src/cli.ts",
+    "clean": "rm -rf dist *.tsbuildinfo"
+  },
+  "dependencies": {
+    "@hl-bos/bti-cycle": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  }
+}

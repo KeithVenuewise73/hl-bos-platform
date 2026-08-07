@@ -12,7 +12,21 @@
  * "as of" date, never a wall clock.
  */
 
-import type { EvidenceItem, HealthFlag, QualityTier } from "./types.ts";
+import type { HealthFlag, QualityTier } from "./types.ts";
+
+/**
+ * The minimal shape the confidence machine needs. `EvidenceItem` satisfies it,
+ * and so does any other domain's evidence (e.g. the startup value chain) — this
+ * is what lets other BTI domains REUSE this exact confidence machine rather than
+ * copy it. The functions below read only these fields, never `link`.
+ */
+export interface ConfidenceInput {
+  readonly quality: QualityTier;
+  readonly flags?: readonly HealthFlag[];
+  readonly sources?: readonly string[];
+  readonly capturedAt?: string;
+  readonly validityWindowDays?: number;
+}
 
 /** Strongest → weakest. Lower rank number = stronger. */
 const RANK: Record<QualityTier, number> = {
@@ -52,7 +66,7 @@ export function degrade(tier: QualityTier, steps: number): QualityTier {
  * outdated as of `asOf`. Missing dates or window → never outdated (we cannot
  * honestly claim it is stale without the data to say so).
  */
-export function isOutdated(item: EvidenceItem, asOf: string): boolean {
+export function isOutdated(item: ConfidenceInput, asOf: string): boolean {
   if (item.capturedAt === undefined || item.validityWindowDays === undefined)
     return false;
   const captured = Date.parse(item.capturedAt);
@@ -69,7 +83,7 @@ export function isOutdated(item: EvidenceItem, asOf: string): boolean {
  *   - insufficient                              → degrade one tier
  *   - verified but < 2 sources                  → cannot be verified → observed
  */
-export function effectiveTier(item: EvidenceItem, asOf: string): QualityTier {
+export function effectiveTier(item: ConfidenceInput, asOf: string): QualityTier {
   const flags = new Set<HealthFlag>(item.flags ?? []);
 
   if (flags.has("conflicting")) return "unknown";
@@ -95,7 +109,7 @@ export function effectiveTier(item: EvidenceItem, asOf: string): QualityTier {
  * on → "unknown".
  */
 export function capByWeakest(
-  loadBearing: readonly EvidenceItem[],
+  loadBearing: readonly ConfidenceInput[],
   asOf: string,
   floor: QualityTier = "verified",
 ): QualityTier {
