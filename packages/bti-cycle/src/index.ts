@@ -17,6 +17,7 @@ export {
   effectiveTier,
   capByWeakest,
 } from "./confidence.ts";
+export type { ConfidenceInput } from "./confidence.ts";
 export { VALUE_CHAIN } from "./types.ts";
 export {
   LINK_OUTCOMES,

@@ -402,6 +402,26 @@ const ASSETS: Asset[] = [
       "packages/bti-cycle; 23 tests incl. the real Saffer proof (src/saffer.test.ts)",
   },
   {
+    id: "pkg.bti-venuewise",
+    kind: "package",
+    name: "@hl-bos/bti-venuewise",
+    summary:
+      "Venuewise startup-analysis pipeline — runs Venuewise through the BTI reasoning contract adapted to a startup value chain (Problem → … → Margin). Reuses @hl-bos/bti-cycle's confidence machine, evidence model and four permitted outputs; adds source-labeled Venuewise evidence, a Reasoning Ledger, a Measurement Contract, and a decision-ready Business Transformation Report. Deterministic; invents no data; separates a functioning product from a functioning business.",
+    maturity: "built_undeployed",
+    reuse: ["reusable", "commercial"],
+    owner: "Herman Legacy Digital",
+    layer: "HL-BTI",
+    key: "bti-venuewise",
+    location: "packages/bti-venuewise",
+    tags: ["package", "reasoning", "startup", "deterministic", "truth-mode"],
+    relationships: [
+      { kind: "uses", to: "pkg.bti-cycle" },
+      { kind: "owned_by", to: "repo.hl-bos-platform" },
+    ],
+    evidence:
+      "packages/bti-venuewise; 15 tests; report from docs/products/venuewise-*harvest",
+  },
+  {
     id: "pkg.catalog",
     kind: "package",
     name: "@hl-bos/catalog",
