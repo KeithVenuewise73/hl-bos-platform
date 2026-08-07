@@ -176,6 +176,35 @@ export const APPLICATIONS: ApplicationRecord[] = [
     evidence: "apps/herman-legacy-digital (Phase 6, Release 1); not deployed",
   },
   {
+    key: "hscs-website",
+    name: "HSCS Marketing Website",
+    description:
+      "The public HSCS marketing site (Herman Supply Chain Solutions — Transportation & Operations Consulting), implementing the approved HSCS Commercial Launch Phase 1 Baseline (docs/products/hscs-*). Milestone 2A delivers the application foundation, the Design System tokens in code, the shared header/nav/footer, and the homepage only — no assessment intake, no Supabase, no analytics.",
+    category: "web_property",
+    repository: REPO,
+    owner: "KeithVenuewise73",
+    executiveOwner: "Herman Supply Chain Solutions",
+    currentBranch: "claude/hscs-website-homepage-v1",
+    environment: "local",
+    developmentStatus: "built_undeployed",
+    deploymentStatus: "not_deployed",
+    productionUrl: null,
+    stagingUrl: null,
+    localUrl: "http://localhost:4600",
+    supabaseProject: null,
+    version: "0.1.0",
+    health: "unknown",
+    hosting: "none yet (not deployed)",
+    dependencies: ["Next.js 16", "React 19"],
+    reusableModules: [],
+    softwareFactoryIntegration:
+      "None — public marketing site rendering the approved Phase 1 Baseline copy and design; not assembled from Factory modules.",
+    notes:
+      "Milestone 2A (application foundation + homepage) only: Design System tokens in code, shared header/responsive nav/footer, homepage sections S1–S11, plus honest /request-an-assessment and /coming-soon pages (no fake form, no fabricated success). Remaining service/industry pages and the assessment intake are intentionally not built. Local format/lint/typecheck/test/build green; not deployed.",
+    evidence:
+      "apps/hscs-website; Milestone 2A implementation PR; local build + tests green; not deployed",
+  },
+  {
     key: "venture-studio",
     name: "Herman Legacy Venture Studio (HLVS V2)",
     description:
