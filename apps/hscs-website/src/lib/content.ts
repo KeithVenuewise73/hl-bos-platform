@@ -58,6 +58,15 @@ export const PRIMARY_CTA: Cta = {
 export const PRIMARY_CTA_MICROCOPY =
   "The first step is a conversation, not a commitment.";
 
+/**
+ * Approved shorter primary-CTA label for tight header/mobile use (Homepage Copy
+ * consolidated CTA set: "Request Your Assessment — shorter, for tight
+ * mobile/header use"). Used only in the header at narrow widths so the label
+ * cannot overflow and push the menu button off-screen; the full label is used
+ * everywhere else and on wider viewports.
+ */
+export const PRIMARY_CTA_SHORT_LABEL = "Request Your Assessment";
+
 /** Primary navigation labels come from the approved IA (§2.1 / Homepage Copy S0). */
 export const NAV_PRIMARY: readonly NavItem[] = [
   { label: "Services", href: "/services", status: "pending" },

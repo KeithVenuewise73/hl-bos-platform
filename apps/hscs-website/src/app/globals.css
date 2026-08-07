@@ -497,6 +497,41 @@ ul {
   white-space: nowrap;
 }
 
+/* Header must never overflow: brand may shrink; the actions cluster stays intact
+ * so the menu button is always reachable. */
+.site-header__inner {
+  flex-wrap: nowrap;
+}
+
+.brand {
+  min-width: 0;
+}
+
+.header-actions {
+  flex-shrink: 0;
+}
+
+/* Responsive primary-CTA label: the full label by default; the approved shorter
+ * label ("Request Your Assessment") on narrow phones so it cannot overflow and
+ * push the hamburger off-screen. */
+.header-cta__short {
+  display: none;
+}
+
+@media (max-width: 640px) {
+  .header-cta__full {
+    display: none;
+  }
+  .header-cta__short {
+    display: inline;
+  }
+  /* Free horizontal space on phones so the hamburger is always visible. The
+   * "HSCS" mark stays; the descriptor still shows on tablet and desktop. */
+  .brand__desc {
+    display: none;
+  }
+}
+
 .hamburger {
   display: inline-flex;
   align-items: center;

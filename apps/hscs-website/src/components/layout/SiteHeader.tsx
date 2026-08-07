@@ -2,7 +2,12 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { BRAND, NAV_PRIMARY, PRIMARY_CTA } from "@/lib/content";
+import {
+  BRAND,
+  NAV_PRIMARY,
+  PRIMARY_CTA,
+  PRIMARY_CTA_SHORT_LABEL,
+} from "@/lib/content";
 import {
   initialNavState,
   toggleNav,
@@ -44,7 +49,8 @@ export function SiteHeader() {
 
         <div className="header-actions">
           <Link href={PRIMARY_CTA.href} className="btn btn--primary btn--sm header-cta">
-            {PRIMARY_CTA.label}
+            <span className="header-cta__full">{PRIMARY_CTA.label}</span>
+            <span className="header-cta__short">{PRIMARY_CTA_SHORT_LABEL}</span>
           </Link>
           <button
             type="button"
