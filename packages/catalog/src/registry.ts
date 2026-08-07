@@ -266,6 +266,23 @@ const ASSETS: Asset[] = [
     evidence: "apps/herman-legacy-digital (Phase 6, Release 1); built, not deployed",
   },
   {
+    id: "app.hscs-website",
+    kind: "application",
+    name: "HSCS Marketing Website",
+    summary:
+      "The public HSCS marketing site (Herman Supply Chain Solutions — Transportation & Operations Consulting), implementing the approved HSCS Commercial Launch Phase 1 Baseline. Milestone 2A: application foundation + Design System tokens in code + shared header/nav/footer + homepage only. No assessment intake, no Supabase, no analytics; not deployed.",
+    maturity: "built_undeployed",
+    reuse: ["commercial"],
+    owner: "Herman Supply Chain Solutions",
+    layer: "HL-BTI",
+    key: "hscs-website",
+    location: "apps/hscs-website",
+    tags: ["customer-facing", "website", "marketing", "hscs"],
+    relationships: [{ kind: "owned_by", to: "repo.hl-bos-platform" }],
+    evidence:
+      "apps/hscs-website (Milestone 2A: foundation + homepage); built, not deployed",
+  },
+  {
     id: "app.venture-studio",
     kind: "application",
     name: "Herman Legacy Venture Studio (HLVS V2)",
