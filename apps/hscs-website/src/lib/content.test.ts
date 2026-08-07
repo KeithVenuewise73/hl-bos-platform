@@ -6,6 +6,7 @@ import {
   ASSESSMENT_HREF,
   COMING_SOON,
   SERVICES_HREF,
+  INDUSTRIES_HREF,
   NAV_PRIMARY,
   HERO,
   CREDIBILITY,
@@ -146,7 +147,6 @@ describe("honesty rules", () => {
 
   it("routes not-yet-built destinations to the honest coming-soon page", () => {
     expect(CREDIBILITY.secondaryCta.href).toBe(COMING_SOON);
-    expect(WHO_WE_HELP.secondaryCta.href).toBe(COMING_SOON);
     expect(WHAT_YOU_GET.secondaryCta.href).toBe(COMING_SOON);
     expect(CLOSING.secondaryCta.href).toBe(COMING_SOON);
   });
@@ -156,7 +156,12 @@ describe("honesty rules", () => {
     expect(SERVICES_HREF).toBe("/services");
   });
 
-  it("marks Services nav ready (built) and the rest pending", () => {
+  it("links the now-built Industries hub from the homepage who-we-help section", () => {
+    expect(WHO_WE_HELP.secondaryCta.href).toBe(INDUSTRIES_HREF);
+    expect(INDUSTRIES_HREF).toBe("/industries");
+  });
+
+  it("marks Services and Industries nav ready (built) and the rest pending", () => {
     expect(NAV_PRIMARY.map((n) => n.label)).toEqual([
       "Services",
       "Industries",
@@ -167,8 +172,18 @@ describe("honesty rules", () => {
     ]);
     const status = Object.fromEntries(NAV_PRIMARY.map((n) => [n.label, n.status]));
     expect(status["Services"]).toBe("ready");
-    for (const label of ["Industries", "Experience", "Method", "Insights", "About"]) {
+    expect(status["Industries"]).toBe("ready");
+    for (const label of ["Experience", "Method", "Insights", "About"]) {
       expect(status[label]).toBe("pending");
+    }
+  });
+
+  it("wires the footer Industries column to the real, built industry routes", () => {
+    const industriesCol = FOOTER.columns.find((c) => c.heading === "Industries");
+    expect(industriesCol).toBeTruthy();
+    for (const link of industriesCol?.links ?? []) {
+      expect(link.status, link.label).toBe("ready");
+      expect(link.href.startsWith("/industries/"), link.label).toBe(true);
     }
   });
 

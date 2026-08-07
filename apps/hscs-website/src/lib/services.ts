@@ -16,6 +16,7 @@
  */
 
 import { ASSESSMENT_HREF, COMING_SOON, type Cta } from "./content";
+import { INDUSTRIES, INDUSTRIES_BASE } from "./industries";
 
 export const SERVICES_BASE = "/services";
 /** The approved front-door service (Operations Assessment) — a real built page. */
@@ -67,10 +68,15 @@ export interface ServicePage {
   readonly seoDescription: string;
 }
 
-// Related-industries links point to the industries section, which is NOT built
-// in this milestone — so they honestly resolve to /coming-soon.
+// Related-industries links resolve to the built industry pages (Milestone 2C).
+// Labels map to the approved industry routes by name; an unmapped label would be
+// a wiring bug, so it falls back to the honest /coming-soon rather than a 404.
+const INDUSTRY_HREF_BY_NAME = new Map<string, string>(
+  INDUSTRIES.map((i) => [i.name, `${INDUSTRIES_BASE}/${i.slug}`]),
+);
+
 function ind(label: string): ServiceLink {
-  return { label, href: COMING_SOON };
+  return { label, href: INDUSTRY_HREF_BY_NAME.get(label) ?? COMING_SOON };
 }
 
 // Most service pages send their secondary CTA to the real, built Operations

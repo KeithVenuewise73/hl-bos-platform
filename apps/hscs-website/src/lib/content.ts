@@ -29,6 +29,7 @@ export const DOCTRINE =
 export const COMING_SOON = "/coming-soon";
 /** The Services hub — a real built route (Milestone 2B). */
 export const SERVICES_HREF = "/services";
+export const INDUSTRIES_HREF = "/industries";
 /** Honest temporary destination for the primary conversion (no form yet). */
 export const ASSESSMENT_HREF = "/request-an-assessment";
 
@@ -72,7 +73,7 @@ export const PRIMARY_CTA_SHORT_LABEL = "Request Your Assessment";
 /** Primary navigation labels come from the approved IA (§2.1 / Homepage Copy S0). */
 export const NAV_PRIMARY: readonly NavItem[] = [
   { label: "Services", href: SERVICES_HREF, status: "ready" },
-  { label: "Industries", href: "/industries", status: "pending" },
+  { label: "Industries", href: "/industries", status: "ready" },
   { label: "Experience", href: "/experience", status: "pending" },
   { label: "Method", href: "/method", status: "pending" },
   { label: "Insights", href: "/insights", status: "pending" },
@@ -326,7 +327,10 @@ export const WHO_WE_HELP = {
     "Final-Mile Retail Delivery",
     "White-Glove & High-Touch Delivery",
   ] as const,
-  secondaryCta: { label: "Explore your industry", href: COMING_SOON } satisfies Cta,
+  secondaryCta: {
+    label: "Explore your industry",
+    href: INDUSTRIES_HREF,
+  } satisfies Cta,
 } as const;
 
 export const WHAT_YOU_GET = {
@@ -408,15 +412,31 @@ export const FOOTER = {
     {
       heading: "Industries",
       links: [
-        { label: "Warehousing & Fulfillment", href: "/industries", status: "pending" },
-        { label: "Middle-Mile Logistics", href: "/industries", status: "pending" },
+        {
+          label: "Warehousing & Fulfillment",
+          href: "/industries/warehousing-fulfillment",
+          status: "ready",
+        },
+        {
+          label: "Middle-Mile Logistics",
+          href: "/industries/middle-mile-logistics",
+          status: "ready",
+        },
         {
           label: "Direct-to-Customer / Cold-Chain",
-          href: "/industries",
-          status: "pending",
+          href: "/industries/direct-to-customer-cold-chain",
+          status: "ready",
         },
-        { label: "Final-Mile Retail Delivery", href: "/industries", status: "pending" },
-        { label: "White-Glove & High-Touch", href: "/industries", status: "pending" },
+        {
+          label: "Final-Mile Retail Delivery",
+          href: "/industries/final-mile-retail-delivery",
+          status: "ready",
+        },
+        {
+          label: "White-Glove & High-Touch",
+          href: "/industries/white-glove-high-touch-delivery",
+          status: "ready",
+        },
       ],
     },
     {
