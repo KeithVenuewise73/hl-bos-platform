@@ -5,6 +5,7 @@ import {
   PRIMARY_CTA,
   ASSESSMENT_HREF,
   COMING_SOON,
+  SERVICES_HREF,
   NAV_PRIMARY,
   HERO,
   CREDIBILITY,
@@ -145,13 +146,17 @@ describe("honesty rules", () => {
 
   it("routes not-yet-built destinations to the honest coming-soon page", () => {
     expect(CREDIBILITY.secondaryCta.href).toBe(COMING_SOON);
-    expect(SERVICES.secondaryCta.href).toBe(COMING_SOON);
     expect(WHO_WE_HELP.secondaryCta.href).toBe(COMING_SOON);
     expect(WHAT_YOU_GET.secondaryCta.href).toBe(COMING_SOON);
     expect(CLOSING.secondaryCta.href).toBe(COMING_SOON);
   });
 
-  it("marks every primary nav item as pending (its page is not built yet)", () => {
+  it("links the now-built Services hub from the homepage service ladder", () => {
+    expect(SERVICES.secondaryCta.href).toBe(SERVICES_HREF);
+    expect(SERVICES_HREF).toBe("/services");
+  });
+
+  it("marks Services nav ready (built) and the rest pending", () => {
     expect(NAV_PRIMARY.map((n) => n.label)).toEqual([
       "Services",
       "Industries",
@@ -160,7 +165,11 @@ describe("honesty rules", () => {
       "Insights",
       "About",
     ]);
-    expect(NAV_PRIMARY.every((n) => n.status === "pending")).toBe(true);
+    const status = Object.fromEntries(NAV_PRIMARY.map((n) => [n.label, n.status]));
+    expect(status["Services"]).toBe("ready");
+    for (const label of ["Industries", "Experience", "Method", "Insights", "About"]) {
+      expect(status[label]).toBe("pending");
+    }
   });
 
   it("keeps working on-page anchors for secondary CTAs that already resolve", () => {

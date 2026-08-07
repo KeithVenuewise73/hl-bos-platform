@@ -894,3 +894,38 @@ ul {
     align-items: center;
   }
 }
+
+/* ---------------------------------------------------------------------------
+ * Breadcrumbs (service pages) + FAQ
+ * ------------------------------------------------------------------------- */
+.breadcrumb {
+  padding-block: var(--space-4);
+  border-bottom: 1px solid var(--line);
+  background: var(--surface);
+}
+
+.breadcrumb ol {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: 0.8125rem;
+}
+
+.breadcrumb li {
+  color: var(--slate);
+}
+
+.breadcrumb li + li::before {
+  content: "/";
+  margin-right: var(--space-2);
+  color: var(--line-strong);
+}
+
+.breadcrumb [aria-current="page"] {
+  color: var(--ink);
+}
+
+.faq__item .card__title {
+  margin-bottom: var(--space-2);
+}
