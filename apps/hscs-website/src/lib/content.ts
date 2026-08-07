@@ -27,6 +27,8 @@ export const DOCTRINE =
 
 /** A destination that is a real, built route in this milestone. */
 export const COMING_SOON = "/coming-soon";
+/** The Services hub — a real built route (Milestone 2B). */
+export const SERVICES_HREF = "/services";
 /** Honest temporary destination for the primary conversion (no form yet). */
 export const ASSESSMENT_HREF = "/request-an-assessment";
 
@@ -69,7 +71,7 @@ export const PRIMARY_CTA_SHORT_LABEL = "Request Your Assessment";
 
 /** Primary navigation labels come from the approved IA (§2.1 / Homepage Copy S0). */
 export const NAV_PRIMARY: readonly NavItem[] = [
-  { label: "Services", href: "/services", status: "pending" },
+  { label: "Services", href: SERVICES_HREF, status: "ready" },
   { label: "Industries", href: "/industries", status: "pending" },
   { label: "Experience", href: "/experience", status: "pending" },
   { label: "Method", href: "/method", status: "pending" },
@@ -224,7 +226,7 @@ export const SERVICES = {
       blurb: "An operator's independent read on the software you're weighing.",
     },
   ] satisfies readonly ServiceItem[],
-  secondaryCta: { label: "See all services", href: COMING_SOON } satisfies Cta,
+  secondaryCta: { label: "See all services", href: SERVICES_HREF } satisfies Cta,
 } as const;
 
 export const METHOD = {
@@ -376,11 +378,31 @@ export const FOOTER = {
     {
       heading: "Services",
       links: [
-        { label: "Operations Assessment", href: ASSESSMENT_HREF, status: "ready" },
-        { label: "Transportation & Fleet", href: "/services", status: "pending" },
-        { label: "Warehousing & Distribution", href: "/services", status: "pending" },
-        { label: "Final-Mile & White-Glove", href: "/services", status: "pending" },
-        { label: "Government Logistics", href: "/services", status: "pending" },
+        {
+          label: "Operations Assessment",
+          href: "/services/operations-assessment",
+          status: "ready",
+        },
+        {
+          label: "Transportation & Fleet",
+          href: "/services/transportation-fleet-optimization",
+          status: "ready",
+        },
+        {
+          label: "Warehousing & Distribution",
+          href: "/services/warehousing-distribution-improvement",
+          status: "ready",
+        },
+        {
+          label: "Final-Mile & White-Glove",
+          href: "/services/final-mile-white-glove-delivery",
+          status: "ready",
+        },
+        {
+          label: "Government Logistics",
+          href: "/services/government-logistics",
+          status: "ready",
+        },
       ],
     },
     {
