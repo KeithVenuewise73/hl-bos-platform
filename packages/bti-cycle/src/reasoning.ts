@@ -341,9 +341,18 @@ export function decide(
     };
   }
 
+  // No recommendation and no provisional lead. An infeasible goal was already
+  // handled above (revise_goal), so the goal is feasible here. The honest
+  // consulting response is still "collect more evidence" whenever meaningful
+  // hypotheses remain — additional evidence could materially change the
+  // recommendation. "No transformation now" is reserved for the genuinely
+  // exhausted case: nothing left to investigate (no hypotheses) and no viable
+  // option.
+  const hypothesesRemain = constraint.hypotheses.length > 0;
   const anyViable = options.some((o) => o.rejectedReason === undefined);
+  const collect = hypothesesRemain || anyViable;
   return {
-    output: anyViable ? "collect_more_evidence" : "no_transformation",
+    output: collect ? "collect_more_evidence" : "no_transformation",
     recommendationId: null,
     provisionalLeadId: null,
   };

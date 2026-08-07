@@ -127,3 +127,47 @@ describe("honesty invariants", () => {
     expect(l.output).not.toBe("recommendation");
   });
 });
+
+describe("permitted output: collect_more_evidence when hypotheses remain", () => {
+  // Strong external demand, unknown internal operations, no verified strength to
+  // leverage. No recommendation is justified and there is no provisional lead —
+  // but the internal links are live hypotheses worth investigating. The honest
+  // output is "collect more evidence", NOT "no transformation now".
+  const l = runCycle({
+    engagementId: "eng-strong-demand-unknown-internals",
+    business: "Strong-demand Co",
+    asOf: AS_OF,
+    goal: { statement: "grow profitably", metric: "revenue", confidence: "assumed" },
+    evidence: [
+      {
+        id: "d",
+        fact: "[strong] strong verified inbound demand",
+        link: "demand",
+        quality: "verified",
+        sources: ["a", "b"],
+      },
+      {
+        id: "c",
+        fact: "capture mechanics unknown",
+        link: "capture",
+        quality: "unknown",
+      },
+      { id: "f", fact: "capacity unknown", link: "fulfillment", quality: "unknown" },
+    ],
+  });
+
+  it("returns collect_more_evidence, not no_transformation", () => {
+    expect(l.output).toBe("collect_more_evidence");
+    expect(l.output).not.toBe("no_transformation");
+  });
+
+  it("still has live hypotheses and a feasible goal to justify it", () => {
+    expect(l.rootCause.bindingLink).toBeNull();
+    expect(l.rootCause.hypotheses.length).toBeGreaterThan(0);
+    expect(l.rootCause.feasibility).not.toBe("infeasible");
+  });
+
+  it("names the evidence that could materially change the recommendation", () => {
+    expect(l.appetite.length).toBeGreaterThan(0);
+  });
+});
