@@ -266,6 +266,23 @@ const ASSETS: Asset[] = [
     evidence: "apps/herman-legacy-digital (Phase 6, Release 1); built, not deployed",
   },
   {
+    id: "app.hscs-website",
+    kind: "application",
+    name: "HSCS Marketing Website",
+    summary:
+      "The public HSCS marketing site (Herman Supply Chain Solutions — Transportation & Operations Consulting), implementing the approved HSCS Commercial Launch Phase 1 Baseline. Milestone 2A: application foundation + Design System tokens in code + shared header/nav/footer + homepage only. No assessment intake, no Supabase, no analytics; not deployed.",
+    maturity: "built_undeployed",
+    reuse: ["commercial"],
+    owner: "Herman Supply Chain Solutions",
+    layer: "HL-BTI",
+    key: "hscs-website",
+    location: "apps/hscs-website",
+    tags: ["customer-facing", "website", "marketing", "hscs"],
+    relationships: [{ kind: "owned_by", to: "repo.hl-bos-platform" }],
+    evidence:
+      "apps/hscs-website (Milestone 2A: foundation + homepage); built, not deployed",
+  },
+  {
     id: "app.venture-studio",
     kind: "application",
     name: "Herman Legacy Venture Studio (HLVS V2)",
@@ -383,6 +400,43 @@ const ASSETS: Asset[] = [
       { kind: "owned_by", to: "repo.hl-bos-platform" },
     ],
     evidence: "packages/bte-pipeline; 35 tests; docs/products/hld-bte-intake",
+  },
+  {
+    id: "pkg.bti-cycle",
+    kind: "package",
+    name: "@hl-bos/bti-cycle",
+    summary:
+      "BTI V1 — one transformation cycle, Customer Goal → Measurement Contract, implementing the approved BTI constitution (Reasoning Ledger, Confidence State Machine, Evidence Appetite, Recommendation Stability, Measurement Contract). Deterministic and DB-agnostic: it caps its own confidence, refuses to score what it cannot size, prioritises the evidence most likely to prove it wrong, and emits one of four permitted outputs. Reasoning spine only — no persistence, execution or UI.",
+    maturity: "built_undeployed",
+    reuse: ["reusable", "commercial"],
+    owner: "Herman Legacy Digital",
+    layer: "HL-BTI",
+    key: "bti-cycle",
+    location: "packages/bti-cycle",
+    tags: ["package", "reasoning", "methodology", "deterministic", "truth-mode"],
+    relationships: [{ kind: "owned_by", to: "repo.hl-bos-platform" }],
+    evidence:
+      "packages/bti-cycle; 23 tests incl. the real Saffer proof (src/saffer.test.ts)",
+  },
+  {
+    id: "pkg.bti-venuewise",
+    kind: "package",
+    name: "@hl-bos/bti-venuewise",
+    summary:
+      "Venuewise startup-analysis pipeline — runs Venuewise through the BTI reasoning contract adapted to a startup value chain (Problem → … → Margin). Reuses @hl-bos/bti-cycle's confidence machine, evidence model and four permitted outputs; adds source-labeled Venuewise evidence, a Reasoning Ledger, a Measurement Contract, and a decision-ready Business Transformation Report. Deterministic; invents no data; separates a functioning product from a functioning business.",
+    maturity: "built_undeployed",
+    reuse: ["reusable", "commercial"],
+    owner: "Herman Legacy Digital",
+    layer: "HL-BTI",
+    key: "bti-venuewise",
+    location: "packages/bti-venuewise",
+    tags: ["package", "reasoning", "startup", "deterministic", "truth-mode"],
+    relationships: [
+      { kind: "uses", to: "pkg.bti-cycle" },
+      { kind: "owned_by", to: "repo.hl-bos-platform" },
+    ],
+    evidence:
+      "packages/bti-venuewise; 15 tests; report from docs/products/venuewise-*harvest",
   },
   {
     id: "pkg.catalog",

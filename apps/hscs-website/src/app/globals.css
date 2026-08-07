@@ -1,0 +1,931 @@
+/*
+ * HSCS Design System — tokens and foundations implemented in code.
+ *
+ * This file is the code realization of the approved HSCS Design System v1.0
+ * (docs/products/hscs-design-system/README.md). Token VALUES are the standard;
+ * they are defined once here as CSS custom properties and referenced everywhere
+ * else. No component invents its own values.
+ *
+ * Doctrine: operations lead, technology supports. The palette is deliberately
+ * narrow — deep navy authority + ink + steel neutrals + ONE hi-vis amber
+ * "signal" reserved for the single primary action. No gradients, no glow, no
+ * startup/AI styling.
+ */
+
+:root {
+  /* ---- Color: core / brand (Design System §4) ---- */
+  --ink: #12181f;
+  --navy: #13293d;
+  --navy-deep: #0d1e2e;
+  --steel: #34506b;
+  --slate: #55677a;
+  --graphite: #2a333d;
+
+  /* ---- Color: neutrals ---- */
+  --surface: #ffffff;
+  --paper: #f6f7f9;
+  --mist: #eceff3;
+  --line: #d3d9e0;
+  --line-strong: #b7c0ca;
+
+  /* ---- Color: signal accent (operational) — used sparingly ---- */
+  --signal: #c8621a;
+  --signal-deep: #a94f12;
+  --signal-wash: #f6e9dd;
+
+  /* ---- Color: semantic (muted, professional) ---- */
+  --success: #2e7d5b;
+  --warning: #c88a1a;
+  --error: #b3261e;
+  --info: #2b5b84;
+
+  /* ---- Type families (Design System §3) ---- */
+  --font-display: "Archivo", "Neue Haas Grotesk", "Inter", Arial, sans-serif;
+  --font-body: "Inter", system-ui, "Segoe UI", Roboto, Arial, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+
+  /* ---- Spacing scale, 4px base (Design System §5) ---- */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+  --space-7: 40px;
+  --space-8: 48px;
+  --space-9: 64px;
+  --space-10: 80px;
+  --space-11: 96px;
+  --space-12: 128px;
+
+  /* ---- Radii (small, engineered — no pills) ---- */
+  --radius-sm: 2px;
+  --radius-md: 4px;
+  --radius-lg: 6px;
+
+  /* ---- Elevation (border-first; shadows rare) ---- */
+  --e1: 0 1px 2px rgba(18, 24, 31, 0.06);
+  --e2: 0 4px 12px rgba(18, 24, 31, 0.08);
+
+  /* ---- Layout (Design System §6) ---- */
+  --content-max: 1200px;
+  --wide-max: 1320px;
+
+  /* ---- Motion (restrained) ---- */
+  --dur-fast: 150ms;
+  --dur: 250ms;
+  --ease: cubic-bezier(0.2, 0, 0, 1);
+}
+
+/* ---------------------------------------------------------------------------
+ * Base reset + element styles
+ * ------------------------------------------------------------------------- */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-size: 1rem;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+h1,
+h2,
+h3,
+h4,
+p,
+ul,
+ol {
+  margin: 0;
+}
+
+a {
+  color: var(--steel);
+  text-decoration: none;
+}
+
+a:hover {
+  text-decoration: underline;
+}
+
+img {
+  max-width: 100%;
+  height: auto;
+}
+
+ul {
+  padding: 0;
+  list-style: none;
+}
+
+/* ---------------------------------------------------------------------------
+ * Accessibility: visible keyboard focus + skip link
+ * ------------------------------------------------------------------------- */
+:focus-visible {
+  outline: 2px solid var(--signal);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.skip-link {
+  position: absolute;
+  left: var(--space-4);
+  top: -100px;
+  z-index: 100;
+  background: var(--navy);
+  color: #fff;
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-md);
+  transition: top var(--dur-fast) var(--ease);
+}
+
+.skip-link:focus {
+  top: var(--space-4);
+  text-decoration: none;
+}
+
+/* ---------------------------------------------------------------------------
+ * Layout primitives
+ * ------------------------------------------------------------------------- */
+.container {
+  width: 100%;
+  max-width: var(--content-max);
+  margin-inline: auto;
+  padding-inline: var(--space-4);
+}
+
+.section {
+  padding-block: var(--space-9);
+}
+
+.section--tight {
+  padding-block: var(--space-8);
+}
+
+.section--mist {
+  background: var(--mist);
+}
+
+.section--navy {
+  background: var(--navy);
+  color: #fff;
+}
+
+@media (min-width: 768px) {
+  .container {
+    padding-inline: var(--space-6);
+  }
+  .section {
+    padding-block: var(--space-11);
+  }
+}
+
+/* ---------------------------------------------------------------------------
+ * Typography scale (Design System §3)
+ * ------------------------------------------------------------------------- */
+.eyebrow {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--slate);
+  margin: 0;
+}
+
+.label {
+  font-family: var(--font-mono);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.display-xl {
+  font-family: var(--font-display);
+  font-size: clamp(2.25rem, 6vw, 3.5rem);
+  font-weight: 700;
+  line-height: 1.05;
+  letter-spacing: -0.02em;
+  margin: 0;
+}
+
+.h1 {
+  font-family: var(--font-display);
+  font-size: clamp(1.875rem, 4.5vw, 2.25rem);
+  font-weight: 700;
+  line-height: 1.12;
+  letter-spacing: -0.01em;
+  margin: 0;
+}
+
+.h2 {
+  font-family: var(--font-display);
+  font-size: clamp(1.5rem, 3.5vw, 1.75rem);
+  font-weight: 600;
+  line-height: 1.2;
+  letter-spacing: -0.01em;
+  margin: 0;
+}
+
+.h3 {
+  font-family: var(--font-display);
+  font-size: 1.375rem;
+  font-weight: 600;
+  line-height: 1.3;
+  margin: 0;
+}
+
+.h4 {
+  font-family: var(--font-display);
+  font-size: 1.125rem;
+  font-weight: 600;
+  line-height: 1.4;
+  margin: 0;
+}
+
+.body-l {
+  font-size: 1.125rem;
+  line-height: 1.6;
+}
+
+.body-s {
+  font-size: 0.875rem;
+  line-height: 1.55;
+}
+
+.measure {
+  max-width: 66ch;
+}
+
+.muted {
+  color: var(--slate);
+}
+
+/* ---------------------------------------------------------------------------
+ * Buttons (Design System §7) — one primary (amber) per view.
+ * ------------------------------------------------------------------------- */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  min-height: 44px;
+  padding: 0 var(--space-5);
+  border: 1px solid transparent;
+  border-radius: var(--radius-md);
+  font-family: var(--font-body);
+  font-size: 1rem;
+  font-weight: 600;
+  line-height: 1;
+  cursor: pointer;
+  text-decoration: none;
+  transition:
+    background-color var(--dur-fast) var(--ease),
+    border-color var(--dur-fast) var(--ease);
+}
+
+.btn:hover {
+  text-decoration: none;
+}
+
+/* Primary = the single Operations Assessment CTA. Hi-vis amber + ink text
+ * (operational-signage contrast). Reserved for the primary conversion only. */
+.btn--primary {
+  background: var(--signal);
+  color: var(--ink);
+}
+
+.btn--primary:hover {
+  background: var(--signal-deep);
+  color: #fff;
+}
+
+.btn--secondary {
+  background: var(--navy);
+  color: #fff;
+}
+
+.btn--secondary:hover {
+  background: var(--navy-deep);
+}
+
+.btn--outline {
+  background: transparent;
+  color: var(--navy);
+  border-color: var(--navy);
+}
+
+.section--navy .btn--outline {
+  color: #fff;
+  border-color: rgba(255, 255, 255, 0.6);
+}
+
+.btn--ghost {
+  background: transparent;
+  color: var(--steel);
+  min-height: auto;
+  padding: var(--space-2) 0;
+  font-weight: 600;
+}
+
+.btn--ghost:hover {
+  color: var(--signal-deep);
+  text-decoration: underline;
+}
+
+.section--navy .btn--ghost {
+  color: #cfe0f0;
+}
+
+.btn--lg {
+  min-height: 52px;
+  padding: 0 var(--space-6);
+  font-size: 1.125rem;
+}
+
+.btn--sm {
+  min-height: 36px;
+  padding: 0 var(--space-4);
+  font-size: 0.875rem;
+}
+
+/* ---------------------------------------------------------------------------
+ * Cards (Design System §9) — flat, bordered, squared.
+ * ------------------------------------------------------------------------- */
+.card {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  padding: var(--space-5);
+}
+
+.card__title {
+  margin-bottom: var(--space-2);
+}
+
+.tag {
+  display: inline-block;
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--slate);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  padding: 2px 6px;
+}
+
+/* ---------------------------------------------------------------------------
+ * Simple responsive grids
+ * ------------------------------------------------------------------------- */
+.grid {
+  display: grid;
+  gap: var(--space-5);
+  grid-template-columns: 1fr;
+}
+
+@media (min-width: 640px) {
+  .grid--2 {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (min-width: 1024px) {
+  .grid--3 {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+.stack > * + * {
+  margin-top: var(--space-4);
+}
+
+.reduced-motion-safe {
+  transition: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.001ms !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* ---------------------------------------------------------------------------
+ * Header + responsive navigation (Design System §10)
+ * ------------------------------------------------------------------------- */
+.site-header {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  background: var(--surface);
+  border-bottom: 1px solid var(--line);
+}
+
+.site-header__inner {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  min-height: 64px;
+}
+
+.brand {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.1;
+}
+
+.brand:hover {
+  text-decoration: none;
+}
+
+.brand__mark {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 1.125rem;
+  color: var(--navy);
+  letter-spacing: 0.02em;
+}
+
+.brand__desc {
+  font-family: var(--font-mono);
+  font-size: 0.625rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--slate);
+}
+
+.nav-desktop {
+  display: none;
+}
+
+.header-actions {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.header-cta {
+  white-space: nowrap;
+}
+
+/* Header must never overflow: brand may shrink; the actions cluster stays intact
+ * so the menu button is always reachable. */
+.site-header__inner {
+  flex-wrap: nowrap;
+}
+
+.brand {
+  min-width: 0;
+}
+
+.header-actions {
+  flex-shrink: 0;
+}
+
+/* Responsive primary-CTA label: the full label by default; the approved shorter
+ * label ("Request Your Assessment") on narrow phones so it cannot overflow and
+ * push the hamburger off-screen. */
+.header-cta__short {
+  display: none;
+}
+
+@media (max-width: 640px) {
+  .header-cta__full {
+    display: none;
+  }
+  .header-cta__short {
+    display: inline;
+  }
+  /* Free horizontal space on phones so the hamburger is always visible. The
+   * "HSCS" mark stays; the descriptor still shows on tablet and desktop. */
+  .brand__desc {
+    display: none;
+  }
+}
+
+.hamburger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  background: transparent;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  color: var(--ink);
+  cursor: pointer;
+}
+
+.hamburger__glyph {
+  font-size: 1.1rem;
+  line-height: 1;
+}
+
+.nav-mobile {
+  border-top: 1px solid var(--line);
+  background: var(--surface);
+}
+
+.nav-mobile .container {
+  display: flex;
+  flex-direction: column;
+  padding-block: var(--space-2);
+}
+
+.nav-mobile__link {
+  padding: var(--space-3) 0;
+  color: var(--ink);
+  border-bottom: 1px solid var(--mist);
+}
+
+.nav-mobile__link:hover {
+  color: var(--signal-deep);
+  text-decoration: none;
+}
+
+@media (min-width: 1024px) {
+  .nav-desktop {
+    display: flex;
+    gap: var(--space-5);
+    margin-left: var(--space-6);
+  }
+  .nav-desktop__link {
+    color: var(--slate);
+    font-size: 0.9375rem;
+  }
+  .nav-desktop__link:hover {
+    color: var(--navy);
+    text-decoration: none;
+  }
+  .hamburger,
+  .nav-mobile {
+    display: none;
+  }
+}
+
+/* ---------------------------------------------------------------------------
+ * Hero + shared section pieces
+ * ------------------------------------------------------------------------- */
+.hero__headline {
+  margin-top: var(--space-3);
+  max-width: 20ch;
+}
+
+.hero__supporting {
+  margin-top: var(--space-5);
+}
+
+.hero__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-4);
+  margin-top: var(--space-6);
+}
+
+.operating-record {
+  display: block;
+  margin-top: var(--space-5);
+  margin-bottom: var(--space-4);
+  color: var(--slate);
+}
+
+/* Lifecycle chain */
+.lifecycle__intro {
+  margin: var(--space-4) 0 var(--space-6);
+}
+
+.lifecycle__chain {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-4);
+  margin-bottom: var(--space-6);
+}
+
+.stage {
+  border-left: 3px solid var(--signal);
+  padding-left: var(--space-4);
+}
+
+.stage__index {
+  display: block;
+  color: var(--slate);
+  margin-bottom: var(--space-1);
+}
+
+.stage__name {
+  margin-bottom: var(--space-1);
+}
+
+@media (min-width: 768px) {
+  .lifecycle__chain {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (min-width: 1024px) {
+  .lifecycle__chain {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+/* Why / contrast */
+.why__contrasts {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-4);
+  margin: var(--space-6) 0;
+}
+
+.contrast-row {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+@media (min-width: 768px) {
+  .why__contrasts {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+/* Services */
+.services-grid {
+  margin: var(--space-6) 0;
+}
+
+.service-card {
+  position: relative;
+}
+
+.service-card--start {
+  border-color: var(--signal);
+  border-width: 2px;
+}
+
+.service-card .tag {
+  margin-bottom: var(--space-2);
+}
+
+/* Method */
+.method__steps {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  margin: var(--space-5) 0;
+}
+
+.step {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  padding: var(--space-3) var(--space-4);
+}
+
+.step__index {
+  color: var(--signal-deep);
+}
+
+.honesty {
+  border-left: 3px solid var(--signal);
+  margin: var(--space-5) 0;
+}
+
+.honesty .label {
+  color: var(--signal-deep);
+  margin-bottom: var(--space-2);
+}
+
+/* AI clarifier */
+.ai__grid {
+  margin-top: var(--space-6);
+}
+
+.enhance {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  padding: var(--space-4);
+}
+
+/* Toolbox */
+.toolbox__grid {
+  margin-top: var(--space-6);
+}
+
+.tool__tag {
+  margin-bottom: var(--space-2);
+}
+
+/* Who we help */
+.who__label {
+  display: block;
+  margin: var(--space-6) 0 var(--space-3);
+  color: var(--slate);
+}
+
+.who__roles,
+.who__industries {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.chip {
+  border: 1px solid var(--line);
+  background: var(--surface);
+  border-radius: var(--radius-md);
+  padding: var(--space-2) var(--space-3);
+  font-size: 0.875rem;
+}
+
+/* What you get */
+.whatyouget__list {
+  margin-top: var(--space-5);
+  padding-left: 1.25rem;
+  list-style: disc;
+}
+
+.whatyouget__list li {
+  margin-bottom: var(--space-2);
+}
+
+/* Closing (navy) */
+.section--navy .muted {
+  color: #a9bccf;
+}
+
+.section--navy a.btn--ghost {
+  color: #cfe0f0;
+}
+
+.closing__microcopy {
+  margin-top: var(--space-4);
+  color: #cfe0f0;
+}
+
+/* ---------------------------------------------------------------------------
+ * Footer (Design System §10)
+ * ------------------------------------------------------------------------- */
+.site-footer {
+  background: var(--navy-deep);
+  color: #dbe4ee;
+}
+
+.site-footer a {
+  color: #dbe4ee;
+}
+
+.footer-cta {
+  background: var(--navy);
+}
+
+.footer-cta__inner {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  align-items: flex-start;
+}
+
+.footer-cta .h2 {
+  color: #fff;
+}
+
+.footer-cta__sub {
+  color: #c3d2e2;
+  max-width: 48ch;
+  margin-top: var(--space-2);
+}
+
+@media (min-width: 768px) {
+  .footer-cta__inner {
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+  }
+}
+
+.footer-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-6);
+}
+
+@media (min-width: 640px) {
+  .footer-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (min-width: 1024px) {
+  .footer-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+.footer-col__heading {
+  color: #9fb2c6;
+  margin-bottom: var(--space-3);
+}
+
+.footer-col li {
+  margin-bottom: var(--space-2);
+}
+
+.footer-col__link {
+  font-size: 0.9375rem;
+}
+
+.footer-boilerplate {
+  color: #a9bccf;
+  margin: var(--space-8) 0 var(--space-5);
+}
+
+.footer-bottom {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
+  padding-top: var(--space-4);
+}
+
+.footer-legal {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-4);
+}
+
+@media (min-width: 768px) {
+  .footer-bottom {
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+  }
+}
+
+/* ---------------------------------------------------------------------------
+ * Breadcrumbs (service pages) + FAQ
+ * ------------------------------------------------------------------------- */
+.breadcrumb {
+  padding-block: var(--space-4);
+  border-bottom: 1px solid var(--line);
+  background: var(--surface);
+}
+
+.breadcrumb ol {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: 0.8125rem;
+}
+
+.breadcrumb li {
+  color: var(--slate);
+}
+
+.breadcrumb li + li::before {
+  content: "/";
+  margin-right: var(--space-2);
+  color: var(--line-strong);
+}
+
+.breadcrumb [aria-current="page"] {
+  color: var(--ink);
+}
+
+.faq__item .card__title {
+  margin-bottom: var(--space-2);
+}

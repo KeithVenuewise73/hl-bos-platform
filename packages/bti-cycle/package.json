@@ -1,0 +1,23 @@
+{
+  "name": "@hl-bos/bti-cycle",
+  "version": "0.1.0",
+  "private": true,
+  "description": "BTI V1 — one complete transformation cycle, Customer Goal → Measurement Contract, implementing the approved BTI constitution (Reasoning Ledger, Confidence State Machine, Evidence Appetite, Recommendation Stability, Measurement Contract). Deterministic and DB-agnostic: it invents no data, caps its own confidence honestly, and refuses to over-claim. Persistence and UI are out of scope for this slice.",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "default": "./src/index.ts"
+    }
+  },
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run",
+    "clean": "rm -rf dist *.tsbuildinfo"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  }
+}

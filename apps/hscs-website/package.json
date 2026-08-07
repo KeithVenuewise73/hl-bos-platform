@@ -1,0 +1,28 @@
+{
+  "name": "@hl-bos/hscs-website",
+  "version": "0.1.0",
+  "private": true,
+  "description": "HSCS marketing website — Herman Supply Chain Solutions, Transportation & Operations Consulting. The public marketing site implementing the approved HSCS Commercial Launch Phase 1 Baseline (Commercial Foundation, Website IA, Homepage Architecture, Homepage Copy, Page Specifications, Design System). Milestone 2A delivers the application foundation, the Design System tokens in code, the shared header/nav/footer, and the homepage only. It has NO backend: no assessment intake, no Supabase, no email, no analytics. The primary CTA links to an honest 'being prepared' page rather than a fake form.",
+  "type": "module",
+  "scripts": {
+    "dev": "next dev --port 4600",
+    "build": "next build",
+    "start": "next start --port 4600",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint .",
+    "test": "vitest run",
+    "clean": "rm -rf .next dist *.tsbuildinfo"
+  },
+  "dependencies": {
+    "next": "catalog:",
+    "react": "catalog:",
+    "react-dom": "catalog:"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "@types/react": "catalog:",
+    "@types/react-dom": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  }
+}
