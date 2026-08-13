@@ -21,10 +21,13 @@ on:
   push:
     branches: [main]
 
-# Cancel superseded runs on the same ref -- no point burning minutes on a
-# commit that has already been replaced.
+# Cancel superseded runs on the same branch -- no point burning minutes on a
+# commit that has already been replaced. Key on head_ref (the source branch)
+# for pull_request events, falling back to ref for push; this is the pattern
+# GitHub recommends and it keeps PR runs out of the shared refs/pull/*/merge
+# group, which a stuck-queued re-run can otherwise poison for the whole PR.
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
+  group: ${{ github.workflow }}-${{ github.head_ref || github.ref }}
   cancel-in-progress: true
 
 # Least privilege by default. Jobs opt in to more if they ever need it.

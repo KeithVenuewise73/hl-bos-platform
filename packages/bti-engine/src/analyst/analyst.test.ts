@@ -60,6 +60,6 @@ describe("analyst orchestration — evidence → findings → recommendations �
   });
 
   it("states its evidence coverage honestly", () => {
-    expect(a.coverageNote).toContain("website-driven");
+    expect(a.coverageNote).toContain("does not infer what it cannot observe");
   });
 });

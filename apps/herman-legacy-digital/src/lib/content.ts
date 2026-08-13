@@ -7,6 +7,7 @@
  */
 
 export const NAV_PRIMARY = [
+  { label: "Free AI Scan", href: "/scan" },
   { label: "How We Transform", href: "/transformation" },
   { label: "Solutions", href: "/solutions" },
   { label: "Industries", href: "/industries" },
@@ -23,8 +24,8 @@ export const NAV_UTILITY = [
 
 /** The flagship call to action, used in the header and home hero. */
 export const PRIMARY_CTA = {
-  label: "Start Your Business Transformation",
-  href: "/business-transformation-intake",
+  label: "Free AI Business Scan",
+  href: "/scan",
 };
 
 /**

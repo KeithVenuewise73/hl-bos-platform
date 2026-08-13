@@ -166,6 +166,9 @@ importers:
 
   apps/herman-legacy-digital:
     dependencies:
+      '@hl-bos/bti-engine':
+        specifier: workspace:*
+        version: link:../../packages/bti-engine
       '@hl-bos/catalog':
         specifier: workspace:*
         version: link:../../packages/catalog
