@@ -51,7 +51,7 @@
     "vstudio": "Executive / Opportunity Intelligence. Schema vstudio.* + apps/venture-studio + @hl-bos/venture-studio. Captures opportunities, evaluates, recommends, records the authoritative CEO decision, previews factory readiness. System-of-record for OPPORTUNITIES.",
     "hlvs": "Software Factory system-of-record. Schema hlvs.* (migration 0025) + supabase/functions/hlvs-factory-worker + _shared/hlvs. Products, blueprints, software-creation-orders, build packages, conformance, development runs. System-of-record for the BUILD/factory pipeline. NOT the opportunity store.",
     "@hl-bos/catalog": "Reusable capability/module/reuse/factory/portfolio MODELING layer (pure logic + in-code registries). Powers reuse & duplicate analysis, factory assembly readiness, portfolio/application registry. A library, not a system-of-record.",
-    "@hl-bos/transformation-intelligence": "SEPARATE Business Transformation Intelligence capability (HL-BTI). Contains an HLVS-named surface (src/hlvs.ts: SoftwareOpportunity / OpportunityVerdict) that bridges 'this customer needs X' to 'the Factory can assemble X'. This is a transformation-assessment -> software-opportunity rollup, NOT the vstudio opportunity funnel. OVERLAP REQUIRES CLARIFICATION.",
+    "@hl-bos/transformation-intelligence": "SEPARATE Business Transformation Intelligence capability (HL-BTI). Contains an HLVS-named surface (src/hlvs.ts: SoftwareOpportunity / OpportunityVerdict) that bridges 'this customer needs X' to 'the Factory can assemble X'. This is a transformation-assessment -> software-opportunity rollup, NOT the vstudio opportunity funnel. OVERLAP REQUIRES CLARIFICATION. NAMING: src/hlvs.ts is a misleading/historical HLVS name (a transformation-assessment rollup, NOT an HLVS/vstudio surface) — flagged RENAME_CLARIFY; do not rename in this step.",
     "hld_bti": "Herman Legacy Digital (apps/herman-legacy-digital) + BTI/BTIC/BTDI lineage: an adjacent transformation/business-intelligence customer-facing product. It is the intended HOST of /HLVS but is NOT a replacement for Venture Studio."
   },
   "mandatoryPreflightProtocol": {
@@ -84,6 +84,119 @@
     "GitHub pull-request history for hl-bos-platform (PRs #9-#46).",
     "Exclusion evidence: KeithVenuewise73/homehuddle serves venuewise.net (CNAME + 368 refs), contains zero HLVS code, connects only to Venuewise Platform (urwnbskrtoplgnkkxuvl) — not HLVS."
   ],
+  "ownershipAudit": {
+    "artifact": ".hlbos/audits/2026-08-13-hlvs-ownership-boundary-audit.md",
+    "date": "2026-08-13",
+    "mainHead": "30d6ad168fc0ad993db10765576515c3d357ff1b",
+    "method": "read-only; five parallel code investigators; load-bearing facts cross-corroborated by >=2 investigators"
+  },
+  "overlapDispositionVocabulary": {
+    "REUSE_AS_IS": "Owned correctly; reuse without change.",
+    "DELEGATE": "Keep the record/role but call the canonical engine for the logic instead of re-implementing it.",
+    "CONSOLIDATE": "Merge overlapping implementations onto one canonical owner.",
+    "REMOVE_DUPLICATE_LATER": "Retire the duplicate after consolidation lands.",
+    "RENAME_CLARIFY": "Misleading/historical name; clarify or rename (no behaviour change).",
+    "NET_NEW_BRIDGE": "A small new stitch connecting two existing owners.",
+    "COMPLETE_EXISTING": "Owner is correct; finish the partially-built capability.",
+    "INVESTIGATE": "Ownership or provenance not yet resolved."
+  },
+  "$overlapDispositionNote": "overlap_disposition is an ownership-scoped field with its OWN vocabulary (above); it does NOT change recommendedActionVocabulary, which stays the 7 documented values used in capability.recommended_action.",
+  "ownershipModel": {
+    "$comment": "Ownership boundaries verified by the 2026-08-13 Ownership & Architectural Boundary Audit. Records WHO OWNS each responsibility to prevent duplication before PR #26 reconciliation or B3. Do not collapse distinct owners because names overlap.",
+    "layers": {
+      "A_executive_intelligence": {
+        "canonical_owner": "vstudio + @hl-bos/venture-studio",
+        "system_of_record": "vstudio.*",
+        "responsibilities": [
+          "opportunities",
+          "evidence",
+          "evaluations",
+          "recommendations",
+          "ceo_decisions",
+          "relationships",
+          "priority",
+          "research_state"
+        ],
+        "supporting": [
+          "ai.runs",
+          "events",
+          "storage_meta",
+          "@hl-bos/catalog (reuse input)"
+        ],
+        "must_not_own": [
+          "hlvs",
+          "@hl-bos/catalog",
+          "@hl-bos/transformation-intelligence"
+        ]
+      },
+      "B_reuse_intelligence": {
+        "canonical_owner": "@hl-bos/catalog",
+        "reusable_engine": "@hl-bos/catalog capability-reuse.ts (evaluateReuse/duplicateCheck), factory-registry.ts, MODULE_REGISTRY, CAPABILITIES",
+        "responsibilities": [
+          "capability_reuse",
+          "duplicate/reuse_analysis",
+          "module_registry",
+          "capability_registry(modeling)",
+          "factory_modeling"
+        ],
+        "must_not_own": [
+          "hlvs.duplicate_check rule logic (delegate here; its table persists results only)",
+          "venture-studio/reuse.ts (consumer only)"
+        ]
+      },
+      "C_software_factory": {
+        "modeling_owner": "@hl-bos/catalog",
+        "opportunity_readiness_owner": "@hl-bos/venture-studio (computeFactoryReadiness; executable:false)",
+        "system_of_record_owner": "hlvs schema (order_status state machine)",
+        "execution_owner": "hlvs-factory-worker (BUILT; INERT/undeployed; external_execution=false)",
+        "must_not_own": ["vstudio (never writes the factory)"]
+      },
+      "D_transformation_intelligence": {
+        "canonical_owner": "@hl-bos/transformation-intelligence + apps/herman-legacy-digital + bti-*/bte-pipeline",
+        "responsibility": "diagnose an existing customer business (BTI/HLD); produces advisory SoftwareOpportunity rollups on the executive-portal dashboard",
+        "supporting": [
+          "@hl-bos/catalog (shared factory)",
+          "discovery schema",
+          "visibility"
+        ],
+        "must_not_own": [
+          "the vstudio opportunity funnel — BTI must not become a second Venture Studio"
+        ],
+        "seam": "a HUMAN promotes a BTI SoftwareOpportunity into a new vstudio.opportunity at status inbox; this edge deliberately does not exist yet; if built it must land in inbox for CEO triage, never auto-approved"
+      },
+      "E_external_intelligence_ingestion": {
+        "registration": "integrations.connectors",
+        "credential_references": "integrations.connections (vault: references only)",
+        "collection_execution": "integrations.sync_runs",
+        "ai_provenance": "ai.runs",
+        "choreography": "events",
+        "promoted_opportunities": "vstudio.opportunities (via vstudio.create_opportunity)",
+        "display_catalog_only": "packages/venture-studio/src/sources.ts",
+        "overlapping_code_registries": [
+          "packages/venture-studio/src/sources.ts (13)",
+          "PR#26 OPPORTUNITY_CONNECTORS (11)"
+        ],
+        "future_direction": "CONSOLIDATE onto integrations.connectors; do NOT create a third registry (guard B3)",
+        "raw_ingestion_store": "UNOWNED GAP — discovery schema is customer-business assessment (wrong domain); integrations is transport only",
+        "must_not_own": [
+          "discovery schema (VisibilityAI customer assessment, not venture ingestion)"
+        ]
+      }
+    },
+    "executiveIntelligenceToFactoryHandoff": {
+      "status": "NET_NEW_GAP",
+      "current_state": "CEO BUILD decision exists in vstudio; hlvs blueprint/order/run/conformance lifecycle exists; NO authoritative bridge connects them. vstudio.decisions.factory_authorized is an unread boolean; computeFactoryReadiness is a read-only preview; reuse_snapshot is stranded. Zero FK/function links vstudio.decisions to hlvs.product_blueprints/software_creation_orders.",
+      "smallest_future_bridge": "CEO BUILD decision -> authorized factory blueprint/order provenance (a nullable origin FK on hlvs.product_blueprints + one authorizing function). NOT implemented; future engineering decision — do not build in this step."
+    },
+    "namingIssues": [
+      {
+        "surface": "packages/transformation-intelligence/src/hlvs.ts",
+        "issue": "misleading/historical HLVS name; it is a transformation-assessment rollup, not an HLVS/vstudio surface (imports @hl-bos/catalog + ./recommendations; zero vstudio references)",
+        "overlap_disposition": "RENAME_CLARIFY",
+        "note": "do not rename in this step"
+      }
+    ]
+  },
   "capabilities": [
     {
       "capability_id": "HLVS-CAP-01",
@@ -115,9 +228,18 @@
       ],
       "open_pr_dependencies": ["#26 (B2 pipeline extends capture into a lifecycle)"],
       "known_overlap": "hlvs.products is a DIFFERENT catalog (factory product catalog), not the opportunity catalog. Do not conflate.",
-      "known_limitations": "App undeployed; vstudio schema not exposed over the API; 0 opportunity rows; capture UI cannot reach production data until the app is deployed and the schema exposed.",
+      "known_limitations": "App undeployed; vstudio schema not exposed over the API; 0 opportunity rows; capture UI cannot reach production data until the app is deployed and the schema exposed. OWNERSHIP: vstudio is the authoritative opportunity system of record; priority and relationships are gaps on main (filled by CAP-07); research_state is only partial.",
       "recommended_action": "COMPLETE_EXISTING",
-      "last_verified_date": "2026-08-13"
+      "last_verified_date": "2026-08-13",
+      "ownership": {
+        "canonical_owner": "vstudio + @hl-bos/venture-studio",
+        "system_of_record": "vstudio.*",
+        "reusable_engine": null,
+        "execution_layer": null,
+        "ownership_boundary": "Owns opportunities/evidence/evaluations/recommendations/decisions/relationships/priority/research_state; never writes to hlvs.",
+        "overlap_disposition": "COMPLETE_EXISTING",
+        "note": "priority + relationships are gaps on main, filled by CAP-07 (B2); research_state is only partial (status value + notebook tasks)."
+      }
     },
     {
       "capability_id": "HLVS-CAP-02",
@@ -146,10 +268,19 @@
         "graph read-model (optional, migration 0028 applied)"
       ],
       "open_pr_dependencies": [],
-      "known_overlap": "The Canonical Capability Library (Phase XI-1) unified six prior ad-hoc capability registries; this HLVS registry is the governance index, the catalog is the computational engine. Keep the roles distinct.",
+      "known_overlap": "The Canonical Capability Library (Phase XI-1) unified six prior ad-hoc capability registries; this HLVS registry is the governance index, the catalog is the computational engine. Keep the roles distinct. OWNERSHIP: canonical reuse/duplicate engine. hlvs.duplicate_check rule logic should delegate here (table retained for audit); PR#26 detectDuplicates is a separate specialized opportunity-vs-opportunity operation.",
       "known_limitations": "Deterministic but only as complete as the in-code catalog; not a DB-backed service; results reflect registered modules only.",
       "recommended_action": "REUSE_AS_IS",
-      "last_verified_date": "2026-08-13"
+      "last_verified_date": "2026-08-13",
+      "ownership": {
+        "canonical_owner": "@hl-bos/catalog",
+        "system_of_record": null,
+        "reusable_engine": "@hl-bos/catalog capability-reuse.ts (evaluateReuse/duplicateCheck)",
+        "execution_layer": null,
+        "ownership_boundary": "The single canonical capability reuse/duplicate engine.",
+        "overlap_disposition": "DELEGATE",
+        "note": "hlvs.duplicate_check SQL rule logic should DELEGATE here (its hlvs.duplicate_checks table remains for the durable determination + human-approval audit). PR#26 detectDuplicates is a SEPARATE opportunity-vs-opportunity operation, not this engine."
+      }
     },
     {
       "capability_id": "HLVS-CAP-03",
@@ -236,9 +367,17 @@
       ],
       "open_pr_dependencies": [],
       "known_overlap": "Preview only. It shares the _shared/hlvs helpers with CAP-09 (the actual factory) but performs NO build. Do not conflate the preview with factory execution.",
-      "known_limitations": "Read-only; depends on hlvs seed data; no build ever executed.",
+      "known_limitations": "Read-only; depends on hlvs seed data; no build ever executed. OWNERSHIP: opportunity readiness (venture-studio) is distinct from package-handoff readiness (hlvs.evaluate_package_readiness); modeling is owned by @hl-bos/catalog.",
       "recommended_action": "REUSE_AS_IS",
-      "last_verified_date": "2026-08-13"
+      "last_verified_date": "2026-08-13",
+      "ownership": {
+        "canonical_owner": "@hl-bos/venture-studio (opportunity->build readiness)",
+        "system_of_record": null,
+        "reusable_engine": "@hl-bos/catalog (factory modeling)",
+        "execution_layer": null,
+        "ownership_boundary": "Opportunity->build eligibility PREVIEW only (executable:false). The package->HL-BOS handoff readiness is a distinct question owned by hlvs.evaluate_package_readiness. Do not collapse the two readiness gates.",
+        "overlap_disposition": "REUSE_AS_IS"
+      }
     },
     {
       "capability_id": "HLVS-CAP-06",
@@ -299,9 +438,38 @@
       ],
       "open_pr_dependencies": ["#26 (OPEN)"],
       "known_overlap": "Builds directly on CAP-01/03/04 in vstudio; not a separate store.",
-      "known_limitations": "Unmerged; not in main; not exercisable in production. Per current CEO gate, PR #26 must NOT be modified and B3 must NOT be started.",
+      "known_limitations": "Unmerged; not in main; not exercisable in production. Per current CEO gate, PR #26 must NOT be modified and B3 must NOT be started. OWNERSHIP/RECONCILIATION: KEEP+COMPLETE relationships, opportunity duplicate detection, AI summaries, priority score/tier, external-ref dedup, pipeline UI/RPCs. REUSE current main: inbox status, research queue, catalog reuse. CONSOLIDATE: OPPORTUNITY_CONNECTORS -> integrations.connectors. BLOCKER: migration ordinal collision — PR#26 proposes 0031 but main already owns 0031_transformation_intake; next safe ordinal is 0032 (do not renumber here; do not modify PR#26).",
       "recommended_action": "COMPLETE_EXISTING",
-      "last_verified_date": "2026-08-13"
+      "last_verified_date": "2026-08-13",
+      "ownership": {
+        "canonical_owner": "vstudio + @hl-bos/venture-studio",
+        "system_of_record": "vstudio.*",
+        "ownership_boundary": "B2 extends the vstudio SoR; its connector registry belongs to integrations, not vstudio.",
+        "overlap_disposition": "CONSOLIDATE",
+        "reconciliation": {
+          "KEEP_COMPLETE": [
+            "opportunity_relationships",
+            "specialized opportunity duplicate detection",
+            "AI summaries",
+            "priority_score",
+            "priority_tier",
+            "external_reference_dedup",
+            "pipeline_UI",
+            "pipeline_RPCs"
+          ],
+          "REUSE_CURRENT_MAIN": [
+            "inbox status",
+            "research status/queue concepts",
+            "catalog reuse analysis (analyzeReuse already delegates)"
+          ],
+          "CONSOLIDATE": ["OPPORTUNITY_CONNECTORS -> integrations.connectors"],
+          "BLOCKER": {
+            "migration_ordinal_collision": "PR#26 proposes hlbos_0031_opportunity_pipeline; current main already owns hlbos_0031_transformation_intake (merged via PR#28).",
+            "next_safe_ordinal": "0032",
+            "constraint": "do NOT renumber in this step; do NOT modify PR#26; renumber is a closed CEO gate"
+          }
+        }
+      }
     },
     {
       "capability_id": "HLVS-CAP-08",
@@ -333,10 +501,19 @@
         "audit.events"
       ],
       "open_pr_dependencies": [],
-      "known_overlap": "NAME COLLISION: the separate 'discovery' schema (19 tables) + supabase/functions/discovery-website-worker + discovery-blueprint-worker are the VisibilityAI / BTI WEBSITE-and-BUSINESS assessment engine, NOT opportunity connector ingestion. Do not reuse those for opportunity discovery without clarification.",
+      "known_overlap": "NAME COLLISION: the separate 'discovery' schema (19 tables) + supabase/functions/discovery-website-worker + discovery-blueprint-worker are the VisibilityAI / BTI WEBSITE-and-BUSINESS assessment engine, NOT opportunity connector ingestion. Do not reuse those for opportunity discovery without clarification. OWNERSHIP: canonical connector architecture is integrations.connectors (registration) + integrations.connections (vault: credential refs) + integrations.sync_runs (execution) + ai.runs (enrichment) + events (choreography), promoting into vstudio. sources.ts and PR#26 OPPORTUNITY_CONNECTORS are overlapping code registries to CONSOLIDATE; the discovery schema is customer-assessment (wrong domain); raw venture-discovery ingestion is currently unowned. Do not build a third connector framework in B3.",
       "known_limitations": "No connectors, no ingestion, no persisted signals, every source not_connected; the directive's multi-source cross-validation and Opportunity Signal Model are unimplemented. All external access must respect each site's ToS/robots/API/licensing; no unauthorized scraping.",
       "recommended_action": "NET_NEW_GAP",
-      "last_verified_date": "2026-08-13"
+      "last_verified_date": "2026-08-13",
+      "ownership": {
+        "canonical_owner": "integrations (connectors/connections/sync_runs) + ai.runs + events; promoted opportunities -> vstudio",
+        "system_of_record": "integrations.* (transport) + vstudio.opportunities (promoted)",
+        "reusable_engine": null,
+        "execution_layer": "integrations.sync_runs",
+        "ownership_boundary": "discovery SCHEMA is customer-business assessment (VisibilityAI), NOT venture opportunity ingestion. Raw venture-discovery store is currently UNOWNED (gap).",
+        "overlap_disposition": "CONSOLIDATE",
+        "note": "packages/venture-studio/src/sources.ts (13) and PR#26 OPPORTUNITY_CONNECTORS (11) are overlapping display/code registries; consolidate onto integrations.connectors; do NOT create a third registry (guard B3)."
+      }
     },
     {
       "capability_id": "HLVS-CAP-09",
@@ -388,9 +565,18 @@
       ],
       "open_pr_dependencies": [],
       "known_overlap": "DISTINCT from vstudio (opportunity intelligence), from @hl-bos/catalog (modeling library), and from transformation-intelligence/hlvs.ts (assessment->software bridge). Four HLVS-named surfaces — keep separate.",
-      "known_limitations": "order_status enum implies autonomous code generation (prompt_generated, development_active, validation_active). NO build has run; the worker is undeployed. Autonomous codegen is NOT authorized.",
+      "known_limitations": "order_status enum implies autonomous code generation (prompt_generated, development_active, validation_active). NO build has run; the worker is undeployed. Autonomous codegen is NOT authorized. OWNERSHIP: hlvs owns the factory SoR + execution (worker inert/undeployed); modeling is @hl-bos/catalog. Exec-Intel->Factory handoff is a NET_NEW_GAP: no FK/function links vstudio.decisions to hlvs blueprints/orders.",
       "recommended_action": "COMPLETE_EXISTING",
-      "last_verified_date": "2026-08-13"
+      "last_verified_date": "2026-08-13",
+      "ownership": {
+        "canonical_owner": "hlvs schema (SoR) + hlvs-factory-worker (execution)",
+        "system_of_record": "hlvs.* (order_status state machine)",
+        "reusable_engine": "@hl-bos/catalog (modeling)",
+        "execution_layer": "hlvs-factory-worker (BUILT; NOT DEPLOYED; external_execution=false)",
+        "ownership_boundary": "Owns authorized build records + execution; nothing but a CEO build decision may originate a blueprint. hlvs never owns opportunity intelligence.",
+        "overlap_disposition": "COMPLETE_EXISTING",
+        "handoff": "NET_NEW_GAP: no authoritative bridge from vstudio.decisions(build, factory_authorized) to hlvs.product_blueprints/software_creation_orders."
+      }
     },
     {
       "capability_id": "HLVS-CAP-10",
