@@ -23,31 +23,31 @@
 
 ## 2. Canonical repository & database
 
-| Item | Value |
-|---|---|
-| Canonical repository | `KeithVenuewise73/hl-bos-platform` (private, pnpm/turbo monorepo) |
-| Audited branch / HEAD | `main` @ `c562ca4` |
-| Canonical database | **HL-BOS Core** `mvvtngiopdrgiedjmhfb`, us-west-2 |
-| Organization | Herman Legacy Software Ventures (`ihtsbcxtvkbfkkpmforp`) |
-| Applied `hlbos_*` migrations (DB) | **0001–0029** |
-| `hlbos_*` migrations in repo main | **0001–0031** (0030, 0031 present but **UNAPPLIED**) |
-| Deployed edge functions (DB) | **0** |
-| `pg_cron` | not installed (no scheduled ingestion runs) |
-| Data-bearing | seed/vocabulary only; all `vstudio.*` and operational `hlvs.*` tables **0 rows** |
-| Intended production URL | `https://hermanlegacydigital.com/HLVS` — **not routed or hosted** |
+| Item                              | Value                                                                            |
+| --------------------------------- | -------------------------------------------------------------------------------- |
+| Canonical repository              | `KeithVenuewise73/hl-bos-platform` (private, pnpm/turbo monorepo)                |
+| Audited branch / HEAD             | `main` @ `c562ca4`                                                               |
+| Canonical database                | **HL-BOS Core** `mvvtngiopdrgiedjmhfb`, us-west-2                                |
+| Organization                      | Herman Legacy Software Ventures (`ihtsbcxtvkbfkkpmforp`)                         |
+| Applied `hlbos_*` migrations (DB) | **0001–0029**                                                                    |
+| `hlbos_*` migrations in repo main | **0001–0031** (0030, 0031 present but **UNAPPLIED**)                             |
+| Deployed edge functions (DB)      | **0**                                                                            |
+| `pg_cron`                         | not installed (no scheduled ingestion runs)                                      |
+| Data-bearing                      | seed/vocabulary only; all `vstudio.*` and operational `hlvs.*` tables **0 rows** |
+| Intended production URL           | `https://hermanlegacydigital.com/HLVS` — **not routed or hosted**                |
 
 Pinned by `.hlbos/canonical.json` and enforced by `.github/workflows/db-migrate.yml` (“Canonical project ref: `mvvtngiopdrgiedjmhfb`… See ADR-0001”).
 
 ## 3. Application inventory (`apps/`)
 
-| App | Role | HLVS relevance | Deploy state |
-|---|---|---|---|
-| `venture-studio` | **HLVS V2** — executive opportunity intelligence | **Primary HLVS app** (routes `/`, `/opportunities`, `/notebook`, `/settings`, `/login`, `/logout`) | Built, **not deployed** |
-| `herman-legacy-digital` | Customer-facing hermanlegacydigital.com (marketing + intake + `/portal`) | Intended **host** of `/HLVS`; no `/HLVS` route today | Built, **not deployed** |
-| `control-center` | Internal ops console (catalog, factory assembly, status) | Hosts Software Factory + capability views | Built |
-| `executive-portal` | Read-only executive portal | Portfolio / intelligence views | Staging-ready, not deployed |
-| `hl-bti`, `hl-bti-alpha` | Business Transformation Intelligence | Adjacent BTI lineage | Built |
-| `hscs-website` | HSCS Government Logistics site | Not HLVS | Coolify preview enabled |
+| App                      | Role                                                                     | HLVS relevance                                                                                     | Deploy state                |
+| ------------------------ | ------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------- | --------------------------- |
+| `venture-studio`         | **HLVS V2** — executive opportunity intelligence                         | **Primary HLVS app** (routes `/`, `/opportunities`, `/notebook`, `/settings`, `/login`, `/logout`) | Built, **not deployed**     |
+| `herman-legacy-digital`  | Customer-facing hermanlegacydigital.com (marketing + intake + `/portal`) | Intended **host** of `/HLVS`; no `/HLVS` route today                                               | Built, **not deployed**     |
+| `control-center`         | Internal ops console (catalog, factory assembly, status)                 | Hosts Software Factory + capability views                                                          | Built                       |
+| `executive-portal`       | Read-only executive portal                                               | Portfolio / intelligence views                                                                     | Staging-ready, not deployed |
+| `hl-bti`, `hl-bti-alpha` | Business Transformation Intelligence                                     | Adjacent BTI lineage                                                                               | Built                       |
+| `hscs-website`           | HSCS Government Logistics site                                           | Not HLVS                                                                                           | Coolify preview enabled     |
 
 ## 4. Feature inventory (HLVS)
 
@@ -70,47 +70,47 @@ Opportunity capture & catalog · deterministic reuse/duplicate analysis · 11-di
 
 ## 8. PR history (HLVS-relevant)
 
-| PR | Title | State |
-|---|---|---|
-| #20 | Herman Legacy Digital app + Software Factory foundation (Phases 1–6A) | merged |
-| #21 | HLVS V2 (V2-1): Venture Studio foundation | merged |
-| #22 | Reconcile production governance + deployment package (V2-1) | merged |
-| #23 | Record internal tenant provisioning (V2-1) | open (docs) |
-| #24 | HLVS-V2 program plan + first prompts (B1, B2) | open (docs) |
-| #25 | CEO Notebook — B1 | **merged** |
-| **#26** | **Opportunity Intelligence Pipeline — B2** | **open** |
-| #27 | HLD Operating Model V1 | open (docs) |
-| #28 | Business Transformation Digital Intake V1 (migration 0031) | merged |
+| PR      | Title                                                                 | State       |
+| ------- | --------------------------------------------------------------------- | ----------- |
+| #20     | Herman Legacy Digital app + Software Factory foundation (Phases 1–6A) | merged      |
+| #21     | HLVS V2 (V2-1): Venture Studio foundation                             | merged      |
+| #22     | Reconcile production governance + deployment package (V2-1)           | merged      |
+| #23     | Record internal tenant provisioning (V2-1)                            | open (docs) |
+| #24     | HLVS-V2 program plan + first prompts (B1, B2)                         | open (docs) |
+| #25     | CEO Notebook — B1                                                     | **merged**  |
+| **#26** | **Opportunity Intelligence Pipeline — B2**                            | **open**    |
+| #27     | HLD Operating Model V1                                                | open (docs) |
+| #28     | Business Transformation Digital Intake V1 (migration 0031)            | merged      |
 
 Adjacent (BTI/BTIC/HSCS/HLD): #30, #32, #33, #34, #37, #39–#46. Dependabot: #9, #12, #17, #38.
 
 ## 9. Duplication / overlap matrix
 
-| Surface | Concern | Do NOT collapse with |
-|---|---|---|
-| `vstudio` | Opportunity intelligence (system-of-record for opportunities) | `hlvs`, `catalog` |
-| `hlvs` | Software Factory (system-of-record for builds) | `vstudio`, `catalog` |
-| `@hl-bos/catalog` | Reuse/module/factory/portfolio **modeling library** | the schemas above |
+| Surface                                               | Concern                                                                                   | Do NOT collapse with                                                  |
+| ----------------------------------------------------- | ----------------------------------------------------------------------------------------- | --------------------------------------------------------------------- |
+| `vstudio`                                             | Opportunity intelligence (system-of-record for opportunities)                             | `hlvs`, `catalog`                                                     |
+| `hlvs`                                                | Software Factory (system-of-record for builds)                                            | `vstudio`, `catalog`                                                  |
+| `@hl-bos/catalog`                                     | Reuse/module/factory/portfolio **modeling library**                                       | the schemas above                                                     |
 | `@hl-bos/transformation-intelligence` (`src/hlvs.ts`) | Assessment → software-opportunity **bridge** (`SoftwareOpportunity`/`OpportunityVerdict`) | the `vstudio` opportunity funnel — **overlap requires clarification** |
-| `discovery` schema + `discovery-*-worker` | Website/business **assessment** | CAP-08 opportunity **connector ingestion** (name collision only) |
-| `dma.opportunity_scores` | Market analysis for existing HL offerings | `vstudio.evaluations` |
-| HLD / BTI / BTIC | Adjacent transformation/business intelligence product | Venture Studio (not a replacement) |
+| `discovery` schema + `discovery-*-worker`             | Website/business **assessment**                                                           | CAP-08 opportunity **connector ingestion** (name collision only)      |
+| `dma.opportunity_scores`                              | Market analysis for existing HL offerings                                                 | `vstudio.evaluations`                                                 |
+| HLD / BTI / BTIC                                      | Adjacent transformation/business intelligence product                                     | Venture Studio (not a replacement)                                    |
 
 ## 10. Maturity matrix
 
-| Capability | Status | Recommended action |
-|---|---|---|
-| CAP-01 Opportunity Capture & Catalog | APPLIED (app built, undeployed; 0 rows) | COMPLETE_EXISTING |
-| CAP-02 Reuse / Duplicate Analysis | MERGED | REUSE_AS_IS |
-| CAP-03 Evaluation Scoring | MERGED (table applied, empty) | REUSE_AS_IS |
-| CAP-04 Advisory Recommendation & CEO Decision | MERGED (tables applied, empty) | REUSE_AS_IS |
-| CAP-05 Factory Readiness Preview | MERGED | REUSE_AS_IS |
-| CAP-06 CEO Notebook | MERGED (migration 0030 **UNAPPLIED**) | COMPLETE_EXISTING |
-| CAP-07 Opportunity Pipeline (B2) | OPEN_PR (#26) | COMPLETE_EXISTING |
-| CAP-08 Discovery / Connector Ingestion | STUB | NET_NEW_GAP |
-| CAP-09 HLVS Software Factory | PARTIAL (schema applied/seed; worker undeployed) | COMPLETE_EXISTING |
-| CAP-10 /HLVS Production Mounting | PLANNED | NET_NEW_GAP |
-| CAP-11 Portfolio & Application Registry | MERGED (read-only; no economics) | EXTEND |
+| Capability                                    | Status                                           | Recommended action |
+| --------------------------------------------- | ------------------------------------------------ | ------------------ |
+| CAP-01 Opportunity Capture & Catalog          | APPLIED (app built, undeployed; 0 rows)          | COMPLETE_EXISTING  |
+| CAP-02 Reuse / Duplicate Analysis             | MERGED                                           | REUSE_AS_IS        |
+| CAP-03 Evaluation Scoring                     | MERGED (table applied, empty)                    | REUSE_AS_IS        |
+| CAP-04 Advisory Recommendation & CEO Decision | MERGED (tables applied, empty)                   | REUSE_AS_IS        |
+| CAP-05 Factory Readiness Preview              | MERGED                                           | REUSE_AS_IS        |
+| CAP-06 CEO Notebook                           | MERGED (migration 0030 **UNAPPLIED**)            | COMPLETE_EXISTING  |
+| CAP-07 Opportunity Pipeline (B2)              | OPEN_PR (#26)                                    | COMPLETE_EXISTING  |
+| CAP-08 Discovery / Connector Ingestion        | STUB                                             | NET_NEW_GAP        |
+| CAP-09 HLVS Software Factory                  | PARTIAL (schema applied/seed; worker undeployed) | COMPLETE_EXISTING  |
+| CAP-10 /HLVS Production Mounting              | PLANNED                                          | NET_NEW_GAP        |
+| CAP-11 Portfolio & Application Registry       | MERGED (read-only; no economics)                 | EXTEND             |
 
 ## 11. Capability registry explanation
 
@@ -169,6 +169,7 @@ Intended surface: hermanlegacydigital.com/HLVS (CAP-10, PLANNED) hosts apps/vent
 ## 17. ChatGPT / Claude operating protocol (mandatory preflight)
 
 Before any future HLVS design or implementation, an AI (or human) agent must:
+
 1. Check this Capability Registry (`.hlbos/hlvs-capability-registry.json`).
 2. Check current `main` of `hl-bos-platform`.
 3. Check relevant open PRs (esp. **#26** B2, and docs #23/#24/#27).
@@ -191,4 +192,4 @@ Before any future HLVS design or implementation, an AI (or human) agent must:
 
 ---
 
-*Persisted as a read-only knowledge baseline. No application code, package, migration, PR, CI, `canonical.json`, `milestone.json`, `migration-lineage.json`, infrastructure, DNS, or deployment was modified in producing this audit.*
+_Persisted as a read-only knowledge baseline. No application code, package, migration, PR, CI, `canonical.json`, `milestone.json`, `migration-lineage.json`, infrastructure, DNS, or deployment was modified in producing this audit._

@@ -95,7 +95,9 @@
       "package": "@hl-bos/venture-studio",
       "schema": "vstudio",
       "tables": ["vstudio.opportunities", "vstudio.evidence", "vstudio.notes"],
-      "functions": ["vstudio SECURITY DEFINER RPCs from migration 0029 (8 functions total across CAP-01/03/04)"],
+      "functions": [
+        "vstudio SECURITY DEFINER RPCs from migration 0029 (8 functions total across CAP-01/03/04)"
+      ],
       "apis": [],
       "workers": [],
       "status": "APPLIED",
@@ -105,7 +107,12 @@
         "api_exposure": "not exposed (vstudio not in PostgREST allow-list)",
         "data": "empty"
       },
-      "reusable_hlbos_dependencies": ["identity (Supabase Auth + RLS)", "platform.tenants", "audit.events", "events.emit"],
+      "reusable_hlbos_dependencies": [
+        "identity (Supabase Auth + RLS)",
+        "platform.tenants",
+        "audit.events",
+        "events.emit"
+      ],
       "open_pr_dependencies": ["#26 (B2 pipeline extends capture into a lifecycle)"],
       "known_overlap": "hlvs.products is a DIFFERENT catalog (factory product catalog), not the opportunity catalog. Do not conflate.",
       "known_limitations": "App undeployed; vstudio schema not exposed over the API; 0 opportunity rows; capture UI cannot reach production data until the app is deployed and the schema exposed.",
@@ -122,7 +129,11 @@
       "package": "@hl-bos/catalog, @hl-bos/venture-studio",
       "schema": null,
       "tables": [],
-      "functions": ["catalog.evaluateReuse", "catalog.duplicateCheck", "venture-studio.analyzeReuse"],
+      "functions": [
+        "catalog.evaluateReuse",
+        "catalog.duplicateCheck",
+        "venture-studio.analyzeReuse"
+      ],
       "apis": [],
       "workers": [],
       "status": "MERGED",
@@ -130,7 +141,10 @@
         "code": "MERGED (in main, unit-tested, deterministic)",
         "data": "operates over in-code MODULE_REGISTRY (no DB dependency)"
       },
-      "reusable_hlbos_dependencies": ["@hl-bos/catalog module registry", "graph read-model (optional, migration 0028 applied)"],
+      "reusable_hlbos_dependencies": [
+        "@hl-bos/catalog module registry",
+        "graph read-model (optional, migration 0028 applied)"
+      ],
       "open_pr_dependencies": [],
       "known_overlap": "The Canonical Capability Library (Phase XI-1) unified six prior ad-hoc capability registries; this HLVS registry is the governance index, the catalog is the computational engine. Keep the roles distinct.",
       "known_limitations": "Deterministic but only as complete as the in-code catalog; not a DB-backed service; results reflect registered modules only.",
@@ -156,7 +170,9 @@
         "schema": "APPLIED (vstudio.evaluations, 0 rows)",
         "data": "no evaluations persisted"
       },
-      "reusable_hlbos_dependencies": ["ai gateway (optional AI-assisted scoring, ai.runs provenance)"],
+      "reusable_hlbos_dependencies": [
+        "ai gateway (optional AI-assisted scoring, ai.runs provenance)"
+      ],
       "open_pr_dependencies": [],
       "known_overlap": "dma.opportunity_scores / dma.opportunity_factors is a SEPARATE market-analysis scoring for existing HL offerings (seeded for HomeHuddle hh001), NOT the vstudio opportunity evaluation.",
       "known_limitations": "The 11-dimension set differs from the CEO Phase-1 17-dimension list; reconciliation is optional (EXTEND). No evaluations persisted (0 rows).",
@@ -182,7 +198,10 @@
         "schema": "APPLIED (recommendations + decisions, 0 rows each)",
         "data": "no recommendations or decisions recorded"
       },
-      "reusable_hlbos_dependencies": ["ai gateway (ai.runs, model, prompt_version provenance)", "audit.events"],
+      "reusable_hlbos_dependencies": [
+        "ai gateway (ai.runs, model, prompt_version provenance)",
+        "audit.events"
+      ],
       "open_pr_dependencies": [],
       "known_overlap": "Existing recommendation enum is build/buy/partner/watch/ignore and decision adds defer; this differs from the CEO Phase-1 BUILD/TEST/REJECT taxonomy. Reconciliation is a governance decision, not a code gap.",
       "known_limitations": "0 rows; the app is undeployed so no decision has been recorded in production.",
@@ -198,7 +217,11 @@
       "application": "apps/venture-studio",
       "package": "@hl-bos/venture-studio, @hl-bos/catalog",
       "schema": "hlvs (read-only)",
-      "tables": ["hlvs.products (read)", "hlvs.product_blueprints (read)", "hlvs.factory_build_packages (read)"],
+      "tables": [
+        "hlvs.products (read)",
+        "hlvs.product_blueprints (read)",
+        "hlvs.factory_build_packages (read)"
+      ],
       "functions": [],
       "apis": [],
       "workers": [],
@@ -207,7 +230,10 @@
         "code": "MERGED (deterministic readiness preview, tested)",
         "data": "reads hlvs seed/reference only; no build packages exist"
       },
-      "reusable_hlbos_dependencies": ["@hl-bos/catalog module registry & compositions", "hlvs schema (seed data)"],
+      "reusable_hlbos_dependencies": [
+        "@hl-bos/catalog module registry & compositions",
+        "hlvs schema (seed data)"
+      ],
       "open_pr_dependencies": [],
       "known_overlap": "Preview only. It shares the _shared/hlvs helpers with CAP-09 (the actual factory) but performs NO build. Do not conflate the preview with factory execution.",
       "known_limitations": "Read-only; depends on hlvs seed data; no build ever executed.",
@@ -224,7 +250,10 @@
       "package": "@hl-bos/venture-studio",
       "schema": "vstudio",
       "tables": ["vstudio.notes (extended by migration 0030)"],
-      "functions": ["vstudio.create_notebook_entry (SECURITY DEFINER)", "vstudio.set_notebook_entry_status (SECURITY DEFINER)"],
+      "functions": [
+        "vstudio.create_notebook_entry (SECURITY DEFINER)",
+        "vstudio.set_notebook_entry_status (SECURITY DEFINER)"
+      ],
       "apis": [],
       "workers": [],
       "status": "MERGED",
@@ -233,7 +262,12 @@
         "migration_0030": "UNAPPLIED to canonical production (additive; not auto-applied)",
         "runnable_in_prod": false
       },
-      "reusable_hlbos_dependencies": ["vstudio.opportunity.manage / vstudio.opportunity.read permissions (reused, no new key)", "platform.tenants", "events.emit", "platform.set_updated_at"],
+      "reusable_hlbos_dependencies": [
+        "vstudio.opportunity.manage / vstudio.opportunity.read permissions (reused, no new key)",
+        "platform.tenants",
+        "events.emit",
+        "platform.set_updated_at"
+      ],
       "open_pr_dependencies": [],
       "known_overlap": "Assembles on vstudio.notes; does NOT create a new store or duplicate schema.",
       "known_limitations": "Migration 0030 is UNAPPLIED, so the notebook cannot run against production until applied under a CEO gate. milestone.json still describes B1 as 'PR opened, not merged' — stale (documentation drift).",
@@ -258,7 +292,11 @@
         "code": "OPEN_PR #26 (not merged, not in main)",
         "baseline": "A read-only opportunity list exists in main as part of CAP-01; the pipeline mechanics are in PR #26"
       },
-      "reusable_hlbos_dependencies": ["vstudio schema (0029)", "identity/permissions", "events.emit"],
+      "reusable_hlbos_dependencies": [
+        "vstudio schema (0029)",
+        "identity/permissions",
+        "events.emit"
+      ],
       "open_pr_dependencies": ["#26 (OPEN)"],
       "known_overlap": "Builds directly on CAP-01/03/04 in vstudio; not a separate store.",
       "known_limitations": "Unmerged; not in main; not exercisable in production. Per current CEO gate, PR #26 must NOT be modified and B3 must NOT be started.",
@@ -274,7 +312,10 @@
       "application": "apps/venture-studio (read-only source status)",
       "package": "@hl-bos/venture-studio",
       "schema": "integrations (target), vstudio.evidence (ingestion target)",
-      "tables": ["integrations.connectors (reusable HL-BOS, 5 connectors seeded)", "vstudio.evidence (ingestion target)"],
+      "tables": [
+        "integrations.connectors (reusable HL-BOS, 5 connectors seeded)",
+        "vstudio.evidence (ingestion target)"
+      ],
       "functions": [],
       "apis": [],
       "workers": [],
@@ -285,7 +326,12 @@
         "signal_model": "not built",
         "cross_source_validation": "not built"
       },
-      "reusable_hlbos_dependencies": ["integrations.connectors", "ai gateway", "events bus", "audit.events"],
+      "reusable_hlbos_dependencies": [
+        "integrations.connectors",
+        "ai gateway",
+        "events bus",
+        "audit.events"
+      ],
       "open_pr_dependencies": [],
       "known_overlap": "NAME COLLISION: the separate 'discovery' schema (19 tables) + supabase/functions/discovery-website-worker + discovery-blueprint-worker are the VisibilityAI / BTI WEBSITE-and-BUSINESS assessment engine, NOT opportunity connector ingestion. Do not reuse those for opportunity discovery without clarification.",
       "known_limitations": "No connectors, no ingestion, no persisted signals, every source not_connected; the directive's multi-source cross-validation and Opportunity Signal Model are unimplemented. All external access must respect each site's ToS/robots/API/licensing; no unauthorized scraping.",
@@ -301,7 +347,27 @@
       "application": "apps/control-center (Software Factory assembly console)",
       "package": "@hl-bos/catalog",
       "schema": "hlvs",
-      "tables": ["hlvs.products", "hlvs.product_blueprints", "hlvs.software_creation_orders", "hlvs.factory_build_packages", "hlvs.development_runs", "hlvs.conformance_results", "hlvs.conformance_exceptions", "hlvs.checkpoint_reports", "hlvs.build_completion_reports", "hlvs.capabilities", "hlvs.modules", "hlvs.product_editions", "hlvs.prompt_packages", "hlvs.industry_templates", "hlvs.extraction_candidates", "hlvs.catalog_update_proposals", "hlvs.duplicate_checks", "hlvs.hlbos_intake", "hlvs.hlbos_feedback"],
+      "tables": [
+        "hlvs.products",
+        "hlvs.product_blueprints",
+        "hlvs.software_creation_orders",
+        "hlvs.factory_build_packages",
+        "hlvs.development_runs",
+        "hlvs.conformance_results",
+        "hlvs.conformance_exceptions",
+        "hlvs.checkpoint_reports",
+        "hlvs.build_completion_reports",
+        "hlvs.capabilities",
+        "hlvs.modules",
+        "hlvs.product_editions",
+        "hlvs.prompt_packages",
+        "hlvs.industry_templates",
+        "hlvs.extraction_candidates",
+        "hlvs.catalog_update_proposals",
+        "hlvs.duplicate_checks",
+        "hlvs.hlbos_intake",
+        "hlvs.hlbos_feedback"
+      ],
       "functions": ["hlvs SECURITY DEFINER functions (migration 0025)"],
       "apis": [],
       "workers": ["hlvs-factory-worker (BUILT in repo; NOT DEPLOYED)"],
@@ -312,7 +378,14 @@
         "worker": "BUILT, NOT DEPLOYED (HL-BOS Core has 0 deployed edge functions)",
         "build_activity": "none"
       },
-      "reusable_hlbos_dependencies": ["@hl-bos/catalog", "workflows schema", "provisioning schema", "ai gateway", "identity/permissions", "audit.events"],
+      "reusable_hlbos_dependencies": [
+        "@hl-bos/catalog",
+        "workflows schema",
+        "provisioning schema",
+        "ai gateway",
+        "identity/permissions",
+        "audit.events"
+      ],
       "open_pr_dependencies": [],
       "known_overlap": "DISTINCT from vstudio (opportunity intelligence), from @hl-bos/catalog (modeling library), and from transformation-intelligence/hlvs.ts (assessment->software bridge). Four HLVS-named surfaces — keep separate.",
       "known_limitations": "order_status enum implies autonomous code generation (prompt_generated, development_active, validation_active). NO build has run; the worker is undeployed. Autonomous codegen is NOT authorized.",
@@ -339,7 +412,11 @@
         "dns": "not configured",
         "venture_studio_app": "undeployed"
       },
-      "reusable_hlbos_dependencies": ["apps/herman-legacy-digital middleware", "HL-BOS identity (Supabase Auth)", "Executive Portal deployment pattern"],
+      "reusable_hlbos_dependencies": [
+        "apps/herman-legacy-digital middleware",
+        "HL-BOS identity (Supabase Auth)",
+        "Executive Portal deployment pattern"
+      ],
       "open_pr_dependencies": [],
       "known_overlap": "None. Note the domain's app (herman-legacy-digital) is itself built-but-not-deployed.",
       "known_limitations": "Requires host choice, app deployment, route mounting/proxy, and DNS — all CEO-gated and explicitly out of scope now.",
@@ -364,7 +441,11 @@
         "code": "MERGED (read-only modeling over in-code registries + labelled sample input)",
         "live_economics": "not built (no downloads/MRR/ARR/CAC/churn/margin ingestion)"
       },
-      "reusable_hlbos_dependencies": ["@hl-bos/catalog", "graph read-model (migration 0028 applied)", "billing schema (future economics)"],
+      "reusable_hlbos_dependencies": [
+        "@hl-bos/catalog",
+        "graph read-model (migration 0028 applied)",
+        "billing schema (future economics)"
+      ],
       "open_pr_dependencies": [],
       "known_overlap": "Shares the @hl-bos/catalog package with CAP-02 (reuse), but is a distinct concern (portfolio/app inventory vs reuse scoring).",
       "known_limitations": "Read-only over in-code registries and sample input; the CEO Phase-1 Portfolio Manager economics (per-product P&L, NULL-by-default metrics) is a genuine gap.",
