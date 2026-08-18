@@ -130,7 +130,15 @@ create index if not exists opportunities_created_at_idx
 
 -- --- Text search -----------------------------------------------------------
 -- Trigram indexes so an unanchored ILIKE '%term%' across name and description
--- stays indexed at corpus scale. pg_trgm is already installed (extensions).
+-- stays indexed at corpus scale.
+--
+-- pg_trgm is present on the live project because the platform installed it, but
+-- 0001 only installs pgcrypto and citext — so a database rebuilt from these
+-- migrations alone had no `extensions.gin_trgm_ops` and the index creation
+-- failed. Installing it here keeps the migration self-sufficient; it is a
+-- no-op where the extension already exists.
+create extension if not exists pg_trgm with schema extensions;
+
 create index if not exists opportunities_title_trgm_idx
   on vstudio.opportunities using gin (title extensions.gin_trgm_ops);
 create index if not exists opportunities_summary_trgm_idx

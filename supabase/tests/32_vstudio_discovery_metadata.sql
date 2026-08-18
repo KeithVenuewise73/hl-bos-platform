@@ -11,7 +11,7 @@
 -- vstudio.opportunities, so probing shape by inserting rows would test the
 -- policy rather than the migration.
 begin;
-select plan(14);
+select plan(15);
 select tests.seed();
 
 -- --- Additive: the original columns are still there --------------------------
