@@ -98,8 +98,7 @@ export async function middleware(req: NextRequest) {
   };
 
   const { pathname } = req.nextUrl;
-  const isBtic =
-    pathname.startsWith(BTIC_PREFIX) || pathname.startsWith(HLVS_PREFIX);
+  const isBtic = pathname.startsWith(BTIC_PREFIX) || pathname.startsWith(HLVS_PREFIX);
   const isPortal = pathname.startsWith(CLIENT_PREFIX);
 
   // Public + auth pages (login, admin-login, forgot/reset-password, marketing):

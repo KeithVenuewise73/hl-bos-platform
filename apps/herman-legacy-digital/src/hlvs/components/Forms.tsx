@@ -193,7 +193,9 @@ export function NewOpportunityForm() {
 }
 
 export function EvidenceForm({ opportunityId }: { opportunityId: string }) {
-  const { busy, msg, post } = useSubmit(`/HLVS/api/opportunities/${opportunityId}/evidence`);
+  const { busy, msg, post } = useSubmit(
+    `/HLVS/api/opportunities/${opportunityId}/evidence`,
+  );
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     const f = new FormData(e.currentTarget);
@@ -386,7 +388,9 @@ export function NotebookStatusControl({
 }
 
 export function DecisionForm({ opportunityId }: { opportunityId: string }) {
-  const { busy, msg, post } = useSubmit(`/HLVS/api/opportunities/${opportunityId}/decision`);
+  const { busy, msg, post } = useSubmit(
+    `/HLVS/api/opportunities/${opportunityId}/decision`,
+  );
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     const f = new FormData(e.currentTarget);

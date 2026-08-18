@@ -40,7 +40,10 @@ export default async function Catalog({
         }}
       >
         <h1 style={{ fontSize: 20 }}>Opportunity Catalog</h1>
-        <a href="/HLVS/opportunities/new" style={{ color: colors.accent, fontSize: 13 }}>
+        <a
+          href="/HLVS/opportunities/new"
+          style={{ color: colors.accent, fontSize: 13 }}
+        >
           + New opportunity
         </a>
       </div>
