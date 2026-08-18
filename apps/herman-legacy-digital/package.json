@@ -16,6 +16,7 @@
   "dependencies": {
     "@hl-bos/catalog": "workspace:*",
     "@hl-bos/transformation-intelligence": "workspace:*",
+    "@hl-bos/venture-studio": "workspace:*",
     "@supabase/ssr": "catalog:",
     "@supabase/supabase-js": "catalog:",
     "next": "catalog:",

@@ -11,6 +11,9 @@ import { devInternalRoleFromEnv, roleFromClaims, isInternal } from "@/lib/authz"
 //                       shown an access-denied state on the page itself).
 const CLIENT_PREFIX = "/portal";
 const BTIC_PREFIX = "/intelligence";
+// HLVS (Venture Studio) mounts inside this same app at /HLVS and reuses the
+// SAME internal-role gate as BTIC. No second identity system, no second login.
+const HLVS_PREFIX = "/HLVS";
 
 // ---------------------------------------------------------------------------
 // Content-Security-Policy — nonce-based, one authoritative source (here).
@@ -95,7 +98,8 @@ export async function middleware(req: NextRequest) {
   };
 
   const { pathname } = req.nextUrl;
-  const isBtic = pathname.startsWith(BTIC_PREFIX);
+  const isBtic =
+    pathname.startsWith(BTIC_PREFIX) || pathname.startsWith(HLVS_PREFIX);
   const isPortal = pathname.startsWith(CLIENT_PREFIX);
 
   // Public + auth pages (login, admin-login, forgot/reset-password, marketing):

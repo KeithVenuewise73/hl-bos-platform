@@ -172,6 +172,9 @@ importers:
       '@hl-bos/transformation-intelligence':
         specifier: workspace:*
         version: link:../../packages/transformation-intelligence
+      '@hl-bos/venture-studio':
+        specifier: workspace:*
+        version: link:../../packages/venture-studio
       '@supabase/ssr':
         specifier: 'catalog:'
         version: 0.12.3(@supabase/supabase-js@2.110.6)
