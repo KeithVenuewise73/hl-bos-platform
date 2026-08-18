@@ -190,6 +190,11 @@ export default tseslint.config(
       "apps/venture-studio/src/lib/browser.ts",
       "apps/venture-studio/src/middleware.ts",
       "apps/venture-studio/src/app/api/health/route.ts",
+      // The same two env-boundary files, as mounted inside Herman Legacy
+      // Digital at /HLVS. Identical rationale and identical contents; the
+      // HLD middleware covers the request gate, so only these two are listed.
+      "apps/herman-legacy-digital/src/hlvs/lib/session.ts",
+      "apps/herman-legacy-digital/src/hlvs/lib/browser.ts",
     ],
     rules: {
       "no-restricted-properties": "off",

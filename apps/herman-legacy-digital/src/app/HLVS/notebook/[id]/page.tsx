@@ -21,7 +21,10 @@ export default async function NotebookEntryPage({
   return (
     <StudioShell view="notebook_detail">
       <p style={{ fontSize: 12.5, marginBottom: 8 }}>
-        <a href="/HLVS/notebook" style={{ color: colors.accent, textDecoration: "none" }}>
+        <a
+          href="/HLVS/notebook"
+          style={{ color: colors.accent, textDecoration: "none" }}
+        >
           ← CEO Notebook
         </a>
       </p>
@@ -208,7 +211,10 @@ export default async function NotebookEntryPage({
                 <Row
                   key={o.id}
                   k={
-                    <a href={`/HLVS/opportunities/${o.id}`} style={{ color: colors.accent }}>
+                    <a
+                      href={`/HLVS/opportunities/${o.id}`}
+                      style={{ color: colors.accent }}
+                    >
                       {o.title}
                     </a>
                   }
