@@ -9,3 +9,4 @@ export * from "./evaluation";
 export * from "./reuse";
 export * from "./recommendation";
 export * from "./notebook";
+export * from "./discovery-matrix";
