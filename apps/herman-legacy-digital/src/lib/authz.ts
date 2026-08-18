@@ -120,6 +120,9 @@ export function devInternalRoleFromEnv(env: {
   return isInternalRole(env.devRole) ? env.devRole : null;
 }
 
+/** Areas only internal roles may enter. A client is never routed into these. */
+const INTERNAL_PREFIXES = ["/intelligence", "/HLVS"] as const;
+
 /** A safe same-origin return path: must start with a single "/", never "//". */
 function safeNext(next: string | null | undefined): string | null {
   if (typeof next !== "string") return null;
@@ -142,7 +145,10 @@ export function destinationFor(
   }
   if (role === "client") {
     // Never honor a `next` that points at an internal area for a client.
-    if (next && !next.startsWith("/intelligence")) return next;
+    // Both internal areas count: /intelligence (BTIC) and /HLVS (Venture
+    // Studio). Middleware would bounce them anyway; sending them straight to
+    // the portal avoids a pointless round trip through a denied page.
+    if (next && !INTERNAL_PREFIXES.some((p) => next.startsWith(p))) return next;
     return "/portal";
   }
   return "/login";

@@ -190,6 +190,32 @@ describe("destinationFor — role-aware, open-redirect safe, no cross-audience l
       "/portal/billing",
     );
   });
+
+  // Post-sign-in return into Venture Studio. An internal user who signed in
+  // from /HLVS must land back on /HLVS, not at the BTIC default.
+  it("internal user returns to /HLVS and nested HLVS routes via next", () => {
+    expect(destinationFor("hld_admin", { next: "/HLVS" })).toBe("/HLVS");
+    expect(destinationFor("platform_owner", { next: "/HLVS/opportunities" })).toBe(
+      "/HLVS/opportunities",
+    );
+    expect(
+      destinationFor("hld_admin", { next: "/HLVS/opportunities/abc/evaluation" }),
+    ).toBe("/HLVS/opportunities/abc/evaluation");
+  });
+
+  it("client is NEVER routed into /HLVS via next", () => {
+    expect(destinationFor("client", { next: "/HLVS" })).toBe("/portal");
+    expect(destinationFor("client", { next: "/HLVS/opportunities" })).toBe("/portal");
+  });
+
+  // Acceptance case 5: a direct visit to the login page, with no `next`,
+  // keeps the pre-existing BTIC destination.
+  it("no next -> existing BTIC default is unchanged", () => {
+    expect(destinationFor("hld_admin")).toBe("/intelligence");
+    expect(destinationFor("platform_owner")).toBe("/intelligence");
+    expect(destinationFor("hld_admin", { next: null })).toBe("/intelligence");
+  });
+
   it("rejects open-redirect targets", () => {
     expect(destinationFor("hld_admin", { next: "//evil.example" })).toBe(
       "/intelligence",

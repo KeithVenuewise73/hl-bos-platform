@@ -1,13 +1,31 @@
 import "server-only";
 import type { ReactNode } from "react";
+import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { getViewer } from "@/hlvs/lib/session";
 import { canView, VIEWS, ROLE_LABEL, type StudioView } from "@/hlvs/lib/authz";
 import { colors, pageStyle } from "./ui";
 
 /**
+ * Where to send a viewer who has no Studio role, so sign-in returns them here
+ * instead of dumping them at the BTIC default.
+ *
+ * Only a `/HLVS` path is ever echoed back into `next`. Anything else — a
+ * missing header, or a spoofed one — falls back to a bare `/admin-login`, so
+ * this cannot be turned into an open redirect.
+ */
+async function signInWithReturn(): Promise<string> {
+  const path = (await headers()).get("x-pathname");
+  if (!path || !path.startsWith("/HLVS") || path.startsWith("//")) {
+    return "/admin-login";
+  }
+  return `/admin-login?next=${encodeURIComponent(path)}`;
+}
+
+/**
  * The guarded shell every protected page renders inside.
- * - Unauthenticated → redirect to /login.
+ * - Unauthenticated, or authenticated with no Studio role → redirect to
+ *   /admin-login, preserving this path as `next` so sign-in comes back here.
  * - Authenticated but unauthorized for this view → 403 (no content leak).
  * Access is logged (structured, no secrets).
  */
@@ -19,7 +37,7 @@ export async function StudioShell({
   children: ReactNode;
 }) {
   const viewer = await getViewer();
-  if (!viewer.authenticated || viewer.role === null) redirect("/admin-login");
+  if (!viewer.authenticated || viewer.role === null) redirect(await signInWithReturn());
 
   const meta = VIEWS.find((v) => v.view === view);
   const operating = meta?.operating ?? false;

@@ -90,6 +90,11 @@ export async function middleware(req: NextRequest) {
   const requestHeaders = new Headers(req.headers);
   requestHeaders.set("x-nonce", nonce);
   requestHeaders.set("content-security-policy", csp);
+  // The request path, for server components that must build their own return
+  // URL when they redirect to sign-in (Next.js does not expose the pathname to
+  // a server component). `set` OVERWRITES any client-supplied value, so this
+  // header is trusted only because middleware always stamps it here.
+  requestHeaders.set("x-pathname", req.nextUrl.pathname);
 
   const pass = () => {
     const res = NextResponse.next({ request: { headers: requestHeaders } });
