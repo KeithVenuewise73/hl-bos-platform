@@ -84,6 +84,58 @@ for (const line of readFileSync(STAGING, "utf8").split("\n")) {
   rows.push(r);
 }
 
+// --- Artifact mode ----------------------------------------------------------
+// This container cannot reach the database, but the database CAN reach a URL.
+// So the corpus crosses the boundary as a TEMPORARY artifact published to a
+// throwaway branch of our own repository: chunked, hashed, fetched by Postgres,
+// integrity-checked against the hash, ingested, then deleted.
+//
+// The artifact is DATA, not the engine. The engine (matrix + these scripts)
+// lives permanently in source control; the artifact exists only long enough to
+// cross the gap and is removed afterwards.
+if (process.argv.includes("--artifact")) {
+  const { createHash } = await import("node:crypto");
+  const dirIdx = process.argv.indexOf("--artifact");
+  const dir = String(process.argv[dirIdx + 1] ?? "/tmp/hlvs-artifact-repo");
+  const perChunk =
+    argIdx("--chunk-rows") > -1
+      ? Number(process.argv[argIdx("--chunk-rows") + 1])
+      : 4000;
+
+  mkdirSync(dir, { recursive: true });
+  const manifest: { file: string; rows: number; bytes: number; sha256: string }[] = [];
+
+  for (let i = 0, n = 0; i < rows.length; i += perChunk) {
+    n++;
+    const slice = rows.slice(i, i + perChunk);
+    const name = `chunk-${String(n).padStart(3, "0")}.jsonl`;
+    const body = slice.map((r) => JSON.stringify(r)).join("\n") + "\n";
+    writeFileSync(`${dir}/${name}`, body);
+    manifest.push({
+      file: name,
+      rows: slice.length,
+      bytes: Buffer.byteLength(body),
+      sha256: createHash("sha256").update(body).digest("hex"),
+    });
+  }
+  writeFileSync(`${dir}/manifest.json`, JSON.stringify({ chunks: manifest }, null, 1));
+  console.log(
+    JSON.stringify(
+      {
+        mode: "artifact",
+        rawStaged: raw,
+        uniqueRows: rows.length,
+        chunks: manifest.length,
+        totalBytes: manifest.reduce((a, c) => a + c.bytes, 0),
+        dir,
+      },
+      null,
+      1,
+    ),
+  );
+  process.exit(0);
+}
+
 // Group by the query that found the row, so category / pattern / source_query
 // are emitted once per batch rather than repeated on every row.
 const groups = new Map<string, Staged[]>();
