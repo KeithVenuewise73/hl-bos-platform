@@ -1,0 +1,15 @@
+{
+  // Operational scripts (e.g. the HLVS discovery runner). They are executed
+  // with tsx and never bundled, so they belong to no app or package — but they
+  // are TypeScript and must be typechecked and linted like everything else.
+  "extends": "../tsconfig.base.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "types": ["node"],
+    "allowImportingTsExtensions": true,
+    "module": "nodenext",
+    "moduleResolution": "nodenext"
+  },
+  "include": ["*.mts", "../packages/venture-studio/src/**/*.ts"],
+  "exclude": ["node_modules", "local-test"]
+}

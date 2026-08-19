@@ -5,6 +5,7 @@ import {
   ReuseSection,
   FactorySection,
   EvidenceList,
+  DiscoverySection,
 } from "@/hlvs/components/sections";
 import { EvidenceForm, DecisionForm } from "@/hlvs/components/Forms";
 import { getOpportunity } from "@/hlvs/lib/data";
@@ -70,6 +71,7 @@ export default async function OpportunityDetailPage({
             <Row k="Related product" v={o.related_product ?? "—"} />
           </Card>
 
+          <DiscoverySection detail={detail} />
           <ReuseSection detail={detail} />
           <EvidenceList detail={detail} />
           {canManage(viewer.role) ? (

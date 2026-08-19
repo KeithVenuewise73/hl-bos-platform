@@ -207,3 +207,73 @@ export function EvaluationDims() {
     </Card>
   );
 }
+
+/**
+ * The discovery evidence exactly as captured, including the query that found
+ * this repository. Nothing is recomputed or embellished — a field GitHub did
+ * not supply is shown as absent rather than filled with a plausible value.
+ */
+export function DiscoverySection({
+  detail,
+}: {
+  detail: Pick<OpportunityDetail, "opportunity">;
+}) {
+  const o = detail.opportunity;
+  if (!o) return null;
+  const isDiscovered = Boolean(o.repository_url ?? o.source_query ?? o.category);
+  if (!isDiscovered) return null;
+
+  const dash = (v: string | number | null | undefined) =>
+    v === null || v === undefined || v === "" ? "—" : String(v);
+  const num = (v: number | null) => (v === null ? "—" : v.toLocaleString());
+  const date = (v: string | null) => (v ? new Date(v).toISOString().slice(0, 10) : "—");
+
+  return (
+    <Card
+      title="Discovery evidence"
+      sub="Preserved exactly as captured from the source"
+    >
+      {o.repository_url ? (
+        <Row
+          k="Repository"
+          v={
+            <a
+              href={o.repository_url}
+              target="_blank"
+              rel="noreferrer noopener"
+              style={{ color: colors.accent }}
+            >
+              {o.repository_url}
+            </a>
+          }
+        />
+      ) : null}
+      <Row k="Source" v={dash(o.source_type)} />
+      <Row k="Category" v={dash(o.category)} />
+      <Row k="Search pattern" v={dash(o.search_pattern)} />
+      <Row
+        k="Source query"
+        v={
+          o.source_query ? <code style={{ fontSize: 12 }}>{o.source_query}</code> : "—"
+        }
+      />
+      <Row k="Stars" v={num(o.stars)} />
+      <Row k="Forks" v={num(o.forks)} />
+      <Row k="Open issues" v={num(o.open_issues)} />
+      <Row k="Language" v={dash(o.language)} />
+      <Row k="License" v={dash(o.license)} />
+      <Row k="Topics" v={o.topics.length > 0 ? o.topics.join(", ") : "—"} />
+      <Row k="Last pushed" v={date(o.pushed_at)} />
+      <Row k="Archived" v={o.archived ? "Yes" : "No"} />
+      <Row k="Discovered" v={date(o.discovered_at)} />
+      <Row
+        k="Score"
+        v={
+          o.confidence === "unscored"
+            ? "Unscored — not yet reviewed"
+            : dash(o.confidence)
+        }
+      />
+    </Card>
+  );
+}

@@ -10,3 +10,4 @@ export * from "./reuse";
 export * from "./recommendation";
 export * from "./notebook";
 export * from "./discovery-matrix";
+export * from "./catalog";

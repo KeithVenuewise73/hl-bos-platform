@@ -1,15 +1,17 @@
 import { StudioShell } from "@/hlvs/components/StudioShell";
 import { Card, Grid, Empty, Badge, colors } from "@/hlvs/components/ui";
 import { ProvisioningBanner } from "@/hlvs/components/sections";
-import { listOpportunities } from "@/hlvs/lib/data";
+import { statusCounts } from "@/hlvs/lib/data";
 import { OPPORTUNITY_STATUSES } from "@hl-bos/venture-studio";
 
 export const dynamic = "force-dynamic";
 
 export default async function Overview() {
-  const list = await listOpportunities();
-  const counts = new Map<string, number>();
-  for (const o of list.items) counts.set(o.status, (counts.get(o.status) ?? 0) + 1);
+  // Counted by the database, not by tallying a capped page — the corpus is far
+  // larger than any single page.
+  const summary = await statusCounts(OPPORTUNITY_STATUSES);
+  const list = { provisioning: summary.provisioning, items: [] as never[] };
+  const counts = new Map<string, number>(Object.entries(summary.counts));
 
   return (
     <StudioShell view="overview">
@@ -22,9 +24,9 @@ export default async function Overview() {
       <ProvisioningBanner detail={list} />
 
       <Card title="Pipeline" sub="Opportunities by status">
-        {list.items.length === 0 ? (
+        {summary.total === 0 ? (
           <Empty>
-            {list.provisioning === "ready"
+            {summary.provisioning === "ready"
               ? "No opportunities captured yet. Use “New Opportunity” to add the first one."
               : "No live data in this environment — see the notice above."}
           </Empty>
