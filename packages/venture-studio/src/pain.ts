@@ -56,58 +56,76 @@ export interface PainPhrase {
 }
 
 export const PAIN_PHRASES: readonly PainPhrase[] = [
+  // --- The CEO's own wording, kept verbatim ---------------------------------
   { id: "no-app", phrase: "why isn't there an app", intent: "missing_product" },
   { id: "no-app-2", phrase: "why is there no app", intent: "missing_product" },
   { id: "wish-app", phrase: "I wish this app would", intent: "missing_feature" },
-  {
-    id: "wish-there-was",
-    phrase: "I wish there was a way to",
-    intent: "missing_feature",
-  },
-  {
-    id: "anyone-know",
-    phrase: "does anyone know software that",
-    intent: "missing_product",
-  },
-  {
-    id: "anyone-know-2",
-    phrase: "is there any software that",
-    intent: "missing_product",
-  },
-  {
-    id: "hate-manual",
-    phrase: "I hate having to do this manually",
-    intent: "manual_toil",
-  },
-  {
-    id: "manually-every",
-    phrase: "have to do this manually every",
-    intent: "manual_toil",
-  },
+  { id: "anyone-know", phrase: "does anyone know software that", intent: "missing_product" },
+  { id: "hate-manual", phrase: "I hate having to do this manually", intent: "manual_toil" },
   { id: "better-way", phrase: "is there a better way to", intent: "quality" },
   { id: "why-not", phrase: "why does this software not", intent: "missing_feature" },
   { id: "costs-too-much", phrase: "this costs too much", intent: "cost" },
-  { id: "too-expensive", phrase: "way too expensive for", intent: "cost" },
   { id: "need-something", phrase: "I need something that", intent: "missing_product" },
   { id: "tools-dont", phrase: "the existing tools don't", intent: "quality" },
-  {
-    id: "no-good-tool",
-    phrase: "there is no good tool for",
-    intent: "missing_product",
-  },
+
+  // --- Natural variants of the same nine intents ----------------------------
+  //
+  // The CEO's phrasings are how a person would SAY it; these are how people
+  // actually TYPE it in a public issue. Verified collection showed the exact
+  // wording matters enormously — several of the phrasings above return two or
+  // three genuine matches in the entire searchable history, while equivalent
+  // everyday variants return hundreds. Without these the pain corpus is too
+  // thin to show recurrence, and a pain point without recurrence is one
+  // person having a bad day.
+  { id: "wish-there-was", phrase: "I wish there was a way to", intent: "missing_feature" },
+  { id: "wish-there-were", phrase: "I wish there were a way to", intent: "missing_feature" },
+  { id: "wish-could", phrase: "I wish I could", intent: "missing_feature" },
+  { id: "would-be-nice", phrase: "it would be nice if", intent: "missing_feature" },
+  { id: "would-be-great", phrase: "it would be great if", intent: "missing_feature" },
+  { id: "would-love", phrase: "I would love to be able to", intent: "missing_feature" },
+  { id: "should-be-able", phrase: "there should be a way to", intent: "missing_feature" },
+  { id: "no-way-to", phrase: "there is no way to", intent: "missing_feature" },
+  { id: "theres-no-way", phrase: "there's no way to", intent: "missing_feature" },
+  { id: "cant-find-way", phrase: "I can't find a way to", intent: "missing_feature" },
+  { id: "cannot-find-way", phrase: "I cannot find a way to", intent: "missing_feature" },
+  { id: "any-plans", phrase: "are there any plans to add", intent: "missing_feature" },
+  { id: "please-add", phrase: "please add support for", intent: "missing_feature" },
+  { id: "still-no-support", phrase: "still no support for", intent: "missing_feature" },
+  { id: "not-supported", phrase: "is not supported yet", intent: "missing_feature" },
+  { id: "anyone-know-2", phrase: "is there any software that", intent: "missing_product" },
+  { id: "anyone-know-3", phrase: "does anyone know of a tool", intent: "missing_product" },
+  { id: "no-good-tool", phrase: "there is no good tool for", intent: "missing_product" },
   { id: "cant-find", phrase: "I can't find a tool that", intent: "missing_product" },
+  { id: "looking-for-tool", phrase: "I'm looking for a tool that", intent: "missing_product" },
+  { id: "manually-every", phrase: "have to do this manually every", intent: "manual_toil" },
+  { id: "doing-manually", phrase: "I am currently doing this manually", intent: "manual_toil" },
+  { id: "manual-process", phrase: "this is a manual process", intent: "manual_toil" },
   { id: "workaround", phrase: "I have to use a workaround", intent: "manual_toil" },
+  { id: "workaround-2", phrase: "the only workaround I found", intent: "manual_toil" },
   { id: "copy-paste", phrase: "copy and paste every time", intent: "manual_toil" },
-  {
-    id: "spreadsheet",
-    phrase: "we still use a spreadsheet for",
-    intent: "manual_toil",
-  },
-  {
-    id: "frustrating",
-    phrase: "this is really frustrating because",
-    intent: "quality",
-  },
+  { id: "by-hand", phrase: "I have to do it by hand", intent: "manual_toil" },
+  { id: "spreadsheet", phrase: "we still use a spreadsheet for", intent: "manual_toil" },
+  { id: "spreadsheet-2", phrase: "currently tracked in a spreadsheet", intent: "manual_toil" },
+  { id: "takes-forever", phrase: "takes forever to", intent: "quality" },
+  { id: "why-do-i-have", phrase: "why do I have to", intent: "quality" },
+  { id: "frustrating", phrase: "this is really frustrating because", intent: "quality" },
+  { id: "frustrating-2", phrase: "it is very frustrating that", intent: "quality" },
+  { id: "painful", phrase: "this is painful because", intent: "quality" },
+  { id: "clunky", phrase: "the current workflow is clunky", intent: "quality" },
+  { id: "too-expensive", phrase: "way too expensive for", intent: "cost" },
+  { id: "cant-afford", phrase: "we cannot afford", intent: "cost" },
+  { id: "priced-out", phrase: "priced out of", intent: "cost" },
+  { id: "per-seat", phrase: "the per seat pricing", intent: "cost" },
+  { id: "paywall", phrase: "hidden behind a paywall", intent: "cost" },
+  { id: "alternative-to", phrase: "looking for an alternative to", intent: "missing_product" },
+  { id: "switch-away", phrase: "we want to move away from", intent: "missing_product" },
+  { id: "does-not-scale", phrase: "does not scale to", intent: "quality" },
+  { id: "no-integration", phrase: "there is no integration with", intent: "missing_feature" },
+  { id: "doesnt-integrate", phrase: "doesn't integrate with", intent: "missing_feature" },
+  { id: "no-export", phrase: "there is no way to export", intent: "missing_feature" },
+  { id: "no-api", phrase: "there is no API for", intent: "missing_feature" },
+  { id: "no-mobile", phrase: "there is no mobile app", intent: "missing_product" },
+  { id: "self-host", phrase: "I want to self host", intent: "missing_product" },
 ];
 
 /**
