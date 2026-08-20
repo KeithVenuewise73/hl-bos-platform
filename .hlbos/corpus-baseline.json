@@ -1,0 +1,63 @@
+{
+  "$comment": "HLVS discovery corpus preservation baseline. Measured against production before any Phase 2 intelligence layer existed. Step 11 re-runs supabase/checks/corpus-preservation.sql and every invariant here must still hold. Phase 2 adds layers ABOVE this corpus; it never reduces, filters or overwrites it.",
+  "recordedAt": "2026-08-20",
+  "project": "mvvtngiopdrgiedjmhfb",
+  "tenant": "f1619fdb-9e14-4067-9cac-9182c9751c8e",
+  "matrixVersion": "2026-08-18",
+  "counts": {
+    "totalOpportunities": 62250,
+    "githubDiscovered": 62214,
+    "preExisting": 36,
+    "distinctCanonicalUrls": 62214,
+    "nullRepositoryUrls": 36,
+    "categories": 111,
+    "searchPatterns": 6,
+    "sourceQueriesStored": 299,
+    "sourceQueriesExecuted": 301,
+    "languages": 234,
+    "licenses": 41,
+    "archived": 2093,
+    "active": 60157,
+    "tenants": 1
+  },
+  "byPattern": {
+    "UNDERDEVELOPED": 34896,
+    "POPULAR": 13280,
+    "SELF-HOSTED": 6700,
+    "ABANDONED": 4904,
+    "ALTERNATIVES": 1910,
+    "PAIN SIGNALS": 524,
+    "preExistingNoPattern": 36
+  },
+  "fingerprints": {
+    "preExisting36": {
+      "value": "3679f569f706e8db94d314e7de19bb05",
+      "formula": "md5(string_agg(id||'|'||title||'|'||status||'|'||updated_at, ',' order by id)) where source_type <> 'github'"
+    },
+    "fullCorpus": {
+      "value": "d62d026354fd2c42a187cd1e35b0f803",
+      "formula": "md5(string_agg(id||'|'||coalesce(lower(repository_url),'~')||'|'||status, ',' order by id))"
+    },
+    "canonicalUrlSet": {
+      "value": "5ee46c1cf5c7893c7eaba5ccb67c0a48",
+      "formula": "md5(string_agg(lower(repository_url), ',' order by lower(repository_url)) filter (where repository_url is not null))"
+    }
+  },
+  "reconciliation": {
+    "queriesExecuted": 301,
+    "queriesFailed": 0,
+    "rawResultsRetrieved": 77456,
+    "uniqueUrlsAfterDedupe": 62214,
+    "rowsPersisted": 62214,
+    "queriesWithZeroNetNewRows": [
+      "topic:payroll stars:>500 pushed:>2025-08-18",
+      "topic:ehr stars:>500 pushed:>2025-08-18"
+    ],
+    "note": "301 queries ran and all returned results, but only 299 distinct source_query values are stored: every repository those two queries returned had already been claimed by an earlier query, and dedupe keeps the first finder's provenance. No rows were lost."
+  },
+  "scoringState": {
+    "confidenceNotUnscored": 0,
+    "githubRowsNotInbox": 0,
+    "note": "Nothing in the corpus is scored or triaged at baseline. Phase 2 scores are written to new tables, never by mutating these rows."
+  }
+}
