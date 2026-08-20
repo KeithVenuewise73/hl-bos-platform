@@ -187,7 +187,11 @@ for (const phrase of PAIN_PHRASES) {
     // not somebody asking for something that does not exist.
     const issues = res.items.filter((i) => !i.pull_request);
     collected.push(...issues);
-    if (res.items.length < 100) break;
+    // Stop only when a page comes back genuinely empty. Breaking on
+    // "fewer than 100" loses the rest of a large result set the moment GitHub
+    // returns 99 — which it does — and a phrasing with 11,000 matches would
+    // then contribute a single page.
+    if (res.items.length === 0) break;
   }
 
   // The verification pass. Everything search returned is checked against the
