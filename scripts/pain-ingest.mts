@@ -28,6 +28,20 @@ const IN = process.env["HLVS_PAIN_DIR"] ?? "/tmp/hlvs-pain";
 const OUT = argStr("--out", `${IN}/sql`);
 const EXCERPT = Number(argStr("--excerpt", "180"));
 const BATCH = Number(argStr("--batch", "200"));
+/**
+ * Ceiling on stored signals.
+ *
+ * The brief is explicit that thousands of individual complaints must not
+ * become thousands of executive records — clusters are the deliverable and
+ * signals are their evidence. Verified collection returns more than can
+ * usefully be stored, so each THEME keeps its most engaged evidence and the
+ * collected-versus-stored counts are printed, so the selection is a disclosed
+ * rule rather than a silent truncation.
+ *
+ * Selection is per theme, not global: a global top-N would let one loud theme
+ * crowd out the evidence for every other one.
+ */
+const CAP_PER_THEME = Number(argStr("--cap-per-theme", "90"));
 
 const q = (v: string | null): string =>
   v === null ? "null" : `'${v.replace(/'/g, "''")}'`;
@@ -72,6 +86,29 @@ for (const line of readFileSync(`${IN}/signals.ndjson`, "utf8").split("\n")) {
   seen.add(r.external_id);
   rows.push({ ...r, matched_phrases: [...r.matched_phrases] });
 }
+
+// Keep the most-engaged evidence per theme, and record what that left out.
+const byThemeAll = new Map<string, Staged[]>();
+for (const r of rows) {
+  const k = r.theme ?? "(unclustered)";
+  const a = byThemeAll.get(k) ?? [];
+  a.push(r);
+  byThemeAll.set(k, a);
+}
+const selected: Staged[] = [];
+const dropped: Record<string, number> = {};
+for (const [theme, list] of byThemeAll) {
+  list.sort(
+    (a, b) =>
+      (b.reactions ?? 0) +
+      2 * (b.comments ?? 0) -
+      ((a.reactions ?? 0) + 2 * (a.comments ?? 0)),
+  );
+  selected.push(...list.slice(0, CAP_PER_THEME));
+  if (list.length > CAP_PER_THEME) dropped[theme] = list.length - CAP_PER_THEME;
+}
+rows.length = 0;
+rows.push(...selected);
 
 mkdirSync(OUT, { recursive: true });
 
@@ -128,7 +165,10 @@ for (const r of rows)
 console.log(
   JSON.stringify(
     {
-      uniqueSignals: rows.length,
+      verifiedCollected: [...byThemeAll.values()].reduce((a, l) => a + l.length, 0),
+      storedAsEvidence: rows.length,
+      capPerTheme: CAP_PER_THEME,
+      notStoredPerTheme: dropped,
       themes: PAIN_THEMES.length,
       batches: file,
       outDir: OUT,
