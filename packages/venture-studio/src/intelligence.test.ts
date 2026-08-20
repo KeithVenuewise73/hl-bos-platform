@@ -86,7 +86,13 @@ describe("unresearched fields are enumerated, not left blank", () => {
     const p = popularityScore(base);
     const s = suitabilityScore(base, { value: 0.5, basis: "" });
     const names = [...p.components, ...s.components].map((c) => c.component);
-    for (const forbidden of ["market_size", "revenue", "customers", "downloads", "pricing"]) {
+    for (const forbidden of [
+      "market_size",
+      "revenue",
+      "customers",
+      "downloads",
+      "pricing",
+    ]) {
       expect(names).not.toContain(forbidden);
     }
   });

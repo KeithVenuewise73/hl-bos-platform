@@ -32,7 +32,10 @@ export default async function Settings() {
         What HLVS has actually looked at, and what it has not.
       </p>
 
-      <Card title="Connected sources" sub="Sources that have really run against live data">
+      <Card
+        title="Connected sources"
+        sub="Sources that have really run against live data"
+      >
         <Row
           k="GitHub repository search"
           v={`${n(intel.corpus)} opportunities · matrix ${MATRIX_VERSION} · ${DISCOVERY_QUERIES.length} queries across ${DISCOVERY_CATEGORIES.length} categories`}
@@ -51,18 +54,24 @@ export default async function Settings() {
         title="Not connected"
         sub="Named so their absence is a stated fact, not an assumption"
       >
-        <Row k="Reddit" v="Not connected. No Reddit evidence is held, and none is implied anywhere in HLVS." />
+        <Row
+          k="Reddit"
+          v="Not connected. No Reddit evidence is held, and none is implied anywhere in HLVS."
+        />
         <Row k="Public forums and product discussions" v="Not connected." />
         <Row k="App and software reviews" v="Not connected." />
-        <Row k="Search-interest data" v="Not connected. No search-volume figure appears anywhere." />
+        <Row
+          k="Search-interest data"
+          v="Not connected. No search-volume figure appears anywhere."
+        />
         <Row
           k="Package download counts"
           v="Not connected. Downloads are never shown, estimated or inferred."
         />
         <div style={{ fontSize: 12, color: colors.dim, marginTop: 10 }}>
-          Each of these is a legitimate public source the brief names. Adding one widens the
-          pain evidence; until then the pain points rest on GitHub issues alone, and every
-          count on this platform reflects only that.
+          Each of these is a legitimate public source the brief names. Adding one widens
+          the pain evidence; until then the pain points rest on GitHub issues alone, and
+          every count on this platform reflects only that.
         </div>
       </Card>
 
