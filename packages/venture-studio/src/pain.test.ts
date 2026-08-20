@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
 import {
+  MAX_SIGNALS_PER_REPO_PER_THEME,
   MIN_KEYWORDS_PER_ASSIGNMENT,
   MIN_SIGNALS_PER_CLUSTER,
   PAIN_ENGINE_VERSION,
@@ -10,6 +11,7 @@ import {
   assignTheme,
   engagementWeight,
   painSearchQuery,
+  repositoryOf,
 } from "./pain";
 
 describe("the phrasings we go looking for", () => {
@@ -118,6 +120,18 @@ describe("recurrence, not anecdote", () => {
   it("requires several signals before a theme is presented as a pain point", () => {
     // One complaint is a person having a bad day. The premise is recurrence.
     expect(MIN_SIGNALS_PER_CLUSTER).toBeGreaterThanOrEqual(3);
+  });
+
+  it("limits how much one repository can contribute to a theme", () => {
+    // Thirteen "sample_line_migration_N" issues from one repo is one backlog,
+    // not thirteen people with the same problem.
+    expect(MAX_SIGNALS_PER_REPO_PER_THEME).toBeGreaterThanOrEqual(1);
+    expect(MAX_SIGNALS_PER_REPO_PER_THEME).toBeLessThan(MIN_SIGNALS_PER_CLUSTER);
+  });
+
+  it("reads the repository a signal came from", () => {
+    expect(repositoryOf("https://github.com/Owner/Repo/issues/12")).toBe("owner/repo");
+    expect(repositoryOf("https://example.com/thing")).toBeNull();
   });
 
   it("weights a complaint others engaged with above one nobody answered", () => {

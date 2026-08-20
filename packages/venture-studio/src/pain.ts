@@ -538,6 +538,27 @@ export function assignTheme(subject: PainSignalSubject): ThemeAssignment {
 export const MIN_SIGNALS_PER_CLUSTER = 5;
 
 /**
+ * How many signals one repository may contribute to one theme.
+ *
+ * A collection run found thirteen near-identical issues titled
+ * "sample_line_migration_5" through "_17" in a single repository, all matching
+ * the same phrase, all filed by the same automated process. Counted naively
+ * that is thirteen pieces of evidence for a pain point; honestly it is one
+ * backlog.
+ *
+ * Recurrence means the same problem raised in DIFFERENT places. Capping each
+ * repository's contribution is what makes the cluster counts mean that, and
+ * the excluded signals are reported rather than silently dropped.
+ */
+export const MAX_SIGNALS_PER_REPO_PER_THEME = 3;
+
+/** The owner/repo a signal's URL belongs to, or null if it cannot be read. */
+export function repositoryOf(sourceUrl: string): string | null {
+  const m = /^https?:\/\/github\.com\/([^/]+\/[^/]+)/i.exec(sourceUrl);
+  return m ? m[1]!.toLowerCase() : null;
+}
+
+/**
  * Engagement on a public complaint is itself evidence: an issue others reacted
  * to and replied to represents more people than one nobody answered. Used to
  * choose which signals to keep when a phrasing returns more than we store, and

@@ -18,6 +18,8 @@ import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import {
   PAIN_THEMES,
   PAIN_ENGINE_VERSION,
+  MAX_SIGNALS_PER_REPO_PER_THEME,
+  repositoryOf,
 } from "../packages/venture-studio/src/pain.ts";
 
 const argStr = (flag: string, fallback: string): string => {
@@ -41,7 +43,15 @@ const BATCH = Number(argStr("--batch", "200"));
  * Selection is per theme, not global: a global top-N would let one loud theme
  * crowd out the evidence for every other one.
  */
-const CAP_PER_THEME = Number(argStr("--cap-per-theme", "90"));
+const CAP_PER_THEME = Number(argStr("--cap-per-theme", "1000"));
+/**
+ * Signals matching no theme are the bulk of any collection — ordinary feature
+ * requests with no shared vocabulary. They are real evidence and are counted,
+ * but storing every one would bury the clustered evidence that pain points
+ * actually rest on. A sample is stored so the pile can be inspected, and both
+ * numbers are printed so the sampling is visible rather than implied.
+ */
+const CAP_UNCLUSTERED = Number(argStr("--cap-unclustered", "0"));
 
 const q = (v: string | null): string =>
   v === null ? "null" : `'${v.replace(/'/g, "''")}'`;
@@ -68,6 +78,25 @@ interface Staged {
   matched_phrases: string[];
   theme: string | null;
 }
+
+/** The collector's own tallies, so the provenance text is not re-derived here. */
+const collectionTotals = (() => {
+  try {
+    const prog = JSON.parse(readFileSync(`${IN}/progress.json`, "utf8")) as {
+      phrases: Record<
+        string,
+        { returned: number; rejectedAsNotContainingPhrase: number }
+      >;
+    };
+    const vals = Object.values(prog.phrases);
+    return {
+      returned: vals.reduce((a, p) => a + p.returned, 0),
+      rejected: vals.reduce((a, p) => a + p.rejectedAsNotContainingPhrase, 0),
+    };
+  } catch {
+    return { returned: 0, rejected: 0 };
+  }
+})();
 
 const seen = new Set<string>();
 const rows: Staged[] = [];
@@ -97,6 +126,7 @@ for (const r of rows) {
 }
 const selected: Staged[] = [];
 const dropped: Record<string, number> = {};
+let repoCapped = 0;
 for (const [theme, list] of byThemeAll) {
   list.sort(
     (a, b) =>
@@ -104,13 +134,46 @@ for (const [theme, list] of byThemeAll) {
       2 * (b.comments ?? 0) -
       ((a.reactions ?? 0) + 2 * (a.comments ?? 0)),
   );
-  selected.push(...list.slice(0, CAP_PER_THEME));
-  if (list.length > CAP_PER_THEME) dropped[theme] = list.length - CAP_PER_THEME;
+  // Recurrence means the same problem raised in DIFFERENT places, so one
+  // repository's backlog cannot become a pain point on its own. Sorted
+  // most-engaged first, so the cap keeps each repository's strongest evidence.
+  const perRepo = new Map<string, number>();
+  const eligible: Staged[] = [];
+  for (const r of list) {
+    const repo = repositoryOf(r.source_url) ?? r.source_url;
+    const n = perRepo.get(repo) ?? 0;
+    if (n >= MAX_SIGNALS_PER_REPO_PER_THEME) {
+      repoCapped++;
+      continue;
+    }
+    perRepo.set(repo, n + 1);
+    eligible.push(r);
+  }
+  const cap = theme === "(unclustered)" ? CAP_UNCLUSTERED : CAP_PER_THEME;
+  selected.push(...eligible.slice(0, cap));
+  if (eligible.length > cap) dropped[theme] = eligible.length - cap;
 }
+
 rows.length = 0;
 rows.push(...selected);
 
 mkdirSync(OUT, { recursive: true });
+
+// Collection provenance, written onto every cluster so the pain page states
+// what was collected as well as what was kept. Cluster COUNTS must be exact,
+// so every signal that belongs to a theme is stored; signals matching no theme
+// are counted here rather than stored, because they change no count and would
+// otherwise be the bulk of the table.
+const clusteredCount = [...byThemeAll]
+  .filter(([k]) => k !== "(unclustered)")
+  .reduce((a, [, l]) => a + l.length, 0);
+const unclusteredCount = byThemeAll.get("(unclustered)")?.length ?? 0;
+const provenance =
+  ` Collected from the GitHub issue search: ${collectionTotals.returned} results returned, ` +
+  `${collectionTotals.rejected} rejected because the issue did not actually contain the phrasing, ` +
+  `${clusteredCount + unclusteredCount} verified. ${clusteredCount} matched a theme and are stored in full, ` +
+  `so every cluster count below is exact. ${unclusteredCount} matched no theme — ordinary requests with no ` +
+  `shared vocabulary — and are counted here rather than stored.`;
 
 // --- Clusters: the source-controlled themes, upserted by their stable key ---
 const clusterSql =
@@ -118,7 +181,7 @@ const clusterSql =
   PAIN_THEMES.map(
     (t) =>
       `  (${q(t.key)}, ${q(t.title)}, ${q(t.problemStatement)}, ` +
-      `${q(`Deterministic keyword assignment against the theme list in packages/venture-studio/src/pain.ts (${PAIN_ENGINE_VERSION}). A signal joins the theme it shares most keywords with; ties break by declaration order.`)}, ` +
+      `${q(`Deterministic keyword assignment against the theme list in packages/venture-studio/src/pain.ts (${PAIN_ENGINE_VERSION}). A signal joins the theme it shares at least two keywords with; ties break by declaration order.${provenance}`)}, ` +
       `${qArr(t.keywords)}, true)`,
   ).join(",\n") +
   `\non conflict (theme_key) where theme_key is not null do update set\n` +
@@ -168,6 +231,9 @@ console.log(
       verifiedCollected: [...byThemeAll.values()].reduce((a, l) => a + l.length, 0),
       storedAsEvidence: rows.length,
       capPerTheme: CAP_PER_THEME,
+      capUnclustered: CAP_UNCLUSTERED,
+      excludedByRepositoryCap: repoCapped,
+      maxPerRepositoryPerTheme: MAX_SIGNALS_PER_REPO_PER_THEME,
       notStoredPerTheme: dropped,
       themes: PAIN_THEMES.length,
       batches: file,
