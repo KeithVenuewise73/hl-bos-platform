@@ -8,6 +8,7 @@
 begin;
 select plan(8);
 select tests.seed();
+select tests.seed_opportunities();
 
 select has_function('vstudio', 'set_analysis_levels', 'analysis levels can be set from real membership');
 

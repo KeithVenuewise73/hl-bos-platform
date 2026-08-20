@@ -9,19 +9,20 @@
 begin;
 select plan(17);
 select tests.seed();
+select tests.seed_opportunities();
 
 select has_function('vstudio', 'build_portfolio', array['text'], 'the build control exists');
 select has_function('vstudio', 'portfolio_candidates', array['text'], 'eligibility is a single named rule');
 select has_function('vstudio', 'portfolio_domain_value', array['text','text','jsonb'], 'domain matching is one function');
 
 -- --- The gate refuses ---------------------------------------------------------
-set local session authorization authenticated;
+select tests.login_as(tests.uid('viewer_a'));
 select throws_ok(
   $$select vstudio.build_portfolio('logistics')$$,
   '42501', null,
   'rebuilding a ranking needs vstudio.intelligence.manage'
 );
-reset session authorization;
+select tests.logout();
 
 -- --- Bad input fails loudly rather than producing an empty list ---------------
 select throws_ok(

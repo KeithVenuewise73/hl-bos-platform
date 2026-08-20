@@ -12,6 +12,7 @@
 begin;
 select plan(14);
 select tests.seed();
+select tests.seed_opportunities();
 
 -- --- The control exists and is reachable ------------------------------------
 select has_function('vstudio', 'score_level1', array['text'], 'the scoring control exists');
@@ -25,7 +26,7 @@ select is(
 select is(
   (select p.proconfig::text from pg_proc p join pg_namespace n on n.oid=p.pronamespace
     where n.nspname='vstudio' and p.proname='score_level1'),
-  '{"search_path="}',
+  '{"search_path=\"\""}',
   'search_path is pinned empty — a definer function with a loose search_path is a privilege-escalation hole'
 );
 select ok(
@@ -35,18 +36,22 @@ select ok(
 );
 
 -- --- The gate actually refuses -----------------------------------------------
--- SET SESSION AUTHORIZATION, not SET ROLE: the guard reads session_user
--- precisely because current_user inside a definer function is the owner and
--- would wave everyone through. Testing with SET ROLE would therefore pass
--- while proving nothing.
-set local session authorization authenticated;
+-- Impersonate a real user who does not hold vstudio.intelligence.manage.
+--
+-- This used to use SET SESSION AUTHORIZATION, which requires superuser and is
+-- refused under `supabase test db` — so the assertion never ran and the gate
+-- was never observed refusing anybody. Migration 0039 narrowed the direct-
+-- connection escape hatch to callers with NO request context, which makes an
+-- impersonated caller reach the permission check even though session_user is
+-- still postgres. That is what makes this line a test rather than a comment.
+select tests.login_as(tests.uid('viewer_a'));
 select throws_ok(
   $$select vstudio.score_level1('anything')$$,
   '42501',
   null,
   'a caller without vstudio.intelligence.manage is refused'
 );
-reset session authorization;
+select tests.logout();
 
 -- --- Scoring does not touch the corpus ---------------------------------------
 create temp table corpus_before on commit drop as

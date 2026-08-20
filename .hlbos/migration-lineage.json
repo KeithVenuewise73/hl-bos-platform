@@ -3,7 +3,7 @@
   "schemaVersion": 1,
   "sourceDir": "supabase/migrations",
   "canonicalRepository": "KeithVenuewise73/hl-bos-platform",
-  "count": 38,
+  "count": 40,
   "migrations": [
     {
       "ordinal": 1,
@@ -307,6 +307,22 @@
       "filename": "20260820220000_hlbos_0038_vstudio_analysis_levels.sql",
       "version": "20260820220000",
       "sha256": "013ee3550d402e205665ba98eb20f93251c589ebf722bf14ec72061bcbb13064",
+      "foundation": false
+    },
+    {
+      "ordinal": 39,
+      "name": "hlbos_0039_vstudio_provable_gate",
+      "filename": "20260820240000_hlbos_0039_vstudio_provable_gate.sql",
+      "version": "20260820240000",
+      "sha256": "b2301d2798e160d2aaafc1fdade3232cf456839772f6f036845ca6dd4ca7263a",
+      "foundation": false
+    },
+    {
+      "ordinal": 40,
+      "name": "hlbos_0040_pain_signal_url_whitespace",
+      "filename": "20260820260000_hlbos_0040_pain_signal_url_whitespace.sql",
+      "version": "20260820260000",
+      "sha256": "507748efea18629f381a2fb454e9103e6ede62220b5d134b4bc6e9fc48d22f16",
       "foundation": false
     }
   ]

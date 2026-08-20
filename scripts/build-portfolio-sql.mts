@@ -174,15 +174,10 @@ declare
   v_members   integer;
   v_version   text := ${q(SCORING_VERSION)};
 begin
-  -- Recomputing a ranking is a privilege distinct from reading one. session_user
-  -- rather than current_user: inside a definer function current_user is the
-  -- owner and would admit everybody. A direct maintenance connection is the
-  -- platform operating on itself and is not reachable from a browser.
-  if session_user not in ('postgres', 'supabase_admin')
-     and not identity.has_platform_permission('vstudio.intelligence.manage') then
-    raise exception 'insufficient privilege: vstudio.intelligence.manage required'
-      using errcode = 'insufficient_privilege';
-  end if;
+  -- Recomputing a ranking is a privilege distinct from reading one. The shared
+  -- gate from migration 0039 admits a direct maintenance connection and
+  -- requires vstudio.intelligence.manage from every other caller.
+  perform vstudio.assert_intelligence_manage();
 
   select * into v_def from vstudio.portfolios where key = p_key;
   if not found then

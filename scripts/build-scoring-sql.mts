@@ -168,19 +168,11 @@ language plpgsql volatile security definer set search_path = '' as $fn$
 declare v_rows integer;
 begin
   -- Running the analysis is a privilege distinct from reading its results.
-  --
-  -- Two callers are legitimate, and SESSION_USER is what separates them:
-  -- inside a SECURITY DEFINER function CURRENT_USER is the owner, so it would
-  -- wave everyone through. A request arriving through the API always has
-  -- session_user = authenticator and must therefore hold the permission; a
-  -- direct maintenance connection (the platform operating on itself, to run a
-  -- scheduled or Control-Center-triggered rescore) logs in as postgres and is
-  -- not reachable from any browser session.
-  if session_user not in ('postgres', 'supabase_admin')
-     and not identity.has_platform_permission('vstudio.intelligence.manage') then
-    raise exception 'insufficient privilege: vstudio.intelligence.manage required'
-      using errcode = 'insufficient_privilege';
-  end if;
+  -- The gate lives in one place (migration 0039) so that every intelligence
+  -- control shares it and so that it can actually be tested: it admits a
+  -- direct maintenance connection, which has no request context to authorise
+  -- against, and requires vstudio.intelligence.manage from everyone else.
+  perform vstudio.assert_intelligence_manage();
 
 insert into vstudio.opportunity_scores (
   opportunity_id, scoring_version, analysis_level,

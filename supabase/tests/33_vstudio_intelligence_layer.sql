@@ -180,7 +180,11 @@ select is(
 select is(
   (select count(*)::int from pg_policies
     where schemaname='vstudio'
-      and qual = 'identity.has_platform_permission(''vstudio.opportunity.read''::citext)'
+      -- Matched by shape, not by exact rendering: pg_policies schema-qualifies
+      -- the citext cast differently depending on the search_path the extension
+      -- was installed under, and this assertion is about which permission
+      -- guards the row, not about how the cast prints.
+      and qual like '%has_platform_permission(%vstudio.opportunity.read%'
       and tablename in ('opportunity_scores','metric_observations','portfolios',
                         'portfolio_snapshots','portfolio_members','pain_clusters','pain_signals')),
   7,

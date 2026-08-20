@@ -7,6 +7,7 @@
 begin;
 select plan(13);
 select tests.seed();
+select tests.seed_opportunities();
 
 select has_table('vstudio', 'observation_runs', 'the observation ledger exists');
 select has_column('vstudio', 'metric_observations', 'run_id', 'an observation knows which run produced it');
@@ -49,13 +50,13 @@ select ok(
 );
 
 -- --- The gate refuses --------------------------------------------------------
-set local session authorization authenticated;
+select tests.login_as(tests.uid('viewer_a'));
 select throws_ok(
   $$select vstudio.score_rising()$$,
   '42501', null,
   'computing growth needs vstudio.intelligence.manage'
 );
-reset session authorization;
+select tests.logout();
 
 select * from finish();
 rollback;
