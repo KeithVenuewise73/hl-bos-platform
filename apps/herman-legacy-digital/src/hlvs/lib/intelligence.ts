@@ -429,6 +429,12 @@ export async function executiveOverview(): Promise<ExecutiveOverview> {
           >(),
       ]);
 
+    // If the snapshot read failed, say so. Returning an empty portfolio list
+    // would render as "no portfolio has been built yet" — which is a different
+    // and false statement, and the panel that shows it also promises nothing is
+    // being hidden.
+    const snapsError = snaps.error ? snaps.error.message : null;
+
     return {
       provisioning: "ready",
       corpus: corpus.count ?? 0,
@@ -449,7 +455,7 @@ export async function executiveOverview(): Promise<ExecutiveOverview> {
         }))
         .sort((a, b) => a.order - b.order)
         .map(({ order: _order, ...rest }) => rest),
-      error: null,
+      error: snapsError,
     };
   } catch (e) {
     return empty("unprovisioned", String((e as Error)?.message ?? e));

@@ -153,8 +153,9 @@ export default async function Overview() {
       >
         {intel.portfolios.length === 0 ? (
           <Empty>
-            No portfolio has been built yet. Nothing is being hidden — no ranking has
-            been computed.
+            {intel.error
+              ? "The portfolio list could not be read, so this panel shows nothing rather than claiming nothing exists. See the error above."
+              : "No portfolio has been built yet. Nothing is being hidden — no ranking has been computed."}
           </Empty>
         ) : (
           <Grid min={230}>
