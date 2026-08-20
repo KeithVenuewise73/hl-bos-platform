@@ -1,7 +1,7 @@
 {
   "$comment": "Live milestone state. Version-controlled so it is auditable, and updated by the AI engineer as work lands. The Control Center reads this -- it does not guess progress.",
   "milestone": "Platform Foundation v1.0 \u2014 Enterprise Knowledge Graph live in production",
-  "phase": "HLVS Phase 2: intelligence layers above the preserved 62,250-record discovery corpus. Migrations 0033-0037 applied to production under CEO approval (all additive). Level-1 deterministic triage scored the entire corpus with two never-collapsed scores; four Top-100 portfolios built as immutable snapshots; Rising Opportunities architecture in place with the discovery capture seeded as observation one; public pain evidence collected from GitHub issues with per-signal source URLs. Corpus preservation re-verified before and after.",
+  "phase": "HLVS Phase 2: intelligence layers above the preserved 62,250-record discovery corpus. Migrations 0033-0038 applied to production under CEO approval (all additive). Level-1 deterministic triage scored the entire corpus with two never-collapsed scores; five Top-100 portfolios built as immutable snapshots (Logistics 100, Business Transformation 100, Sports 100, Outside-Core 100, Public Pain 12 of a possible 100 because only 12 themes cleared the recurrence bar on real evidence); Rising Opportunities populated from a second observation pass. Corpus preservation re-verified before and after.",
   "engineer": "Claude (AI engineer)",
   "startedOn": "2026-07-16",
   "tasks": [
@@ -122,8 +122,8 @@
       "done": true
     },
     {
-      "title": "HLVS Phase 2 (Step 6): Rising Opportunities time series (0036) \u2014 62,214 baseline observations seeded and score_rising() correctly returns 0 against them, because a baseline is not a trend. Needs a completed second observation pass to populate.",
-      "done": false
+      "title": "HLVS Phase 2 (Step 6): Rising Opportunities populated \u2014 a second observation pass over 299 of 301 discovery queries produced 1,562 material movements against the 62,214-row baseline; score_rising() ranked all 1,562 over a 0.92-day measured window and the portfolio holds 100",
+      "done": true
     },
     {
       "title": "HLVS Phase 2 (Steps 7-9): public pain engine (0037) with phrase verification against full issue bodies, deterministic clustering, and the HLVS UI \u2014 Executive Overview, five Top-100 routes, Rising, Discovery Universe, Sources & Settings",

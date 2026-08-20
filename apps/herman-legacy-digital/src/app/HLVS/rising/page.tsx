@@ -64,14 +64,25 @@ export default async function Rising() {
               {overview.risingScored.toLocaleString()} opportunities currently carry a
               measured rising score.
             </p>
-            <p>
-              A rising score needs TWO readings of the same repository, taken far enough
-              apart to tell growth from noise. The discovery capture is reading number
-              one and is flagged as a baseline. Until a second observation pass
-              completes, every rising score stays <strong>unknown</strong> —
-              deliberately, rather than being shown as flat, which would be a claim the
-              evidence does not support.
-            </p>
+            {overview.risingScored === 0 ? (
+              <p>
+                A rising score needs TWO readings of the same repository, taken far
+                enough apart to tell growth from noise. The discovery capture is reading
+                number one and is flagged as a baseline. Until a second observation pass
+                completes, every rising score stays <strong>unknown</strong> —
+                deliberately, rather than being shown as flat, which would be a claim
+                the evidence does not support.
+              </p>
+            ) : (
+              <p>
+                Those scores were measured, so this is not a missing-data problem: the
+                measurement ran and none of the repositories it could compare showed
+                growth above zero. Only measured growth earns a place here. Everything
+                else keeps an <strong>unknown</strong> rising score rather than a flat
+                one, because not moving during one window is not the same as being known
+                not to grow.
+              </p>
+            )}
           </Empty>
         </Card>
       ) : null}
