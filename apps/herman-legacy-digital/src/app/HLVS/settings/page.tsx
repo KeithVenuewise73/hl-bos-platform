@@ -1,6 +1,6 @@
 import { StudioShell } from "@/hlvs/components/StudioShell";
-import { Card, Row, colors } from "@/hlvs/components/ui";
-import { executiveOverview } from "@/hlvs/lib/intelligence";
+import { Card, Row, Empty, colors } from "@/hlvs/components/ui";
+import { executiveOverview, painSources } from "@/hlvs/lib/intelligence";
 import {
   MATRIX_VERSION,
   DISCOVERY_QUERIES,
@@ -13,6 +13,16 @@ import {
 
 export const dynamic = "force-dynamic";
 
+/** The six source states, in words a non-engineer can act on. */
+const STATE_LABEL: Record<string, string> = {
+  connected: "CONNECTED",
+  accessible_not_connected: "REACHABLE, NOT YET COLLECTED",
+  requires_credential: "NEEDS A CREDENTIAL",
+  technically_restricted: "BLOCKED BY NETWORK POLICY",
+  tos_review_required: "NEEDS A TERMS REVIEW",
+  not_currently_feasible: "NOT CURRENTLY FEASIBLE",
+};
+
 /**
  * Sources & Settings.
  *
@@ -22,7 +32,7 @@ export const dynamic = "force-dynamic";
  * assumption the CEO has to make for himself.
  */
 export default async function Settings() {
-  const intel = await executiveOverview();
+  const [intel, sources] = await Promise.all([executiveOverview(), painSources()]);
   const n = (v: number) => v.toLocaleString();
 
   return (
@@ -51,27 +61,34 @@ export default async function Settings() {
       </Card>
 
       <Card
-        title="Not connected"
-        sub="Named so their absence is a stated fact, not an assumption"
+        title="Every public source, and what is actually blocking each one"
+        sub="Read from vstudio.pain_sources — the registry is data, not copy on a page"
       >
-        <Row
-          k="Reddit"
-          v="Not connected. No Reddit evidence is held, and none is implied anywhere in HLVS."
-        />
-        <Row k="Public forums and product discussions" v="Not connected." />
-        <Row k="App and software reviews" v="Not connected." />
-        <Row
-          k="Search-interest data"
-          v="Not connected. No search-volume figure appears anywhere."
-        />
-        <Row
-          k="Package download counts"
-          v="Not connected. Downloads are never shown, estimated or inferred."
-        />
+        {sources.error ? (
+          <div style={{ fontSize: 12, color: colors.warn }}>
+            The source registry could not be read: {sources.error}. This is a failed
+            read, not an empty registry.
+          </div>
+        ) : sources.sources.length === 0 ? (
+          <Empty>No source has been registered yet.</Empty>
+        ) : (
+          sources.sources.map((src) => (
+            <Row
+              key={src.key}
+              k={src.label}
+              v={`${STATE_LABEL[src.state] ?? src.state} — ${src.state_reason}${
+                src.notes ? ` ${src.notes}` : ""
+              }`}
+            />
+          ))
+        )}
         <div style={{ fontSize: 12, color: colors.dim, marginTop: 10 }}>
-          Each of these is a legitimate public source the brief names. Adding one widens
-          the pain evidence; until then the pain points rest on GitHub issues alone, and
-          every count on this platform reflects only that.
+          A source reads <strong>connected</strong> only when a real collection stored
+          real rows. Every other state names the specific obstacle rather than implying
+          the data might be there. Reddit, Hacker News, the app stores and
+          Stack&nbsp;Overflow were each probed on 2026-08-20 and every one was refused
+          by this environment&rsquo;s egress policy — that is a network permission, not
+          a missing credential.
         </div>
       </Card>
 

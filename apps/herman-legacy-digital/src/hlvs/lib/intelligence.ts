@@ -109,6 +109,45 @@ export interface PainSignalRow {
   matched_phrases: string[];
 }
 
+/**
+ * What a piece of software DOES, read from its own metadata.
+ *
+ * `evidence_kind` is carried all the way to the screen on purpose: a claim read
+ * from a written description is worth more than one read from a repository
+ * slug, and the reader is entitled to know which they are looking at.
+ */
+export interface CapabilityRow {
+  opportunity_id: string;
+  capability_slug: string;
+  is_primary: boolean;
+  evidence_kind: string;
+  evidence_excerpt: string;
+  evidence_locator: string;
+  confidence: number;
+  label: string;
+  description: string;
+  cap_type: string;
+  domain: string;
+}
+
+/** A part of a project HLG might reuse, with the licence that governs it. */
+export interface ReusableAssetRow {
+  opportunity_id: string;
+  asset_kind: string;
+  label: string;
+  evidence_kind: string;
+  evidence_excerpt: string;
+  licence: string | null;
+  licence_permits_commercial: boolean | null;
+  confidence: number;
+}
+
+export interface CapabilityBundle {
+  primary: CapabilityRow | null;
+  secondary: CapabilityRow[];
+  assets: ReusableAssetRow[];
+}
+
 export interface PortfolioView {
   provisioning: Provisioning;
   portfolio: PortfolioMeta | null;
@@ -118,6 +157,8 @@ export interface PortfolioView {
   opportunities: Map<string, OpportunityRow>;
   /** Pain-cluster members, keyed by cluster id. */
   clusters: Map<string, PainClusterRow>;
+  /** What each repository does, keyed by opportunity id. */
+  capabilities: Map<string, CapabilityBundle>;
   error: string | null;
 }
 
@@ -134,6 +175,7 @@ const emptyView = (p: Provisioning, error: string | null = null): PortfolioView 
   members: [],
   opportunities: new Map(),
   clusters: new Map(),
+  capabilities: new Map(),
   error,
 });
 
@@ -232,6 +274,70 @@ export async function getPortfolio(key: string): Promise<PortfolioView> {
       for (const o of res.data ?? []) opportunities.set(o.id, o);
     }
 
+    // What each of those repositories does. Fetched in the same round trip as
+    // the ranking so the card can lead with the capability rather than the
+    // repository name, which is provenance, not intelligence.
+    const capabilities = new Map<string, CapabilityBundle>();
+    if (opportunityIds.length) {
+      const [caps, assets] = await Promise.all([
+        sb
+          .schema("vstudio")
+          .from("opportunity_capabilities")
+          .select(
+            "opportunity_id,capability_slug,is_primary,evidence_kind,evidence_excerpt," +
+              "evidence_locator,confidence,capabilities(label,description,cap_type,domain)",
+          )
+          .in("opportunity_id", opportunityIds)
+          .order("confidence", { ascending: false })
+          .returns<
+            (Omit<CapabilityRow, "label" | "description" | "cap_type" | "domain"> & {
+              capabilities: {
+                label: string;
+                description: string;
+                cap_type: string;
+                domain: string;
+              } | null;
+            })[]
+          >(),
+        sb
+          .schema("vstudio")
+          .from("opportunity_reusable_assets")
+          .select(
+            "opportunity_id,asset_kind,label,evidence_kind,evidence_excerpt," +
+              "licence,licence_permits_commercial,confidence",
+          )
+          .in("opportunity_id", opportunityIds)
+          .order("confidence", { ascending: false })
+          .returns<ReusableAssetRow[]>(),
+      ]);
+      const bundleFor = (id: string): CapabilityBundle => {
+        const existing = capabilities.get(id);
+        if (existing) return existing;
+        const made: CapabilityBundle = { primary: null, secondary: [], assets: [] };
+        capabilities.set(id, made);
+        return made;
+      };
+      for (const c of caps.data ?? []) {
+        const row: CapabilityRow = {
+          opportunity_id: c.opportunity_id,
+          capability_slug: c.capability_slug,
+          is_primary: c.is_primary,
+          evidence_kind: c.evidence_kind,
+          evidence_excerpt: c.evidence_excerpt,
+          evidence_locator: c.evidence_locator,
+          confidence: c.confidence,
+          label: c.capabilities?.label ?? c.capability_slug,
+          description: c.capabilities?.description ?? "",
+          cap_type: c.capabilities?.cap_type ?? "",
+          domain: c.capabilities?.domain ?? "",
+        };
+        const b = bundleFor(c.opportunity_id);
+        if (row.is_primary) b.primary = row;
+        else b.secondary.push(row);
+      }
+      for (const a of assets.data ?? []) bundleFor(a.opportunity_id).assets.push(a);
+    }
+
     const clusters = new Map<string, PainClusterRow>();
     if (clusterIds.length) {
       const res = await sb
@@ -254,6 +360,7 @@ export async function getPortfolio(key: string): Promise<PortfolioView> {
       members,
       opportunities,
       clusters,
+      capabilities,
       error: null,
     };
   } catch (e) {
@@ -459,5 +566,52 @@ export async function executiveOverview(): Promise<ExecutiveOverview> {
     };
   } catch (e) {
     return empty("unprovisioned", String((e as Error)?.message ?? e));
+  }
+}
+
+/**
+ * The source registry, read from the database rather than from source code.
+ *
+ * packages/venture-studio/src/sources.ts declared thirteen sources with a type
+ * that has exactly one variant -- "not_connected" -- so it could not represent
+ * a connected source at all, and it went stale the moment GitHub issues started
+ * returning real rows. A registry that cannot express the truth is worse than
+ * no registry, because it reads like one.
+ */
+export interface PainSourceRow {
+  key: string;
+  label: string;
+  state: string;
+  state_reason: string;
+  population_hint: string;
+  first_collected_at: string | null;
+  last_collected_at: string | null;
+  notes: string;
+}
+
+export async function painSources(): Promise<{
+  sources: PainSourceRow[];
+  error: string | null;
+}> {
+  if (!supabaseConfigured())
+    return { sources: [], error: "Supabase is not configured." };
+  const sb = await serverSupabase();
+  if (!sb) return { sources: [], error: "Supabase is not configured." };
+  try {
+    const res = await sb
+      .schema("vstudio")
+      .from("pain_sources")
+      .select(
+        "key,label,state,state_reason,population_hint,first_collected_at,last_collected_at,notes",
+      )
+      .order("state", { ascending: true })
+      .order("key", { ascending: true })
+      .returns<PainSourceRow[]>();
+    // An empty list and a failed read are different facts, and the page must be
+    // able to tell them apart rather than rendering silence for both.
+    if (res.error) return { sources: [], error: res.error.message };
+    return { sources: res.data ?? [], error: null };
+  } catch (e) {
+    return { sources: [], error: String((e as Error)?.message ?? e) };
   }
 }
