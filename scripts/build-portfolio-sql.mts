@@ -258,4 +258,10 @@ comment on function vstudio.build_portfolio(text) is
 `;
 
 writeFileSync(OUT, sql);
-console.log(JSON.stringify({ out: OUT, bytes: sql.length, portfolios: CORE_PORTFOLIOS.map((p) => p.key) }, null, 1));
+console.log(
+  JSON.stringify(
+    { out: OUT, bytes: sql.length, portfolios: CORE_PORTFOLIOS.map((p) => p.key) },
+    null,
+    1,
+  ),
+);

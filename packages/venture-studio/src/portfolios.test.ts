@@ -26,7 +26,10 @@ const subject = (over: Partial<MatchSubject> = {}): MatchSubject => ({
 describe("portfolio definitions", () => {
   it("defines the four repository portfolios the CEO named", () => {
     expect(ALL_PORTFOLIOS.map((p) => p.key)).toEqual([
-      "logistics", "transformation", "sports", "outside-core",
+      "logistics",
+      "transformation",
+      "sports",
+      "outside-core",
     ]);
   });
 
@@ -39,7 +42,13 @@ describe("portfolio definitions", () => {
     // Core terms qualify a record on their own, so a word that appears as
     // readily in a media server as in a sports product must not be one.
     for (const p of CORE_PORTFOLIOS) {
-      for (const generic of ["stats", "streaming", "schedule", "analytics", "dashboard"]) {
+      for (const generic of [
+        "stats",
+        "streaming",
+        "schedule",
+        "analytics",
+        "dashboard",
+      ]) {
         expect(p.coreTerms).not.toContain(generic);
       }
       expect(p.coreTerms.length).toBeGreaterThan(0);
@@ -136,7 +145,9 @@ describe("matching is deterministic and explicable", () => {
       }),
       LOGISTICS,
     );
-    expect(m.coreMatches.length).toBeGreaterThanOrEqual(MIN_CORE_TERMS_WITHOUT_CATEGORY);
+    expect(m.coreMatches.length).toBeGreaterThanOrEqual(
+      MIN_CORE_TERMS_WITHOUT_CATEGORY,
+    );
     expect(m.value).toBeGreaterThan(QUALIFICATION_THRESHOLD);
   });
 
@@ -155,7 +166,10 @@ describe("matching is deterministic and explicable", () => {
   });
 
   it("lets supporting terms strengthen a match that already exists", () => {
-    const coreOnly = matchPortfolio(subject({ summary: "warehouse inventory" }), LOGISTICS);
+    const coreOnly = matchPortfolio(
+      subject({ summary: "warehouse inventory" }),
+      LOGISTICS,
+    );
     const coreAndSupport = matchPortfolio(
       subject({ summary: "warehouse inventory operations and tracking" }),
       LOGISTICS,
@@ -165,7 +179,10 @@ describe("matching is deterministic and explicable", () => {
 
   it("respects word boundaries, so a substring is not a match", () => {
     // "crm" inside "scrmble" is not a CRM.
-    const m = matchPortfolio(subject({ summary: "a scrmble of letters" }), TRANSFORMATION);
+    const m = matchPortfolio(
+      subject({ summary: "a scrmble of letters" }),
+      TRANSFORMATION,
+    );
     expect(m.matchedTerms).not.toContain("crm");
   });
 
@@ -175,14 +192,19 @@ describe("matching is deterministic and explicable", () => {
       LOGISTICS,
     );
     const eight = matchPortfolio(
-      subject({ summary: "dispatch routing warehouse fleet driver inventory shipping courier" }),
+      subject({
+        summary: "dispatch routing warehouse fleet driver inventory shipping courier",
+      }),
       LOGISTICS,
     );
     expect(eight.value).toBe(four.value);
   });
 
   it("explains every match in words the CEO can check", () => {
-    const m = matchPortfolio(subject({ summary: "team roster and tournament bracket" }), SPORTS);
+    const m = matchPortfolio(
+      subject({ summary: "team roster and tournament bracket" }),
+      SPORTS,
+    );
     expect(m.basis).toMatch(/matched/);
     const none = matchPortfolio(subject({ summary: "a rust compiler" }), SPORTS);
     expect(none.basis).toBe("no domain terms matched");
@@ -193,10 +215,14 @@ describe("matching is deterministic and explicable", () => {
 describe("outside-core is defined by exclusion", () => {
   it("excludes anything a core domain already claims", () => {
     expect(
-      qualifiesOutsideCore(subject({ category: "logistics", summary: "fleet dispatch" })),
+      qualifiesOutsideCore(
+        subject({ category: "logistics", summary: "fleet dispatch" }),
+      ),
     ).toBe(false);
     expect(
-      qualifiesOutsideCore(subject({ category: "sports-technology", summary: "team roster" })),
+      qualifiesOutsideCore(
+        subject({ category: "sports-technology", summary: "team roster" }),
+      ),
     ).toBe(false);
   });
 

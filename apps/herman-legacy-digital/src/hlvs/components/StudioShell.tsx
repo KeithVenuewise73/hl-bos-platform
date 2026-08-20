@@ -31,21 +31,31 @@ async function signInWithReturn(): Promise<string> {
  */
 export async function StudioShell({
   view,
+  path,
   children,
 }: {
   view: StudioView;
+  /**
+   * Disambiguates views that appear more than once in the navigation. The five
+   * Top-100 portfolios all share view "portfolio", so matching on view alone
+   * would resolve every one of them to Logistics.
+   */
+  path?: string;
   children: ReactNode;
 }) {
   const viewer = await getViewer();
   if (!viewer.authenticated || viewer.role === null) redirect(await signInWithReturn());
 
-  const meta = VIEWS.find((v) => v.view === view);
+  const meta =
+    (path ? VIEWS.find((v) => v.path === path) : undefined) ??
+    VIEWS.find((v) => v.view === view);
   const operating = meta?.operating ?? false;
 
   console.info(
     JSON.stringify({
       evt: "vstudio.access",
       view,
+      path: meta?.path ?? path ?? null,
       role: viewer.role,
       email: viewer.email,
       dev: viewer.dev,
@@ -93,7 +103,7 @@ export async function StudioShell({
             <nav style={{ display: "flex", gap: 14 }}>
               {VIEWS.filter((v) => canView(viewer.role, v)).map((v) => (
                 <a
-                  key={v.view}
+                  key={v.path}
                   href={v.path}
                   style={{ color: colors.dim, textDecoration: "none", fontSize: 13 }}
                 >

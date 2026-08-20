@@ -116,14 +116,15 @@ describe("repository scan (ground truth)", () => {
     expect(inv.schemas).toContain("bti");
     expect(inv.schemas).toContain("intake");
     expect(inv.tables).toBeGreaterThanOrEqual(120);
-    // 36 migration files on disk: 0029 (venture-studio foundation, applied to
+    // 37 migration files on disk: 0029 (venture-studio foundation, applied to
     // production) + 0030 (CEO Notebook — written, UNAPPLIED pending CEO approval)
     // + 0031 (Business Transformation intake — written, UNAPPLIED pending CEO
     // approval) + 0032 (venture-studio discovery metadata) + 0033 (venture-studio
     // intelligence layer) + 0034 (Level-1 triage scoring) + 0035 (portfolio
-    // building) + 0036 (rising / observation time series) — the last five
-    // additive and applied to production under CEO approval.
-    expect(inv.migrations.length).toBe(36);
+    // building) + 0036 (rising / observation time series) + 0037 (pain
+    // clustering) — the last six additive and applied to production under CEO
+    // approval.
+    expect(inv.migrations.length).toBe(37);
     expect(inv.edgeFunctions).toContain("ai-gateway");
     expect(inv.edgeFunctions).not.toContain("tests");
     expect(inv.apps).toEqual(

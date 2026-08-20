@@ -77,7 +77,11 @@ describe("popularity — unknown is not zero", () => {
     expect(r.score).toBeGreaterThanOrEqual(0);
     expect(r.score).toBeLessThanOrEqual(100);
     expect(r.components.map((c) => c.component)).toEqual([
-      "stars", "forks", "issue_activity", "recency", "topic_breadth",
+      "stars",
+      "forks",
+      "issue_activity",
+      "recency",
+      "topic_breadth",
     ]);
     for (const c of r.components) expect(c.basis).not.toBe("");
   });
@@ -96,17 +100,31 @@ describe("popularity — one giant must not dominate every category", () => {
     // smaller one, because that would make every category a referendum on
     // whichever project happens to be the most famous.
     const giantMidPack = popularityScore(
-      input({ stars: 400_000, forks: 30_000, starsPercentileInCategory: 0.5, forksPercentileInCategory: 0.5 }),
+      input({
+        stars: 400_000,
+        forks: 30_000,
+        starsPercentileInCategory: 0.5,
+        forksPercentileInCategory: 0.5,
+      }),
     );
     const categoryLeader = popularityScore(
-      input({ stars: 4_000, forks: 400, starsPercentileInCategory: 1, forksPercentileInCategory: 1 }),
+      input({
+        stars: 4_000,
+        forks: 400,
+        starsPercentileInCategory: 1,
+        forksPercentileInCategory: 1,
+      }),
     );
     expect(categoryLeader.score!).toBeGreaterThan(0.7 * giantMidPack.score!);
   });
 
   it("still puts a giant above a nobody — the correction is not an inversion", () => {
-    const giant = popularityScore(input({ stars: 400_000, forks: 30_000, starsPercentileInCategory: 1 }));
-    const nobody = popularityScore(input({ stars: 2, forks: 0, starsPercentileInCategory: 0.01 }));
+    const giant = popularityScore(
+      input({ stars: 400_000, forks: 30_000, starsPercentileInCategory: 1 }),
+    );
+    const nobody = popularityScore(
+      input({ stars: 2, forks: 0, starsPercentileInCategory: 0.01 }),
+    );
     expect(giant.score!).toBeGreaterThan(nobody.score!);
   });
 
@@ -172,15 +190,21 @@ describe("HLG suitability components", () => {
     const activeAndHealthy = maintenanceValue("POPULAR", false, 5_000).value;
     expect(abandonedWithUsers).toBeGreaterThan(activeAndHealthy);
     // ...but a stalled project nobody used is a weaker opening than one people did.
-    expect(maintenanceValue("ABANDONED", false, 2).value).toBeLessThan(abandonedWithUsers);
+    expect(maintenanceValue("ABANDONED", false, 2).value).toBeLessThan(
+      abandonedWithUsers,
+    );
   });
 
   it("reads commercial shape from declared topics and discovery pattern", () => {
-    expect(monetizationValue(["saas", "billing", "crm", "multi-tenant"], "POPULAR").value).toBe(1);
+    expect(
+      monetizationValue(["saas", "billing", "crm", "multi-tenant"], "POPULAR").value,
+    ).toBe(1);
     expect(monetizationValue([], "SELF-HOSTED").value).toBeGreaterThan(
       monetizationValue([], "POPULAR").value,
     );
-    expect(monetizationValue([], "POPULAR").basis).toContain("no commercial-shape topics");
+    expect(monetizationValue([], "POPULAR").basis).toContain(
+      "no commercial-shape topics",
+    );
   });
 
   it("scores 0-100 with every component carrying its own justification", () => {
@@ -197,14 +221,18 @@ describe("HLG suitability components", () => {
 
   it("separates the four quadrants the CEO asked to be able to see", () => {
     const popularOutsideCore = {
-      pop: popularityScore(input({ stars: 90_000, forks: 9_000, starsPercentileInCategory: 0.99 })),
+      pop: popularityScore(
+        input({ stars: 90_000, forks: 9_000, starsPercentileInCategory: 0.99 }),
+      ),
       fit: suitabilityScore(
         input({ stars: 90_000, license: "AGPL-3.0", language: "Erlang" }),
         { value: 0, basis: "no overlap" },
       ),
     };
     const nicheHighFit = {
-      pop: popularityScore(input({ stars: 60, forks: 4, starsPercentileInCategory: 0.2 })),
+      pop: popularityScore(
+        input({ stars: 60, forks: 4, starsPercentileInCategory: 0.2 }),
+      ),
       fit: suitabilityScore(input({ stars: 60 }), { value: 1, basis: "logistics" }),
     };
     expect(popularOutsideCore.pop.score!).toBeGreaterThan(nicheHighFit.pop.score!);

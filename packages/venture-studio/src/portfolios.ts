@@ -50,19 +50,62 @@ export const LOGISTICS: PortfolioDefinition = {
   label: "Logistics, Supply Chain & Operations",
   rankBy: "suitability",
   targetSize: 100,
-  categories: ["logistics", "fleet-management", "inventory", "manufacturing", "agriculture", "construction"],
+  categories: [
+    "logistics",
+    "fleet-management",
+    "inventory",
+    "manufacturing",
+    "agriculture",
+    "construction",
+  ],
   coreTerms: [
-    "supply chain", "supply-chain", "logistics", "logistics-management", "transportation",
-    "freight", "final mile", "last mile", "last-mile", "middle mile",
-    "warehouse", "warehousing", "wms", "route optimization", "route planning",
-    "routing", "dispatch", "dispatching", "fleet", "fleet management",
-    "telematics", "delivery management", "courier", "shipment", "shipping",
-    "3pl", "dsp", "procurement", "inventory", "stock management",
-    "supplier", "field service", "field operations", "workforce management", "driver",
+    "supply chain",
+    "supply-chain",
+    "logistics",
+    "logistics-management",
+    "transportation",
+    "freight",
+    "final mile",
+    "last mile",
+    "last-mile",
+    "middle mile",
+    "warehouse",
+    "warehousing",
+    "wms",
+    "route optimization",
+    "route planning",
+    "routing",
+    "dispatch",
+    "dispatching",
+    "fleet",
+    "fleet management",
+    "telematics",
+    "delivery management",
+    "courier",
+    "shipment",
+    "shipping",
+    "3pl",
+    "dsp",
+    "procurement",
+    "inventory",
+    "stock management",
+    "supplier",
+    "field service",
+    "field operations",
+    "workforce management",
+    "driver",
   ],
   supportingTerms: [
-    "erp", "operations", "operational analytics", "scheduling", "tracking",
-    "delivery", "purchasing", "vendor", "crew", "workforce",
+    "erp",
+    "operations",
+    "operational analytics",
+    "scheduling",
+    "tracking",
+    "delivery",
+    "purchasing",
+    "vendor",
+    "crew",
+    "workforce",
   ],
   hlgContext: ["HSCS", "HL-BOS"],
 };
@@ -73,31 +116,89 @@ export const TRANSFORMATION: PortfolioDefinition = {
   rankBy: "suitability",
   targetSize: 100,
   categories: [
-    "crm", "erp", "marketing-automation", "email-marketing", "business-intelligence",
-    "analytics-bi", "automation-workflow", "workflow-engine", "rpa", "no-code",
-    "customer-support", "chat-messaging", "ecommerce", "point-of-sale",
-    "accounting", "invoicing-billing", "subscription-billing", "saas-platforms",
-    "hr-recruiting", "payroll", "project-management", "booking-appointments",
-    "scheduling-calendars", "integration-ipaas",
+    "crm",
+    "erp",
+    "marketing-automation",
+    "email-marketing",
+    "business-intelligence",
+    "analytics-bi",
+    "automation-workflow",
+    "workflow-engine",
+    "rpa",
+    "no-code",
+    "customer-support",
+    "chat-messaging",
+    "ecommerce",
+    "point-of-sale",
+    "accounting",
+    "invoicing-billing",
+    "subscription-billing",
+    "saas-platforms",
+    "hr-recruiting",
+    "payroll",
+    "project-management",
+    "booking-appointments",
+    "scheduling-calendars",
+    "integration-ipaas",
   ],
   coreTerms: [
-    "crm", "lead generation", "marketing automation", "email marketing", "customer communication",
-    "workflow automation", "business process", "bpm", "rpa", "ai agent",
-    "chatbot", "helpdesk", "ticketing", "customer service", "reputation",
-    "business intelligence", "field service", "home services", "professional services", "vertical saas",
-    "website builder", "site builder", "invoicing", "invoice", "billing",
-    "quoting", "quote", "estimate", "booking", "appointment",
-    "small business", "smb", "lms", "saas", "erp",
+    "crm",
+    "lead generation",
+    "marketing automation",
+    "email marketing",
+    "customer communication",
+    "workflow automation",
+    "business process",
+    "bpm",
+    "rpa",
+    "ai agent",
+    "chatbot",
+    "helpdesk",
+    "ticketing",
+    "customer service",
+    "reputation",
+    "business intelligence",
+    "field service",
+    "home services",
+    "professional services",
+    "vertical saas",
+    "website builder",
+    "site builder",
+    "invoicing",
+    "invoice",
+    "billing",
+    "quoting",
+    "quote",
+    "estimate",
+    "booking",
+    "appointment",
+    "small business",
+    "smb",
+    "lms",
+    "saas",
+    "erp",
     "onboarding",
   ],
   supportingTerms: [
-    "lead", "scheduling", "payments", "workflow", "agents",
-    "analytics", "dashboard", "reporting", "reviews", "coaching",
-    "course", "landing page",
+    "lead",
+    "scheduling",
+    "payments",
+    "workflow",
+    "agents",
+    "analytics",
+    "dashboard",
+    "reporting",
+    "reviews",
+    "coaching",
+    "course",
+    "landing page",
   ],
   hlgContext: [
-    "Herman Legacy Digital", "HLD Creative Studios",
-    "Business Transformation Intelligence", "HL-BOS", "HSCS",
+    "Herman Legacy Digital",
+    "HLD Creative Studios",
+    "Business Transformation Intelligence",
+    "HL-BOS",
+    "HSCS",
   ],
 };
 
@@ -108,23 +209,64 @@ export const SPORTS: PortfolioDefinition = {
   targetSize: 100,
   categories: ["sports-technology", "sports-analytics", "esports", "fitness"],
   coreTerms: [
-    "sports", "sport", "youth sports", "team management", "roster",
-    "league", "league management", "tournament", "bracket", "fixture",
-    "player development", "athlete", "recruiting", "scouting", "sports analytics",
-    "game film", "video analysis", "performance tracking",
-    "highlight", "highlights", "fan engagement", "field booking", "court booking",
-    "soccer", "football", "basketball", "baseball", "hockey",
-    "volleyball", "lacrosse", "softball", "wrestling", "gymnastics",
+    "sports",
+    "sport",
+    "youth sports",
+    "team management",
+    "roster",
+    "league",
+    "league management",
+    "tournament",
+    "bracket",
+    "fixture",
+    "player development",
+    "athlete",
+    "recruiting",
+    "scouting",
+    "sports analytics",
+    "game film",
+    "video analysis",
+    "performance tracking",
+    "highlight",
+    "highlights",
+    "fan engagement",
+    "field booking",
+    "court booking",
+    "soccer",
+    "football",
+    "basketball",
+    "baseball",
+    "hockey",
+    "volleyball",
+    "lacrosse",
+    "softball",
+    "wrestling",
+    "gymnastics",
     "swimming",
   ],
   supportingTerms: [
-    "schedule", "stats", "statistics", "broadcast", "broadcasting",
-    "streaming", "sponsorship", "facility", "venue", "fan",
-    "film", "track",
+    "schedule",
+    "stats",
+    "statistics",
+    "broadcast",
+    "broadcasting",
+    "streaming",
+    "sponsorship",
+    "facility",
+    "venue",
+    "fan",
+    "film",
+    "track",
   ],
   hlgContext: [
-    "HomeHuddle", "AthleteHuddle", "CoachesHuddle", "CoachAI",
-    "BroadcastAI", "HighlightAI", "Venuewise", "5-Star Sports Media",
+    "HomeHuddle",
+    "AthleteHuddle",
+    "CoachesHuddle",
+    "CoachAI",
+    "BroadcastAI",
+    "HighlightAI",
+    "Venuewise",
+    "5-Star Sports Media",
   ],
 };
 
@@ -147,9 +289,16 @@ export const OUTSIDE_CORE: PortfolioDefinition = {
   hlgContext: [],
 };
 
-export const CORE_PORTFOLIOS: readonly PortfolioDefinition[] = [LOGISTICS, TRANSFORMATION, SPORTS];
+export const CORE_PORTFOLIOS: readonly PortfolioDefinition[] = [
+  LOGISTICS,
+  TRANSFORMATION,
+  SPORTS,
+];
 export const ALL_PORTFOLIOS: readonly PortfolioDefinition[] = [
-  LOGISTICS, TRANSFORMATION, SPORTS, OUTSIDE_CORE,
+  LOGISTICS,
+  TRANSFORMATION,
+  SPORTS,
+  OUTSIDE_CORE,
 ];
 
 // ---------------------------------------------------------------------------
@@ -173,14 +322,25 @@ export interface PortfolioMatch {
   categoryMatch: boolean;
 }
 
-/** Word-boundary containment, so "crm" does not match "scrmble". */
-function containsTerm(haystack: string, term: string): boolean {
-  const i = haystack.indexOf(term);
-  if (i < 0) return false;
-  const before = i === 0 ? " " : haystack[i - 1]!;
-  const after = i + term.length >= haystack.length ? " " : haystack[i + term.length]!;
-  const boundary = (c: string): boolean => !/[a-z0-9]/.test(c);
-  return boundary(before) && boundary(after);
+/**
+ * Word-boundary containment, so "crm" does not match "scrmble".
+ *
+ * Exported because the pain-point matcher needs exactly the same rule: a plain
+ * substring search there put "ical" inside "automatically" and filed a music
+ * player under calendar fragmentation.
+ */
+export function containsTerm(haystack: string, term: string): boolean {
+  let from = 0;
+  for (;;) {
+    const i = haystack.indexOf(term, from);
+    if (i < 0) return false;
+    const before = i === 0 ? " " : haystack[i - 1]!;
+    const after = i + term.length >= haystack.length ? " " : haystack[i + term.length]!;
+    const boundary = (c: string): boolean => !/[a-z0-9]/.test(c);
+    if (boundary(before) && boundary(after)) return true;
+    // Keep looking: an early substring hit must not mask a later real one.
+    from = i + 1;
+  }
 }
 
 /** Every term a portfolio looks for, core and supporting together. */
@@ -243,7 +403,9 @@ export function matchPortfolio(
   if (categoryMatch) {
     basis =
       `discovery category "${category}" belongs to ${def.key}` +
-      (matchedTerms.length ? `; also matched ${matchedTerms.slice(0, 5).join(", ")}` : "");
+      (matchedTerms.length
+        ? `; also matched ${matchedTerms.slice(0, 5).join(", ")}`
+        : "");
   } else if (coreMatches.length >= MIN_CORE_TERMS_WITHOUT_CATEGORY) {
     basis =
       `matched ${coreMatches.slice(0, 5).join(", ")}` +
@@ -283,7 +445,8 @@ export function bestCoreMatch(subject: MatchSubject): {
   };
   for (const def of CORE_PORTFOLIOS) {
     const m = matchPortfolio(subject, def);
-    if (m.value > best.value) best = { portfolio: def.key, value: m.value, basis: m.basis };
+    if (m.value > best.value)
+      best = { portfolio: def.key, value: m.value, basis: m.basis };
   }
   return best;
 }

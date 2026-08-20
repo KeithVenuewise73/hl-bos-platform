@@ -81,8 +81,7 @@ const matchColumns = CORE_PORTFOLIOS.map((p) => {
 
 const matchValues = CORE_PORTFOLIOS.map((p) => {
   const k = p.key.replace(/-/g, "_");
-  const strength =
-    `(least(4::numeric, coalesce(cardinality(m.${k}_core),0)::numeric + 0.5 * coalesce(cardinality(m.${k}_sup),0)::numeric) / 4)`;
+  const strength = `(least(4::numeric, coalesce(cardinality(m.${k}_core),0)::numeric + 0.5 * coalesce(cardinality(m.${k}_sup),0)::numeric) / 4)`;
   return `    case
       when m.${k}_cat then least(1::numeric, 0.6 + 0.4 * ${strength})
       when coalesce(cardinality(m.${k}_core),0) >= ${MIN_CORE_TERMS_WITHOUT_CATEGORY} then least(1::numeric, 0.35 + 0.65 * ${strength})
@@ -90,13 +89,16 @@ const matchValues = CORE_PORTFOLIOS.map((p) => {
     end as ${k}_value`;
 }).join(",\n");
 
-const bestCore = CORE_PORTFOLIOS.map((p) => `v.${p.key.replace(/-/g, "_")}_value`).join(", ");
+const bestCore = CORE_PORTFOLIOS.map((p) => `v.${p.key.replace(/-/g, "_")}_value`).join(
+  ", ",
+);
 // A portfolio name is only reported when the match actually clears the
 // qualification threshold. Without the guard, a record matching nothing at all
 // would still be labelled "logistics" purely because greatest() of three zeroes
 // equals the first of them — a made-up answer dressed as a computed one.
 const bestCoreKey = CORE_PORTFOLIOS.map(
-  (p) => `when v.${p.key.replace(/-/g, "_")}_value = greatest(${bestCore}) then ${q(p.key)}`,
+  (p) =>
+    `when v.${p.key.replace(/-/g, "_")}_value = greatest(${bestCore}) then ${q(p.key)}`,
 ).join("\n              ");
 
 const sql = `-- ===========================================================================
@@ -341,7 +343,12 @@ console.log(
       out: OUT,
       scoringVersion: SCORING_VERSION,
       bytes: sql.length,
-      portfolios: CORE_PORTFOLIOS.map((p) => ({ key: p.key, core: p.coreTerms.length, supporting: p.supportingTerms.length, categories: p.categories.length })),
+      portfolios: CORE_PORTFOLIOS.map((p) => ({
+        key: p.key,
+        core: p.coreTerms.length,
+        supporting: p.supportingTerms.length,
+        categories: p.categories.length,
+      })),
     },
     null,
     1,

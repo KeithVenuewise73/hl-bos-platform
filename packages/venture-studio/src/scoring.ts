@@ -235,7 +235,11 @@ export function popularityScore(input: ScoringInput): ScoreResult {
   ];
 
   const total = components.reduce((a, c) => a + c.value * c.weight, 0);
-  return { score: Math.round(clamp01(total / 100) * 100), status: "measured", components };
+  return {
+    score: Math.round(clamp01(total / 100) * 100),
+    status: "measured",
+    components,
+  };
 }
 
 // ---------------------------------------------------------------------------
@@ -289,10 +293,16 @@ export function licenceValue(license: string | null): { value: number; basis: st
     return { value: 0.25, basis: "no clear licence declared — reuse terms unknown" };
   }
   if ((PERMISSIVE_LICENCES as readonly string[]).includes(license)) {
-    return { value: 1, basis: `${license} — permissive, derived work can be commercialized` };
+    return {
+      value: 1,
+      basis: `${license} — permissive, derived work can be commercialized`,
+    };
   }
   if ((COPYLEFT_LICENCES as readonly string[]).includes(license)) {
-    return { value: 0.3, basis: `${license} — copyleft, constrains commercial derivation` };
+    return {
+      value: 0.3,
+      basis: `${license} — copyleft, constrains commercial derivation`,
+    };
   }
   return { value: 0.5, basis: `${license} — non-standard terms, needs review` };
 }
@@ -314,7 +324,10 @@ export function stackValue(language: string | null): { value: number; basis: str
   if ((HLG_STACK as readonly string[]).includes(language)) {
     return { value: 1, basis: `${language} — the stack HL-BOS already runs` };
   }
-  return { value: 0.35, basis: `${language} — outside the HL-BOS stack, adds operating surface` };
+  return {
+    value: 0.35,
+    basis: `${language} — outside the HL-BOS stack, adds operating surface`,
+  };
 }
 
 /**
@@ -326,7 +339,10 @@ export function stackValue(language: string | null): { value: number; basis: str
  */
 export const BUILDABILITY_PEAK_STARS = 3_000;
 
-export function buildabilityValue(stars: number | null): { value: number; basis: string } {
+export function buildabilityValue(stars: number | null): {
+  value: number;
+  basis: string;
+} {
   if (stars === null) return { value: 0.3, basis: "scale unknown" };
   const s = Math.log10(stars + 1);
   const peak = Math.log10(BUILDABILITY_PEAK_STARS + 1);
@@ -352,26 +368,60 @@ export function maintenanceValue(
 ): { value: number; basis: string } {
   const traction = clamp01(logNormalize(stars, 20_000));
   if (archived) {
-    return { value: clamp01(0.6 + 0.4 * traction), basis: "archived upstream with existing users" };
+    return {
+      value: clamp01(0.6 + 0.4 * traction),
+      basis: "archived upstream with existing users",
+    };
   }
   if (pattern === "ABANDONED") {
-    return { value: clamp01(0.5 + 0.5 * traction), basis: "found by the ABANDONED pattern" };
+    return {
+      value: clamp01(0.5 + 0.5 * traction),
+      basis: "found by the ABANDONED pattern",
+    };
   }
   if (pattern === "UNDERDEVELOPED") {
-    return { value: clamp01(0.35 + 0.5 * traction), basis: "found by the UNDERDEVELOPED pattern" };
+    return {
+      value: clamp01(0.35 + 0.5 * traction),
+      basis: "found by the UNDERDEVELOPED pattern",
+    };
   }
   if (pattern === "ALTERNATIVES") {
-    return { value: clamp01(0.3 + 0.4 * traction), basis: "positioned as an alternative to an incumbent" };
+    return {
+      value: clamp01(0.3 + 0.4 * traction),
+      basis: "positioned as an alternative to an incumbent",
+    };
   }
-  return { value: 0.15 * (1 + traction), basis: `pattern ${pattern ?? "unknown"} — actively maintained` };
+  return {
+    value: 0.15 * (1 + traction),
+    basis: `pattern ${pattern ?? "unknown"} — actively maintained`,
+  };
 }
 
 /** Topics that indicate a shape someone already charges money for. */
 export const MONETIZABLE_TOPICS = [
-  "saas", "self-hosted", "selfhosted", "crm", "erp", "billing", "invoicing",
-  "subscription", "payments", "booking", "scheduling", "marketplace",
-  "analytics", "dashboard", "automation", "workflow", "api", "b2b",
-  "multi-tenant", "multitenant", "enterprise", "no-code", "low-code",
+  "saas",
+  "self-hosted",
+  "selfhosted",
+  "crm",
+  "erp",
+  "billing",
+  "invoicing",
+  "subscription",
+  "payments",
+  "booking",
+  "scheduling",
+  "marketplace",
+  "analytics",
+  "dashboard",
+  "automation",
+  "workflow",
+  "api",
+  "b2b",
+  "multi-tenant",
+  "multitenant",
+  "enterprise",
+  "no-code",
+  "low-code",
 ] as const;
 
 export function monetizationValue(
@@ -379,8 +429,11 @@ export function monetizationValue(
   pattern: string | null,
 ): { value: number; basis: string } {
   const lower = (topics ?? []).map((t) => t.toLowerCase());
-  const hits = (MONETIZABLE_TOPICS as readonly string[]).filter((t) => lower.includes(t));
-  const patternBoost = pattern === "SELF-HOSTED" || pattern === "ALTERNATIVES" ? 0.3 : 0;
+  const hits = (MONETIZABLE_TOPICS as readonly string[]).filter((t) =>
+    lower.includes(t),
+  );
+  const patternBoost =
+    pattern === "SELF-HOSTED" || pattern === "ALTERNATIVES" ? 0.3 : 0;
   const value = clamp01(hits.length / 4 + patternBoost);
   return {
     value,
@@ -410,16 +463,45 @@ export function suitabilityScore(
   const licence = licenceValue(input.license);
   const stack = stackValue(input.language);
   const build = buildabilityValue(input.stars);
-  const maintenance = maintenanceValue(input.searchPattern, input.archived, input.stars);
+  const maintenance = maintenanceValue(
+    input.searchPattern,
+    input.archived,
+    input.stars,
+  );
   const money = monetizationValue(input.topics, input.searchPattern);
 
   const components: ScoreComponent[] = [
-    component("domain_overlap", clamp01(domainOverlap.value), SUITABILITY_WEIGHTS.domainOverlap, domainOverlap.basis),
+    component(
+      "domain_overlap",
+      clamp01(domainOverlap.value),
+      SUITABILITY_WEIGHTS.domainOverlap,
+      domainOverlap.basis,
+    ),
     component("stack_reuse", stack.value, SUITABILITY_WEIGHTS.stackReuse, stack.basis),
-    component("licence_commercial", licence.value, SUITABILITY_WEIGHTS.licenceCommercial, licence.basis),
-    component("buildability", build.value, SUITABILITY_WEIGHTS.buildability, build.basis),
-    component("maintenance_opening", maintenance.value, SUITABILITY_WEIGHTS.maintenanceOpening, maintenance.basis),
-    component("monetization_surface", money.value, SUITABILITY_WEIGHTS.monetizationSurface, money.basis),
+    component(
+      "licence_commercial",
+      licence.value,
+      SUITABILITY_WEIGHTS.licenceCommercial,
+      licence.basis,
+    ),
+    component(
+      "buildability",
+      build.value,
+      SUITABILITY_WEIGHTS.buildability,
+      build.basis,
+    ),
+    component(
+      "maintenance_opening",
+      maintenance.value,
+      SUITABILITY_WEIGHTS.maintenanceOpening,
+      maintenance.basis,
+    ),
+    component(
+      "monetization_surface",
+      money.value,
+      SUITABILITY_WEIGHTS.monetizationSurface,
+      money.basis,
+    ),
   ];
 
   const total = components.reduce((a, c) => a + c.value * c.weight, 0);
