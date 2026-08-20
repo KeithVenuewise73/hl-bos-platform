@@ -1,7 +1,7 @@
 {
   "$comment": "Live milestone state. Version-controlled so it is auditable, and updated by the AI engineer as work lands. The Control Center reads this -- it does not guess progress.",
   "milestone": "Platform Foundation v1.0 \u2014 Enterprise Knowledge Graph live in production",
-  "phase": "HLVS V2 Sprint Alpha: migration 0029 (vstudio) applied to production and internal tenant provisioned; CEO Notebook (B1) built on branch with migration 0030 UNAPPLIED and a PR; Venture Studio deployment (expose vstudio + Coolify + DNS) is blocked on CEO-controlled infrastructure access",
+  "phase": "HLVS Phase 2: intelligence layers above the preserved 62,250-record discovery corpus. Migrations 0033-0037 applied to production under CEO approval (all additive). Level-1 deterministic triage scored the entire corpus with two never-collapsed scores; four Top-100 portfolios built as immutable snapshots; Rising Opportunities architecture in place with the discovery capture seeded as observation one; public pain evidence collected from GitHub issues with per-signal source URLs. Corpus preservation re-verified before and after.",
   "engineer": "Claude (AI engineer)",
   "startedOn": "2026-07-16",
   "tasks": [
@@ -54,7 +54,7 @@
       "done": true
     },
     {
-      "title": "Herman Legacy Executive Portal — secure, read-only, cloud-deployable app (HL-BOS auth, 5 roles, no command surface); staging-ready, not yet deployed",
+      "title": "Herman Legacy Executive Portal \u2014 secure, read-only, cloud-deployable app (HL-BOS auth, 5 roles, no command surface); staging-ready, not yet deployed",
       "done": true
     },
     {
@@ -62,15 +62,15 @@
       "done": true
     },
     {
-      "title": "Enterprise Application Registry + Executive Portal operationalization (CEO Home, Task Center, Global Search, Platform Status, grouped navigation) — read-only, governed, not yet deployed",
+      "title": "Enterprise Application Registry + Executive Portal operationalization (CEO Home, Task Center, Global Search, Platform Status, grouped navigation) \u2014 read-only, governed, not yet deployed",
       "done": true
     },
     {
-      "title": "Canonical Capability Library (Phase XI-1): one evidence-backed record unifying 6 capability registries, deterministic duplicate/reuse gate, read-only /capabilities view — in-code, no migration, not merged",
+      "title": "Canonical Capability Library (Phase XI-1): one evidence-backed record unifying 6 capability registries, deterministic duplicate/reuse gate, read-only /capabilities view \u2014 in-code, no migration, not merged",
       "done": true
     },
     {
-      "title": "HL-BTI v2 Business Transformation Intelligence engine (@hl-bos/transformation-intelligence) — configurable scoring, evidence-gated impact/ROI, Software Factory reuse, CEO-approval gating, HLVS + government-contracts intelligence; Executive Portal Transformation Intelligence + Government Contracts views over labelled sample input",
+      "title": "HL-BTI v2 Business Transformation Intelligence engine (@hl-bos/transformation-intelligence) \u2014 configurable scoring, evidence-gated impact/ROI, Software Factory reuse, CEO-approval gating, HLVS + government-contracts intelligence; Executive Portal Transformation Intelligence + Government Contracts views over labelled sample input",
       "done": true
     },
     {
@@ -82,15 +82,15 @@
       "done": true
     },
     {
-      "title": "Platform Foundation v1.0 merged to main via PR #18 (CI green: Validate, pgTAP 0001–0028 + graph execution tests, Migration checks, Deno, Secret scan)",
+      "title": "Platform Foundation v1.0 merged to main via PR #18 (CI green: Validate, pgTAP 0001\u20130028 + graph execution tests, Migration checks, Deno, Secret scan)",
       "done": true
     },
     {
-      "title": "Deploy Production — migration 0028 (Knowledge Graph) applied to canonical production (mvvtngiopdrgiedjmhfb) at exact repo version 20260731090000; 17/17 structural checks pass; RLS forced; RPCs fail-closed; lineage reconciled (XI-2L)",
+      "title": "Deploy Production \u2014 migration 0028 (Knowledge Graph) applied to canonical production (mvvtngiopdrgiedjmhfb) at exact repo version 20260731090000; 17/17 structural checks pass; RLS forced; RPCs fail-closed; lineage reconciled (XI-2L)",
       "done": true
     },
     {
-      "title": "Grant graph permissions + publish the first production projection (145 nodes / 427 edges) — a separate CEO authorization; the graph is installed but dormant until then",
+      "title": "Grant graph permissions + publish the first production projection (145 nodes / 427 edges) \u2014 a separate CEO authorization; the graph is installed but dormant until then",
       "done": false
     },
     {
@@ -98,11 +98,11 @@
       "done": true
     },
     {
-      "title": "Deploy Production — migration 0029 (vstudio Venture Studio foundation) applied to canonical production (mvvtngiopdrgiedjmhfb); 6 tables, RLS forced, 5 permissions, 8 SECURITY DEFINER functions; purely additive; applied DDL byte-identical to the committed file (sha256 ee83df9…); recorded name matches, version timestamp differs (management-API stamp) and is reconciled by documentation (Option A)",
+      "title": "Deploy Production \u2014 migration 0029 (vstudio Venture Studio foundation) applied to canonical production (mvvtngiopdrgiedjmhfb); 6 tables, RLS forced, 5 permissions, 8 SECURITY DEFINER functions; purely additive; applied DDL byte-identical to the committed file (sha256 ee83df9\u2026); recorded name matches, version timestamp differs (management-API stamp) and is reconciled by documentation (Option A)",
       "done": true
     },
     {
-      "title": "Deploy Venture Studio app + expose vstudio to the API + choose VSTUDIO_TENANT_ID — a separate CEO authorization; migration is applied but the app is undeployed and the schema is not yet exposed until then",
+      "title": "Deploy Venture Studio app + expose vstudio to the API + choose VSTUDIO_TENANT_ID \u2014 a separate CEO authorization; migration is applied but the app is undeployed and the schema is not yet exposed until then",
       "done": false
     },
     {
@@ -110,8 +110,24 @@
       "done": true
     },
     {
-      "title": "Apply migration 0030 (CEO Notebook) to production — a separate CEO authorization; written and CI-verified but UNAPPLIED",
+      "title": "Apply migration 0030 (CEO Notebook) to production \u2014 a separate CEO authorization; written and CI-verified but UNAPPLIED",
       "done": false
+    },
+    {
+      "title": "HLVS Phase 2 (Steps 1-2): corpus-preservation baseline recorded and proven \u2014 62,250 opportunities, 62,214 canonical URLs, 0 duplicates, original-36 fingerprint 3679f569f706e8db94d314e7de19bb05; supabase/checks/corpus-preservation.sql returns 14/14 pass against production",
+      "done": true
+    },
+    {
+      "title": "HLVS Phase 2 (Steps 3-5): additive intelligence schema (0033), Level-1 triage engine generated from tested TypeScript (0034), portfolio builder (0035); all 62,250 records scored; Logistics/Business Transformation/Sports/Outside-Core each populated to 100",
+      "done": true
+    },
+    {
+      "title": "HLVS Phase 2 (Step 6): Rising Opportunities time series (0036) \u2014 62,214 baseline observations seeded and score_rising() correctly returns 0 against them, because a baseline is not a trend. Needs a completed second observation pass to populate.",
+      "done": false
+    },
+    {
+      "title": "HLVS Phase 2 (Steps 7-9): public pain engine (0037) with phrase verification against full issue bodies, deterministic clustering, and the HLVS UI \u2014 Executive Overview, five Top-100 routes, Rising, Discovery Universe, Sources & Settings",
+      "done": true
     }
   ],
   "blockers": [
