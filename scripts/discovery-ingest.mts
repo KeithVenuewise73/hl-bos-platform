@@ -45,10 +45,14 @@ interface Staged {
 /** Single-quote escaping for a SQL string literal. */
 const q = (v: string | null): string =>
   v === null ? "null" : `'${v.replace(/'/g, "''")}'`;
-const qArr = (xs: string[]): string =>
-  xs.length === 0
-    ? "'{}'"
-    : `'{${xs.map((t) => `"${t.replace(/["\\]/g, "")}"`).join(",")}}'`;
+const qArr = (xs: readonly string[]): string => {
+  if (xs.length === 0) return "'{}'";
+  // Build the array literal first, then quote it like any other SQL string.
+  // Doing it the other way round misses apostrophes inside elements, and the
+  // CEO's phrasings are full of them ("why isn't there an app").
+  const body = `{${xs.map((t) => `"${t.replace(/["\\]/g, "")}"`).join(",")}}`;
+  return q(body);
+};
 
 if (!existsSync(STAGING)) {
   console.error(`no staged results at ${STAGING}`);

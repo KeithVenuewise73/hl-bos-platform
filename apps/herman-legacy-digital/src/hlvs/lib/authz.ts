@@ -32,7 +32,9 @@ export type StudioView =
   | "factory_preview"
   | "notebook"
   | "notebook_detail"
-  | "settings";
+  | "settings"
+  | "portfolio"
+  | "rising";
 
 export interface ViewMeta {
   view: StudioView;
@@ -51,11 +53,56 @@ export const VIEWS: ViewMeta[] = [
     description: "The CEO thinking environment — pipeline at a glance",
     operating: false,
   },
+  // The five Top-100 portfolios. Each is a SAVED RANKED VIEW over the corpus
+  // below, never a replacement for it — which is why Discovery Universe sits
+  // beside them in the same navigation rather than being superseded.
+  {
+    view: "portfolio",
+    path: "/HLVS/top100/logistics",
+    label: "Top 100 · Logistics & Supply Chain",
+    description: "Ranked on HLG suitability, where HLG domain knowledge counts",
+    operating: false,
+  },
+  {
+    view: "portfolio",
+    path: "/HLVS/top100/transformation",
+    label: "Top 100 · Business Transformation",
+    description: "SMB operating systems, CRM, automation, vertical SaaS",
+    operating: false,
+  },
+  {
+    view: "portfolio",
+    path: "/HLVS/top100/sports",
+    label: "Top 100 · Sports & Sports Media",
+    description: "Youth sports, teams, coaching, analytics, broadcast",
+    operating: false,
+  },
+  {
+    view: "portfolio",
+    path: "/HLVS/top100/outside-core",
+    label: "Top 100 · Outside HLG Core",
+    description: "Ranked on demonstrated demand, deliberately not on HLG fit",
+    operating: false,
+  },
+  {
+    view: "portfolio",
+    path: "/HLVS/top100/pain",
+    label: "Top 100 · Public Pain Points",
+    description: "Recurring problems people are publicly asking someone to solve",
+    operating: false,
+  },
+  {
+    view: "rising",
+    path: "/HLVS/rising",
+    label: "Rising Opportunities",
+    description: "Measured growth between two observations — never assumed",
+    operating: false,
+  },
   {
     view: "opportunities",
     path: "/HLVS/opportunities",
-    label: "Opportunity Catalog",
-    description: "Every captured opportunity, filterable",
+    label: "Discovery Universe",
+    description: "Every captured opportunity — the complete corpus, filterable",
     operating: false,
   },
   {

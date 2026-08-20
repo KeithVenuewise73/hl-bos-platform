@@ -3,7 +3,7 @@
   "schemaVersion": 1,
   "sourceDir": "supabase/migrations",
   "canonicalRepository": "KeithVenuewise73/hl-bos-platform",
-  "count": 32,
+  "count": 40,
   "migrations": [
     {
       "ordinal": 1,
@@ -259,6 +259,70 @@
       "filename": "20260818210000_hlbos_0032_vstudio_discovery_metadata.sql",
       "version": "20260818210000",
       "sha256": "bec6b88d4a78311b21a1d42a07f895f8c33877737e1e8389330778dd62f05b6c",
+      "foundation": false
+    },
+    {
+      "ordinal": 33,
+      "name": "hlbos_0033_vstudio_intelligence_layer",
+      "filename": "20260820120000_hlbos_0033_vstudio_intelligence_layer.sql",
+      "version": "20260820120000",
+      "sha256": "0bd64b712b0018c449663f80c551603a8164e0025e483e07af0bc0d7eb4413e8",
+      "foundation": false
+    },
+    {
+      "ordinal": 34,
+      "name": "hlbos_0034_vstudio_level1_triage",
+      "filename": "20260820140000_hlbos_0034_vstudio_level1_triage.sql",
+      "version": "20260820140000",
+      "sha256": "99a548af6fbcd8cfe080b84b8b158e897be405c97751d1611827c24946060926",
+      "foundation": false
+    },
+    {
+      "ordinal": 35,
+      "name": "hlbos_0035_vstudio_portfolios",
+      "filename": "20260820160000_hlbos_0035_vstudio_portfolios.sql",
+      "version": "20260820160000",
+      "sha256": "5cc5490d1889f8e3d7a46f2ad860a23982ac56ce8b91f3120a46668096deb87a",
+      "foundation": false
+    },
+    {
+      "ordinal": 36,
+      "name": "hlbos_0036_vstudio_rising",
+      "filename": "20260820180000_hlbos_0036_vstudio_rising.sql",
+      "version": "20260820180000",
+      "sha256": "7247ee3c808097783124d156a3a7f67fc09c59d94b5b820c3944560d32b64ff7",
+      "foundation": false
+    },
+    {
+      "ordinal": 37,
+      "name": "hlbos_0037_vstudio_pain_clusters",
+      "filename": "20260820200000_hlbos_0037_vstudio_pain_clusters.sql",
+      "version": "20260820200000",
+      "sha256": "9e8bc72e5414d151841b99606e0daf6de91a13481fc1cb20eb90f7b38ff27007",
+      "foundation": false
+    },
+    {
+      "ordinal": 38,
+      "name": "hlbos_0038_vstudio_analysis_levels",
+      "filename": "20260820220000_hlbos_0038_vstudio_analysis_levels.sql",
+      "version": "20260820220000",
+      "sha256": "013ee3550d402e205665ba98eb20f93251c589ebf722bf14ec72061bcbb13064",
+      "foundation": false
+    },
+    {
+      "ordinal": 39,
+      "name": "hlbos_0039_vstudio_provable_gate",
+      "filename": "20260820240000_hlbos_0039_vstudio_provable_gate.sql",
+      "version": "20260820240000",
+      "sha256": "b2301d2798e160d2aaafc1fdade3232cf456839772f6f036845ca6dd4ca7263a",
+      "foundation": false
+    },
+    {
+      "ordinal": 40,
+      "name": "hlbos_0040_pain_signal_url_whitespace",
+      "filename": "20260820260000_hlbos_0040_pain_signal_url_whitespace.sql",
+      "version": "20260820260000",
+      "sha256": "507748efea18629f381a2fb454e9103e6ede62220b5d134b4bc6e9fc48d22f16",
       "foundation": false
     }
   ]

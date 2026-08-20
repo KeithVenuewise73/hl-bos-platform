@@ -11,3 +11,6 @@ export * from "./recommendation";
 export * from "./notebook";
 export * from "./discovery-matrix";
 export * from "./catalog";
+export * from "./scoring";
+export * from "./portfolios";
+export * from "./pain";

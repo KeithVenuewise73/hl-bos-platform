@@ -277,3 +277,218 @@ export function DiscoverySection({
     </Card>
   );
 }
+
+// ---------------------------------------------------------------------------
+// Intelligence-layer sections
+// ---------------------------------------------------------------------------
+
+/**
+ * The two scores, side by side and never added together.
+ *
+ * The whole point of keeping them apart is that the interesting answers live
+ * in the corners: high demand + low HLG fit is a real finding (an outside-core
+ * opportunity), and so is low demand + high fit (a niche worth a look). An
+ * average would turn both into an unremarkable middle, so this component has
+ * no total and deliberately offers nowhere to put one.
+ */
+export function ScorePair({
+  popularity,
+  popularityStatus,
+  suitability,
+  suitabilityStatus,
+  rising,
+  risingStatus,
+}: {
+  popularity: number | null;
+  popularityStatus: string;
+  suitability: number | null;
+  suitabilityStatus: string;
+  rising?: number | null;
+  risingStatus?: string;
+}) {
+  const cell = (label: string, value: number | null, status: string, note: string) => (
+    <div
+      style={{
+        border: `1px solid ${colors.border}`,
+        borderRadius: 10,
+        padding: 12,
+        minWidth: 150,
+        flex: 1,
+      }}
+    >
+      <div
+        style={{
+          fontSize: 11,
+          color: colors.dim,
+          textTransform: "uppercase",
+          letterSpacing: 0.4,
+        }}
+      >
+        {label}
+      </div>
+      <div style={{ fontSize: 26, fontWeight: 700, lineHeight: 1.2 }}>
+        {value === null ? (
+          <span style={{ color: colors.dim, fontSize: 15 }}>UNKNOWN</span>
+        ) : (
+          value
+        )}
+      </div>
+      <div style={{ fontSize: 11, color: colors.dim, marginTop: 2 }}>
+        {status === "measured"
+          ? "measured"
+          : status === "estimated"
+            ? "estimated — an inference, not a measurement"
+            : "not measured"}
+      </div>
+      <div style={{ fontSize: 11, color: colors.dim, marginTop: 6 }}>{note}</div>
+    </div>
+  );
+
+  return (
+    <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+      {cell(
+        "Popularity / market evidence",
+        popularity,
+        popularityStatus,
+        "Is there evidence people care about this?",
+      )}
+      {cell(
+        "HLG suitability",
+        suitability,
+        suitabilityStatus,
+        "Is HLG particularly positioned to do something commercially useful with it?",
+      )}
+      {rising !== undefined
+        ? cell(
+            "Rising",
+            rising ?? null,
+            risingStatus ?? "unknown",
+            rising === null || rising === undefined
+              ? "Needs a second observation. A baseline is not a trend."
+              : "Measured growth between two observations.",
+          )
+        : null}
+    </div>
+  );
+}
+
+/** One score's component breakdown, so a total can be audited rather than trusted. */
+export function ComponentBreakdown({
+  title,
+  components,
+}: {
+  title: string;
+  components: { c: string; v: number; w: number }[];
+}) {
+  if (!components?.length) return null;
+  return (
+    <div style={{ marginTop: 10 }}>
+      <div style={{ fontSize: 12, color: colors.dim, marginBottom: 6 }}>{title}</div>
+      {components.map((c) => (
+        <div key={c.c} style={{ marginBottom: 6 }}>
+          <div
+            style={{ display: "flex", justifyContent: "space-between", fontSize: 12 }}
+          >
+            <span style={{ textTransform: "capitalize" }}>
+              {c.c.replace(/_/g, " ")}
+            </span>
+            <span style={{ color: colors.dim }}>
+              {Math.round(c.v * 100)}% of {c.w} pts = {(c.v * c.w).toFixed(1)}
+            </span>
+          </div>
+          <Bar pct={Math.round(c.v * 100)} />
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/**
+ * Fields nobody has researched yet.
+ *
+ * Rendered explicitly rather than left blank, because a blank field reads as
+ * "nothing to report" and these mean "nobody has looked". The CEO has to be
+ * able to tell those apart before he acts on a card.
+ */
+export function NotYetResearched({ fields }: { fields: readonly string[] }) {
+  if (!fields.length) return null;
+  return (
+    <div style={{ marginTop: 12 }}>
+      <div style={{ fontSize: 12, color: colors.dim, marginBottom: 6 }}>
+        Not yet researched — Level-1 triage cannot answer these, and nothing here
+        guesses
+      </div>
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+        {fields.map((f) => (
+          <span
+            key={f}
+            style={{
+              border: `1px dashed ${colors.border}`,
+              borderRadius: 999,
+              padding: "3px 9px",
+              fontSize: 11,
+              color: colors.dim,
+              textTransform: "capitalize",
+            }}
+          >
+            {f.replace(/_/g, " ")}: NOT YET RESEARCHED
+          </span>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/**
+ * The line that stops a Top-100 reading as though it were everything.
+ *
+ * A hundred rows with no context invites the conclusion that a hundred is all
+ * there is. This states the arithmetic every time: how many were shown, how
+ * many qualified, and how large the corpus underneath still is.
+ */
+export function SelectionProvenance({
+  members,
+  eligible,
+  corpus,
+  target,
+  computedAt,
+  method,
+}: {
+  members: number;
+  eligible: number;
+  corpus: number;
+  target: number;
+  computedAt: string;
+  method: string;
+}) {
+  const short = members < target;
+  return (
+    <div
+      style={{
+        border: `1px solid ${colors.border}`,
+        borderRadius: 10,
+        padding: 12,
+        marginBottom: 14,
+        fontSize: 12,
+        color: colors.dim,
+      }}
+    >
+      <div style={{ color: colors.text, fontSize: 13, marginBottom: 4 }}>
+        Showing {members.toLocaleString()} of {eligible.toLocaleString()} eligible,
+        selected from {corpus.toLocaleString()} records — all of which remain in the
+        Discovery Universe.
+      </div>
+      {short ? (
+        <div style={{ color: colors.warn, marginBottom: 4 }}>
+          Fewer than {target} because only {eligible.toLocaleString()} records
+          qualified. The list is not padded to reach a round number.
+        </div>
+      ) : null}
+      <div>{method}</div>
+      <div style={{ marginTop: 4 }}>
+        Computed {new Date(computedAt).toISOString().slice(0, 16).replace("T", " ")}{" "}
+        UTC.
+      </div>
+    </div>
+  );
+}

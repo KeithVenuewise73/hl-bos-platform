@@ -135,3 +135,60 @@ end; $$;
 -- part of a migration, and never exists in a real project.
 grant usage on schema tests to public;
 grant execute on all functions in schema tests to public;
+
+-- ---------------------------------------------------------------------------
+-- Discovery corpus fixture for the Phase 2 intelligence tests.
+--
+-- The intelligence layer's central claim is that it ranks the corpus without
+-- changing it, and that claim cannot be tested against an empty table: a
+-- corpus-preservation assertion over zero rows passes while proving nothing,
+-- and bool_and() over zero rows returns NULL rather than true, which is how
+-- this fixture came to be written in the first place.
+--
+-- The rows are deliberately varied — different categories, licences, star
+-- counts, ages and an archived one — so ranking, partitioning and the
+-- popularity components all have something real to bite on.
+-- ---------------------------------------------------------------------------
+create or replace function tests.seed_opportunities()
+returns integer language plpgsql as $$
+declare v_n integer;
+begin
+  insert into vstudio.opportunities
+    (tenant_id, title, summary, source_type, category, search_pattern,
+     source_query, repository_url, stars, forks, open_issues, language,
+     topics, pushed_at, license, archived, discovered_at, discovery_date)
+  values
+    (tests.uid('tenant_a'), 'acme/route-planner', 'Fleet route optimisation for delivery operations',
+     'github', 'logistics', 'topic-search', 'topic:logistics stars:>100',
+     'https://github.com/acme/route-planner', 4200, 380, 45, 'TypeScript',
+     array['logistics','routing','fleet'], now() - interval '3 days', 'MIT', false,
+     now() - interval '30 days', current_date - 30),
+    (tests.uid('tenant_a'), 'acme/warehouse-wms', 'Warehouse management and inventory tracking',
+     'github', 'logistics', 'topic-search', 'topic:logistics stars:>100',
+     'https://github.com/acme/warehouse-wms', 860, 91, 12, 'Python',
+     array['warehouse','inventory'], now() - interval '20 days', 'Apache-2.0', false,
+     now() - interval '30 days', current_date - 30),
+    (tests.uid('tenant_a'), 'acme/field-service', 'Scheduling and dispatch for service businesses',
+     'github', 'transformation', 'topic-search', 'topic:crm stars:>100',
+     'https://github.com/acme/field-service', 15300, 1420, 260, 'TypeScript',
+     array['crm','scheduling','service'], now() - interval '1 day', 'MIT', false,
+     now() - interval '30 days', current_date - 30),
+    (tests.uid('tenant_a'), 'acme/league-manager', 'Youth sports league scheduling and rosters',
+     'github', 'sports', 'topic-search', 'topic:sports stars:>100',
+     'https://github.com/acme/league-manager', 640, 55, 8, 'Ruby',
+     array['sports','league','youth'], now() - interval '10 days', 'GPL-3.0', false,
+     now() - interval '30 days', current_date - 30),
+    (tests.uid('tenant_a'), 'acme/quantum-sim', 'Quantum circuit simulator',
+     'github', 'research', 'topic-search', 'topic:quantum stars:>100',
+     'https://github.com/acme/quantum-sim', 2100, 310, 90, 'C++',
+     array['quantum','physics'], now() - interval '400 days', 'BSD-3-Clause', false,
+     now() - interval '30 days', current_date - 30),
+    (tests.uid('tenant_a'), 'acme/abandoned-tool', 'An archived project nobody maintains',
+     'github', 'research', 'topic-search', 'topic:quantum stars:>100',
+     'https://github.com/acme/abandoned-tool', 120, 9, 3, 'Perl',
+     array['legacy'], now() - interval '1500 days', null, true,
+     now() - interval '30 days', current_date - 30);
+  get diagnostics v_n = row_count;
+  return v_n;
+end; $$;
+grant execute on function tests.seed_opportunities() to public;

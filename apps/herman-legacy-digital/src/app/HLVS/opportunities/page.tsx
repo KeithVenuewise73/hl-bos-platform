@@ -94,7 +94,13 @@ export default async function Catalog({
           alignItems: "baseline",
         }}
       >
-        <h1 style={{ fontSize: 20 }}>Opportunity Catalog</h1>
+        <div>
+          <h1 style={{ fontSize: 20, marginBottom: 2 }}>Discovery Universe</h1>
+          <p style={{ color: colors.dim, fontSize: 12, margin: 0 }}>
+            Every opportunity ever captured. The Top-100 portfolios are selections from
+            this — nothing is removed from here by being ranked, or by failing to be.
+          </p>
+        </div>
         <a
           href="/HLVS/opportunities/new"
           style={{ color: colors.accent, fontSize: 13 }}

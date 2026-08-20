@@ -42,6 +42,22 @@ const PROGRESS = `${OUT_DIR}/progress.json`;
 const RESUME = process.argv.includes("--resume");
 const limitArg = process.argv.indexOf("--limit");
 const LIMIT = limitArg > -1 ? Number(process.argv[limitArg + 1]) : Infinity;
+/**
+ * Cap the pages fetched per query.
+ *
+ * Full depth is right for DISCOVERY, where the goal is to find everything. It
+ * is the wrong shape for a re-OBSERVATION pass, where the goal is to
+ * re-measure as much of the corpus as possible inside a bounded window:
+ * spending ten requests deepening one query buys far less coverage than
+ * spending them on ten different queries. With --max-pages 1 a full sweep of
+ * the matrix costs 301 requests instead of 931 and reaches every category
+ * rather than the first few.
+ */
+const maxPagesArg = process.argv.indexOf("--max-pages");
+const MAX_PAGES =
+  maxPagesArg > -1
+    ? Math.min(Number(process.argv[maxPagesArg + 1]), PAGINATION.maxPagesPerQuery)
+    : PAGINATION.maxPagesPerQuery;
 
 interface QueryState {
   id: string;
@@ -164,7 +180,7 @@ async function main(): Promise<void> {
     Number.isFinite(LIMIT) ? LIMIT : undefined,
   );
   console.log(
-    `matrix ${MATRIX_VERSION} · ${queries.length} queries · staging ${STAGING}`,
+    `matrix ${MATRIX_VERSION} · ${queries.length} queries · max ${MAX_PAGES} page(s)/query · staging ${STAGING}`,
   );
 
   for (let i = 0; i < queries.length; i++) {
@@ -188,7 +204,7 @@ async function main(): Promise<void> {
     state.resultsRetrieved = 0;
     progress.queries[q.id] = state;
 
-    for (let page = 1; page <= PAGINATION.maxPagesPerQuery; page++) {
+    for (let page = 1; page <= MAX_PAGES; page++) {
       const result = await fetchPage(q.query, page, state);
       await sleep(PACE_MS);
       if (!result) break;
