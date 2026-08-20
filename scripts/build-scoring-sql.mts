@@ -29,6 +29,7 @@ import {
 } from "../packages/venture-studio/src/scoring.ts";
 import {
   CORE_PORTFOLIOS,
+  MIN_CORE_TERMS_WITHOUT_CATEGORY,
   QUALIFICATION_THRESHOLD,
 } from "../packages/venture-studio/src/portfolios.ts";
 
@@ -64,20 +65,29 @@ const P = POPULARITY_WEIGHTS;
 const S = SUITABILITY_WEIGHTS;
 
 // --- Per-portfolio term matching --------------------------------------------
-const matchColumns = CORE_PORTFOLIOS.map(
-  (p) => `
-    -- ${p.key}: distinct vocabulary hits, and whether the discovery category
-    -- itself belongs to this portfolio (provenance beats inference).
+// Core and supporting vocabulary are captured SEPARATELY, because they carry
+// different weight: core terms qualify a record on their own, supporting terms
+// only strengthen a match that already exists. Collapsing them into one list
+// is what put a media-server dashboard at the top of the Sports Top-100.
+const matchColumns = CORE_PORTFOLIOS.map((p) => {
+  const k = p.key.replace(/-/g, "_");
+  return `
     (select coalesce(array_agg(distinct m[1]), '{}'::text[])
-       from regexp_matches(b.haystack, ${q(alternation(p.terms))}, 'g') m) as ${p.key.replace(/-/g, "_")}_terms,
-    (b.category = any(${arr(p.categories)})) as ${p.key.replace(/-/g, "_")}_cat`,
-).join(",");
+       from regexp_matches(b.haystack, ${q(alternation(p.coreTerms))}, 'g') m) as ${k}_core,
+    (select coalesce(array_agg(distinct m[1]), '{}'::text[])
+       from regexp_matches(b.haystack, ${q(alternation(p.supportingTerms))}, 'g') m) as ${k}_sup,
+    (b.category = any(${arr(p.categories)})) as ${k}_cat`;
+}).join(",");
 
 const matchValues = CORE_PORTFOLIOS.map((p) => {
   const k = p.key.replace(/-/g, "_");
-  const termValue = `(least(4, coalesce(cardinality(m.${k}_terms),0))::numeric / 4)`;
-  return `    case when m.${k}_cat then least(1::numeric, 0.6 + 0.4 * ${termValue})
-         else 0.7 * ${termValue} end as ${k}_value`;
+  const strength =
+    `(least(4::numeric, coalesce(cardinality(m.${k}_core),0)::numeric + 0.5 * coalesce(cardinality(m.${k}_sup),0)::numeric) / 4)`;
+  return `    case
+      when m.${k}_cat then least(1::numeric, 0.6 + 0.4 * ${strength})
+      when coalesce(cardinality(m.${k}_core),0) >= ${MIN_CORE_TERMS_WITHOUT_CATEGORY} then least(1::numeric, 0.35 + 0.65 * ${strength})
+      else 0::numeric
+    end as ${k}_value`;
 }).join(",\n");
 
 const bestCore = CORE_PORTFOLIOS.map((p) => `v.${p.key.replace(/-/g, "_")}_value`).join(", ");
@@ -295,7 +305,7 @@ select
     'best_core_value', round(c.best_core_value,4),
     'qualification_threshold', ${QUALIFICATION_THRESHOLD},
     'matched', jsonb_build_object(
-${CORE_PORTFOLIOS.map((p) => `      ${q(p.key)}, to_jsonb(c.${p.key.replace(/-/g, "_")}_terms)`).join(",\n")}
+${CORE_PORTFOLIOS.map((p) => `      ${q(p.key)}, jsonb_build_object('core', to_jsonb(c.${p.key.replace(/-/g, "_")}_core), 'sup', to_jsonb(c.${p.key.replace(/-/g, "_")}_sup))`).join(",\n")}
     )
   ),
   'Level-1 deterministic triage, generated from packages/venture-studio/src/scoring.ts (${SCORING_VERSION}). Popularity measured from repository metrics; HLG suitability estimated from domain vocabulary, stack, licence, scale, discovery pattern and commercial-shape topics. No external research, no model, no invented figures.',
@@ -331,7 +341,7 @@ console.log(
       out: OUT,
       scoringVersion: SCORING_VERSION,
       bytes: sql.length,
-      portfolios: CORE_PORTFOLIOS.map((p) => ({ key: p.key, terms: p.terms.length, categories: p.categories.length })),
+      portfolios: CORE_PORTFOLIOS.map((p) => ({ key: p.key, core: p.coreTerms.length, supporting: p.supportingTerms.length, categories: p.categories.length })),
     },
     null,
     1,

@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import {
   ALL_PORTFOLIOS,
+  MIN_CORE_TERMS_WITHOUT_CATEGORY,
   CORE_PORTFOLIOS,
   LOGISTICS,
   OUTSIDE_CORE,
@@ -32,6 +33,17 @@ describe("portfolio definitions", () => {
   it("ranks outside-core on popularity — ranking it on HLG fit would defeat its purpose", () => {
     expect(OUTSIDE_CORE.rankBy).toBe("popularity");
     for (const p of CORE_PORTFOLIOS) expect(p.rankBy).toBe("suitability");
+  });
+
+  it("keeps generic vocabulary out of the core term lists", () => {
+    // Core terms qualify a record on their own, so a word that appears as
+    // readily in a media server as in a sports product must not be one.
+    for (const p of CORE_PORTFOLIOS) {
+      for (const generic of ["stats", "streaming", "schedule", "analytics", "dashboard"]) {
+        expect(p.coreTerms).not.toContain(generic);
+      }
+      expect(p.coreTerms.length).toBeGreaterThan(0);
+    }
   });
 
   it("names only discovery categories that actually exist in the corpus", () => {
@@ -75,6 +87,82 @@ describe("matching is deterministic and explicable", () => {
     expect(m.value).toBeGreaterThan(QUALIFICATION_THRESHOLD);
   });
 
+  it("refuses to call supporting vocabulary a domain match", () => {
+    // The real regression: the first Sports build ranked a Jellyfin dashboard
+    // first, on "stats" and "streaming" alone.
+    const mediaDashboard = subject({
+      category: "analytics-bi",
+      title: "Nerdy-Technician/JellyGlance",
+      summary: "A dashboard for Jellyfin media server stats and streaming",
+      topics: ["jellyfin", "dashboard"],
+    });
+    const m = matchPortfolio(mediaDashboard, SPORTS);
+    expect(m.coreMatches).toEqual([]);
+    expect(m.value).toBe(0);
+    expect(m.basis).toContain("not a domain match");
+    // It still lands somewhere, and by provenance rather than vocabulary: the
+    // discovery query that found it was an analytics-bi query, which is a
+    // Business Transformation category. That is a discovery categorisation to
+    // argue with, not a matcher fault — and it is nowhere near Sports.
+    expect(bestCoreMatch(mediaDashboard).portfolio).toBe("transformation");
+  });
+
+  it("refuses one ordinary word as evidence of a domain", () => {
+    // Each of these topped a portfolio in an earlier build on a single word.
+    const coachKit = subject({
+      category: "analytics-bi",
+      title: "krishna-build/claude-coach-kit",
+      summary: "Open-source marketing automation toolkit for coaches and solopreneurs",
+    });
+    expect(matchPortfolio(coachKit, SPORTS).value).toBe(0);
+
+    const dataWarehouse = subject({
+      category: "analytics-bi",
+      title: "Canner/vulcan-sql",
+      summary: "Data API framework with a warehouse backend",
+    });
+    const m = matchPortfolio(dataWarehouse, LOGISTICS);
+    expect(m.coreMatches).toEqual(["warehouse"]);
+    expect(m.value).toBe(0);
+    expect(m.basis).toContain("one term is not a domain");
+  });
+
+  it("accepts two independent domain terms without needing a category", () => {
+    const m = matchPortfolio(
+      subject({
+        category: "project-management",
+        title: "acme/wms",
+        summary: "warehouse and inventory management",
+      }),
+      LOGISTICS,
+    );
+    expect(m.coreMatches.length).toBeGreaterThanOrEqual(MIN_CORE_TERMS_WITHOUT_CATEGORY);
+    expect(m.value).toBeGreaterThan(QUALIFICATION_THRESHOLD);
+  });
+
+  it("still ranks a genuine sports project highly on the same evidence type", () => {
+    const m = matchPortfolio(
+      subject({
+        category: "sports-technology",
+        title: "panzarino/mlbgame",
+        summary: "baseball statistics and stats",
+        topics: ["baseball", "sports"],
+      }),
+      SPORTS,
+    );
+    expect(m.coreMatches).toContain("baseball");
+    expect(m.value).toBeGreaterThan(0.8);
+  });
+
+  it("lets supporting terms strengthen a match that already exists", () => {
+    const coreOnly = matchPortfolio(subject({ summary: "warehouse inventory" }), LOGISTICS);
+    const coreAndSupport = matchPortfolio(
+      subject({ summary: "warehouse inventory operations and tracking" }),
+      LOGISTICS,
+    );
+    expect(coreAndSupport.value).toBeGreaterThan(coreOnly.value);
+  });
+
   it("respects word boundaries, so a substring is not a match", () => {
     // "crm" inside "scrmble" is not a CRM.
     const m = matchPortfolio(subject({ summary: "a scrmble of letters" }), TRANSFORMATION);
@@ -83,18 +171,18 @@ describe("matching is deterministic and explicable", () => {
 
   it("saturates: repeating a word does not make a project more logistics", () => {
     const four = matchPortfolio(
-      subject({ summary: "delivery dispatch routing warehouse" }),
+      subject({ summary: "dispatch routing warehouse fleet" }),
       LOGISTICS,
     );
     const eight = matchPortfolio(
-      subject({ summary: "delivery dispatch routing warehouse fleet driver inventory shipping" }),
+      subject({ summary: "dispatch routing warehouse fleet driver inventory shipping courier" }),
       LOGISTICS,
     );
     expect(eight.value).toBe(four.value);
   });
 
   it("explains every match in words the CEO can check", () => {
-    const m = matchPortfolio(subject({ summary: "team roster and tournament brackets" }), SPORTS);
+    const m = matchPortfolio(subject({ summary: "team roster and tournament bracket" }), SPORTS);
     expect(m.basis).toMatch(/matched/);
     const none = matchPortfolio(subject({ summary: "a rust compiler" }), SPORTS);
     expect(none.basis).toBe("no domain terms matched");

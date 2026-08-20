@@ -118,31 +118,40 @@ ranked as (
 ),
 matched as (
   select b.*,
-    -- logistics: distinct vocabulary hits, and whether the discovery category
-    -- itself belongs to this portfolio (provenance beats inference).
     (select coalesce(array_agg(distinct m[1]), '{}'::text[])
-       from regexp_matches(b.haystack, '\m(operational analytics|workforce management|logistics-management|delivery management|route optimization|fleet management|stock management|field operations|transportation|route planning|field service|supply chain|supply-chain|middle mile|warehousing|procurement|dispatching|final mile|telematics|purchasing|scheduling|operations|logistics|last mile|last-mile|warehouse|inventory|workforce|dispatch|delivery|shipping|shipment|tracking|supplier|freight|routing|courier|vendor|driver|fleet|crew|wms|3pl|dsp|erp)\M', 'g') m) as logistics_terms,
+       from regexp_matches(b.haystack, '\m(logistics-management|workforce management|delivery management|route optimization|fleet management|stock management|field operations|transportation|route planning|field service|supply chain|supply-chain|middle mile|warehousing|dispatching|procurement|final mile|telematics|logistics|last mile|last-mile|warehouse|inventory|dispatch|shipment|shipping|supplier|freight|routing|courier|driver|fleet|wms|3pl|dsp)\M', 'g') m) as logistics_core,
+    (select coalesce(array_agg(distinct m[1]), '{}'::text[])
+       from regexp_matches(b.haystack, '\m(operational analytics|operations|scheduling|purchasing|workforce|tracking|delivery|vendor|crew|erp)\M', 'g') m) as logistics_sup,
     (b.category = any(array['logistics','fleet-management','inventory','manufacturing','agriculture','construction'])) as logistics_cat,
-    -- transformation: distinct vocabulary hits, and whether the discovery category
-    -- itself belongs to this portfolio (provenance beats inference).
     (select coalesce(array_agg(distinct m[1]), '{}'::text[])
-       from regexp_matches(b.haystack, '\m(customer communication|business intelligence|professional services|marketing automation|workflow automation|business process|customer service|lead generation|email marketing|website builder|small business|field service|home services|vertical saas|site builder|landing page|appointment|scheduling|reputation|onboarding|invoicing|ticketing|analytics|dashboard|reporting|estimate|payments|workflow|ai agent|helpdesk|coaching|booking|quoting|invoice|billing|chatbot|reviews|agents|course|quote|lead|saas|crm|bpm|rpa|lms|smb|erp)\M', 'g') m) as transformation_terms,
+       from regexp_matches(b.haystack, '\m(customer communication|business intelligence|professional services|marketing automation|workflow automation|business process|customer service|lead generation|email marketing|website builder|small business|field service|home services|vertical saas|site builder|appointment|reputation|onboarding|ticketing|invoicing|ai agent|helpdesk|estimate|chatbot|invoice|billing|quoting|booking|quote|saas|crm|bpm|rpa|smb|lms|erp)\M', 'g') m) as transformation_core,
+    (select coalesce(array_agg(distinct m[1]), '{}'::text[])
+       from regexp_matches(b.haystack, '\m(landing page|scheduling|analytics|dashboard|reporting|payments|workflow|coaching|reviews|agents|course|lead)\M', 'g') m) as transformation_sup,
     (b.category = any(array['crm','erp','marketing-automation','email-marketing','business-intelligence','analytics-bi','automation-workflow','workflow-engine','rpa','no-code','customer-support','chat-messaging','ecommerce','point-of-sale','accounting','invoicing-billing','subscription-billing','saas-platforms','hr-recruiting','payroll','project-management','booking-appointments','scheduling-calendars','integration-ipaas'])) as transformation_cat,
-    -- sports: distinct vocabulary hits, and whether the discovery category
-    -- itself belongs to this portfolio (provenance beats inference).
     (select coalesce(array_agg(distinct m[1]), '{}'::text[])
-       from regexp_matches(b.haystack, '\m(performance tracking|player development|league management|sports analytics|team management|video analysis|fan engagement|field booking|court booking|youth sports|broadcasting|sponsorship|tournament|recruiting|statistics|highlights|basketball|volleyball|gymnastics|game film|highlight|broadcast|streaming|wrestling|schedule|coaching|scouting|facility|football|baseball|lacrosse|softball|swimming|bracket|fixture|athlete|sports|roster|league|soccer|hockey|sport|coach|stats|venue|track|film|fan)\M', 'g') m) as sports_terms,
+       from regexp_matches(b.haystack, '\m(performance tracking|player development|league management|sports analytics|team management|video analysis|fan engagement|field booking|court booking|youth sports|tournament|recruiting|highlights|basketball|volleyball|gymnastics|game film|highlight|wrestling|scouting|football|baseball|lacrosse|softball|swimming|bracket|fixture|athlete|sports|roster|league|soccer|hockey|sport)\M', 'g') m) as sports_core,
+    (select coalesce(array_agg(distinct m[1]), '{}'::text[])
+       from regexp_matches(b.haystack, '\m(broadcasting|sponsorship|statistics|broadcast|streaming|schedule|facility|stats|venue|track|film|fan)\M', 'g') m) as sports_sup,
     (b.category = any(array['sports-technology','sports-analytics','esports','fitness'])) as sports_cat
   from ranked b
 ),
 valued as (
   select m.*,
-    case when m.logistics_cat then least(1::numeric, 0.6 + 0.4 * (least(4, coalesce(cardinality(m.logistics_terms),0))::numeric / 4))
-         else 0.7 * (least(4, coalesce(cardinality(m.logistics_terms),0))::numeric / 4) end as logistics_value,
-    case when m.transformation_cat then least(1::numeric, 0.6 + 0.4 * (least(4, coalesce(cardinality(m.transformation_terms),0))::numeric / 4))
-         else 0.7 * (least(4, coalesce(cardinality(m.transformation_terms),0))::numeric / 4) end as transformation_value,
-    case when m.sports_cat then least(1::numeric, 0.6 + 0.4 * (least(4, coalesce(cardinality(m.sports_terms),0))::numeric / 4))
-         else 0.7 * (least(4, coalesce(cardinality(m.sports_terms),0))::numeric / 4) end as sports_value
+    case
+      when m.logistics_cat then least(1::numeric, 0.6 + 0.4 * (least(4::numeric, coalesce(cardinality(m.logistics_core),0)::numeric + 0.5 * coalesce(cardinality(m.logistics_sup),0)::numeric) / 4))
+      when coalesce(cardinality(m.logistics_core),0) >= 2 then least(1::numeric, 0.35 + 0.65 * (least(4::numeric, coalesce(cardinality(m.logistics_core),0)::numeric + 0.5 * coalesce(cardinality(m.logistics_sup),0)::numeric) / 4))
+      else 0::numeric
+    end as logistics_value,
+    case
+      when m.transformation_cat then least(1::numeric, 0.6 + 0.4 * (least(4::numeric, coalesce(cardinality(m.transformation_core),0)::numeric + 0.5 * coalesce(cardinality(m.transformation_sup),0)::numeric) / 4))
+      when coalesce(cardinality(m.transformation_core),0) >= 2 then least(1::numeric, 0.35 + 0.65 * (least(4::numeric, coalesce(cardinality(m.transformation_core),0)::numeric + 0.5 * coalesce(cardinality(m.transformation_sup),0)::numeric) / 4))
+      else 0::numeric
+    end as transformation_value,
+    case
+      when m.sports_cat then least(1::numeric, 0.6 + 0.4 * (least(4::numeric, coalesce(cardinality(m.sports_core),0)::numeric + 0.5 * coalesce(cardinality(m.sports_sup),0)::numeric) / 4))
+      when coalesce(cardinality(m.sports_core),0) >= 2 then least(1::numeric, 0.35 + 0.65 * (least(4::numeric, coalesce(cardinality(m.sports_core),0)::numeric + 0.5 * coalesce(cardinality(m.sports_sup),0)::numeric) / 4))
+      else 0::numeric
+    end as sports_value
   from matched m
 ),
 computed as (
@@ -226,9 +235,9 @@ select
     'best_core_value', round(c.best_core_value,4),
     'qualification_threshold', 0.35,
     'matched', jsonb_build_object(
-      'logistics', to_jsonb(c.logistics_terms),
-      'transformation', to_jsonb(c.transformation_terms),
-      'sports', to_jsonb(c.sports_terms)
+      'logistics', jsonb_build_object('core', to_jsonb(c.logistics_core), 'sup', to_jsonb(c.logistics_sup)),
+      'transformation', jsonb_build_object('core', to_jsonb(c.transformation_core), 'sup', to_jsonb(c.transformation_sup)),
+      'sports', jsonb_build_object('core', to_jsonb(c.sports_core), 'sup', to_jsonb(c.sports_sup))
     )
   ),
   'Level-1 deterministic triage, generated from packages/venture-studio/src/scoring.ts (2026-08-20-v1). Popularity measured from repository metrics; HLG suitability estimated from domain vocabulary, stack, licence, scale, discovery pattern and commercial-shape topics. No external research, no model, no invented figures.',
