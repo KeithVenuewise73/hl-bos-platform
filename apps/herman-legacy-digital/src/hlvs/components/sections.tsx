@@ -492,3 +492,67 @@ export function SelectionProvenance({
     </div>
   );
 }
+
+/**
+ * What the software DOES, shown before what it is called.
+ *
+ * A repository name is provenance; a capability is intelligence. The name stays
+ * on the card underneath this block so a claim can always be walked back, but
+ * it is no longer the first thing the reader has to decode.
+ *
+ * `evidence_kind` is surfaced rather than hidden. A capability read from a
+ * written description and one guessed from a repository slug are not the same
+ * claim, and the reader is entitled to see which is which.
+ */
+export function CapabilitySummary({
+  bundle,
+}: {
+  bundle: import("@/hlvs/lib/intelligence").CapabilityBundle | undefined;
+}): React.ReactElement {
+  if (!bundle?.primary) {
+    return (
+      <div style={{ fontSize: 12, color: colors.dim, marginTop: 8 }}>
+        Capability: <strong>NOT YET EXTRACTED</strong> — this project&rsquo;s
+        description and topics contain no term the capability vocabulary recognises.
+        Nothing has been guessed from its name.
+      </div>
+    );
+  }
+  const p = bundle.primary;
+  const evidenceNote =
+    p.evidence_kind === "description"
+      ? "read from the project's own description"
+      : p.evidence_kind === "topics"
+        ? "read from the project's declared topics"
+        : "inferred from the repository name only — the weakest evidence there is";
+  return (
+    <div style={{ marginTop: 8 }}>
+      <div style={{ fontSize: 15, fontWeight: 600 }}>{p.label}</div>
+      {p.description ? (
+        <p style={{ fontSize: 13, margin: "4px 0 6px" }}>{p.description}</p>
+      ) : null}
+      {bundle.secondary.length ? (
+        <div style={{ fontSize: 12, color: colors.dim, marginBottom: 4 }}>
+          Also: {bundle.secondary.map((c) => c.label).join(" · ")}
+        </div>
+      ) : null}
+      {bundle.assets.length ? (
+        <div style={{ fontSize: 12, color: colors.dim, marginBottom: 4 }}>
+          Potentially reusable: {bundle.assets.map((a) => a.label).join(" · ")}
+          {bundle.assets.some((a) => a.licence_permits_commercial === false) ? (
+            <span style={{ color: colors.warn }}>
+              {" "}
+              · copyleft licence limits commercial reuse
+            </span>
+          ) : bundle.assets.some((a) => a.licence_permits_commercial === null) ? (
+            <span> · licence NOT DETERMINED</span>
+          ) : null}
+        </div>
+      ) : null}
+      <div style={{ fontSize: 11, color: colors.dim }}>
+        Capability confidence {p.confidence}/100 (estimated) · {evidenceNote}
+        {p.evidence_excerpt ? ` · matched "${p.evidence_excerpt}"` : ""}
+      </div>
+    </div>
+  );
+}

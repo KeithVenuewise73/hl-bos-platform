@@ -3,7 +3,7 @@
   "schemaVersion": 1,
   "sourceDir": "supabase/migrations",
   "canonicalRepository": "KeithVenuewise73/hl-bos-platform",
-  "count": 40,
+  "count": 45,
   "migrations": [
     {
       "ordinal": 1,
@@ -323,6 +323,46 @@
       "filename": "20260820260000_hlbos_0040_pain_signal_url_whitespace.sql",
       "version": "20260820260000",
       "sha256": "507748efea18629f381a2fb454e9103e6ede62220b5d134b4bc6e9fc48d22f16",
+      "foundation": false
+    },
+    {
+      "ordinal": 41,
+      "name": "hlbos_0041_pain_discovery_foundation",
+      "filename": "20260820280000_hlbos_0041_pain_discovery_foundation.sql",
+      "version": "20260820280000",
+      "sha256": "d9b0b8633e276daad65c4604193e574de978404b1eabcad2173023f9c776ac15",
+      "foundation": false
+    },
+    {
+      "ordinal": 42,
+      "name": "hlbos_0042_pain_evidence_backfill",
+      "filename": "20260820300000_hlbos_0042_pain_evidence_backfill.sql",
+      "version": "20260820300000",
+      "sha256": "a967e2f25c01b95aa4c73da77c8127b67793e91650ce5acf78500d3bfe04af2a",
+      "foundation": false
+    },
+    {
+      "ordinal": 43,
+      "name": "hlbos_0043_capability_intelligence",
+      "filename": "20260820320000_hlbos_0043_capability_intelligence.sql",
+      "version": "20260820320000",
+      "sha256": "48b5fd294d6c4514d13e1e58a63d6abe7645d5b437de7a284a175197f2e30ac5",
+      "foundation": false
+    },
+    {
+      "ordinal": 44,
+      "name": "hlbos_0044_capability_extraction",
+      "filename": "20260820340000_hlbos_0044_capability_extraction.sql",
+      "version": "20260820340000",
+      "sha256": "6f62efa4539db867da97184aaeb3624ba6a7b14c42cc49d5fbf37eae2402a3cb",
+      "foundation": false
+    },
+    {
+      "ordinal": 45,
+      "name": "hlbos_0045_reframe_pain_portfolio",
+      "filename": "20260820360000_hlbos_0045_reframe_pain_portfolio.sql",
+      "version": "20260820360000",
+      "sha256": "a28c92e4e5684716fc356453d4d651ff1e308ffe489cca4d8b753af6863a2d45",
       "foundation": false
     }
   ]

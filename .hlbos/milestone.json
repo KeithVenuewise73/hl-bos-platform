@@ -1,7 +1,7 @@
 {
   "$comment": "Live milestone state. Version-controlled so it is auditable, and updated by the AI engineer as work lands. The Control Center reads this -- it does not guess progress.",
   "milestone": "Platform Foundation v1.0 \u2014 Enterprise Knowledge Graph live in production",
-  "phase": "HLVS Phase 2: intelligence layers above the preserved 62,250-record discovery corpus. Migrations 0033-0038 applied to production under CEO approval (all additive); 0039 and 0040 written and awaiting approval after CI's pgTAP run exposed an untestable permission gate and a whitespace hole in the pain-evidence guard. Level-1 deterministic triage scored the entire corpus with two never-collapsed scores; five Top-100 portfolios built as immutable snapshots (Logistics 100, Business Transformation 100, Sports 100, Outside-Core 100, Public Pain 12 of a possible 100 because only 12 themes cleared the recurrence bar on real evidence); Rising Opportunities populated from a second observation pass. Corpus preservation re-verified before and after.",
+  "phase": "HLVS Phase 3: two discovery universes joined by an intelligence bridge. SUPPLY = the preserved 62,250-record corpus, now carrying extracted capabilities and reusable assets. DEMAND = a source-neutral pain/need architecture whose one connected source (GitHub issues, 439 signals) is labelled with the population it actually represents. Migrations 0041-0045 applied additively under CEO approval; corpus preservation re-verified at 18/18 with all three fingerprints byte-identical.",
   "engineer": "Claude (AI engineer)",
   "startedOn": "2026-07-16",
   "tasks": [
@@ -132,6 +132,10 @@
     {
       "title": "HLVS Phase 2 (CI feedback): the pgTAP suite ran for the first time and found real defects \u2014 nine intelligence gates whose refusal path was unreachable under test, and a source_url guard that accepted a tab. Migrations 0039 and 0040 fix both. Written and verified against a local Postgres 16 with all 40 migrations applied from empty: 801 assertions, 0 failures. UNAPPLIED to production pending CEO approval.",
       "done": false
+    },
+    {
+      "title": "HLVS Phase 3 (A/B/H): source-neutral pain schema (0041), GitHub evidence backfill (0042) linking 124 of 439 signals to the corpus as evidence_source and never as solutions, capability intelligence (0043) reusing the @hl-bos/catalog vocabulary, Level-1 extraction across all 62,250 (0044) yielding 24,411 evidence-backed capability claims over 19,585 repositories, and the pain portfolio relabelled to name its population (0045). Reddit and every other non-GitHub source recorded as blocked by this environment's egress policy, verified by probe, not assumed.",
+      "done": true
     }
   ],
   "blockers": [

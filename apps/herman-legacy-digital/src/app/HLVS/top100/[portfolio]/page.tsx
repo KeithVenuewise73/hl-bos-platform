@@ -5,6 +5,7 @@ import {
   ScorePair,
   SelectionProvenance,
   NotYetResearched,
+  CapabilitySummary,
 } from "@/hlvs/components/sections";
 import { getPortfolio, painSignals } from "@/hlvs/lib/intelligence";
 import {
@@ -64,6 +65,29 @@ export default async function Top100({
         </Card>
       ) : null}
 
+      {key === "pain" ? (
+        <Card
+          title="What this page is, and what it is not"
+          sub="Read this before treating any of it as market demand"
+        >
+          <div style={{ fontSize: 13 }}>
+            <p style={{ marginTop: 0 }}>
+              Every cluster below is real, and every complaint behind it has a public
+              URL you can open. But all of it came from <strong>one source</strong> —
+              GitHub issues — and therefore from <strong>one population</strong>:
+              developers and technical users, writing mostly about developer tooling.
+            </p>
+            <p style={{ marginBottom: 0 }}>
+              That makes this <strong>evidence</strong>, not market demand. A market
+              need is a problem confirmed across independent sources and different kinds
+              of people; nothing here has been promoted to one, and no Top 100 is
+              claimed. The Sources page lists every other population we want and the
+              specific obstacle blocking each.
+            </p>
+          </div>
+        </Card>
+      ) : null}
+
       {view.snapshot ? (
         <SelectionProvenance
           members={view.snapshot.member_count}
@@ -94,7 +118,7 @@ export default async function Top100({
             <Card
               key={m.rank}
               title={`${m.rank}. ${c.title}`}
-              sub={`${c.signal_count} public complaints · ${c.source_count} source type(s)`}
+              sub={`${c.signal_count} complaints · ${c.source_count} source type · developer & technical population`}
             >
               <p style={{ fontSize: 13, marginTop: 0 }}>{c.problem_statement}</p>
               <div
@@ -155,15 +179,30 @@ export default async function Top100({
           : undefined;
         if (!o) return null;
         const qual = m.qualification as { basis?: string; matched_terms?: unknown };
+        const bundle = m.opportunity_id
+          ? view.capabilities.get(m.opportunity_id)
+          : undefined;
+        // The card leads with WHAT THE SOFTWARE DOES. The repository name is
+        // still here -- it is the provenance the whole platform rests on -- but
+        // it has moved to the subtitle, because "googlemaps/js-route-
+        // optimization-app" asks the reader to already know the project and
+        // "Route Optimization" tells them.
         return (
           <Card
             key={m.rank}
-            title={`${m.rank}. ${o.title}`}
-            sub={[o.category, o.language, o.license, o.archived ? "archived" : null]
+            title={`${m.rank}. ${bundle?.primary?.label ?? o.title}`}
+            sub={[
+              bundle?.primary ? o.title : null,
+              o.category,
+              o.language,
+              o.license,
+              o.archived ? "archived" : null,
+            ]
               .filter(Boolean)
               .join(" · ")}
           >
-            <p style={{ fontSize: 13, marginTop: 0 }}>
+            <CapabilitySummary bundle={bundle} />
+            <p style={{ fontSize: 13, marginTop: 8 }}>
               {o.summary || "No description provided."}
             </p>
             <ScorePair

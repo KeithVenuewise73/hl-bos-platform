@@ -14,3 +14,4 @@ export * from "./catalog";
 export * from "./scoring";
 export * from "./portfolios";
 export * from "./pain";
+export * from "./capability";
