@@ -97,12 +97,21 @@ export const PORTFOLIO: readonly Product[] = [
   },
   {
     name: "Venuewise",
-    stage: "not-started",
-    status: "Planned. No code yet.",
+    stage: "development",
+    status:
+      "Venuewise Core is the coordination platform behind HomeHuddle and the Huddle products. It is built in the separate `homehuddle` repository, not here, and this console cannot see it. What exists there today is the platform scaffold (shared config, workspace resolver, docs) plus the live HomeHuddle product.",
     version: null,
-    location: null,
+    location: "homehuddle repository (not managed from this console)",
+  },
+  {
+    name: "PlayingTime Football",
+    stage: "development",
+    status:
+      "V1 built and verified: a parent taps once per play and the app derives their athlete's participation and statistics for the game and the season. Event-sourced and local-first, so it works with no signal in the stands. 155 checks pass (51 unit, 74 acceptance in a real browser, 30 schema against Postgres 16). The Supabase schema is written and verified but has NEVER been applied to any database, so nothing of this is live and no parent has used it yet.",
+    version: null,
+    location: "homehuddle repository, /playingtime (not managed from this console)",
   },
 ];
 
 export const PORTFOLIO_NOTE =
-  "Only HL-BOS is built and managed from this console. The legacy products are live but were built before HL-BOS and are not connected to it. Everything marked 'No code yet' genuinely has none — this console will not show a health bar for software that does not exist.";
+  "Only HL-BOS is built and managed from this console. The legacy products are live but were built before HL-BOS and are not connected to it. Venuewise and PlayingTime have real, tested code, but it lives in the homehuddle repository and this console cannot see its builds or its database. Everything marked 'No code yet' genuinely has none — this console will not show a health bar for software that does not exist.";

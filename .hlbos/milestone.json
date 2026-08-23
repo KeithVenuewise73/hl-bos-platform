@@ -136,6 +136,10 @@
     {
       "title": "HLVS Phase 3 (A/B/H): source-neutral pain schema (0041), GitHub evidence backfill (0042) linking 124 of 439 signals to the corpus as evidence_source and never as solutions, capability intelligence (0043) reusing the @hl-bos/catalog vocabulary, Level-1 extraction across all 62,250 (0044) yielding 24,411 evidence-backed capability claims over 19,585 repositories, and the pain portfolio relabelled to name its population (0045). Reddit and every other non-GitHub source recorded as blocked by this environment's egress policy, verified by probe, not assumed.",
       "done": true
+    },
+    {
+      "title": "Portfolio registry corrected: PlayingTime Football (V1, built and verified in the homehuddle repository \u2014 51 unit + 74 browser acceptance + 30 schema checks green; Supabase schema written but UNAPPLIED) and Venuewise both moved off 'not-started'. Neither is built or managed from this console, and the registry now says so rather than implying they have no code.",
+      "done": true
     }
   ],
   "blockers": [
