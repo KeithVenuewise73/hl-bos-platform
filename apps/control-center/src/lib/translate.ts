@@ -30,6 +30,56 @@ interface Rule {
 }
 
 const RULES: readonly Rule[] = [
+  // --- Social publishing (module 0046) --------------------------------
+  // These are the failure modes the social module can actually produce. Each
+  // one names who has to act, because three of the four are settings only
+  // Keith can change and one is genuinely ours.
+  {
+    match: /manual_reauth_required/i,
+    headline: "A social account needs you to sign in again before it can post.",
+    meaning:
+      "Social platforms expire their permissions every couple of months, and LinkedIn will not let software renew a personal profile's permission on its own. Nothing is broken and nothing has been lost — but posts to that account will stop unless it is re-authorised. You will be shown a button to do it.",
+    owner: "ceo",
+  },
+  {
+    match: /ambiguous: no response from|ambiguous: request timed out/i,
+    headline:
+      "A post was sent but the platform never confirmed it. Somebody should look at the page.",
+    meaning:
+      "The request went out and the answer never came back, so we genuinely do not know whether it published. We deliberately did NOT try again, because trying again is how one post becomes two. Check the channel: if it is not there, it can be re-sent safely.",
+    owner: "ai-engineer",
+  },
+  {
+    match: /url_ownership_unverified/i,
+    headline:
+      "TikTok will not accept our videos until the website address is verified with them.",
+    meaning:
+      "TikTok only pulls video from a domain it has confirmed we own. This is a one-time setting in the TikTok developer portal, not a fault in the software. Facebook, Instagram and LinkedIn are unaffected.",
+    owner: "ceo",
+  },
+  {
+    match: /accounts_instagram_requires_linked_page/i,
+    headline:
+      "That Instagram account cannot post automatically because it is not linked to a Facebook Page.",
+    meaning:
+      "Instagram only allows software to publish from a Professional account (Business or Creator) that is connected to a Facebook Page. A personal account cannot do it at all — this is Instagram's rule, not ours. Converting the account and linking it is done in the Instagram app.",
+    owner: "ceo",
+  },
+  {
+    match: /tiktok_inbox target cannot be published|delivered_to_inbox applies only/i,
+    headline: "Something tried to treat a TikTok draft as if it were a live post.",
+    meaning:
+      "TikTok videos are delivered to the account's inbox as drafts, and a person publishes them from the app. The platform refused to record one as published. That guard worked; the code that called it needs fixing.",
+    owner: "ai-engineer",
+  },
+  {
+    match: /instagram requires an image|tiktok inbox upload requires a video/i,
+    headline:
+      "A post was scheduled to a channel that will not accept it without media.",
+    meaning:
+      "Instagram cannot publish text on its own, and TikTok needs a video. The post was stopped before it was sent rather than failing repeatedly. Adding the image or video and re-approving fixes it.",
+    owner: "ai-engineer",
+  },
   {
     match:
       /users_email_partial_key|duplicate key value violates unique constraint "users_email/i,
