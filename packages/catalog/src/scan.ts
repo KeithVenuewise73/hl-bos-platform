@@ -50,6 +50,7 @@ const APPLICATION_SCHEMAS = new Set([
   "hlvs",
   "bti",
   "intake",
+  "social",
 ]);
 
 async function safeReaddir(dir: string): Promise<string[]> {

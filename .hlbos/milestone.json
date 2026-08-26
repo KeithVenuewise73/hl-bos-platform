@@ -1,7 +1,7 @@
 {
   "$comment": "Live milestone state. Version-controlled so it is auditable, and updated by the AI engineer as work lands. The Control Center reads this -- it does not guess progress.",
-  "milestone": "Platform Foundation v1.0 \u2014 Enterprise Knowledge Graph live in production",
-  "phase": "HLVS Phase 3: two discovery universes joined by an intelligence bridge. SUPPLY = the preserved 62,250-record corpus, now carrying extracted capabilities and reusable assets. DEMAND = a source-neutral pain/need architecture whose one connected source (GitHub issues, 439 signals) is labelled with the population it actually represents. Migrations 0041-0045 applied additively under CEO approval; corpus preservation re-verified at 18/18 with all three fingerprints byte-identical.",
+  "milestone": "Platform Foundation v1.0 — Enterprise Knowledge Graph live in production",
+  "phase": "HL Social Publishing Phase 1: the publishing spine for Herman Legacy-owned channels. Migration 0046 adds the `social` schema (6 tables) additively; the token-refresh cron and the publish worker are built with all four Phase 1 adapters (Facebook Page, Instagram, LinkedIn member, TikTok inbox-only). Verified locally against PostgreSQL 17.6 with all 46 migrations applied from empty: 908 pgTAP assertions and 26 edge-function tests, 0 failing. MIGRATION 0046 IS UNAPPLIED to any Supabase project pending CEO approval, and no channel is connected yet, so nothing has been published to a real audience.",
   "engineer": "Claude (AI engineer)",
   "startedOn": "2026-07-16",
   "tasks": [
@@ -54,7 +54,7 @@
       "done": true
     },
     {
-      "title": "Herman Legacy Executive Portal \u2014 secure, read-only, cloud-deployable app (HL-BOS auth, 5 roles, no command surface); staging-ready, not yet deployed",
+      "title": "Herman Legacy Executive Portal — secure, read-only, cloud-deployable app (HL-BOS auth, 5 roles, no command surface); staging-ready, not yet deployed",
       "done": true
     },
     {
@@ -62,15 +62,15 @@
       "done": true
     },
     {
-      "title": "Enterprise Application Registry + Executive Portal operationalization (CEO Home, Task Center, Global Search, Platform Status, grouped navigation) \u2014 read-only, governed, not yet deployed",
+      "title": "Enterprise Application Registry + Executive Portal operationalization (CEO Home, Task Center, Global Search, Platform Status, grouped navigation) — read-only, governed, not yet deployed",
       "done": true
     },
     {
-      "title": "Canonical Capability Library (Phase XI-1): one evidence-backed record unifying 6 capability registries, deterministic duplicate/reuse gate, read-only /capabilities view \u2014 in-code, no migration, not merged",
+      "title": "Canonical Capability Library (Phase XI-1): one evidence-backed record unifying 6 capability registries, deterministic duplicate/reuse gate, read-only /capabilities view — in-code, no migration, not merged",
       "done": true
     },
     {
-      "title": "HL-BTI v2 Business Transformation Intelligence engine (@hl-bos/transformation-intelligence) \u2014 configurable scoring, evidence-gated impact/ROI, Software Factory reuse, CEO-approval gating, HLVS + government-contracts intelligence; Executive Portal Transformation Intelligence + Government Contracts views over labelled sample input",
+      "title": "HL-BTI v2 Business Transformation Intelligence engine (@hl-bos/transformation-intelligence) — configurable scoring, evidence-gated impact/ROI, Software Factory reuse, CEO-approval gating, HLVS + government-contracts intelligence; Executive Portal Transformation Intelligence + Government Contracts views over labelled sample input",
       "done": true
     },
     {
@@ -82,15 +82,15 @@
       "done": true
     },
     {
-      "title": "Platform Foundation v1.0 merged to main via PR #18 (CI green: Validate, pgTAP 0001\u20130028 + graph execution tests, Migration checks, Deno, Secret scan)",
+      "title": "Platform Foundation v1.0 merged to main via PR #18 (CI green: Validate, pgTAP 0001–0028 + graph execution tests, Migration checks, Deno, Secret scan)",
       "done": true
     },
     {
-      "title": "Deploy Production \u2014 migration 0028 (Knowledge Graph) applied to canonical production (mvvtngiopdrgiedjmhfb) at exact repo version 20260731090000; 17/17 structural checks pass; RLS forced; RPCs fail-closed; lineage reconciled (XI-2L)",
+      "title": "Deploy Production — migration 0028 (Knowledge Graph) applied to canonical production (mvvtngiopdrgiedjmhfb) at exact repo version 20260731090000; 17/17 structural checks pass; RLS forced; RPCs fail-closed; lineage reconciled (XI-2L)",
       "done": true
     },
     {
-      "title": "Grant graph permissions + publish the first production projection (145 nodes / 427 edges) \u2014 a separate CEO authorization; the graph is installed but dormant until then",
+      "title": "Grant graph permissions + publish the first production projection (145 nodes / 427 edges) — a separate CEO authorization; the graph is installed but dormant until then",
       "done": false
     },
     {
@@ -98,11 +98,11 @@
       "done": true
     },
     {
-      "title": "Deploy Production \u2014 migration 0029 (vstudio Venture Studio foundation) applied to canonical production (mvvtngiopdrgiedjmhfb); 6 tables, RLS forced, 5 permissions, 8 SECURITY DEFINER functions; purely additive; applied DDL byte-identical to the committed file (sha256 ee83df9\u2026); recorded name matches, version timestamp differs (management-API stamp) and is reconciled by documentation (Option A)",
+      "title": "Deploy Production — migration 0029 (vstudio Venture Studio foundation) applied to canonical production (mvvtngiopdrgiedjmhfb); 6 tables, RLS forced, 5 permissions, 8 SECURITY DEFINER functions; purely additive; applied DDL byte-identical to the committed file (sha256 ee83df9…); recorded name matches, version timestamp differs (management-API stamp) and is reconciled by documentation (Option A)",
       "done": true
     },
     {
-      "title": "Deploy Venture Studio app + expose vstudio to the API + choose VSTUDIO_TENANT_ID \u2014 a separate CEO authorization; migration is applied but the app is undeployed and the schema is not yet exposed until then",
+      "title": "Deploy Venture Studio app + expose vstudio to the API + choose VSTUDIO_TENANT_ID — a separate CEO authorization; migration is applied but the app is undeployed and the schema is not yet exposed until then",
       "done": false
     },
     {
@@ -110,11 +110,11 @@
       "done": true
     },
     {
-      "title": "Apply migration 0030 (CEO Notebook) to production \u2014 a separate CEO authorization; written and CI-verified but UNAPPLIED",
+      "title": "Apply migration 0030 (CEO Notebook) to production — a separate CEO authorization; written and CI-verified but UNAPPLIED",
       "done": false
     },
     {
-      "title": "HLVS Phase 2 (Steps 1-2): corpus-preservation baseline recorded and proven \u2014 62,250 opportunities, 62,214 canonical URLs, 0 duplicates, original-36 fingerprint 3679f569f706e8db94d314e7de19bb05; supabase/checks/corpus-preservation.sql returns 14/14 pass against production",
+      "title": "HLVS Phase 2 (Steps 1-2): corpus-preservation baseline recorded and proven — 62,250 opportunities, 62,214 canonical URLs, 0 duplicates, original-36 fingerprint 3679f569f706e8db94d314e7de19bb05; supabase/checks/corpus-preservation.sql returns 14/14 pass against production",
       "done": true
     },
     {
@@ -122,20 +122,24 @@
       "done": true
     },
     {
-      "title": "HLVS Phase 2 (Step 6): Rising Opportunities populated \u2014 a second observation pass over 299 of 301 discovery queries produced 1,562 material movements against the 62,214-row baseline; score_rising() ranked all 1,562 over a 0.92-day measured window and the portfolio holds 100",
+      "title": "HLVS Phase 2 (Step 6): Rising Opportunities populated — a second observation pass over 299 of 301 discovery queries produced 1,562 material movements against the 62,214-row baseline; score_rising() ranked all 1,562 over a 0.92-day measured window and the portfolio holds 100",
       "done": true
     },
     {
-      "title": "HLVS Phase 2 (Steps 7-9): public pain engine (0037) with phrase verification against full issue bodies, deterministic clustering, and the HLVS UI \u2014 Executive Overview, five Top-100 routes, Rising, Discovery Universe, Sources & Settings",
+      "title": "HLVS Phase 2 (Steps 7-9): public pain engine (0037) with phrase verification against full issue bodies, deterministic clustering, and the HLVS UI — Executive Overview, five Top-100 routes, Rising, Discovery Universe, Sources & Settings",
       "done": true
     },
     {
-      "title": "HLVS Phase 2 (CI feedback): the pgTAP suite ran for the first time and found real defects \u2014 nine intelligence gates whose refusal path was unreachable under test, and a source_url guard that accepted a tab. Migrations 0039 and 0040 fix both. Written and verified against a local Postgres 16 with all 40 migrations applied from empty: 801 assertions, 0 failures. UNAPPLIED to production pending CEO approval.",
+      "title": "HLVS Phase 2 (CI feedback): the pgTAP suite ran for the first time and found real defects — nine intelligence gates whose refusal path was unreachable under test, and a source_url guard that accepted a tab. Migrations 0039 and 0040 fix both. Written and verified against a local Postgres 16 with all 40 migrations applied from empty: 801 assertions, 0 failures. UNAPPLIED to production pending CEO approval.",
       "done": false
     },
     {
       "title": "HLVS Phase 3 (A/B/H): source-neutral pain schema (0041), GitHub evidence backfill (0042) linking 124 of 439 signals to the corpus as evidence_source and never as solutions, capability intelligence (0043) reusing the @hl-bos/catalog vocabulary, Level-1 extraction across all 62,250 (0044) yielding 24,411 evidence-backed capability claims over 19,585 repositories, and the pain portfolio relabelled to name its population (0045). Reddit and every other non-GitHub source recorded as blocked by this environment's egress policy, verified by probe, not assumed.",
       "done": true
+    },
+    {
+      "title": "HL Social Publishing Phase 1 (schema + workers + adapters): migration 0046 creates the `social` schema -- accounts, credentials, posts, post_targets, publish_attempts, media_assets -- with a human approval gate, FOR UPDATE SKIP LOCKED claiming, an append-only attempt log that is trigger-enforced, and per-target independence. Credentials are Vault REFERENCES only (the brief proposed storing raw tokens; platform convention and the migration guard both forbid it), and social.credentials has zero RLS policies and zero grants, so it is unreadable through PostgREST by anyone. TikTok is inbox-only and carries its own terminal status so no post can claim to be live when it is a draft. social-token-refresh (daily) and social-publish-worker (minute) are built and unit-tested offline. Verified: 908 pgTAP assertions across 44 files and 26 edge tests, 0 failing. UNAPPLIED to production and NOT YET CONNECTED to any real channel -- nothing has been published to an audience.",
+      "done": false
     }
   ],
   "blockers": [
@@ -148,6 +152,11 @@
       "title": "Deploy buttons are not built yet",
       "meaning": "Deploying needs a preview environment to test against, and Supabase branching is not switched on. Building a Deploy button before then would be a button that cannot deploy.",
       "owner": "ai-engineer"
+    },
+    {
+      "title": "Social channels are not connected yet",
+      "meaning": "The publishing software is built and tested, but it has no accounts to publish to. Six things are needed before the first real post: the exact list of Facebook Pages, Instagram accounts, LinkedIn profile and TikTok accounts to use; confirmation each Instagram account is a Professional account linked to a Facebook Page (a personal account cannot post automatically at all); a Meta app with the Instagram and Facebook Login products; a tester/admin role on that app for each account; a LinkedIn app with 'Share on LinkedIn'; and a TikTok app with inbox-only content posting. Each is an access decision only you can make. Everything not waiting on them is finished.",
+      "owner": "ceo"
     }
   ]
 }

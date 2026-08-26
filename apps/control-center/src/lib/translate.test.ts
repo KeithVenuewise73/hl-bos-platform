@@ -71,6 +71,50 @@ describe("explain", () => {
     expect(explain(undefined).detail).toBe("(no output)");
   });
 
+  // --- Social publishing (module 0046) --------------------------------
+  it("tells Keith when a social account needs re-authorising, and calls it his", () => {
+    const e = explain(
+      "manual_reauth_required: the LinkedIn 'Share on LinkedIn' tier issues no refresh token",
+    );
+    expect(e.owner).toBe("ceo");
+    expect(e.headline).not.toMatch(/refresh_token|LinkedIn tier|OAuth|scope/i);
+    expect(e.headline).toMatch(/sign in again/i);
+  });
+
+  it("says plainly that an unconfirmed post was NOT retried, and why", () => {
+    const e = explain(
+      "ambiguous: no response from Facebook; the post may or may not be live.",
+    );
+    // The whole point: a CEO reading this must understand the post might be
+    // live, and that we chose not to send it twice.
+    expect(e.meaning).toMatch(/do not know whether it published/i);
+    expect(e.meaning).toMatch(/one post becomes two/i);
+    expect(e.owner).toBe("ai-engineer");
+  });
+
+  it("does not blame the software for an Instagram account setup rule", () => {
+    const e = explain(
+      'new row for relation "accounts" violates check constraint "accounts_instagram_requires_linked_page"',
+    );
+    expect(e.owner).toBe("ceo");
+    expect(e.headline).toMatch(/not linked to a Facebook Page/i);
+    expect(e.headline).not.toMatch(/constraint|violates|relation/i);
+  });
+
+  it("explains a TikTok domain-verification block without jargon in the headline", () => {
+    const e = explain("tiktok_url_ownership_unverified: verify the domain");
+    expect(e.owner).toBe("ceo");
+    expect(e.headline).not.toMatch(/url_ownership_unverified|tiktok_/i);
+  });
+
+  it("owns the TikTok draft-vs-published mistake as an engineering fault", () => {
+    const e = explain(
+      "a tiktok_inbox target cannot be published; it can only be delivered to the inbox",
+    );
+    expect(e.owner).toBe("ai-engineer");
+    expect(needsCeo(e)).toBe(false);
+  });
+
   it("has rules drawn from real failures", () => {
     expect(RULE_COUNT).toBeGreaterThanOrEqual(10);
   });

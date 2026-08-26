@@ -98,9 +98,9 @@ describe("registry integrity", () => {
     expect(dangling, `dangling targets: ${dangling.join(", ")}`).toEqual([]);
   });
 
-  it("registers the 18 application databases and 8 edge functions", () => {
-    expect(assetsByKind(catalog, "database").length).toBe(18);
-    expect(assetsByKind(catalog, "edge_function").length).toBe(8);
+  it("registers the 19 application databases and 10 edge functions", () => {
+    expect(assetsByKind(catalog, "database").length).toBe(19);
+    expect(assetsByKind(catalog, "edge_function").length).toBe(10);
   });
 
   it("groups only non-empty kinds", () => {
@@ -111,8 +111,9 @@ describe("registry integrity", () => {
 describe("repository scan (ground truth)", () => {
   it("discovers the real schemas, functions, apps and packages", async () => {
     const inv = await scanRepository(REPO_ROOT);
-    expect(inv.schemas.length).toBe(18);
+    expect(inv.schemas.length).toBe(19);
     expect(inv.schemas).toContain("hlvs");
+    expect(inv.schemas).toContain("social");
     expect(inv.schemas).toContain("bti");
     expect(inv.schemas).toContain("intake");
     expect(inv.tables).toBeGreaterThanOrEqual(120);
@@ -127,8 +128,11 @@ describe("repository scan (ground truth)", () => {
     // CEO approval — plus 0041 (source-neutral pain/need discovery), 0042
     // (GitHub pain evidence backfill), 0043 + 0044 (capability intelligence and
     // its generated extraction) and 0045 (pain portfolio reframed to name its
-    // population), applied under the Phase A / B / H approval.
-    expect(inv.migrations.length).toBe(45);
+    // population), applied under the Phase A / B / H approval — plus 0046
+    // (HL Social publishing, Phase 1: owned-channel publishing with an
+    // approval gate, per-target fan-out and an append-only attempt log),
+    // WRITTEN AND VERIFIED LOCALLY, UNAPPLIED pending CEO approval.
+    expect(inv.migrations.length).toBe(46);
     expect(inv.edgeFunctions).toContain("ai-gateway");
     expect(inv.edgeFunctions).not.toContain("tests");
     expect(inv.apps).toEqual(
@@ -162,8 +166,8 @@ describe("executive metrics", () => {
     const catalog = buildCatalog();
     const inv = await scanRepository(REPO_ROOT);
     const m = metrics(catalog, completeness(catalog, inv));
-    expect(m.databases).toBe(18);
-    expect(m.edgeFunctions).toBe(8);
+    expect(m.databases).toBe(19);
+    expect(m.edgeFunctions).toBe(10);
     expect(m.sharedServices).toBeGreaterThanOrEqual(12);
     expect(m.products).toBeGreaterThanOrEqual(3);
     expect(m.reusableAssets).toBeGreaterThan(0);
