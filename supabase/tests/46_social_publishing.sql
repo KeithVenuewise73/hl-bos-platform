@@ -15,7 +15,7 @@
 -- run after logout (postgres bypasses their tenant/platform RLS).
 -- ===========================================================================
 begin;
-select plan(58);
+select plan(59);
 select tests.seed();
 
 -- Local helpers so the test reads as prose. psql meta-commands are unavailable here and
@@ -318,6 +318,24 @@ select is((select status::text from social.post_targets where idempotency_key='a
   'failed', 't_ambiguous_outcome_is_not_retried');
 select is((select attempts from social.post_targets where idempotency_key='ambiguous_probe'), 1,
   't_ambiguous_outcome_ended_with_attempts_to_spare');
+
+-- --- Every function in the schema pins its search_path ---------------------
+-- Migration 0046 shipped one function without `set search_path = ''`
+-- (social.deny_attempt_mutation), and the LOCAL suite did not catch it -- the
+-- Supabase advisor did, after it was already applied. 0047 repaired it
+-- forward. This assertion is the guard that makes the next omission fail here
+-- instead of in production: a trigger or helper whose search_path is mutable
+-- resolves unqualified names against whatever the caller happens to have set.
+select is(
+  (select string_agg(p.proname, ', ' order by p.proname)
+     from pg_catalog.pg_proc p
+     join pg_catalog.pg_namespace n on n.oid = p.pronamespace
+    where n.nspname = 'social'
+      and not exists (
+        select 1 from unnest(coalesce(p.proconfig, '{}'::text[])) cfg
+         where cfg like 'search_path=%')),
+  null,
+  't_every_social_function_pins_its_search_path');
 
 select * from finish();
 rollback;

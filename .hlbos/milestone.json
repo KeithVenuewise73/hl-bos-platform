@@ -1,7 +1,7 @@
 {
   "$comment": "Live milestone state. Version-controlled so it is auditable, and updated by the AI engineer as work lands. The Control Center reads this -- it does not guess progress.",
   "milestone": "Platform Foundation v1.0 — Enterprise Knowledge Graph live in production",
-  "phase": "HL Social Publishing Phase 1: the publishing spine for Herman Legacy-owned channels. Migration 0046 adds the `social` schema (6 tables) additively; the token-refresh cron and the publish worker are built with all four Phase 1 adapters (Facebook Page, Instagram, LinkedIn member, TikTok inbox-only). Verified locally against PostgreSQL 17.6 with all 46 migrations applied from empty: 908 pgTAP assertions and 26 edge-function tests, 0 failing. MIGRATION 0046 IS UNAPPLIED to any Supabase project pending CEO approval, and no channel is connected yet, so nothing has been published to a real audience.",
+  "phase": "HL Social Publishing Phase 1: the publishing spine for Herman Legacy-owned channels, APPLIED to canonical production (HL-BOS Core, mvvtngiopdrgiedjmhfb) on 2026-08-26 under CEO approval. Migration 0046 adds the `social` schema (6 tables) additively; 0047 is a forward-repair that pins search_path on social.deny_attempt_mutation -- a real defect the post-apply advisor check caught and the local suite had not. Advisors went 35 -> 36: the one net-new finding is INFO rls_enabled_no_policy on social.credentials, which is the intended design. Verified locally against PostgreSQL 17.6 from empty: 909 pgTAP assertions and 26 edge-function tests, 0 failing; production schema fingerprint is identical to local. NO CHANNEL IS CONNECTED and the edge functions are NOT deployed, so nothing has been published to a real audience.",
   "engineer": "Claude (AI engineer)",
   "startedOn": "2026-07-16",
   "tasks": [
@@ -138,8 +138,8 @@
       "done": true
     },
     {
-      "title": "HL Social Publishing Phase 1 (schema + workers + adapters): migration 0046 creates the `social` schema -- accounts, credentials, posts, post_targets, publish_attempts, media_assets -- with a human approval gate, FOR UPDATE SKIP LOCKED claiming, an append-only attempt log that is trigger-enforced, and per-target independence. Credentials are Vault REFERENCES only (the brief proposed storing raw tokens; platform convention and the migration guard both forbid it), and social.credentials has zero RLS policies and zero grants, so it is unreadable through PostgREST by anyone. TikTok is inbox-only and carries its own terminal status so no post can claim to be live when it is a draft. social-token-refresh (daily) and social-publish-worker (minute) are built and unit-tested offline. Verified: 908 pgTAP assertions across 44 files and 26 edge tests, 0 failing. UNAPPLIED to production and NOT YET CONNECTED to any real channel -- nothing has been published to an audience.",
-      "done": false
+      "title": "HL Social Publishing Phase 1 (schema + workers + adapters): migration 0046 creates the `social` schema -- accounts, credentials, posts, post_targets, publish_attempts, media_assets -- with a human approval gate, FOR UPDATE SKIP LOCKED claiming, a trigger-enforced append-only attempt log, and per-target independence. Credentials are Vault REFERENCES only, and social.credentials has zero RLS policies and zero grants. TikTok is inbox-only with its own terminal status so no draft can read as live. APPLIED to canonical production 2026-08-26 with 0047 (forward-repair: search_path pinned on deny_attempt_mutation, caught by the advisor AFTER apply, not by the local suite -- a test now guards the whole schema against a recurrence). Advisor delta 35 -> 36, the one net-new finding being the intended policy-less credentials table. 909 pgTAP assertions and 26 edge tests, 0 failing. NOT YET CONNECTED to any real channel and the two edge functions are NOT deployed -- nothing has published to an audience.",
+      "done": true
     }
   ],
   "blockers": [
@@ -157,6 +157,11 @@
       "title": "Social channels are not connected yet",
       "meaning": "The publishing software is built and tested, but it has no accounts to publish to. Six things are needed before the first real post: the exact list of Facebook Pages, Instagram accounts, LinkedIn profile and TikTok accounts to use; confirmation each Instagram account is a Professional account linked to a Facebook Page (a personal account cannot post automatically at all); a Meta app with the Instagram and Facebook Login products; a tester/admin role on that app for each account; a LinkedIn app with 'Share on LinkedIn'; and a TikTok app with inbox-only content posting. Each is an access decision only you can make. Everything not waiting on them is finished.",
       "owner": "ceo"
+    },
+    {
+      "title": "Production has drifted from the repository, and the safe apply path is blocked",
+      "meaning": "While applying the social migration I checked what the live database actually contains. It holds about forty migrations that are not in this repository at all (three separate naming schemes: dma_*, disco_*, jobscout_*), and around fourteen of our own migrations were applied under different version stamps than the files carry. The registry file that is supposed to track this still says the database is at migration 28; it is far past that. The practical consequence: the protected one-click migration workflow cannot be used safely right now -- its drift check would fail, and if it were forced past that it would try to re-run around twenty migrations the database already has under other names, including two data backfills. That is why 0046 and 0047 were applied individually and verified rather than pushed as a batch. Reconciling this properly is its own piece of work and needs your go-ahead; it is not urgent, but it should not be left indefinitely.",
+      "owner": "ai-engineer"
     }
   ]
 }

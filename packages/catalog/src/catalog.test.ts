@@ -131,8 +131,11 @@ describe("repository scan (ground truth)", () => {
     // population), applied under the Phase A / B / H approval — plus 0046
     // (HL Social publishing, Phase 1: owned-channel publishing with an
     // approval gate, per-target fan-out and an append-only attempt log),
-    // WRITTEN AND VERIFIED LOCALLY, UNAPPLIED pending CEO approval.
-    expect(inv.migrations.length).toBe(46);
+    // APPLIED to canonical production on 2026-08-26 under CEO approval, with
+    // 0047 (forward-repair pinning search_path on
+    // social.deny_attempt_mutation — the post-apply advisor check caught it
+    // and the local suite had not).
+    expect(inv.migrations.length).toBe(47);
     expect(inv.edgeFunctions).toContain("ai-gateway");
     expect(inv.edgeFunctions).not.toContain("tests");
     expect(inv.apps).toEqual(

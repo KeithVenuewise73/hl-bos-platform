@@ -9,28 +9,85 @@ account connection, and no public product surface.
 
 ## Status, stated plainly
 
-| Thing                                             | State                                                                                                                |
-| ------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------- |
-| Migration `0046`                                  | Written. Applies cleanly from an empty database. **UNAPPLIED** to any Supabase project — no approval has been given. |
-| `social-token-refresh`                            | Built and unit-tested offline. Not deployed. Never run against a real token.                                         |
-| `social-publish-worker`                           | Built and unit-tested offline. Not deployed.                                                                         |
-| Facebook / Instagram / LinkedIn / TikTok adapters | Built and unit-tested against a stubbed HTTP layer. **None has ever contacted a real platform.**                     |
-| Channels connected                                | **None.** See "What is still needed" below.                                                                          |
-| Anything published to a real audience             | **Nothing.**                                                                                                         |
+| Thing                                             | State                                                                                                       |
+| ------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| Migration `0046`                                  | **APPLIED** to canonical production (HL-BOS Core, `mvvtngiopdrgiedjmhfb`) on 2026-08-26 under CEO approval. |
+| Migration `0047`                                  | **APPLIED**. Forward-repair — see "The defect the advisor found" below.                                     |
+| `social-token-refresh`                            | Built and unit-tested offline. **Not deployed.** Never run against a real token.                            |
+| `social-publish-worker`                           | Built and unit-tested offline. **Not deployed.**                                                            |
+| Facebook / Instagram / LinkedIn / TikTok adapters | Built and unit-tested against a stubbed HTTP layer. **None has ever contacted a real platform.**            |
+| Channels connected                                | **None.**                                                                                                   |
+| Anything published to a real audience             | **Nothing.**                                                                                                |
 
-Verified locally, from empty, against PostgreSQL 17.6 with all 46 migrations
+Verified locally, from empty, against PostgreSQL 17.6 with all 47 migrations
 applied in order:
 
 ```
-TOTAL: 908 passed, 0 failed        # supabase/tests, 44 files
+TOTAL: 909 passed, 0 failed        # supabase/tests, 44 files
 26 passed, 0 failed                # supabase/functions/tests, edge layer
 ```
 
-The full acceptance scenario from the brief — one post, four targets, one
-deliberately forced to fail, every attempt logged, the failure blocking nothing
-— runs as `supabase/tests/46_social_publishing.sql` and passes. It runs against
-the mock adapters, so it proves the **platform** works end to end. It does not
-prove Facebook accepted anything, because no Facebook Page is connected yet.
+The production schema was then fingerprinted and compared to the local one —
+table, column, check-constraint, policy, function, trigger, RLS-flag,
+permission and grant counts, plus the full sorted lists of constraint and
+function names. They are identical:
+
+```
+tables|columns|checks|policies|functions|rls_on|rls_forced|triggers|perms|role_perms|cred_policies|authed_creds|anon_creds|authed_complete
+     6|     80|    14|       5|       16|     6|         6|       8|    4|        12|            0|           f|          f|              f
+```
+
+`cred_policies = 0` and `authed_creds = anon_creds = f` are the security claim,
+confirmed on production rather than asserted.
+
+### The advisor gate result, in full
+
+|                   | Before | After | Net new |
+| ----------------- | ------ | ----- | ------- |
+| Security findings | 35     | 36    | **+1**  |
+
+The one net-new security finding is `rls_enabled_no_policy` (INFO) on
+`social.credentials`. That table having no policy **is** the design — it is the
+same pattern the database already carries for `ai.guardrails` and
+`integrations.webhook_events`. It is a finding we intend to own, not a
+regression.
+
+Performance advisors report 16 INFO findings naming `social`: 9 `unused_index`
+(the tables are empty and have never been queried — these will clear
+themselves) and 6 `unindexed_foreign_keys`. The 6 are real but mild, and match
+a platform-wide pattern: the database carries 262 of that same finding today.
+No index was added purely to silence them, because on empty tables that would
+simply convert 6 INFO findings into 6 different ones.
+
+### The defect the advisor found
+
+The post-apply advisor check raised a second, unpredicted finding:
+
+```
+[WARN] function_search_path_mutable
+       Function `social.deny_attempt_mutation` has a role mutable search_path
+```
+
+That was a real defect in 0046. It was the one function in the migration
+written without `set search_path = ''` — every other function in the schema has
+it. A trigger function with a mutable search_path resolves unqualified names
+against whatever the caller has set, which on the table that holds the
+append-only publish evidence is not acceptable.
+
+Two things followed:
+
+1. **0047 repaired it forward**, rather than editing 0046. 0046 was already
+   applied and its checksum is locked in `.hlbos/migration-lineage.json`;
+   editing it would make the repo file disagree with what production ran, which
+   is exactly the drift this platform has spent two phases reconciling.
+
+2. **A test now guards the whole schema.** `46_social_publishing.sql` asserts
+   that _every_ function in `social` pins its search_path. That assertion was
+   confirmed to fail when the original 0046 body is restored, and to pass after
+   0047 — it is a guard that bites, not one that passes vacuously.
+
+The honest reading: the local pgTAP suite did not catch this and the Supabase
+advisor did. The gap is now closed for this schema.
 
 ## What was built
 
@@ -147,12 +204,15 @@ specific.
 
 Everything not blocked by these is finished.
 
-## Deploying it (engineer's job, not the CEO's)
+## Deployment state
 
-Not yet done, and not to be done without approval:
+The migrations are applied. The edge functions are **not**, and no cron is
+scheduled — so the token-refresh job has never run and the publish worker has
+never claimed a target in production.
+
+Still to do, once channels exist:
 
 ```
-supabase db push                          # applies 0046
 supabase functions deploy social-token-refresh
 supabase functions deploy social-publish-worker
 select cron.schedule('social-token-refresh',  '0 6 * * *', $$ ... $$);
@@ -163,6 +223,33 @@ Secrets required in the function environment, never in the repo:
 `META_APP_ID`, `META_APP_SECRET`, `TIKTOK_CLIENT_KEY`, `TIKTOK_CLIENT_SECRET`.
 Per-channel tokens go into Vault and are referenced by
 `social.set_credential()`.
+
+### A finding about the apply path itself
+
+`0046` and `0047` were applied individually and verified, not pushed as a
+batch through `.github/workflows/db-migrate.yml`. That was deliberate, and the
+reason matters:
+
+The canonical project holds roughly **forty migrations that are not in this
+repository** — three separate lineages (`dma_*`, `disco_*`, `jobscout_*`) — and
+about **fourteen of our own migrations were applied under different version
+identifiers** than the repo files carry (0029, 0032–0045). `.hlbos/canonical.json`
+still declares `notYetAppliedOrdinals: []` and states the applied set is
+"0001–0028, matching the repo". That declaration is stale.
+
+The consequence is concrete: `db-migrate.yml`'s `drift-check` would fail
+against the current declaration, and `supabase db push` — which applies
+everything the remote lacks _by version_ — would attempt to re-run around
+twenty migrations the database already has under other names, including the
+0042 evidence backfill and the 0044 extraction run. Re-running those is not
+idempotent.
+
+Reconciling this is its own piece of work (the precedent is Phase XI-2I,
+"Option D" — repo filenames reconciled to production's applied versions with
+content preserved). It is recorded in `.hlbos/milestone.json` as a blocker.
+`canonical.json` has deliberately **not** been rewritten here: editing it to
+match reality without doing the reconciliation would turn a visible problem
+into an invisible one.
 
 ## Running the tests
 
