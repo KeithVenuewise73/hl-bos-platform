@@ -45,6 +45,10 @@ export default async function Page() {
             Enterprise Catalog
           </a>{" "}
           ·{" "}
+          <a href="/vocabulary" style={{ color: "#58a6ff" }}>
+            Vocabulary
+          </a>{" "}
+          ·{" "}
           <a href="/connect" style={{ color: "#58a6ff" }}>
             {conn.github && conn.supabase ? "Connections" : "Connect accounts"}
           </a>

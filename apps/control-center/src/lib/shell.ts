@@ -1,13 +1,40 @@
 import "server-only";
 import { execFile } from "node:child_process";
+import { existsSync } from "node:fs";
+import path from "node:path";
 import { promisify } from "node:util";
 
 const run = promisify(execFile);
 
-/** Repo root: this app lives at <root>/apps/control-center. */
-export const REPO_ROOT = process
-  .cwd()
-  .replace(/[\\/]apps[\\/]control-center[\\/]?$/, "");
+/**
+ * Repo root.
+ *
+ * The cheap answer — strip `apps/control-center` off the cwd — is right when
+ * the console is started the way the launcher starts it, and wrong in the
+ * relocated standalone bundle, whose cwd is its own nested copy of that path.
+ * Getting it wrong there is not a small thing: this value is the working
+ * directory for every git command the console runs, and the base for every file
+ * it reads. So the strip is only a fallback, and the real answer is found by
+ * walking up until the workspace markers appear.
+ */
+function findRepoRoot(): string {
+  const stripped = process.cwd().replace(/[\\/]apps[\\/]control-center[\\/]?$/, "");
+  let dir = process.cwd();
+  for (let i = 0; i < 8; i++) {
+    if (
+      existsSync(path.join(dir, "pnpm-workspace.yaml")) &&
+      existsSync(path.join(dir, "supabase", "migrations"))
+    ) {
+      return dir;
+    }
+    const parent = path.dirname(dir);
+    if (parent === dir) break;
+    dir = parent;
+  }
+  return stripped;
+}
+
+export const REPO_ROOT = findRepoRoot();
 
 export interface CmdResult {
   ok: boolean;
