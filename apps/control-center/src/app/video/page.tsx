@@ -1,18 +1,27 @@
 import { listProviders } from "@hl-bos/video-studio";
 
 import { VideoStudio } from "@/components/VideoStudio";
+import { detectGpu } from "@/lib/gpu";
+import type { GpuVerdict } from "@/lib/gpu-report";
 
 export const dynamic = "force-dynamic";
+
+const VERDICT_DOT: Record<GpuVerdict, string> = {
+  yes: "#3fb950",
+  no: "#6e7681",
+  unknown: "#d29922",
+};
 
 export const metadata = {
   title: "Video Studio — HL-BOS Control Center",
 };
 
-export default function VideoPage() {
+export default async function VideoPage() {
   // No credential is read, deliberately. No generative provider is wired to a
   // network call yet, so no environment variable can change this answer -- and
   // reading one would imply it could.
   const providers = listProviders();
+  const gpu = await detectGpu();
   const ready = providers.filter((p) => p.status === "ready");
   const notBuilt = providers.filter((p) => p.status !== "ready");
 
@@ -134,6 +143,71 @@ export default function VideoPage() {
           small free monthly allowance with no card. What is missing in every case is
           the connection code, not the money. Say which route you want and it becomes
           the next piece of work.
+        </p>
+      </section>
+
+      {/* Whether the free route is even open to us is a fact about THIS machine.
+          The console answers it rather than asking anyone to open Device Manager. */}
+      <section
+        style={{
+          background: "#12151a",
+          border: "1px solid #262c36",
+          borderRadius: 12,
+          padding: "18px 20px",
+          marginTop: 16,
+        }}
+      >
+        <h2 style={{ margin: "0 0 2px", fontSize: 15 }}>
+          Can this machine run one itself?
+        </h2>
+        <p style={{ margin: "0 0 14px", fontSize: 12.5, color: "#8b949e" }}>
+          The free route needs an NVIDIA card. Checked on this machine, just now.
+        </p>
+
+        <div style={{ fontSize: 13.5, marginBottom: 4 }}>
+          <span
+            style={{
+              display: "inline-block",
+              width: 9,
+              height: 9,
+              borderRadius: 999,
+              background: VERDICT_DOT[gpu.verdict],
+              marginRight: 8,
+            }}
+          />
+          <strong>{gpu.headline}</strong>
+        </div>
+        <p
+          style={{
+            margin: "0 0 12px",
+            fontSize: 12.5,
+            color: "#8b949e",
+            paddingLeft: 17,
+          }}
+        >
+          {gpu.detail}
+        </p>
+
+        {gpu.nvidia ? (
+          <div style={{ paddingLeft: 17, display: "grid", gap: 5 }}>
+            {gpu.canRun.map((fit) => (
+              <div key={fit.model} style={{ fontSize: 12.5 }}>
+                <span
+                  style={{ color: fit.fits ? "#3fb950" : "#6e7681", marginRight: 8 }}
+                >
+                  {fit.fits ? "yes" : "no"}
+                </span>
+                <span style={{ color: fit.fits ? "#e8eaed" : "#6e7681" }}>
+                  {fit.model} — needs about {Math.round(fit.needsMB / 1024)}GB.{" "}
+                  {fit.note}
+                </span>
+              </div>
+            ))}
+          </div>
+        ) : null}
+
+        <p style={{ margin: "14px 0 0", fontSize: 11.5, color: "#6e7681" }}>
+          How this was worked out: {gpu.evidence.join("; ")}.
         </p>
       </section>
     </main>

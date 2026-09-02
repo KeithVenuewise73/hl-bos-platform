@@ -18,6 +18,17 @@ export interface CmdResult {
 }
 
 /**
+ * The allow-list. Every argument reaching any of these is a constant in this
+ * codebase -- none is built from anything a user typed.
+ *
+ * `nvidia-smi` and `powershell` are here so the console can answer "can this
+ * machine run a video model?" itself, instead of telling the operator to open a
+ * terminal, which the operating contract forbids. Both are used for read-only
+ * queries with fixed argument arrays; see lib/gpu.ts.
+ */
+const ALLOWED = new Set(["git", "pnpm", "npm", "node", "nvidia-smi", "powershell"]);
+
+/**
  * Run an allow-listed command in the repo.
  *
  * execFile, never exec: arguments are passed as an array and never through a
@@ -25,8 +36,6 @@ export interface CmdResult {
  * command. This process has the operator's full permissions, so the shape of
  * this function is the security boundary of the whole app.
  */
-const ALLOWED = new Set(["git", "pnpm", "npm", "node"]);
-
 export async function cmd(
   bin: string,
   args: readonly string[],
