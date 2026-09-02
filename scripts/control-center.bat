@@ -58,9 +58,51 @@ if exist "%PNPM_CJS%" (
   echo   [ok]   Build tool installed
 )
 
-REM --- 4. Libraries -----------------------------------------------------------
+REM --- 4. Collect any finished work from GitHub -------------------------------
+REM  This is how new work reaches this machine. Without it, a copy of the repo
+REM  on this computer could never receive anything again without typing git
+REM  commands, which the operating contract forbids.
+REM  Exit code 10 means the code changed and must be rebuilt. Anything else
+REM  means carry on -- it never blocks startup, and it never touches unsaved work.
+set "FRESH_CODE="
+if exist "%ROOT%\scripts\update.mjs" (
+  "%NODE_EXE%" "%ROOT%\scripts\update.mjs"
+  if errorlevel 10 set "FRESH_CODE=1"
+) else (
+  REM  BOOTSTRAP. This launcher can be dropped into an older copy of the folder
+  REM  on its own -- that is the whole point, because a self-updating launcher
+  REM  cannot deliver itself. When its Node helper is not here yet, it collects
+  REM  it with git directly, once. Every start after this uses the helper above.
+  REM
+  REM  --ff-only is the safety: git refuses rather than overwrites, so unsaved
+  REM  work and a diverged folder both stop it instead of being destroyed.
+  echo   [..]   First update: collecting the rest of the console from GitHub...
+  where git >nul 2>nul
+  if errorlevel 1 (
+    echo   [--]   git is not available on this computer, so this copy cannot
+    echo          collect updates yet. Tell Claude and it will sort it out.
+  ) else (
+    git fetch origin --quiet
+    git merge --ff-only
+    if exist "%ROOT%\scripts\update.mjs" (
+      set "FRESH_CODE=1"
+      echo   [ok]   Collected. From now on this happens by itself.
+    ) else (
+      echo   [ok]   Nothing new to collect. Starting as-is.
+    )
+  )
+)
+
+REM --- 5. Libraries -----------------------------------------------------------
 if exist "%ROOT%\node_modules" (
-  echo   [ok]   Libraries ready
+  if defined FRESH_CODE (
+    echo   [..]   New code arrived: checking libraries...
+    "%NODE_EXE%" "%PNPM_CJS%" install --frozen-lockfile
+    if errorlevel 1 goto :install_failed
+    echo   [ok]   Libraries up to date
+  ) else (
+    echo   [ok]   Libraries ready
+  )
 ) else (
   echo   [..]   First run: downloading libraries. A few minutes, once.
   "%NODE_EXE%" "%PNPM_CJS%" install --frozen-lockfile
@@ -68,17 +110,32 @@ if exist "%ROOT%\node_modules" (
   echo   [ok]   Libraries installed
 )
 
-REM --- 5. Build ---------------------------------------------------------------
-if exist "%ROOT%\apps\control-center\.next" (
-  echo   [ok]   Console ready
-) else (
-  echo   [..]   Preparing the console...
+REM --- 6. Build ---------------------------------------------------------------
+REM  Rebuild when the code changed, otherwise reuse what is already built so a
+REM  normal start stays quick.
+REM
+REM  Written as separate flag lines on purpose. `if A if B (X) else (Y)` binds
+REM  the else to the INNER if, so when A is false neither branch runs -- which
+REM  in the first draft of this meant a fresh clone never built the console at
+REM  all. Two plain `if`s setting one flag cannot go wrong that way.
+set "NEED_BUILD="
+if not exist "%ROOT%\apps\control-center\.next" set "NEED_BUILD=1"
+if defined FRESH_CODE set "NEED_BUILD=1"
+
+if defined NEED_BUILD (
+  if defined FRESH_CODE (
+    echo   [..]   Rebuilding the console with the new work...
+  ) else (
+    echo   [..]   Preparing the console...
+  )
   "%NODE_EXE%" "%PNPM_CJS%" --filter @hl-bos/control-center build
   if errorlevel 1 goto :build_failed
   echo   [ok]   Console built
+) else (
+  echo   [ok]   Console ready
 )
 
-REM --- 6. Go ------------------------------------------------------------------
+REM --- 7. Go ------------------------------------------------------------------
 echo.
 echo   Opening http://localhost:4000
 echo   Leave this window open while you use it. Close it to shut down.

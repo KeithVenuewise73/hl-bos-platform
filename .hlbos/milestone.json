@@ -1,6 +1,6 @@
 {
   "$comment": "Live milestone state. Version-controlled so it is auditable, and updated by the AI engineer as work lands. The Control Center reads this -- it does not guess progress.",
-  "milestone": "Platform Foundation v1.0 — Enterprise Knowledge Graph live in production",
+  "milestone": "Platform Foundation v1.0 \u2014 Enterprise Knowledge Graph live in production",
   "phase": "HL Social Publishing Phase 1: the publishing spine for Herman Legacy-owned channels, APPLIED to canonical production (HL-BOS Core, mvvtngiopdrgiedjmhfb) on 2026-08-26 under CEO approval. Migration 0046 adds the `social` schema (6 tables) additively; 0047 is a forward-repair that pins search_path on social.deny_attempt_mutation -- a real defect the post-apply advisor check caught and the local suite had not. Advisors went 35 -> 36: the one net-new finding is INFO rls_enabled_no_policy on social.credentials, which is the intended design. Verified locally against PostgreSQL 17.6 from empty: 909 pgTAP assertions and 26 edge-function tests, 0 failing; production schema fingerprint is identical to local. NO CHANNEL IS CONNECTED and the edge functions are NOT deployed, so nothing has been published to a real audience.",
   "engineer": "Claude (AI engineer)",
   "startedOn": "2026-07-16",
@@ -54,7 +54,7 @@
       "done": true
     },
     {
-      "title": "Herman Legacy Executive Portal — secure, read-only, cloud-deployable app (HL-BOS auth, 5 roles, no command surface); staging-ready, not yet deployed",
+      "title": "Herman Legacy Executive Portal \u2014 secure, read-only, cloud-deployable app (HL-BOS auth, 5 roles, no command surface); staging-ready, not yet deployed",
       "done": true
     },
     {
@@ -62,15 +62,15 @@
       "done": true
     },
     {
-      "title": "Enterprise Application Registry + Executive Portal operationalization (CEO Home, Task Center, Global Search, Platform Status, grouped navigation) — read-only, governed, not yet deployed",
+      "title": "Enterprise Application Registry + Executive Portal operationalization (CEO Home, Task Center, Global Search, Platform Status, grouped navigation) \u2014 read-only, governed, not yet deployed",
       "done": true
     },
     {
-      "title": "Canonical Capability Library (Phase XI-1): one evidence-backed record unifying 6 capability registries, deterministic duplicate/reuse gate, read-only /capabilities view — in-code, no migration, not merged",
+      "title": "Canonical Capability Library (Phase XI-1): one evidence-backed record unifying 6 capability registries, deterministic duplicate/reuse gate, read-only /capabilities view \u2014 in-code, no migration, not merged",
       "done": true
     },
     {
-      "title": "HL-BTI v2 Business Transformation Intelligence engine (@hl-bos/transformation-intelligence) — configurable scoring, evidence-gated impact/ROI, Software Factory reuse, CEO-approval gating, HLVS + government-contracts intelligence; Executive Portal Transformation Intelligence + Government Contracts views over labelled sample input",
+      "title": "HL-BTI v2 Business Transformation Intelligence engine (@hl-bos/transformation-intelligence) \u2014 configurable scoring, evidence-gated impact/ROI, Software Factory reuse, CEO-approval gating, HLVS + government-contracts intelligence; Executive Portal Transformation Intelligence + Government Contracts views over labelled sample input",
       "done": true
     },
     {
@@ -82,15 +82,15 @@
       "done": true
     },
     {
-      "title": "Platform Foundation v1.0 merged to main via PR #18 (CI green: Validate, pgTAP 0001–0028 + graph execution tests, Migration checks, Deno, Secret scan)",
+      "title": "Platform Foundation v1.0 merged to main via PR #18 (CI green: Validate, pgTAP 0001\u20130028 + graph execution tests, Migration checks, Deno, Secret scan)",
       "done": true
     },
     {
-      "title": "Deploy Production — migration 0028 (Knowledge Graph) applied to canonical production (mvvtngiopdrgiedjmhfb) at exact repo version 20260731090000; 17/17 structural checks pass; RLS forced; RPCs fail-closed; lineage reconciled (XI-2L)",
+      "title": "Deploy Production \u2014 migration 0028 (Knowledge Graph) applied to canonical production (mvvtngiopdrgiedjmhfb) at exact repo version 20260731090000; 17/17 structural checks pass; RLS forced; RPCs fail-closed; lineage reconciled (XI-2L)",
       "done": true
     },
     {
-      "title": "Grant graph permissions + publish the first production projection (145 nodes / 427 edges) — a separate CEO authorization; the graph is installed but dormant until then",
+      "title": "Grant graph permissions + publish the first production projection (145 nodes / 427 edges) \u2014 a separate CEO authorization; the graph is installed but dormant until then",
       "done": false
     },
     {
@@ -98,11 +98,11 @@
       "done": true
     },
     {
-      "title": "Deploy Production — migration 0029 (vstudio Venture Studio foundation) applied to canonical production (mvvtngiopdrgiedjmhfb); 6 tables, RLS forced, 5 permissions, 8 SECURITY DEFINER functions; purely additive; applied DDL byte-identical to the committed file (sha256 ee83df9…); recorded name matches, version timestamp differs (management-API stamp) and is reconciled by documentation (Option A)",
+      "title": "Deploy Production \u2014 migration 0029 (vstudio Venture Studio foundation) applied to canonical production (mvvtngiopdrgiedjmhfb); 6 tables, RLS forced, 5 permissions, 8 SECURITY DEFINER functions; purely additive; applied DDL byte-identical to the committed file (sha256 ee83df9\u2026); recorded name matches, version timestamp differs (management-API stamp) and is reconciled by documentation (Option A)",
       "done": true
     },
     {
-      "title": "Deploy Venture Studio app + expose vstudio to the API + choose VSTUDIO_TENANT_ID — a separate CEO authorization; migration is applied but the app is undeployed and the schema is not yet exposed until then",
+      "title": "Deploy Venture Studio app + expose vstudio to the API + choose VSTUDIO_TENANT_ID \u2014 a separate CEO authorization; migration is applied but the app is undeployed and the schema is not yet exposed until then",
       "done": false
     },
     {
@@ -110,11 +110,11 @@
       "done": true
     },
     {
-      "title": "Apply migration 0030 (CEO Notebook) to production — a separate CEO authorization; written and CI-verified but UNAPPLIED",
+      "title": "Apply migration 0030 (CEO Notebook) to production \u2014 a separate CEO authorization; written and CI-verified but UNAPPLIED",
       "done": false
     },
     {
-      "title": "HLVS Phase 2 (Steps 1-2): corpus-preservation baseline recorded and proven — 62,250 opportunities, 62,214 canonical URLs, 0 duplicates, original-36 fingerprint 3679f569f706e8db94d314e7de19bb05; supabase/checks/corpus-preservation.sql returns 14/14 pass against production",
+      "title": "HLVS Phase 2 (Steps 1-2): corpus-preservation baseline recorded and proven \u2014 62,250 opportunities, 62,214 canonical URLs, 0 duplicates, original-36 fingerprint 3679f569f706e8db94d314e7de19bb05; supabase/checks/corpus-preservation.sql returns 14/14 pass against production",
       "done": true
     },
     {
@@ -122,15 +122,15 @@
       "done": true
     },
     {
-      "title": "HLVS Phase 2 (Step 6): Rising Opportunities populated — a second observation pass over 299 of 301 discovery queries produced 1,562 material movements against the 62,214-row baseline; score_rising() ranked all 1,562 over a 0.92-day measured window and the portfolio holds 100",
+      "title": "HLVS Phase 2 (Step 6): Rising Opportunities populated \u2014 a second observation pass over 299 of 301 discovery queries produced 1,562 material movements against the 62,214-row baseline; score_rising() ranked all 1,562 over a 0.92-day measured window and the portfolio holds 100",
       "done": true
     },
     {
-      "title": "HLVS Phase 2 (Steps 7-9): public pain engine (0037) with phrase verification against full issue bodies, deterministic clustering, and the HLVS UI — Executive Overview, five Top-100 routes, Rising, Discovery Universe, Sources & Settings",
+      "title": "HLVS Phase 2 (Steps 7-9): public pain engine (0037) with phrase verification against full issue bodies, deterministic clustering, and the HLVS UI \u2014 Executive Overview, five Top-100 routes, Rising, Discovery Universe, Sources & Settings",
       "done": true
     },
     {
-      "title": "HLVS Phase 2 (CI feedback): the pgTAP suite ran for the first time and found real defects — nine intelligence gates whose refusal path was unreachable under test, and a source_url guard that accepted a tab. Migrations 0039 and 0040 fix both. Written and verified against a local Postgres 16 with all 40 migrations applied from empty: 801 assertions, 0 failures. UNAPPLIED to production pending CEO approval.",
+      "title": "HLVS Phase 2 (CI feedback): the pgTAP suite ran for the first time and found real defects \u2014 nine intelligence gates whose refusal path was unreachable under test, and a source_url guard that accepted a tab. Migrations 0039 and 0040 fix both. Written and verified against a local Postgres 16 with all 40 migrations applied from empty: 801 assertions, 0 failures. UNAPPLIED to production pending CEO approval.",
       "done": false
     },
     {
@@ -139,6 +139,18 @@
     },
     {
       "title": "HL Social Publishing Phase 1 (schema + workers + adapters): migration 0046 creates the `social` schema -- accounts, credentials, posts, post_targets, publish_attempts, media_assets -- with a human approval gate, FOR UPDATE SKIP LOCKED claiming, a trigger-enforced append-only attempt log, and per-target independence. Credentials are Vault REFERENCES only, and social.credentials has zero RLS policies and zero grants. TikTok is inbox-only with its own terminal status so no draft can read as live. APPLIED to canonical production 2026-08-26 with 0047 (forward-repair: search_path pinned on deny_attempt_mutation, caught by the advisor AFTER apply, not by the local suite -- a test now guards the whole schema against a recurrence). Advisor delta 35 -> 36, the one net-new finding being the intended policy-less credentials table. 909 pgTAP assertions and 26 edge tests, 0 failing. NOT YET CONNECTED to any real channel and the two edge functions are NOT deployed -- nothing has published to an audience.",
+      "done": true
+    },
+    {
+      "title": "Video Studio: a still image becomes a video, from inside the console. @hl-bos/video-studio finds the panels in a composite image by scoring every row and column for uniformity (a gutter is uniform along its length, artwork is not), plans a shot list of pans and zooms, and resolves that plan to exact rectangles at any millisecond; the Control Center's /video page records it to a real .mp4 in the browser with no account, no key and no upload. Verified end to end in headless Chromium against the CEO's own six-panel image: 6 panels found in a 3x2 grid, 8 shots, 16.7s, 1440x1416 MP4 of 7.3 MB that decodes and contains real frames. 62 unit tests. One real defect was found and fixed by that verification: the first cut cropped near-square comic panels to 16:9 and deleted the artist's caption bars, and the fix (contain-by-default framing) exposed a second bug where the renderer stretched instead of padding -- both now have regression tests that fail without the fix. Generated motion (a video model that animates the picture) is NOT built: the page names it, says what it would take, and shows no button for it.",
+      "done": true
+    },
+    {
+      "title": "Video Studio, second pass: the page told the CEO that generated motion needs a paid account, which is false and false in the expensive direction. Corrected: the provider panel now names the route that is genuinely our own (a freely licensed open model -- Wan, LTX -- on hardware we own, nothing metered, no image leaving our systems), states what every route costs in words about money, and is ordered cheapest-first. Status renamed needs-account -> not-built, because what is missing is the connection code, not the money. The console also now answers 'do I have an NVIDIA card?' itself, on the Video Studio page, rather than sending anyone to Device Manager -- it runs nvidia-smi, falls back to the Windows display-adapter list, distinguishes 'no card' from 'card with a missing driver', maps video memory to which models are actually runnable, and shows what it ran. The Windows branch cannot execute on the machine this was written on, so the whole decision is injectable and proved by five injected-probe tests; a mutation check confirmed they fail without the platform guard. Also fixed two shipped rendering defects found by reading the served HTML rather than the source: a sentence template that spliced a provider name into nonsense, and this toolchain dropping the space after a closing inline tag, which shipped the word 'notautomatically'.",
+      "done": true
+    },
+    {
+      "title": "The console can now RECEIVE work, not just send it. Until now the launcher could start the console but never update it, so once a copy of this repository was on the CEO's machine there was no way for finished work to reach him short of typing git commands -- the exact chore the operating contract forbids, and a hole left by every previous session including the one that wrote the launcher. scripts/update.mjs now runs on every start: it collects whatever has been finished since last time, reinstalls libraries if they changed, rebuilds if the code changed, then starts. It never destroys work (a folder with unsaved changes is left alone), never rewrites history (fast-forward only; a diverged folder stops and says so), never blocks startup (no network means one line and carry on), and never hangs on a credential prompt (GIT_TERMINAL_PROMPT=0, so a private repo fails in seconds instead of freezing the launcher). Proved by scripts/local-test/verify-update.sh against real throwaway git repositories -- 7 git cases and 4 launcher-decision cases, all passing. One real batch defect was caught and fixed in the writing: `if A if B (X) else (Y)` binds the else to the inner if, so the first draft would have skipped the build entirely on a fresh clone and started a console that had never been built.",
       "done": true
     }
   ],

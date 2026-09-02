@@ -8,6 +8,23 @@ Double-click **`scripts\control-center.bat`**. It opens at http://localhost:4000
 
 Leave the black window open while you use the console; close it to shut down.
 
+### Getting new work
+
+Every start collects whatever has been finished since last time. Double-click
+the launcher and it brings the folder up to date from GitHub, reinstalls
+libraries if they changed, rebuilds if the code changed, and then starts. There
+is no separate update step and nothing to type.
+
+It is deliberately timid about it. If you have unsaved changes in the folder it
+touches nothing. If the folder and GitHub have both moved on it stops and says
+so rather than merging blindly. If GitHub cannot be reached it starts anyway
+with the copy already on the machine. Every one of those cases prints one line
+saying which happened.
+
+The launcher can also be dropped into an older copy of this folder on its own
+and will collect everything else itself. That matters exactly once: a
+self-updating launcher cannot deliver its own first copy.
+
 ### First run
 
 The launcher sets itself up. It needs **nothing on your PATH**, no admin rights, and no
@@ -40,6 +57,21 @@ pnpm, with `PATH` stripped so nothing can leak in from the environment.
 | Portfolio          | `src/lib/registry.ts` — honest about what does not exist |
 | Release history    | Empty until something is actually deployed               |
 | Morning brief      | Everything above, summarised                             |
+| Video Studio       | Your own picture, read in the browser. Nothing uploaded. |
+
+## Video Studio
+
+**Video Studio** in the header turns a picture into a video. Pick an image, it
+finds the panels, you watch the preview, you press Record and a `.mp4` lands in
+your Downloads folder.
+
+It runs entirely in the browser on this machine. The image is never uploaded,
+there is no account to connect and it costs nothing. What moves is the camera —
+pans and zooms across the artwork you gave it. It does **not** generate motion;
+the page says so plainly, and there is no button for the thing that is not built.
+
+Recording happens in real time, so a seventeen-second video takes seventeen
+seconds. Leave the tab in front while it runs.
 
 ## Connect GitHub (one-time)
 

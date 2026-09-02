@@ -1,0 +1,27 @@
+{
+  "name": "@hl-bos/video-studio",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Turns a still image into a video. Detects the panels inside a composite image, plans a shot list with camera moves, and resolves that plan to an exact frame at any point in time. Pure and deterministic: no network, no API key, no media toolchain.",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "default": "./src/index.ts"
+    },
+    "./png": {
+      "types": "./src/png.ts",
+      "default": "./src/png.ts"
+    }
+  },
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run",
+    "clean": "rm -rf dist *.tsbuildinfo"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  }
+}
