@@ -40,6 +40,21 @@ pnpm, with `PATH` stripped so nothing can leak in from the environment.
 | Portfolio          | `src/lib/registry.ts` — honest about what does not exist |
 | Release history    | Empty until something is actually deployed               |
 | Morning brief      | Everything above, summarised                             |
+| Video Studio       | Your own picture, read in the browser. Nothing uploaded. |
+
+## Video Studio
+
+**Video Studio** in the header turns a picture into a video. Pick an image, it
+finds the panels, you watch the preview, you press Record and a `.mp4` lands in
+your Downloads folder.
+
+It runs entirely in the browser on this machine. The image is never uploaded,
+there is no account to connect and it costs nothing. What moves is the camera —
+pans and zooms across the artwork you gave it. It does **not** generate motion;
+the page says so plainly, and there is no button for the thing that is not built.
+
+Recording happens in real time, so a seventeen-second video takes seventeen
+seconds. Leave the tab in front while it runs.
 
 ## Connect GitHub (one-time)
 

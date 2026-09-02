@@ -457,6 +457,23 @@ const ASSETS: Asset[] = [
     ],
     evidence: "packages/catalog",
   },
+  {
+    id: "pkg.video-studio",
+    kind: "package",
+    name: "@hl-bos/video-studio",
+    summary:
+      "Still image to video. Detects the panels inside a composite image, plans a shot list with pans and zooms, and resolves that plan to an exact frame at any millisecond. Pure and deterministic — no network, no API key, no media toolchain. It does not generate motion: every pixel comes from the source image.",
+    maturity: "live",
+    reuse: ["reusable", "internal_only"],
+    owner: "Herman Legacy Platform",
+    layer: "Tooling",
+    key: "video-studio",
+    location: "packages/video-studio",
+    tags: ["media", "video", "deterministic"],
+    metrics: { tests: 51 },
+    relationships: [{ kind: "owned_by", to: "repo.hl-bos-platform" }],
+    evidence: "packages/video-studio; apps/control-center/src/app/video",
+  },
 
   // ======================================================================
   // SHARED SERVICES

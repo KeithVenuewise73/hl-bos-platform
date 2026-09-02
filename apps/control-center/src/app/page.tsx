@@ -47,6 +47,10 @@ export default async function Page() {
           ·{" "}
           <a href="/connect" style={{ color: "#58a6ff" }}>
             {conn.github && conn.supabase ? "Connections" : "Connect accounts"}
+          </a>{" "}
+          ·{" "}
+          <a href="/video" style={{ color: "#58a6ff" }}>
+            Video Studio
           </a>
         </p>
       </header>
