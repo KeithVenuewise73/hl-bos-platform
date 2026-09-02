@@ -8,6 +8,19 @@ Double-click **`scripts\control-center.bat`**. It opens at http://localhost:4000
 
 Leave the black window open while you use the console; close it to shut down.
 
+### Getting new work
+
+Every start collects whatever has been finished since last time. Double-click
+the launcher and it brings the folder up to date from GitHub, reinstalls
+libraries if they changed, rebuilds if the code changed, and then starts. There
+is no separate update step and nothing to type.
+
+It is deliberately timid about it. If you have unsaved changes in the folder it
+touches nothing. If the folder and GitHub have both moved on it stops and says
+so rather than merging blindly. If GitHub cannot be reached it starts anyway
+with the copy already on the machine. Every one of those cases prints one line
+saying which happened.
+
 ### First run
 
 The launcher sets itself up. It needs **nothing on your PATH**, no admin rights, and no

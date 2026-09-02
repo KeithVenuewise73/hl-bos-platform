@@ -80,3 +80,25 @@ They import only local `_shared` modules (no remote deps) so they run offline.
 CI runs them in the `functions-tests` job. Where Deno is unavailable, the same
 files run under Node via `tsx` with a 6-line `Deno.test` shim (Node 22 provides
 native `fetch`/`Response`/`Headers`).
+
+---
+
+# Update check
+
+`verify-update.sh` proves `scripts/update.mjs` — the step that collects finished
+work from GitHub when the console starts.
+
+```bash
+scripts/local-test/verify-update.sh
+```
+
+It builds throwaway git repositories and runs the real script against them, so
+the guards are tested rather than asserted: a folder with unsaved changes is
+left alone, a diverged branch is refused without touching history, an
+unreachable remote gives up in seconds instead of hanging on a password prompt,
+and a folder that is not a git repository at all still starts the console.
+
+It then mirrors the launcher's rebuild decision. `control-center.bat` cannot run
+here, and the bug that mirror guards against was real: `if A if B (X) else (Y)`
+binds the `else` to the inner `if`, so a fresh clone would have skipped the
+build entirely and started a console that had never been built.
