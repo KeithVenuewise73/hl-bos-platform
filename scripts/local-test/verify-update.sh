@@ -90,6 +90,51 @@ if [ "$code" -eq 0 ] && echo "$out" | grep -q "not connected to GitHub"; then ok
 else bad "exit $code, out: $out"; fi
 
 # ---------------------------------------------------------------------------
+# The bootstrap: one file dropped into an older folder collects the rest.
+#
+# A self-updating launcher cannot deliver itself, so control-center.bat has a
+# fallback that runs git directly when scripts/update.mjs is not there yet.
+# The .bat cannot run here, so this reproduces that fallback exactly against
+# real repositories -- including the case that matters most, where the folder
+# has unsaved work and must not be trampled.
+# ---------------------------------------------------------------------------
+echo
+echo "launcher bootstrap (mirrors control-center.bat's git fallback)"
+echo "---------------------------------------------------------------"
+
+bootstrap() { # runs in $PWD, mirrors the .bat's else-branch
+  git fetch origin --quiet 2>/dev/null
+  git merge --ff-only >/dev/null 2>&1
+  [ -f scripts/update.mjs ] && echo collected || echo nothing
+}
+
+# An older copy of the folder: it predates scripts/update.mjs entirely.
+git clone -q "$WORK/origin.git" "$WORK/old"
+cd "$WORK/old"
+git checkout -q "$(git rev-list --max-parents=0 HEAD)" 2>/dev/null
+git checkout -q -B main HEAD
+git branch -q --set-upstream-to=origin/main main 2>/dev/null
+
+step "8. old folder without the helper -> collects it"
+rm -rf scripts
+if [ ! -f scripts/update.mjs ]; then
+  result="$(bootstrap)"
+  if [ "$result" = "collected" ]; then ok "helper arrived"; else bad "helper did not arrive"; fi
+else
+  bad "test setup: helper was already present"
+fi
+
+step "9. bootstrap leaves unsaved work alone"
+git clone -q "$WORK/origin.git" "$WORK/old2"
+cd "$WORK/old2"
+git checkout -q -B main origin/main~1 2>/dev/null || git checkout -q -B main origin/main
+git branch -q --set-upstream-to=origin/main main 2>/dev/null
+echo "my unsaved edit" >> file.txt
+before="$(cat file.txt)"
+bootstrap >/dev/null
+if [ "$(cat file.txt)" = "$before" ]; then ok "edit intact"; else bad "edit was lost"; fi
+
+# ---------------------------------------------------------------------------
 # The launcher's own decision, mirrored.
 #
 # control-center.bat cannot run here, so this reproduces the flag logic it uses
@@ -116,10 +161,10 @@ check() { # name, next_exists, fresh, expected
   if [ "${got:-no}" = "$want" ]; then ok "${got:-no build}"; else bad "got '${got:-no}', wanted '$want'"; fi
 }
 
-check "8. fresh clone, nothing built -> builds"        0 0 1
-check "9. fresh clone AND new code -> builds"          0 1 1
-check "10. built already, new code arrived -> rebuilds" 1 1 1
-check "11. built already, nothing new -> starts fast"   1 0 no
+check "10. fresh clone, nothing built -> builds"        0 0 1
+check "11. fresh clone AND new code -> builds"          0 1 1
+check "12. built already, new code arrived -> rebuilds" 1 1 1
+check "13. built already, nothing new -> starts fast"   1 0 no
 
 echo "---------------------------------------------------------------"
 [ "$fail" -eq 0 ] && echo "All checks passed." || echo "SOMETHING FAILED."

@@ -21,6 +21,10 @@ so rather than merging blindly. If GitHub cannot be reached it starts anyway
 with the copy already on the machine. Every one of those cases prints one line
 saying which happened.
 
+The launcher can also be dropped into an older copy of this folder on its own
+and will collect everything else itself. That matters exactly once: a
+self-updating launcher cannot deliver its own first copy.
+
 ### First run
 
 The launcher sets itself up. It needs **nothing on your PATH**, no admin rights, and no
