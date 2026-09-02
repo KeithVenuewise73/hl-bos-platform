@@ -98,11 +98,19 @@ left alone, a diverged branch is refused without touching history, an
 unreachable remote gives up in seconds instead of hanging on a password prompt,
 and a folder that is not a git repository at all still starts the console.
 
-It also proves the **bootstrap**: a self-updating launcher cannot deliver
-itself, so `control-center.bat` falls back to running git directly when
-`scripts/update.mjs` is not present yet. That path is exercised against a real
-older clone — including the case that matters most, where the folder has unsaved
-work and must not be trampled.
+It also proves the **bootstrap**: a self-updating launcher cannot deliver its
+own first copy, so `control-center.bat` falls back to running git directly when
+`scripts/update.mjs` is not present yet.
+
+That path is not a merge, and one of the checks exists to prove why. Replacing
+the launcher by hand makes git see a locally modified file and **refuse** to
+merge, even when the content is byte-for-byte what it was about to install —
+which is exactly how the first version failed on the real machine. The bootstrap
+resets to GitHub's copy behind two guards instead, and both are exercised here:
+a genuine edit elsewhere in the folder is refused with the edit intact, and a
+launcher that does not match GitHub's copy is refused rather than rewritten
+mid-run (Windows reads a running `.bat` incrementally, so rewriting it with
+different bytes makes `cmd` resume at a stale offset and execute garbage).
 
 It then mirrors the launcher's rebuild decision. `control-center.bat` cannot run
 here, and the bug that mirror guards against was real: `if A if B (X) else (Y)`
