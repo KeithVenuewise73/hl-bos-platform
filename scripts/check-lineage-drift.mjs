@@ -8,9 +8,21 @@
 // It does NOT fail merely because a repo migration is pending (local-only, not
 // yet applied) — that is normal before an apply. It DOES fail when:
 //   • an expected-applied migration's version is missing from the remote, or
-//   • the remote has an applied version the repo does not know about (foreign /
-//     out-of-band), or
+//   • the remote has an applied version nothing in the repo accounts for
+//     (foreign / out-of-band), or
 //   • a not-yet-applied migration turns up already applied on the remote.
+//
+// The canonical project is SHARED: other products (dma_, disco_, jobscout_ and
+// a few one-off out-of-band changes) have applied migrations to the same
+// database. Those are declared in canonical.json under `sharedDatabase.
+// foreignLineages` and are recognised rather than reported, because "another
+// product changed its own schema" is not drift in ours. A version that is NOT
+// declared there and NOT ours still fails — that is the case worth catching.
+//
+// `absorbedProductionVersions` covers the third case: a version production
+// recorded whose effect a repo file already contains (production split 0044
+// into 0044a/0044b and repaired 0034 twice). A from-empty rebuild reaches the
+// same schema without them, so they are known, not missing.
 //
 // Input: `supabase migration list` output on stdin, or --file <path> (for tests).
 //   supabase migration list | node scripts/check-lineage-drift.mjs
@@ -67,6 +79,22 @@ for (const m of manifest.migrations) {
   else expectedApplied.add(appliedVersion);
 }
 
+// Versions production recorded that a repo file already accounts for.
+const absorbed = new Map();
+for (const a of canonical.absorbedProductionVersions?.entries || []) {
+  knownVersions.add(a.version);
+  absorbed.set(a.version, a);
+}
+
+// Versions belonging to other products sharing this database.
+const foreign = new Map();
+for (const l of canonical.sharedDatabase?.foreignLineages || []) {
+  for (const v of l.versions || []) {
+    knownVersions.add(v);
+    foreign.set(v, l.prefix);
+  }
+}
+
 const problems = [];
 for (const v of expectedApplied)
   if (!remote.has(v))
@@ -91,6 +119,10 @@ if (problems.length) {
   for (const p of problems) console.error(`  ✗ ${p}`);
   process.exit(1);
 }
+const foreignSeen = [...remote].filter((v) => foreign.has(v)).length;
+const absorbedSeen = [...remote].filter((v) => absorbed.has(v)).length;
 console.log(
-  `OK: production applied set matches the canonical declaration (${expectedApplied.size} applied, ${remote.size} remote rows).`,
+  `OK: production applied set matches the canonical declaration ` +
+    `(${expectedApplied.size} HL-BOS applied, ${absorbedSeen} absorbed, ` +
+    `${foreignSeen} declared foreign, ${remote.size} remote rows).`,
 );

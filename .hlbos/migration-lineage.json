@@ -232,8 +232,8 @@
     {
       "ordinal": 29,
       "name": "hlbos_0029_venture_studio_foundation",
-      "filename": "20260801120000_hlbos_0029_venture_studio_foundation.sql",
-      "version": "20260801120000",
+      "filename": "20260801233354_hlbos_0029_venture_studio_foundation.sql",
+      "version": "20260801233354",
       "sha256": "ee83df9dfa6258e24b4c0c698bf55f11cd9d0bb2ba07ca7c52469e216aac9f44",
       "foundation": false
     },
@@ -243,7 +243,8 @@
       "filename": "20260802120000_hlbos_0030_ceo_notebook.sql",
       "version": "20260802120000",
       "sha256": "50329ccc4650208a660f2ff7e8416874c47f571790964e6aea00685f9722a1f3",
-      "foundation": false
+      "foundation": false,
+      "notYetApplied": true
     },
     {
       "ordinal": 31,
@@ -251,133 +252,134 @@
       "filename": "20260804120000_hlbos_0031_transformation_intake.sql",
       "version": "20260804120000",
       "sha256": "e041b87fb2360af8e45afc03cac06d1eb44abd3d887d7a4542ae3430c4efecc3",
-      "foundation": false
+      "foundation": false,
+      "notYetApplied": true
     },
     {
       "ordinal": 32,
       "name": "hlbos_0032_vstudio_discovery_metadata",
-      "filename": "20260818210000_hlbos_0032_vstudio_discovery_metadata.sql",
-      "version": "20260818210000",
+      "filename": "20260818203419_hlbos_0032_vstudio_discovery_metadata.sql",
+      "version": "20260818203419",
       "sha256": "bec6b88d4a78311b21a1d42a07f895f8c33877737e1e8389330778dd62f05b6c",
       "foundation": false
     },
     {
       "ordinal": 33,
       "name": "hlbos_0033_vstudio_intelligence_layer",
-      "filename": "20260820120000_hlbos_0033_vstudio_intelligence_layer.sql",
-      "version": "20260820120000",
+      "filename": "20260820011152_hlbos_0033_vstudio_intelligence_layer.sql",
+      "version": "20260820011152",
       "sha256": "0bd64b712b0018c449663f80c551603a8164e0025e483e07af0bc0d7eb4413e8",
       "foundation": false
     },
     {
       "ordinal": 34,
       "name": "hlbos_0034_vstudio_level1_triage",
-      "filename": "20260820140000_hlbos_0034_vstudio_level1_triage.sql",
-      "version": "20260820140000",
+      "filename": "20260820012431_hlbos_0034_vstudio_level1_triage.sql",
+      "version": "20260820012431",
       "sha256": "99a548af6fbcd8cfe080b84b8b158e897be405c97751d1611827c24946060926",
       "foundation": false
     },
     {
       "ordinal": 35,
       "name": "hlbos_0035_vstudio_portfolios",
-      "filename": "20260820160000_hlbos_0035_vstudio_portfolios.sql",
-      "version": "20260820160000",
+      "filename": "20260820012941_hlbos_0035_vstudio_portfolios.sql",
+      "version": "20260820012941",
       "sha256": "5cc5490d1889f8e3d7a46f2ad860a23982ac56ce8b91f3120a46668096deb87a",
       "foundation": false
     },
     {
       "ordinal": 36,
       "name": "hlbos_0036_vstudio_rising",
-      "filename": "20260820180000_hlbos_0036_vstudio_rising.sql",
-      "version": "20260820180000",
+      "filename": "20260820014408_hlbos_0036_vstudio_rising.sql",
+      "version": "20260820014408",
       "sha256": "7247ee3c808097783124d156a3a7f67fc09c59d94b5b820c3944560d32b64ff7",
       "foundation": false
     },
     {
       "ordinal": 37,
       "name": "hlbos_0037_vstudio_pain_clusters",
-      "filename": "20260820200000_hlbos_0037_vstudio_pain_clusters.sql",
-      "version": "20260820200000",
+      "filename": "20260820015400_hlbos_0037_vstudio_pain_clusters.sql",
+      "version": "20260820015400",
       "sha256": "9e8bc72e5414d151841b99606e0daf6de91a13481fc1cb20eb90f7b38ff27007",
       "foundation": false
     },
     {
       "ordinal": 38,
       "name": "hlbos_0038_vstudio_analysis_levels",
-      "filename": "20260820220000_hlbos_0038_vstudio_analysis_levels.sql",
-      "version": "20260820220000",
+      "filename": "20260820022340_hlbos_0038_vstudio_analysis_levels.sql",
+      "version": "20260820022340",
       "sha256": "013ee3550d402e205665ba98eb20f93251c589ebf722bf14ec72061bcbb13064",
       "foundation": false
     },
     {
       "ordinal": 39,
       "name": "hlbos_0039_vstudio_provable_gate",
-      "filename": "20260820240000_hlbos_0039_vstudio_provable_gate.sql",
-      "version": "20260820240000",
+      "filename": "20260820152634_hlbos_0039_vstudio_provable_gate.sql",
+      "version": "20260820152634",
       "sha256": "b2301d2798e160d2aaafc1fdade3232cf456839772f6f036845ca6dd4ca7263a",
       "foundation": false
     },
     {
       "ordinal": 40,
       "name": "hlbos_0040_pain_signal_url_whitespace",
-      "filename": "20260820260000_hlbos_0040_pain_signal_url_whitespace.sql",
-      "version": "20260820260000",
+      "filename": "20260820152914_hlbos_0040_pain_signal_url_whitespace.sql",
+      "version": "20260820152914",
       "sha256": "507748efea18629f381a2fb454e9103e6ede62220b5d134b4bc6e9fc48d22f16",
       "foundation": false
     },
     {
       "ordinal": 41,
       "name": "hlbos_0041_pain_discovery_foundation",
-      "filename": "20260820280000_hlbos_0041_pain_discovery_foundation.sql",
-      "version": "20260820280000",
+      "filename": "20260820171407_hlbos_0041_pain_discovery_foundation.sql",
+      "version": "20260820171407",
       "sha256": "d9b0b8633e276daad65c4604193e574de978404b1eabcad2173023f9c776ac15",
       "foundation": false
     },
     {
       "ordinal": 42,
       "name": "hlbos_0042_pain_evidence_backfill",
-      "filename": "20260820300000_hlbos_0042_pain_evidence_backfill.sql",
-      "version": "20260820300000",
+      "filename": "20260820171438_hlbos_0042_pain_evidence_backfill.sql",
+      "version": "20260820171438",
       "sha256": "a967e2f25c01b95aa4c73da77c8127b67793e91650ce5acf78500d3bfe04af2a",
       "foundation": false
     },
     {
       "ordinal": 43,
       "name": "hlbos_0043_capability_intelligence",
-      "filename": "20260820320000_hlbos_0043_capability_intelligence.sql",
-      "version": "20260820320000",
+      "filename": "20260820171552_hlbos_0043_capability_intelligence.sql",
+      "version": "20260820171552",
       "sha256": "48b5fd294d6c4514d13e1e58a63d6abe7645d5b437de7a284a175197f2e30ac5",
       "foundation": false
     },
     {
       "ordinal": 44,
       "name": "hlbos_0044_capability_extraction",
-      "filename": "20260820340000_hlbos_0044_capability_extraction.sql",
-      "version": "20260820340000",
+      "filename": "20260820171812_hlbos_0044_capability_extraction.sql",
+      "version": "20260820171812",
       "sha256": "6f62efa4539db867da97184aaeb3624ba6a7b14c42cc49d5fbf37eae2402a3cb",
       "foundation": false
     },
     {
       "ordinal": 45,
-      "name": "hlbos_0045_reframe_pain_portfolio",
-      "filename": "20260820360000_hlbos_0045_reframe_pain_portfolio.sql",
-      "version": "20260820360000",
+      "name": "hlbos_0045_reframe_pain_portfolio_honestly",
+      "filename": "20260820172440_hlbos_0045_reframe_pain_portfolio_honestly.sql",
+      "version": "20260820172440",
       "sha256": "a28c92e4e5684716fc356453d4d651ff1e308ffe489cca4d8b753af6863a2d45",
       "foundation": false
     },
     {
       "ordinal": 46,
       "name": "hlbos_0046_social_publishing",
-      "filename": "20260826120000_hlbos_0046_social_publishing.sql",
-      "version": "20260826120000",
+      "filename": "20260826160814_hlbos_0046_social_publishing.sql",
+      "version": "20260826160814",
       "sha256": "302012f2691d51bc4b02f4d1688186a57dd6b48c983407102d3fe379bf2a66b8",
       "foundation": false
     },
     {
       "ordinal": 47,
       "name": "hlbos_0047_social_deny_mutation_search_path",
-      "filename": "20260826170000_hlbos_0047_social_deny_mutation_search_path.sql",
-      "version": "20260826170000",
+      "filename": "20260826161134_hlbos_0047_social_deny_mutation_search_path.sql",
+      "version": "20260826161134",
       "sha256": "a3e215b362d578a5f476e8fc78037753e5cc47b8c20a6479f614752fb73c0930",
       "foundation": false
     }
