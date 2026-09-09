@@ -108,3 +108,30 @@ It then mirrors the launcher's rebuild decision. `control-center.bat` cannot run
 here, and the bug that mirror guards against was real: `if A if B (X) else (Y)`
 binds the `else` to the inner `if`, so a fresh clone would have skipped the
 build entirely and started a console that had never been built.
+
+---
+
+# Verifying the Shop Analysis page against real data
+
+The console reads HL-BOS Core through the Supabase Management API's SQL
+endpoint. That HTTP hop cannot be exercised from a build environment with no
+token, so the page is verified against the local PostgreSQL mirror instead:
+
+```bash
+node supabase-api-shim.cjs &          # stands in for the Management API, on :4555
+cd ../../apps/control-center
+printf 'SUPABASE_ACCESS_TOKEN=local-verification-only\nHLBOS_SUPABASE_PROJECT_REF=mirror\nHLBOS_SUPABASE_API_URL=http://127.0.0.1:4555/v1\n' > .env.local
+npx next start --port 4000
+```
+
+`supabase-api-shim.cjs` answers `POST /v1/projects/:ref/database/query` by
+running the statement against the mirror and returning the rows. Nothing in the
+app imports it; it exists so the page can be looked at with fifty real shops in
+it rather than shipped on the strength of a type check.
+
+**Delete `.env.local` afterwards.** It is gitignored, but a stale one makes the
+console think it is connected to a project that is not there.
+
+This is how the "site did not answer" bug was found: five shops that had never
+been fetched were being described as unreadable, and only a rendered page with
+real data showed it.

@@ -6,14 +6,23 @@
  * file and 1-based sheet row, because an audit whose subject cannot be traced
  * back to a source row is an audit of something nobody can verify.
  *
- * It EMITS rows. It does not write to any database and it does not audit
- * anything -- import_shop() is the only write path, and the runner is the only
- * thing that scores.
+ * By default it only EMITS rows, so a spreadsheet can be checked before it
+ * touches anything. With `--import` it writes them, through `import_shop()`
+ * acting as the tenant owner -- the same permission-checked path the app uses.
+ * It never scores anything: the runner is the only thing that does that.
  *
- *   node --experimental-strip-types scripts/import-prospects.mts <file.xlsx> [--json out.json]
+ *   node --experimental-strip-types scripts/import-prospects.mts <file.xlsx>
+ *   node --experimental-strip-types scripts/import-prospects.mts <file.xlsx> --import
  */
 import { readFileSync, writeFileSync } from "node:fs";
 import { execFileSync } from "node:child_process";
+import {
+  asOwner,
+  lit,
+  loadContext,
+  runnerFromEnv,
+  type SqlRunner,
+} from "./lib/hlbos-sql.mts";
 
 export interface ProspectRow {
   business_name: string;
@@ -140,13 +149,68 @@ export function toProspectRows(
   return out;
 }
 
-if (
-  process.argv[1] &&
-  import.meta.url.endsWith(process.argv[1].split("/").pop() ?? "")
-) {
+/**
+ * Write the parsed rows into HL-BOS Core.
+ *
+ * One statement, acting as the tenant owner, calling `import_shop()` per row --
+ * the same permission-checked path the app uses. Idempotent: `import_shop`
+ * dedupes on the shop's normalized name and postcode, so re-importing a
+ * corrected spreadsheet updates rather than duplicating.
+ *
+ * A cell that is NOT a URL never becomes a website_url. It stays a research
+ * note, because it is not a website.
+ */
+export function importSql(
+  ownerId: string,
+  tenantId: string,
+  rows: readonly ProspectRow[],
+): string {
+  const payload = JSON.stringify(
+    rows.map((r) => ({
+      business_name: r.business_name,
+      address_line1: r.address_line1,
+      locality: r.locality,
+      region: r.region,
+      postal_code: r.postal_code,
+      phone: r.phone,
+      website_url: r.website_url,
+      source_file: r.source_file,
+      source_row: r.source_row,
+    })),
+  );
+  return asOwner(
+    ownerId,
+    `declare v_rows jsonb := ${lit(payload)}::jsonb; r jsonb;
+     begin
+       for r in select * from jsonb_array_elements(v_rows) loop
+         perform transform_audit.import_shop(${lit(tenantId)}::uuid, r);
+       end loop;
+     end;`,
+  );
+}
+
+export async function importRows(
+  run: SqlRunner,
+  rows: readonly ProspectRow[],
+  tenantSlug: string,
+  campaignKey: string,
+): Promise<number> {
+  const ctx = await loadContext(run, tenantSlug, campaignKey);
+  await run(importSql(ctx.ownerId, ctx.tenantId, rows));
+  return rows.length;
+}
+
+const invokedAs = process.argv[1] ?? "";
+if (invokedAs.endsWith("import-prospects.mts")) {
+  const arg = (name: string): string | null => {
+    const i = process.argv.indexOf(`--${name}`);
+    return i === -1 ? null : (process.argv[i + 1] ?? null);
+  };
   const file = process.argv[2];
-  if (!file) {
-    console.error("usage: import-prospects.mts <file.xlsx> [--json out.json]");
+  if (!file || file.startsWith("--")) {
+    console.error(
+      "usage: import-prospects.mts <file.xlsx> [--json out.json] [--import]",
+    );
     process.exit(1);
   }
   readFileSync(file); // fail early and clearly if it is not readable
@@ -158,12 +222,28 @@ if (
     `${parsed.length} shops: ${withUrl} with a URL, ${withNote} with a web-presence note, ` +
       `${parsed.length - withUrl - withNote} with neither`,
   );
-  const jsonAt = process.argv.indexOf("--json");
-  const target = jsonAt !== -1 ? process.argv[jsonAt + 1] : null;
+
+  const writing = process.argv.includes("--import");
+  if (writing) {
+    const conn = runnerFromEnv();
+    if (!conn.ok) {
+      console.error(conn.reason);
+      process.exit(1);
+    }
+    const n = await importRows(
+      conn.run,
+      parsed,
+      arg("tenant") ?? "herman-legacy-digital",
+      arg("campaign") ?? "wny_barbers_50",
+    );
+    console.error(`imported ${n} shops into HL-BOS Core`);
+  }
+
+  const target = arg("json");
   if (target) {
     writeFileSync(target, JSON.stringify(parsed, null, 1));
     console.error(`wrote ${target}`);
-  } else {
+  } else if (!writing) {
     console.log(JSON.stringify(parsed, null, 1));
   }
 }

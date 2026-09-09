@@ -39,7 +39,19 @@ const ALLOWED = new Set(["git", "pnpm", "npm", "node", "nvidia-smi", "powershell
 export async function cmd(
   bin: string,
   args: readonly string[],
-  opts: { cwd?: string; timeoutMs?: number } = {},
+  opts: {
+    cwd?: string;
+    timeoutMs?: number;
+    /**
+     * Extra environment for the child, merged over this process's own.
+     *
+     * Secrets travel this way rather than as arguments: argv is visible to any
+     * other process on the machine through the process list, and would end up
+     * in the command output this console displays. The environment of a child
+     * is not.
+     */
+    env?: Record<string, string>;
+  } = {},
 ): Promise<CmdResult> {
   if (!ALLOWED.has(bin)) {
     return {
@@ -55,6 +67,14 @@ export async function cmd(
       timeout: opts.timeoutMs ?? 300_000,
       maxBuffer: 32 * 1024 * 1024,
       windowsHide: true,
+      // Not reading configuration, which is what the rule guards: this
+      // forwards THIS process's environment to the child so it keeps PATH,
+      // HOME and the rest. Without the spread, setting `env` at all would hand
+      // the child an empty environment and `node` would not even resolve. The
+      // values being ADDED come from the console's own .env.local via
+      // secrets.ts, which is the classified path.
+      // eslint-disable-next-line no-restricted-properties
+      ...(opts.env ? { env: { ...process.env, ...opts.env } } : {}),
     });
     return { ok: true, stdout, stderr, output: (stdout + stderr).trim() };
   } catch (e) {
