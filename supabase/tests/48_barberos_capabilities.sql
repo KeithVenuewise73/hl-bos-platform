@@ -19,7 +19,7 @@
 -- exactly what a real module's own migration will do when it ships.
 -- ===========================================================================
 begin;
-select plan(32);
+select plan(36);
 select tests.seed();
 
 -- --- The catalog is a shared, read-only vocabulary --------------------------
@@ -198,6 +198,44 @@ select tests.login_as(tests.uid('owner_b'));
 select throws_ok(
   format($$select barberos.enable_capability(%L::uuid, 'client_crm')$$, tests.uid('tenant_b')),
   'P0002', null, 't_a_non_shop_tenant_cannot_enable_a_capability');
+
+-- ===========================================================================
+-- Guard semantics must not depend on the environment's search_path (0050)
+--
+-- These four assertions are the regression test for a real defect. As first
+-- written, `check (key ~ '...')` on a citext column resolved the citext
+-- operator in production (search_path includes `extensions`) and the text
+-- operator in the local sandbox (it does not) -- so the guard was
+-- case-INSENSITIVE in production while the suite proved it case-SENSITIVE.
+-- The constraint read as stronger protection than it was.
+--
+-- Written against the VALUES rather than against the constraint text, so they
+-- mean the same thing under either runner and fail if the divergence returns.
+-- ===========================================================================
+select tests.logout();
+
+select throws_ok($$
+  insert into barberos.capabilities (key, name, category)
+  values ('Booking_Upper', 'Uppercase key', 'core')
+$$, '23514', null, 't_a_capability_key_with_uppercase_is_refused');
+
+select throws_ok($$
+  insert into barberos.bundles (key, name) values ('Starter_Upper', 'Uppercase bundle')
+$$, '23514', null, 't_a_bundle_key_with_uppercase_is_refused');
+
+select lives_ok($$
+  insert into barberos.capabilities (key, name, category)
+  values ('lowercase_ok', 'Lowercase key', 'core')
+$$, 't_a_lowercase_capability_key_is_accepted');
+
+-- The other direction, deliberately: capability_requires holds citext foreign
+-- keys onto a citext primary key, so 'Booking' and 'booking' ARE the same
+-- catalog row. A self-requirement in different capitalisation is still a
+-- self-requirement and is still refused.
+select throws_ok($$
+  insert into barberos.capability_requires (capability_key, requires_key)
+  values ('booking', 'BOOKING')
+$$, '23514', null, 't_a_self_requirement_is_refused_whatever_its_capitalisation');
 
 -- --- Every function pins its search_path ------------------------------------
 -- The 0047 forward-repair existed because one function did not. Asserted for

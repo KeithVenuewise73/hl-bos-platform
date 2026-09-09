@@ -123,3 +123,89 @@ production, not to a branch. `transform_audit` holds **zero shops**: the WNY
 data enters, and nothing about those shops has been invented. No BarberOS
 capability module exists; all nine are catalogued `planned` or `deferred` and the
 toggle refuses to enable any of them.
+
+---
+
+## Addendum — 2026-09-09: applied, and what applying it found
+
+0048, 0049 and 0050 were applied to canonical production (`mvvtngiopdrgiedjmhfb`)
+under CEO approval. Security advisors went 36 → 36 — zero net-new findings — and
+none of the 24 new `SECURITY DEFINER` functions appears in the
+`authenticated_security_definer_function_executable` lint, because neither schema
+is in the PostgREST allow-list.
+
+Production schema and seed data were verified identical to the repo-applied local
+build by a normalized fingerprint over 236 objects (columns, constraints,
+policies, triggers, functions, and every seeded row): md5
+`7afa20c040bbdf2724145c94d2153fec` on both.
+
+Two defects were found in the process.
+
+### 1. Transcription drift (found, corrected)
+
+Applying the migration meant transcribing the file into an API call, and one word
+of a seeded description changed — "Direct output" for "Direct answer". Caught by
+the fingerprint comparison, not by re-reading. The lesson is procedural: an apply
+path that transcribes is a path that can drift, and ADR-0002's checksum lock does
+not extend across the API boundary. A scripted apply that reads the file bytes is
+the fix.
+
+### 2. Guard semantics depended on the environment (found, repaired by 0050)
+
+The five format guards were written the way every HL-BOS migration writes them:
+
+```sql
+key extensions.citext ... check (key ~ '^[a-z][a-z0-9_]{2,63}$')
+```
+
+`~` is resolved from the `search_path` in force when the constraint is **parsed**:
+
+|                       | `search_path`                 | operator   | result               |
+| --------------------- | ----------------------------- | ---------- | -------------------- |
+| Canonical production  | `"$user", public, extensions` | citext `~` | case-**insensitive** |
+| Local sandbox harness | `"$user", public`             | text `~`   | case-**sensitive**   |
+
+So `Booking_Upper` passed in production a guard that reads as "lowercase only",
+while the pgTAP suite proved it rejected. Verified by probe in both environments,
+not inferred. This is the "control that does not control anything" failure: a
+constraint reading as stronger protection than it has.
+
+0050 makes the intent explicit — four guards cast to `text` (case-sensitive,
+the intended lowercase-snake-case rule) and `capability_requires_not_self` to
+`lower()` (case-**insensitive**, which is the correct reading for citext foreign
+keys onto a citext primary key: production was right there and the sandbox was
+wrong). Six new pgTAP assertions test the **values**, not the constraint text, so
+they mean the same thing under either runner.
+
+**What was not affected, and why.** Behaviour driven by the citext _type_ rather
+than by operator lookup is identical in both environments — a citext unique index
+is case-insensitive in both, confirmed by test — so `shop_profiles_dedupe_unique`
+never diverged and the import path's idempotency was never at risk. Function
+bodies are also unaffected: all 24 set `search_path = ''`, so citext operators do
+not resolve inside them in _either_ environment and their comparisons are
+consistently text-based. The divergence is confined to expressions parsed at DDL
+time: CHECK constraints and index predicates.
+
+### The same shape exists elsewhere — 35 constraints, not repaired here
+
+The pattern is platform-wide and pre-existing. Counted in production:
+
+| Schema         | Constraints | Schema         | Constraints |
+| -------------- | ----------- | -------------- | ----------- |
+| `billing`      | 6           | `events`       | 2           |
+| `discovery`    | 5           | `comms`        | 2           |
+| `bti`          | 4           | `social`       | 2           |
+| `hlvs`         | 4           | `visibility`   | 1           |
+| `identity`     | 3           | `entitlements` | 1           |
+| `integrations` | 3           | `platform`     | 1           |
+|                |             | `provisioning` | 1           |
+|                |             | `ai`           | 1           |
+
+Some are cosmetic (`*_key_format`). Some are not: `providers_credential_is_vault_ref`
+in `ai` and `billing`, `credentials_ref_is_vault_ref` in `social`,
+`connections_credential_is_vault_ref` in `integrations`, and
+`tenants_slug_format` in `platform` all read as stricter than they are.
+
+These are deployed constraints on live schemas. Repairing them is a separate,
+owner-approved change with its own blast radius; rewriting them unannounced
+would be a second incident, not a fix. They are reported rather than repaired.

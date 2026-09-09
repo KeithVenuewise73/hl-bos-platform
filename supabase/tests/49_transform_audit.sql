@@ -22,7 +22,7 @@
 -- Plus the ingest path (idempotent, no seeded data) and tenant isolation.
 -- ===========================================================================
 begin;
-select plan(64);
+select plan(66);
 select tests.seed();
 
 create or replace function tests.hld() returns uuid language sql stable as $$
@@ -417,6 +417,24 @@ select is((select count(*)::int from transform_audit.findings), 0,
 select throws_ok(
   format($$select transform_audit.report(%L::uuid)$$, (select v from t_ids where k = 'run')),
   '42501', null, 't_another_tenant_cannot_read_the_report');
+
+-- --- Guard semantics must not depend on search_path (0050) ------------------
+-- Same regression as test 48. A finding code that differs only by
+-- capitalisation would read as two findings in a report while being one code
+-- in the catalog, so the format guard has to be genuinely case-sensitive
+-- wherever it runs.
+select tests.logout();
+select throws_ok(
+  format($$insert into transform_audit.findings
+    (run_id, dimension, code, statement, confidence, detector)
+    values (%L::uuid, 'website', 'No_Online_Booking', 'x', 'inferred', 'd')$$,
+    (select v from t_ids where k = 'run2')),
+  '23514', null, 't_a_finding_code_with_uppercase_is_refused');
+
+select throws_ok(
+  format($$insert into transform_audit.campaigns (tenant_id, key, name)
+    values (%L::uuid, 'WNY_Barbers', 'Uppercase campaign key')$$, tests.hld()),
+  '23514', null, 't_a_campaign_key_with_uppercase_is_refused');
 
 -- --- search_path pinning ----------------------------------------------------
 select tests.logout();

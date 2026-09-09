@@ -71,17 +71,17 @@ export const PORTFOLIO: readonly Product[] = [
     name: "Shop Transformation Analysis Tool",
     stage: "development",
     status:
-      "The pre-sale audit instrument. The `transform_audit` schema, the barbershop website rubric and the report assembly are built and tested (64 database + 15 rubric tests, green locally). It reuses the existing website scanner rather than adding a second one. NOT applied to any live project, and it holds ZERO shops \u2014 the WNY prospect list has not been imported, so there are no audits and no scores yet.",
+      "The pre-sale audit instrument. The `transform_audit` schema, the barbershop website rubric and the report assembly are LIVE in HL-BOS Core (applied 2026-09-09). It reuses the existing website scanner rather than adding a second one. It holds ZERO shops: the WNY prospect list has not been imported, so there are no audits and no scores yet, and there is no runner or console page to start one.",
     version: null,
-    location: "this repository (supabase/migrations 0049, _shared/transform_audit)",
+    location: "HL-BOS Core (migrations 0049/0050), _shared/transform_audit",
   },
   {
     name: "BarberOS",
     stage: "development",
     status:
-      "Capability spine only. The `barberos` schema ships the module catalog, prerequisites, bundles and the per-tenant on/off switch (32 database tests, green locally). NO capability module is built: all nine are catalogued as 'planned' or 'deferred', and the switch REFUSES to turn on anything that has not shipped. No shop is running it.",
+      "Capability spine only, LIVE in HL-BOS Core (applied 2026-09-09). The `barberos` schema ships the module catalog, prerequisites, bundles and the per-tenant on/off switch. NO capability module is built: all nine are catalogued as 'planned' or 'deferred', and the switch REFUSES to turn on anything that has not shipped. No shop is running it.",
     version: null,
-    location: "this repository (supabase/migrations 0048)",
+    location: "HL-BOS Core (migrations 0048/0050)",
   },
   {
     name: "SalonAI",

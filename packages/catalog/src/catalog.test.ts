@@ -145,9 +145,12 @@ describe("repository scan (ground truth)", () => {
     // Transformation Analysis Tool: campaigns, shop profiles on top of
     // visibility.prospects, runs, append-only findings, confidence-gated
     // dimension scores, recommendations and the report). Those last two are
-    // written and tested but APPLIED NOWHERE -- see notYetAppliedOrdinals in
-    // .hlbos/canonical.json.
-    expect(inv.migrations.length).toBe(49);
+    // both APPLIED to canonical production on 2026-09-09 under CEO approval --
+    // plus 0050, a forward-repair pinning the citext-vs-text semantics of five
+    // format guards so they mean the same thing in the sandbox and in
+    // production (they did not). See notYetAppliedOrdinals in
+    // .hlbos/canonical.json, which now names only 0030 and 0031.
+    expect(inv.migrations.length).toBe(50);
     expect(inv.edgeFunctions).toContain("ai-gateway");
     expect(inv.edgeFunctions).not.toContain("tests");
     expect(inv.apps).toEqual(
