@@ -3,7 +3,7 @@
   "schemaVersion": 1,
   "sourceDir": "supabase/migrations",
   "canonicalRepository": "KeithVenuewise73/hl-bos-platform",
-  "count": 47,
+  "count": 49,
   "migrations": [
     {
       "ordinal": 1,
@@ -243,7 +243,8 @@
       "filename": "20260802120000_hlbos_0030_ceo_notebook.sql",
       "version": "20260802120000",
       "sha256": "50329ccc4650208a660f2ff7e8416874c47f571790964e6aea00685f9722a1f3",
-      "foundation": false
+      "foundation": false,
+      "notYetApplied": true
     },
     {
       "ordinal": 31,
@@ -251,7 +252,8 @@
       "filename": "20260804120000_hlbos_0031_transformation_intake.sql",
       "version": "20260804120000",
       "sha256": "e041b87fb2360af8e45afc03cac06d1eb44abd3d887d7a4542ae3430c4efecc3",
-      "foundation": false
+      "foundation": false,
+      "notYetApplied": true
     },
     {
       "ordinal": 32,
@@ -380,6 +382,24 @@
       "version": "20260826170000",
       "sha256": "a3e215b362d578a5f476e8fc78037753e5cc47b8c20a6479f614752fb73c0930",
       "foundation": false
+    },
+    {
+      "ordinal": 48,
+      "name": "hlbos_0048_barberos_capability_catalog",
+      "filename": "20260909120000_hlbos_0048_barberos_capability_catalog.sql",
+      "version": "20260909120000",
+      "sha256": "93dcbc575fa386df1b98938720ce768bc8fc06adaff7befeeeed1c3ea0d793bc",
+      "foundation": false,
+      "notYetApplied": true
+    },
+    {
+      "ordinal": 49,
+      "name": "hlbos_0049_transform_audit",
+      "filename": "20260909130000_hlbos_0049_transform_audit.sql",
+      "version": "20260909130000",
+      "sha256": "2e58402f42f9f329f58cb7687be7aaa21dc1b3bd1de49e8ccc466c8cf8df5f68",
+      "foundation": false,
+      "notYetApplied": true
     }
   ]
 }

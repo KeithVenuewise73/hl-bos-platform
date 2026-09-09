@@ -68,9 +68,26 @@ export const PORTFOLIO: readonly Product[] = [
     location: "legacy project (not reachable from this console)",
   },
   {
+    name: "Shop Transformation Analysis Tool",
+    stage: "development",
+    status:
+      "The pre-sale audit instrument. The `transform_audit` schema, the barbershop website rubric and the report assembly are built and tested (64 database + 15 rubric tests, green locally). It reuses the existing website scanner rather than adding a second one. NOT applied to any live project, and it holds ZERO shops \u2014 the WNY prospect list has not been imported, so there are no audits and no scores yet.",
+    version: null,
+    location: "this repository (supabase/migrations 0049, _shared/transform_audit)",
+  },
+  {
+    name: "BarberOS",
+    stage: "development",
+    status:
+      "Capability spine only. The `barberos` schema ships the module catalog, prerequisites, bundles and the per-tenant on/off switch (32 database tests, green locally). NO capability module is built: all nine are catalogued as 'planned' or 'deferred', and the switch REFUSES to turn on anything that has not shipped. No shop is running it.",
+    version: null,
+    location: "this repository (supabase/migrations 0048)",
+  },
+  {
     name: "SalonAI",
     stage: "not-started",
-    status: "Planned as the first HL-BOS vertical. No code yet.",
+    status:
+      "Planned as the second ServiceOS vertical, reusing the BarberOS capability catalog with a different starter bundle. No code yet.",
     version: null,
     location: null,
   },

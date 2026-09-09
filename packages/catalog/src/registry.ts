@@ -1164,12 +1164,37 @@ const ASSETS: Asset[] = [
     "The Software Factory — Product Intelligence Layer.",
   ),
   ...db("bti", "BTI", 14, "HL-BTI", "HL-BTI platform + analysis snapshots."),
+  // Listed as `live` until 2026-09-09. It is not: migration 0031 has never been
+  // applied to the canonical project. Verified directly against HL-BOS Core's
+  // applied migration list, which runs 0001-0029 and 0032-0047 -- 0030 and 0031
+  // are absent. Corrected rather than left, because the Enterprise Catalog is
+  // read as a statement of what is running.
   ...db(
     "intake",
     "Business Transformation Intake",
     1,
     "HL-BOS",
     "Public Business Transformation intake submissions (RLS-forced; anon writes via SECURITY DEFINER RPC only).",
+    "built_undeployed",
+    "supabase/migrations 0031; NOT applied to HL-BOS Core (verified 2026-09-09)",
+  ),
+  ...db(
+    "barberos",
+    "BarberOS Capability Spine",
+    6,
+    "HL-BOS",
+    "Module catalog, prerequisites, bundles, per-tenant capability toggle and the shop record. The toggle exists; NO capability module does -- every module is catalogued 'planned' or 'deferred' and cannot be enabled.",
+    "built_undeployed",
+    "supabase/migrations 0048; NOT applied anywhere; 32 pgTAP assertions green locally",
+  ),
+  ...db(
+    "transform_audit",
+    "Shop Transformation Analysis Tool",
+    8,
+    "HL-BOS",
+    "Pre-sale digital-presence audits: campaigns with per-campaign weighting, shop profiles layered on visibility.prospects, runs, append-only findings, confidence-gated dimension scores, recommendations and competitors.",
+    "built_undeployed",
+    "supabase/migrations 0049; NOT applied anywhere; holds ZERO shops (nothing imported); 64 pgTAP assertions green locally",
   ),
 
   // ======================================================================
@@ -1430,6 +1455,12 @@ function db(
   tables: number,
   layer: Asset["layer"],
   summary: string,
+  // A schema that has never been applied is not `live`, and the live census is
+  // not evidence for it. Defaulting these keeps every existing call unchanged
+  // while making it impossible to add an unapplied schema as "live" by
+  // omission -- which is how `intake` came to be listed as live below.
+  maturity: Asset["maturity"] = "live",
+  evidence = "live census 2026-07-29 (100% RLS)",
 ): Asset[] {
   return [
     {
@@ -1437,7 +1468,7 @@ function db(
       kind: "database",
       name: `${name} (${schema})`,
       summary,
-      maturity: "live",
+      maturity,
       reuse: ["internal_only"],
       owner:
         layer === "HLVS"
@@ -1451,7 +1482,7 @@ function db(
       tags: ["schema", "postgres", "rls"],
       metrics: { tables },
       relationships: [{ kind: "owned_by", to: "prod.hl-bos" }],
-      evidence: "live census 2026-07-29 (100% RLS)",
+      evidence,
     },
   ];
 }

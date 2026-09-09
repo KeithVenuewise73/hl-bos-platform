@@ -98,8 +98,8 @@ describe("registry integrity", () => {
     expect(dangling, `dangling targets: ${dangling.join(", ")}`).toEqual([]);
   });
 
-  it("registers the 19 application databases and 10 edge functions", () => {
-    expect(assetsByKind(catalog, "database").length).toBe(19);
+  it("registers the 21 application databases and 10 edge functions", () => {
+    expect(assetsByKind(catalog, "database").length).toBe(21);
     expect(assetsByKind(catalog, "edge_function").length).toBe(10);
   });
 
@@ -111,9 +111,14 @@ describe("registry integrity", () => {
 describe("repository scan (ground truth)", () => {
   it("discovers the real schemas, functions, apps and packages", async () => {
     const inv = await scanRepository(REPO_ROOT);
-    expect(inv.schemas.length).toBe(19);
+    // 21: the 19 that existed through migration 0047, plus `barberos` and
+    // `transform_audit` (0048/0049) -- both written and tested, neither
+    // applied to any project.
+    expect(inv.schemas.length).toBe(21);
     expect(inv.schemas).toContain("hlvs");
     expect(inv.schemas).toContain("social");
+    expect(inv.schemas).toContain("barberos");
+    expect(inv.schemas).toContain("transform_audit");
     expect(inv.schemas).toContain("bti");
     expect(inv.schemas).toContain("intake");
     expect(inv.tables).toBeGreaterThanOrEqual(120);
@@ -134,8 +139,15 @@ describe("repository scan (ground truth)", () => {
     // APPLIED to canonical production on 2026-08-26 under CEO approval, with
     // 0047 (forward-repair pinning search_path on
     // social.deny_attempt_mutation — the post-apply advisor check caught it
-    // and the local suite had not).
-    expect(inv.migrations.length).toBe(47);
+    // and the local suite had not) -- plus 0048 (BarberOS capability catalog:
+    // the module registry, prerequisites, bundles and the per-tenant on/off
+    // switch, with NO capability module behind it) and 0049 (the Business
+    // Transformation Analysis Tool: campaigns, shop profiles on top of
+    // visibility.prospects, runs, append-only findings, confidence-gated
+    // dimension scores, recommendations and the report). Those last two are
+    // written and tested but APPLIED NOWHERE -- see notYetAppliedOrdinals in
+    // .hlbos/canonical.json.
+    expect(inv.migrations.length).toBe(49);
     expect(inv.edgeFunctions).toContain("ai-gateway");
     expect(inv.edgeFunctions).not.toContain("tests");
     expect(inv.apps).toEqual(
@@ -169,7 +181,7 @@ describe("executive metrics", () => {
     const catalog = buildCatalog();
     const inv = await scanRepository(REPO_ROOT);
     const m = metrics(catalog, completeness(catalog, inv));
-    expect(m.databases).toBe(19);
+    expect(m.databases).toBe(21);
     expect(m.edgeFunctions).toBe(10);
     expect(m.sharedServices).toBeGreaterThanOrEqual(12);
     expect(m.products).toBeGreaterThanOrEqual(3);
