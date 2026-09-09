@@ -71,7 +71,7 @@ export const PORTFOLIO: readonly Product[] = [
     name: "Shop Transformation Analysis Tool",
     stage: "development",
     status:
-      "The pre-sale audit instrument. The `transform_audit` schema, the barbershop website rubric and the report assembly are LIVE in HL-BOS Core (applied 2026-09-09). It reuses the existing website scanner rather than adding a second one. It holds ZERO shops: the WNY prospect list has not been imported, so there are no audits and no scores yet, and there is no runner or console page to start one.",
+      "The pre-sale audit instrument. The `transform_audit` schema, the barbershop website rubric and the report assembly are LIVE in HL-BOS Core (applied 2026-09-09). It reuses the existing website scanner rather than adding a second one. The analysis runs end to end -- shop, fetch, findings, score, areas for improvement, recommended BarberOS bundle, outreach hook -- proved against the real schema with fixture pages. It holds ZERO shops: the WNY prospect list has not been imported, so there are no real audits yet, and there is no console page to start one.",
     version: null,
     location: "HL-BOS Core (migrations 0049/0050), _shared/transform_audit",
   },

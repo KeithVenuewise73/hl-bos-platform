@@ -22,7 +22,7 @@
 -- Plus the ingest path (idempotent, no seeded data) and tenant isolation.
 -- ===========================================================================
 begin;
-select plan(66);
+select plan(73);
 select tests.seed();
 
 create or replace function tests.hld() returns uuid language sql stable as $$
@@ -59,6 +59,13 @@ select throws_ok(
   format($$select transform_audit.upsert_campaign(%L::uuid, 'wny_barbers_50', 'Reweighted',
     '{"website": 100}'::jsonb)$$, tests.hld()),
   '42501', null, 't_manager_cannot_reweight_a_campaign');
+
+-- A website-only campaign, for the single-dimension cases below. Created as
+-- the OWNER: the assertion just above proves a manager cannot do this.
+select tests.login_as(tests.uid('owner_a'));
+insert into t_ids values ('campaign_website_only',
+  transform_audit.upsert_campaign(tests.hld(), 'website_only',
+    'Website-only pass', '{"website": 100}'::jsonb));
 
 -- --- Ingest -- nothing is seeded, everything is imported --------------------
 select tests.logout();
@@ -297,6 +304,15 @@ select ok(transform_audit.add_recommendation(
     'Claim the Google Business Profile', 'Advice, not software.') is not null,
   't_advice_without_a_module_is_allowed');
 
+-- Added LAST and ranked LAST, so if the report leads with it, that is the
+-- explicit structural-first ordering and not insertion order or rank.
+select ok(transform_audit.add_recommendation(
+    (select v from t_ids where k = 'run'), 'structural',
+    'Let customers book without calling',
+    'The single change with the largest effect on this shop.',
+    'booking', (select v from t_find where k = 'booking'), 9) is not null,
+  't_a_structural_recommendation_is_added_last');
+
 -- ===========================================================================
 -- The outreach hook must be traceable to an observation
 -- ===========================================================================
@@ -381,6 +397,33 @@ select is(
   (select composite_score from transform_audit.runs where id = (select v from t_ids where k = 'run2')),
   null, 't_a_run_with_no_reachable_dimension_has_no_composite_at_all');
 
+-- --- A run that assessed nothing cannot call itself complete (0051) --------
+-- The defect this test exists for was found by running the tool end to end:
+-- a shop whose site refused the connection came back status 'completed' with
+-- no score at all. The report underneath was honest, but a portfolio list
+-- shows the STATUS, and "completed" next to a shop nobody managed to look at
+-- is the dashboard lying while the detail page tells the truth.
+insert into t_ids values ('run3',
+  transform_audit.start_run(
+    (select v from t_ids where k = 'campaign_website_only'),
+    (select v from t_ids where k = 'shop')));
+select ok(transform_audit.record_finding(
+    (select v from t_ids where k = 'run3'), 'website', 'website_unreachable',
+    'The site could not be read.', 'unknown', 'high') is not null,
+  't_third_run_records_that_the_site_could_not_be_read');
+select lives_ok(
+  format($$select transform_audit.record_dimension(%L::uuid, 'website', null, 'unknown',
+    'barber-web-0.1.0', 'Connection refused.')$$, (select v from t_ids where k = 'run3')),
+  't_third_run_marks_its_only_dimension_unknown');
+select is(
+  transform_audit.finish_run((select v from t_ids where k = 'run3'))::text,
+  'partially_completed',
+  't_a_run_whose_only_dimension_is_unknown_is_NOT_completed');
+select is(
+  transform_audit.report((select v from t_ids where k = 'run3'))->'unscored_dimensions',
+  '["website"]'::jsonb,
+  't_that_run_names_website_as_uncovered_even_though_it_has_a_row');
+
 -- ===========================================================================
 -- The report, and the honest bundle
 -- ===========================================================================
@@ -393,12 +436,27 @@ select is(
   2, 't_the_report_lists_the_findings_that_were_recorded');
 select is(
   transform_audit.report((select v from t_ids where k = 'run2'))->'unscored_dimensions',
-  '["google_business"]'::jsonb,
-  't_the_report_names_the_dimensions_it_never_reached');
+  '["google_business", "website"]'::jsonb,
+  't_the_report_names_every_dimension_the_composite_does_not_cover');
 select is(
   transform_audit.report((select v from t_ids where k = 'run2'))->'coverage',
   '{"scored": 0, "possible": 2}'::jsonb,
   't_the_report_states_its_own_coverage');
+
+-- The report must lead with the same thing the hook leads with. Ordering by
+-- the priority enum led with quick wins purely because of its declaration
+-- order, burying "customers cannot book you" under "add a viewport tag".
+-- The structural row was inserted last and ranked 9th, so only the explicit
+-- ordering can put it first.
+select is(
+  transform_audit.report((select v from t_ids where k = 'run'))
+    ->'recommendations'->0->>'priority',
+  'structural', 't_the_report_leads_with_structural_work_not_quick_wins');
+select is(
+  transform_audit.report((select v from t_ids where k = 'run'))
+    ->'recommendations'->0->>'title',
+  'Let customers book without calling',
+  't_and_it_is_the_recommendation_the_outreach_hook_is_built_on');
 
 -- Phase 5, honestly: the audit points at a module, and says it has not shipped.
 select is(

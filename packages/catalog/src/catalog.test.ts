@@ -148,9 +148,11 @@ describe("repository scan (ground truth)", () => {
     // both APPLIED to canonical production on 2026-09-09 under CEO approval --
     // plus 0050, a forward-repair pinning the citext-vs-text semantics of five
     // format guards so they mean the same thing in the sandbox and in
-    // production (they did not). See notYetAppliedOrdinals in
-    // .hlbos/canonical.json, which now names only 0030 and 0031.
-    expect(inv.migrations.length).toBe(50);
+    // production (they did not), and 0051, a forward-repair so a run that
+    // assessed nothing stops calling itself 'completed'. All applied 2026-09-09.
+    // See notYetAppliedOrdinals in .hlbos/canonical.json, which now names only
+    // 0030 and 0031.
+    expect(inv.migrations.length).toBe(51);
     expect(inv.edgeFunctions).toContain("ai-gateway");
     expect(inv.edgeFunctions).not.toContain("tests");
     expect(inv.apps).toEqual(
