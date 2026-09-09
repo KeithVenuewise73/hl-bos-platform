@@ -53,6 +53,12 @@ export interface BarberWebAudit {
   confidence: Confidence;
   checksEvaluated: number;
   checksPossible: number;
+  /**
+   * One line for the stored dimension note. Each no-page case has its own,
+   * because "0 of 0 checks were evaluable on this page" is nonsense for a shop
+   * that has no page -- and a note is what a reader sees next to a blank score.
+   */
+  summary: string;
   findings: AuditFinding[];
 }
 
@@ -401,8 +407,63 @@ export function scoreBarberWebsite(input: ScoreInput): BarberWebAudit {
     confidence: "verified",
     checksEvaluated: evaluated.length,
     checksPossible: checks.length,
+    summary: `${evaluated.length} of ${checks.length} checks were evaluable on this page.`,
     findings,
   };
+}
+
+/**
+ * What a prospect list's "Website / Web Presence" cell actually says.
+ *
+ * The WNY list is 50 rows and only 10 carry a URL. The other 40 are research
+ * notes, and they are NOT all the same claim:
+ *
+ *   "No dedicated website confirmed"                     -> nothing found
+ *   "Booksy presence; dedicated site not confirmed"      -> bookable, unowned
+ *   "Square booking site / dedicated domain not confirmed"
+ *   "Vistaprint/booking presence reported; ..."
+ *
+ * Collapsing the second kind into the first would put "there is no way to book
+ * you online" in front of a shop that is already on Booksy. That is the fastest
+ * way to lose the call, and it would also be false.
+ */
+export type WebPresence =
+  | { kind: "url"; url: string }
+  | { kind: "absent"; note: string }
+  | { kind: "platform_only"; platform: string | null; note: string };
+
+const NOTE_PLATFORMS: ReadonlyArray<readonly [string, RegExp]> = [
+  ["square_appointments", /\bsquare\b/i],
+  ["booksy", /\bbooksy\b/i],
+  ["glossgenius", /\bgloss\s?genius\b/i],
+  ["styleseat", /\bstyle\s?seat\b/i],
+  ["vagaro", /\bvagaro\b/i],
+  ["squire", /\bsquire\b/i],
+  ["fresha", /\bfresha\b/i],
+  ["vistaprint", /\bvistaprint\b/i],
+];
+
+/** A note that reports SOME bookable/web presence while denying an owned one. */
+const PRESENCE_CLAIM = /\b(booking|book\s+online|presence|listing|page)\b/i;
+
+export function classifyWebPresence(raw: string | null | undefined): WebPresence {
+  const note = (raw ?? "").trim();
+  if (note === "") return { kind: "absent", note: "" };
+  if (/^https?:\/\//i.test(note)) return { kind: "url", url: note };
+
+  let platform: string | null = null;
+  for (const [name, re] of NOTE_PLATFORMS) {
+    if (re.test(note)) {
+      platform = name;
+      break;
+    }
+  }
+  // A named platform, or a note that reports a presence at all, means the shop
+  // is findable and probably bookable — just not on anything it owns.
+  if (platform !== null || PRESENCE_CLAIM.test(note)) {
+    return { kind: "platform_only", platform, note };
+  }
+  return { kind: "absent", note };
 }
 
 /**
@@ -418,9 +479,59 @@ export function scoreBarberWebsite(input: ScoreInput): BarberWebAudit {
  *     surfaces in the report as a gap, which is the honest outcome.
  */
 export function auditWithoutPage(
-  reason: "absent" | "unreachable",
-  detail: { url?: string | null; error?: string | null; source?: string | null },
+  reason: "absent" | "unreachable" | "platform_only",
+  detail: {
+    url?: string | null;
+    error?: string | null;
+    source?: string | null;
+    platform?: string | null;
+    note?: string | null;
+  },
 ): BarberWebAudit {
+  if (reason === "platform_only") {
+    // Two things are known from the list and nothing else is. The DIMENSION is
+    // therefore unknown and carries no score -- we have not seen a page -- but
+    // the two facts are real findings at `inferred` confidence. The schema
+    // allows exactly this: a finding's confidence is its own, independent of
+    // the dimension's.
+    const named = detail.platform ?? "a booking platform";
+    return {
+      rubricVersion: BARBER_WEB_RUBRIC_VERSION,
+      score: null,
+      confidence: "unknown",
+      checksEvaluated: 0,
+      checksPossible: 0,
+      summary:
+        `No page was fetched. Two facts are taken from the prospect list: a booking presence on ` +
+        `${named}, and no owned domain. The site itself has not been assessed.`,
+      findings: [
+        {
+          code: "owned_domain",
+          statement: `The shop's web presence is a page on ${named}; no owned domain was found.`,
+          evidenceUrl: null,
+          observed: {
+            platform: detail.platform ?? null,
+            source: detail.source ?? null,
+            note: detail.note ?? null,
+          },
+          confidence: "inferred",
+          severity: "high",
+          detector: DETECTOR,
+        },
+        {
+          // A PASS. Recording it is what stops the outreach from telling a shop
+          // that is already bookable that it cannot be booked.
+          code: "online_booking",
+          statement: `A booking presence was found on ${named}, so customers can book without calling.`,
+          evidenceUrl: null,
+          observed: { platform: detail.platform ?? null, note: detail.note ?? null },
+          confidence: "inferred",
+          severity: "info",
+          detector: DETECTOR,
+        },
+      ],
+    };
+  }
   if (reason === "absent") {
     return {
       rubricVersion: BARBER_WEB_RUBRIC_VERSION,
@@ -428,6 +539,9 @@ export function auditWithoutPage(
       confidence: "inferred",
       checksEvaluated: 0,
       checksPossible: 0,
+      summary:
+        "No website to assess: the prospect list records none. Scored 0 because there is " +
+        "nothing there, not because something scored badly.",
       findings: [
         {
           code: "no_website",
@@ -448,6 +562,7 @@ export function auditWithoutPage(
     confidence: "unknown",
     checksEvaluated: 0,
     checksPossible: 0,
+    summary: `The site could not be read (${detail.error ?? "no reason recorded"}), so nothing about it was assessed.`,
     findings: [
       {
         code: "website_unreachable",

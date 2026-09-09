@@ -225,7 +225,10 @@ Deno.test("an unreachable site is scored NOT AT ALL, and says why", async () => 
   assert(out.fetchError !== undefined, "the reason is carried, not swallowed");
   assertEquals(r.dims[0].score, null, "the stored dimension carries no number");
   assertEquals(r.dims[0].confidence, "unknown", "and is stored as unknown");
-  assert(r.dims[0].note.includes("not read"), "the note says the site was not read");
+  assert(
+    r.dims[0].note.includes("could not be read"),
+    "the note says the site could not be read",
+  );
   assertEquals(out.recommendationCount, 0, "we know nothing, so we advise nothing");
   assertEquals(out.outreachHook, null, "and claim nothing");
 });
@@ -331,4 +334,78 @@ Deno.test("areasForImprovement sorts critical before high before medium", () => 
     "c,h,m",
     "worst first, info dropped",
   );
+});
+
+// ===========================================================================
+// The prospect list's research notes are not all the same claim
+//
+// 40 of the 50 WNY rows carry a note instead of a URL, and five of those
+// report a booking-platform presence. Collapsing them into "no website" would
+// tell a shop that is already on Booksy that customers cannot book it.
+// ===========================================================================
+
+Deno.test("a booking-platform note is not the same as no web presence", async () => {
+  const r = recordingStore();
+  const out = await analyseShop(
+    {
+      prospectId: "p9",
+      businessName: "Fade Factory",
+      websiteUrl: null,
+      webPresenceNote: "Booksy presence; dedicated site not confirmed",
+    },
+    r.store,
+    net({}),
+  );
+  const codes = r.findings.map((f) => f.code);
+  assert(codes.includes("owned_domain"), "the missing owned domain is the finding");
+  assert(codes.includes("online_booking"), "and booking is recorded as PRESENT");
+  assertEquals(out.hostedPlatform, "booksy", "the platform is named from the note");
+  assert(
+    out.recommendedCapabilities.includes("owned_website"),
+    "it points at owned_website",
+  );
+  assert(
+    !out.recommendedCapabilities.includes("booking"),
+    "and never at booking — the shop can already be booked",
+  );
+  assert(
+    (out.outreachHook ?? "").includes("booking platform"),
+    "the hook is about ownership, not about being unbookable",
+  );
+});
+
+Deno.test("a platform-only shop is NOT scored, because no page was seen", async () => {
+  const r = recordingStore();
+  const out = await analyseShop(
+    {
+      prospectId: "p10",
+      businessName: "Square Cuts",
+      websiteUrl: null,
+      webPresenceNote: "Square booking site / dedicated domain not confirmed",
+    },
+    r.store,
+    net({}),
+  );
+  assertEquals(out.websiteScore, null, "two facts from a note are not an assessment");
+  assertEquals(out.confidence, "unknown", "so the dimension is a gap");
+  // ...but the two facts are still recorded, at their own confidence.
+  assertEquals(r.findings.length, 2, "both facts stored");
+  assertEquals(r.dims[0].score, null, "no number invented");
+});
+
+Deno.test("'No dedicated website confirmed' stays a scored absence", async () => {
+  const r = recordingStore();
+  const out = await analyseShop(
+    {
+      prospectId: "p11",
+      businessName: "Nothing Online",
+      websiteUrl: null,
+      webPresenceNote: "No dedicated website confirmed",
+    },
+    r.store,
+    net({}),
+  );
+  assertEquals(out.websiteScore, 0, "there is genuinely nothing to score");
+  assertEquals(out.confidence, "inferred", "from the list, not from a fetch");
+  assertEquals(r.findings[0].code, "no_website", "named as an absence");
 });

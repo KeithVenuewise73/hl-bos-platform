@@ -38,6 +38,7 @@ import type {
 } from "./barber_web.ts";
 import {
   auditWithoutPage,
+  classifyWebPresence,
   hostedPlatform,
   outreachHook,
   recommendFrom,
@@ -50,6 +51,12 @@ export interface ShopInput {
   /** null means the prospect list records no site — itself a finding. */
   websiteUrl: string | null;
   locality?: string | null;
+  /**
+   * The prospect list's raw "Website / Web Presence" text, when it is a
+   * research note rather than a URL. It distinguishes "nothing found" from
+   * "bookable on someone else's platform", which are different sales stories.
+   */
+  webPresenceNote?: string | null;
 }
 
 /** Every database write the runner performs, as an injectable port. */
@@ -136,10 +143,23 @@ export async function analyseShop(
 
   const url = (shop.websiteUrl ?? "").trim();
   if (url === "") {
-    // The prospect list records no site. That is an observation about the
-    // shop, not a failure of ours, and it is the single strongest finding a
-    // local business audit can produce.
-    audit = auditWithoutPage("absent", { source: "prospect list" });
+    // No URL to fetch. What the list SAYS still distinguishes two different
+    // shops: one nobody can find, and one that is bookable on a platform it
+    // does not own. They get different findings and a different pitch.
+    const presence = classifyWebPresence(shop.webPresenceNote);
+    if (presence.kind === "platform_only") {
+      platform = presence.platform;
+      audit = auditWithoutPage("platform_only", {
+        platform: presence.platform,
+        note: presence.note,
+        source: "prospect list",
+      });
+    } else {
+      audit = auditWithoutPage("absent", {
+        source: "prospect list",
+        note: presence.kind === "absent" ? presence.note : null,
+      });
+    }
   } else {
     const scan = await runScan({
       rawUrl: url,
@@ -186,10 +206,9 @@ export async function analyseShop(
     score: audit.score,
     confidence: audit.confidence,
     rubricVersion: audit.rubricVersion,
-    note:
-      audit.confidence === "unknown"
-        ? `Site not read: ${fetchError ?? "no reason recorded"}.`
-        : `${audit.checksEvaluated} of ${audit.checksPossible} checks were evaluable on this page.`,
+    // The audit writes its own one-line summary: each no-page case needs a
+    // different sentence, and this is what a reader sees beside a blank score.
+    note: audit.summary,
   });
 
   // --- 4. Recommendations — judgment, and only for what actually failed.

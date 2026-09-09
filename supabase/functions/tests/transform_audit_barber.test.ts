@@ -22,6 +22,7 @@ import { extractFindings } from "../_shared/discovery/extract.ts";
 import {
   auditWithoutPage,
   BARBER_WEB_RUBRIC_VERSION,
+  classifyWebPresence,
   hostedPlatform,
   linkedBookingPlatform,
   outreachHook,
@@ -327,4 +328,73 @@ Deno.test("an unreachable site produces no hook at all", () => {
     error: "timeout",
   });
   assertEquals(outreachHook(r.findings), null, "no observation, no claim");
+});
+
+// ===========================================================================
+// Reading the prospect list's own notes
+// ===========================================================================
+
+Deno.test("web-presence notes are classified into three distinct kinds", () => {
+  assertEquals(
+    classifyWebPresence("https://www.burnsbarbershop.com/").kind,
+    "url",
+    "a URL is a URL",
+  );
+  assertEquals(
+    classifyWebPresence("No dedicated website confirmed").kind,
+    "absent",
+    "the plain 35-row case",
+  );
+  for (const note of [
+    "Booksy presence; dedicated site not confirmed",
+    "Square booking presence; dedicated site not confirmed",
+    "Square booking site / dedicated domain not confirmed",
+    "Vistaprint/booking presence reported; dedicated domain not confirmed",
+    "Booking-platform presence; dedicated site not confirmed",
+  ]) {
+    assertEquals(
+      classifyWebPresence(note).kind,
+      "platform_only",
+      `"${note}" reports a presence`,
+    );
+  }
+});
+
+Deno.test("the platform is named from the note where the note names one", () => {
+  const p = classifyWebPresence("Booksy presence; dedicated site not confirmed");
+  assertEquals(p.kind === "platform_only" ? p.platform : null, "booksy", "booksy");
+  const s = classifyWebPresence("Square booking site / dedicated domain not confirmed");
+  assertEquals(
+    s.kind === "platform_only" ? s.platform : null,
+    "square_appointments",
+    "square",
+  );
+  // A generic note still classifies, with no platform named rather than a guess.
+  const g = classifyWebPresence(
+    "Booking-platform presence; dedicated site not confirmed",
+  );
+  assertEquals(
+    g.kind === "platform_only" ? g.platform : "MISSING",
+    null,
+    "not guessed",
+  );
+});
+
+Deno.test("a platform-only shop is never told it cannot be booked", () => {
+  const a = auditWithoutPage("platform_only", { platform: "booksy", source: "list" });
+  assertEquals(a.score, null, "no page seen, so no score");
+  assertEquals(a.confidence, "unknown", "the dimension is a gap");
+  const booking = a.findings.find((f) => f.code === "online_booking")!;
+  assertEquals(booking.severity, "info", "booking is a PASS");
+  const recs = recommendFrom(a.findings);
+  assert(
+    !recs.some((r) => r.capabilityKey === "booking"),
+    "so booking is never recommended",
+  );
+  assertEquals(
+    recs.filter((r) => r.capabilityKey === "owned_website").length,
+    1,
+    "owned_website is",
+  );
+  assertEquals(outreachHook(a.findings)!.code, "owned_domain", "and the hook says so");
 });
