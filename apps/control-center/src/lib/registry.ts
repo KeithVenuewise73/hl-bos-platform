@@ -71,7 +71,7 @@ export const PORTFOLIO: readonly Product[] = [
     name: "Shop Transformation Analysis Tool",
     stage: "development",
     status:
-      "The pre-sale audit instrument. The `transform_audit` schema, the barbershop website rubric and the report assembly are LIVE in HL-BOS Core (applied 2026-09-09). It reuses the existing website scanner rather than adding a second one. LIVE and holding real data: the WNY 50-shop prospect list is imported and 40 shops have a complete stored analysis (35 with no website found, 5 on a booking platform they do not own; all 40 point at the owned_website module, which is not built yet). The other 10 carry a real URL and have no run at all -- no shop website has been fetched. The Control Center has a Shop Analysis page: the campaign worst-first, a full report per shop, a button that visits un-fetched websites from this machine, and a spreadsheet import.",
+      "The pre-sale audit instrument. The `transform_audit` schema, the barbershop website rubric and the report assembly are LIVE in HL-BOS Core (applied 2026-09-09). It reuses the existing website scanner rather than adding a second one. LIVE and holding real data: the WNY 50-shop prospect list is imported and 40 shops have a complete stored analysis (35 with no website found, 5 on a booking platform they do not own; all 40 point at the owned_website module, which is now live). The other 10 carry a real URL and have no run at all -- no shop website has been fetched. The Control Center has a Shop Analysis page: the campaign worst-first, a full report per shop, a button that visits un-fetched websites from this machine, and a spreadsheet import.",
     version: null,
     location: "HL-BOS Core (migrations 0049/0050), _shared/transform_audit",
   },
@@ -79,9 +79,9 @@ export const PORTFOLIO: readonly Product[] = [
     name: "BarberOS",
     stage: "development",
     status:
-      "Capability spine LIVE in HL-BOS Core (applied 2026-09-09), plus its first real module. `owned_website` -- a page the shop owns, with hours, services, prices, address, tap-to-call and a booking link -- is built and tested (migration 0052) but NOT YET APPLIED anywhere. Every table in it is gated on the capability switch, so turning the capability off makes the rows unwritable rather than merely hidden. The other eight modules remain 'planned' or 'deferred' and cannot be enabled. No shop has a page.",
+      "Capability spine LIVE in HL-BOS Core (applied 2026-09-09), plus its first real module, LIVE since 2026-09-10. `owned_website` -- a page the shop owns, with hours, services, prices, address, tap-to-call and a booking link -- is applied to production (migration 0052) and is the only capability in the catalog marked 'available'. Every table in it is gated on the capability switch by a database trigger, so turning the capability off makes the rows unwritable rather than merely hidden. The other eight modules remain 'planned' or 'deferred' and cannot be enabled. NOT YET TRUE: no shop has the capability enabled, no shop has a page, and nothing hosts the rendered HTML.",
     version: null,
-    location: "HL-BOS Core (migrations 0048/0050)",
+    location: "HL-BOS Core (migrations 0048/0050/0052)",
   },
   {
     name: "SalonAI",

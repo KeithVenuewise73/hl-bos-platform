@@ -209,3 +209,62 @@ in `ai` and `billing`, `credentials_ref_is_vault_ref` in `social`,
 These are deployed constraints on live schemas. Repairing them is a separate,
 owner-approved change with its own blast radius; rewriting them unannounced
 would be a second incident, not a fix. They are reported rather than repaired.
+
+---
+
+## Addendum — 2026-09-10: 0052 applied, and the fingerprint that disagreed
+
+`owned_website` (migration 0052) was applied to canonical production
+(`mvvtngiopdrgiedjmhfb`) under CEO approval. It is the first capability to come
+through 0048's gate, and the only one in the catalog now marked `available`.
+
+Security advisors: **36 → 36**, no net-new findings. The nine new
+`SECURITY DEFINER` functions do not appear in the
+`authenticated_security_definer_function_executable` lint for the same reason the
+earlier twenty-four do not — `barberos` is not in the PostgREST allow-list — and
+all four new tables carry SELECT policies, so none appears in
+`rls_enabled_no_policy` either.
+
+Production state after the apply, by query: 10 `barberos` tables, 4 capability
+gate triggers, 5 `barberos.*` permissions, 1 capability at `available`,
+`owned_website` at version 2, **0** rows in `barberos.sites`, **0** rows in
+`barberos.tenant_capabilities`. Nothing but schema was written.
+
+### The fingerprint differed, and the difference was citext again
+
+Per the previous addendum's lesson, the apply was transcribed and therefore
+verified rather than trusted: the same normalized fingerprint — over the four new
+tables' columns, constraints, policies, RLS flags, triggers and grants, the nine
+new functions, both new enums, and the permission, role-permission and capability
+rows — was computed on the local mirror and on production and compared.
+
+It **did not match** on the first comparison. Ten of the eleven components were
+identical; `fns` was not. Narrowing it: all nine function bodies were
+byte-identical (`md5(prosrc)` and length equal on both sides), so the difference
+was in the signature rendering, and it was one parameter:
+
+|                      | `pg_get_function_identity_arguments` for `upsert_site` |
+| -------------------- | ------------------------------------------------------ |
+| Canonical production | `p_slug citext`                                        |
+| Local sandbox        | `p_slug extensions.citext`                             |
+
+The same type, printed differently, because production's `search_path` carries
+`extensions` and the sandbox's does not — the identical mechanism recorded above
+as defect 2, surfacing this time in output formatting rather than in operator
+resolution. Normalized for schema-qualification, both sides give
+`a0c31416669a57cc0e7a4fd542a7f62d`.
+
+Worth stating plainly: this was a false positive, and it is what a verification
+step is supposed to do. A fingerprint that never disagrees is not evidence.
+
+### Still open
+
+The 35 weak citext CHECK constraints listed in the previous addendum are
+**unrepaired**, including the four vault-reference guards and
+`platform.tenants_slug_format`. Repairing them is still a separate,
+owner-approved change.
+
+Nothing hosts the rendered page. `barberos.site_content()` returns the content and
+`_shared/barberos/site_render.ts` turns it into HTML, but no service serves that
+HTML at an address a customer could visit. Until there is one, a shop can fill in
+its page and still have no page.
