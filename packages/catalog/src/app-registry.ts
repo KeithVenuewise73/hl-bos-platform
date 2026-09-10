@@ -260,6 +260,37 @@ export const APPLICATIONS: ApplicationRecord[] = [
     evidence: "apps/control-center; CLAUDE.md operating contract",
   },
 
+  {
+    key: "shop-pages",
+    name: "Shop Pages (BarberOS owned_website server)",
+    description:
+      "Serves a shop's published owned_website page to the public internet. The SAME handler the Supabase `site` function runs -- it imports it rather than copying it -- deployed where HTML is not rewritten to text/plain, and where pages live at /<slug> instead of /functions/v1/site/<slug>.",
+    category: "vertical_product",
+    repository: REPO,
+    owner: "KeithVenuewise73",
+    executiveOwner: "Keith Herman (CEO)",
+    currentBranch: "claude/shop-transformation-barber-os-ntwb2n",
+    environment: "production",
+    developmentStatus: "live",
+    deploymentStatus: "not_deployed",
+    productionUrl: null,
+    stagingUrl: null,
+    localUrl: "deno run apps/shop-pages/server.ts (see README)",
+    supabaseProject: CORE,
+    version: "0.1.0",
+    health: "yellow",
+    hosting:
+      "Coolify (self-hosted), from apps/shop-pages/Dockerfile with the repository root as build context",
+    dependencies: ["barberos.published_site()", "barberos.published_sitemap()"],
+    reusableModules: ["_shared/barberos/site_server", "_shared/barberos/site_render"],
+    softwareFactoryIntegration:
+      "The delivery half of the Shop Transformation Analysis Tool: the audit finds a shop has no website, this serves the one it gets.",
+    notes:
+      "Reads two read-only RPCs with the ANON key; no service-role key and no write path at any depth. Proved over real HTTP against a real PostgreSQL as role anon (scripts/local-test/site-serve-e2e.mjs). NOT yet deployed: it needs a host and a subdomain.",
+    evidence:
+      "apps/shop-pages + supabase/functions/_shared/barberos/site_server.ts; 35-check end-to-end, 8 of them on this exact root-path shape",
+  },
+
   // ======================================================================
   // VERTICAL PRODUCTS (HL-BOS)
   // ======================================================================

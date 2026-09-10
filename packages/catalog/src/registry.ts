@@ -185,6 +185,27 @@ const ASSETS: Asset[] = [
     evidence: "apps/control-center",
   },
   {
+    id: "app.shop-pages",
+    kind: "application",
+    name: "Shop Pages",
+    summary:
+      "The public server for a shop's owned_website page. Imports the same handler as the Supabase `site` function rather than copying it, so there is one implementation and one set of tests; what differs is a host that does not rewrite HTML to text/plain, and pages at /<slug> instead of /functions/v1/site/<slug>.",
+    maturity: "built_undeployed",
+    reuse: ["commercial", "reusable"],
+    owner: "Herman Legacy Digital",
+    layer: "HL-BOS",
+    key: "shop-pages",
+    location: "apps/shop-pages",
+    tags: ["public", "http", "barberos", "deployable"],
+    relationships: [
+      { kind: "consumes", to: "db.barberos" },
+      { kind: "consumes", to: "fn.site" },
+      { kind: "owned_by", to: "repo.hl-bos-platform" },
+    ],
+    evidence:
+      "apps/shop-pages (Dockerfile + server.ts); proved over real HTTP against a real PostgreSQL as role anon, 8 checks on this exact root-path shape; NOT deployed -- needs a host and a subdomain",
+  },
+  {
     id: "app.hl-bti",
     kind: "application",
     name: "HL-BTI App",

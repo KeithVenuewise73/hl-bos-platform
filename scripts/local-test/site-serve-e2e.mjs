@@ -28,6 +28,8 @@ const { main: startShim } = require("./postgrest-rpc-shim.cjs");
 
 const SHIM_PORT = 4556;
 const SITE_PORT = 8000;
+const PAGES_PORT = 8001;
+const PAGES_BASE = `http://127.0.0.1:${PAGES_PORT}`;
 const BASE = `http://127.0.0.1:${SITE_PORT}`;
 const DENO = process.env["HLBOS_DENO"] || "deno";
 
@@ -143,10 +145,10 @@ const site = spawn(
   },
 );
 
-async function waitForServer() {
+async function waitFor(url) {
   for (let i = 0; i < 100; i++) {
     try {
-      await fetch(`${BASE}/site/robots.txt`);
+      await fetch(url);
       return true;
     } catch {
       await new Promise((r) => setTimeout(r, 100));
@@ -155,9 +157,13 @@ async function waitForServer() {
   return false;
 }
 
+/** The second server, started part-way through. Killed in the finally block. */
+let pages = null;
+
 let exitCode = 1;
 try {
-  if (!(await waitForServer())) throw new Error("the site function never came up");
+  if (!(await waitFor(`${BASE}/site/robots.txt`)))
+    throw new Error("the site function never came up");
   console.log("\nserving on", BASE, "\n");
 
   // --- The page ---------------------------------------------------------------
@@ -257,12 +263,78 @@ try {
   const afterRepublish = await fetch(`${BASE}/site/truth-barbershop`);
   check("republishing puts it back", afterRepublish.status === 200);
 
+  // =========================================================================
+  // The SAME handler, on the host that will actually serve customers
+  //
+  // apps/shop-pages is not a port or a copy: it imports handle() from the same
+  // module. What changes is the shape of the deployment -- pages at the ROOT
+  // rather than under /functions/v1/site -- and that shape has only ever been
+  // unit-tested. This runs the real entrypoint over real HTTP.
+  // =========================================================================
+  console.log("\n--- apps/shop-pages (root paths, the Coolify shape) ---\n");
+  pages = spawn(
+    DENO,
+    ["run", "--allow-net", "--allow-env", "--quiet", "apps/shop-pages/server.ts"],
+    {
+      env: {
+        ...process.env,
+        SUPABASE_URL: `http://127.0.0.1:${SHIM_PORT}`,
+        SUPABASE_ANON_KEY: "local-anon-key",
+        SITE_PUBLIC_BASE: PAGES_BASE,
+        PORT: String(PAGES_PORT),
+      },
+      stdio: ["ignore", "inherit", "inherit"],
+    },
+  );
+  if (!(await waitFor(`${PAGES_BASE}/robots.txt`))) {
+    throw new Error("apps/shop-pages never came up");
+  }
+
+  const rootPage = await fetch(`${PAGES_BASE}/truth-barbershop`);
+  const rootHtml = await rootPage.text();
+  check("a page is served at the ROOT path", rootPage.status === 200);
+  check("with the same bytes as the other deployment", rootHtml === html);
+  check(
+    "as real HTML, because nothing here rewrites it",
+    rootPage.headers.get("content-type") === "text/html; charset=utf-8",
+  );
+  check(
+    "and our own content security policy survives",
+    (rootPage.headers.get("content-security-policy") || "").includes(
+      "frame-ancestors 'none'",
+    ),
+  );
+
+  const rootRobots = await (await fetch(`${PAGES_BASE}/robots.txt`)).text();
+  check(
+    "robots points at the root sitemap",
+    rootRobots.includes(`Sitemap: ${PAGES_BASE}/sitemap.xml`),
+    rootRobots.trim(),
+  );
+  const rootSitemap = await (await fetch(`${PAGES_BASE}/sitemap.xml`)).text();
+  check(
+    "the sitemap carries clean root URLs",
+    rootSitemap.includes(`<loc>${PAGES_BASE}/truth-barbershop</loc>`),
+  );
+  const rootRedirect = await fetch(`${PAGES_BASE}/Truth-Barbershop`, {
+    redirect: "manual",
+  });
+  check(
+    "and a capitalised URL redirects with no path prefix at all",
+    rootRedirect.status === 301 &&
+      rootRedirect.headers.get("location") === "/truth-barbershop",
+    `${rootRedirect.status} ${rootRedirect.headers.get("location")}`,
+  );
+  const rootDraft = await fetch(`${PAGES_BASE}/88-south-barbershop`);
+  check("a draft is still invisible here", rootDraft.status === 404);
+
   console.log(failures === 0 ? "\nALL CHECKS PASSED" : `\n${failures} CHECK(S) FAILED`);
   exitCode = failures === 0 ? 0 : 1;
 } catch (e) {
   console.error("\nERROR:", e instanceof Error ? e.message : String(e));
 } finally {
   site.kill("SIGKILL");
+  if (pages !== null) pages.kill("SIGKILL");
   shim.close();
   await db.end();
 }

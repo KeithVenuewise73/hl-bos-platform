@@ -493,3 +493,60 @@ render of the Shop Analysis page and reports, in plain English, whether a
 customer would get a page or a wall of source code. It asks for a slug nothing is
 published at, so it works today, before any shop has a page — which is exactly
 when a status panel is most tempting to fake and least able to be.
+
+---
+
+## Addendum — 2026-09-10: Coolify, and one handler with two deployments
+
+There is already a self-hosted Coolify server, which dissolves the question the
+previous addendum was about to ask. No new vendor, no DNS migration, no add-on,
+and a host that can carry as many domains as we like — which is the property a
+Supabase custom domain structurally cannot have, and the one that eventually lets
+a _shop_ own its page's domain.
+
+`apps/shop-pages` is the deployable form. The decision worth recording is what it
+is **not**: a port, a fork, or a copy. `server.ts` imports `handle()` from
+`supabase/functions/_shared/barberos/site_server.ts`. There is one
+implementation of routing, headers, caching, the lowercase redirect and the
+404-that-hides-drafts, and one set of tests over it. Two deployments of one
+handler cannot drift; two copies would, and the copy that drifts is always the
+one serving customers.
+
+Exactly two things differ, both forced by the host:
+
+|                     | Supabase `site`             | `apps/shop-pages` |
+| ------------------- | --------------------------- | ----------------- |
+| Page address        | `/functions/v1/site/<slug>` | `/<slug>`         |
+| `Content-Type` HTML | rewritten to `text/plain`   | served as sent    |
+
+`SITE_PUBLIC_BASE` is **required** here, where it is defaulted on Supabase. On
+Supabase there is a correct default — the project's own API URL. On a general
+host there is not, and this module has already shipped that exact bug once, so
+the server refuses to start rather than guess.
+
+The Supabase deployment stays. Same code, and it is what proved the anon database
+path works in production.
+
+### Proved
+
+`scripts/local-test/site-serve-e2e.mjs` now starts this exact entrypoint over
+real HTTP against a real PostgreSQL, through a shim that runs every call as role
+`anon`. 35 checks, 8 of them on the root-path shape: a page at `/<slug>`
+**byte-identical** to the other deployment's, served as real HTML with our own
+CSP intact, a sitemap of clean root URLs, a redirect carrying no path prefix, and
+a draft still invisible.
+
+### Not proved
+
+**The Docker image has never been built.** There is no Docker in this
+environment. `server.ts` is type-checked and run; the `Dockerfile` is written and
+not executed, including the pinned base image tag. That is the one part of this
+change that is asserted rather than demonstrated, and the first Coolify build is
+what settles it.
+
+### What the governance caught
+
+A new directory under `apps/` that appears in neither the application registry
+nor the catalog fails the completeness test — twice, once per registry. Both are
+now registered, `deploymentStatus: not_deployed`, `health: yellow`, which is what
+is true until it is running somewhere.
