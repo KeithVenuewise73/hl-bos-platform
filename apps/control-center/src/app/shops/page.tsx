@@ -1,6 +1,13 @@
 import { connect, listShops, type ShopRow } from "@/lib/shop-audit";
 import { Card, Empty } from "@/components/ui";
 import { ShopActions, ImportList } from "@/components/ShopActions";
+import { readEnvFile } from "@/lib/secrets";
+import {
+  defaultSiteBase,
+  describeServing,
+  probeUrl,
+  type ProbeResult,
+} from "@/lib/site-serving";
 
 export const dynamic = "force-dynamic";
 
@@ -123,6 +130,8 @@ export default async function ShopsPage() {
         </div>
 
         <ShopActions fetchable={campaign.fetchable} />
+
+        <ServingStatus />
 
         {caps.size > 0 && (
           <p style={{ margin: "14px 0 0", fontSize: 13, color: "#8b949e" }}>
@@ -251,5 +260,65 @@ function Td({ children, right }: { children: React.ReactNode; right?: boolean })
     <td style={{ padding: "9px 10px", textAlign: right ? "right" : "left" }}>
       {children}
     </td>
+  );
+}
+
+/**
+ * Whether a customer could actually read a shop's page today.
+ *
+ * Asked of the live address every time this page renders, because "deployed"
+ * and "readable by a customer" turned out to be different things and only a
+ * real request tells them apart. It probes a slug nothing is published at, so
+ * it works before any shop has a page -- which is the situation now.
+ */
+async function ServingStatus() {
+  const env = await readEnvFile();
+  const base =
+    env["HLBOS_SITE_PUBLIC_BASE"] ??
+    defaultSiteBase(env["HLBOS_SUPABASE_PROJECT_REF"] ?? null);
+
+  if (base === null) {
+    return (
+      <p style={{ margin: "14px 0 0", fontSize: 13, color: "#8b949e" }}>
+        Where shop pages are served is not configured, so this cannot be checked.
+      </p>
+    );
+  }
+
+  let result: ProbeResult;
+  try {
+    const res = await fetch(probeUrl(base), {
+      method: "GET",
+      cache: "no-store",
+      signal: AbortSignal.timeout(10_000),
+    });
+    result = { status: res.status, contentType: res.headers.get("content-type") };
+  } catch (e) {
+    result = { error: e instanceof Error ? e.message : String(e) };
+  }
+
+  const v = describeServing(result);
+  return (
+    <div
+      style={{
+        margin: "16px 0 0",
+        padding: "12px 14px",
+        borderRadius: 8,
+        border: `1px solid ${v.servedAsWebPage ? "#238636" : "#9e6a03"}`,
+        background: v.servedAsWebPage ? "#0d2818" : "#211a02",
+      }}
+    >
+      <div style={{ fontSize: 14, fontWeight: 600, color: "#e6edf3" }}>
+        {v.servedAsWebPage ? "\u2713 " : "\u26a0 "}
+        {v.headline}
+      </div>
+      <p style={{ margin: "6px 0 0", fontSize: 13, color: "#8b949e" }}>{v.detail}</p>
+      {v.remedy !== "" && (
+        <p style={{ margin: "6px 0 0", fontSize: 13, color: "#8b949e" }}>{v.remedy}</p>
+      )}
+      <p style={{ margin: "8px 0 0", fontSize: 12, color: "#6e7681" }}>
+        Checked just now, from this machine: {base}
+      </p>
+    </div>
   );
 }

@@ -421,3 +421,75 @@ Everything about it is covered end to end locally against a real PostgreSQL as
 role `anon`; nothing about it has been served from production. The first real
 published page is what closes that gap, and it is deliberately not being faked
 to close it sooner.
+
+---
+
+## Addendum — 2026-09-10: the domain, and why a Supabase custom domain is the wrong one
+
+The previous addendum recorded, from observation, that Supabase rewrites our HTML
+to `text/plain` on the shared domain. Supabase's own documentation says it
+outright, so this is no longer an inference:
+
+> HTML content is not supported. `GET` requests that return `text/html` will be
+> rewritten to `text/plain`. Edge Functions are designed for APIs and data
+> processing, not serving web pages.
+> — [Routing](https://supabase.com/docs/guides/functions/http-methods)
+
+Serving HTML at all requires a custom domain. So the obvious move is to buy the
+custom-domain add-on and point a subdomain at HL-BOS Core. **That is the wrong
+move**, and the same documentation is why.
+
+### What the custom-domain feature actually is
+
+From [Custom Domains](https://supabase.com/docs/guides/platform/custom-domains):
+
+| Constraint                                                                                                                 | Consequence here                                                                       |
+| -------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------- |
+| "Custom domains are **not intended to enable hosting of frontend applications** through Edge Functions."                   | We would be using it against its stated purpose.                                       |
+| "You can only attach a **single** custom domain to any given Supabase project."                                            | **A shop can never have its own domain this way.** One domain, for the whole platform. |
+| "Currently, only **subdomains** are supported. Use `api.example.com` instead of `example.com`."                            | `hermanlegacydigital.com` itself cannot be used.                                       |
+| Powered by CNAME only, paid add-on on a paid plan.                                                                         | A recurring cost for a marketing concern.                                              |
+| "Supabase Auth will use the custom domain immediately once activated." OAuth callback URLs and the SAML `EntityID` change. | The platform's **identity hostname** becomes a customer-facing marketing domain.       |
+
+The second row is the one that settles it. `owned_domain` is a _failing audit
+finding_ for five of the fifty WNY shops — they are bookable only on a platform
+they do not own — and it is the finding this module exists to answer. A route
+that structurally permits exactly one domain for the entire platform cannot ever
+answer it. It would fix today's symptom and permanently foreclose the goal.
+
+The fifth row is nearly as bad: it welds the identity hostname of the whole
+business OS to a page-hosting decision, for a $10/month add-on.
+
+### The decision
+
+**Shop pages are served by a web host, not by Supabase.** The page server is
+already portable — `site_server.ts` and `site_render.ts` have no Supabase
+dependency, `site_source_rest.ts` is the only file that talks to the database,
+and it does so over plain HTTP with the anon key. Moving the same handler behind
+a host that can serve HTML is a deployment change, not a rewrite.
+
+That buys, in one step, everything the custom domain cannot:
+
+- pages at `/<slug>` instead of `/functions/v1/site/<slug>`
+- our own `Content-Type` and our own CSP, because nothing rewrites them
+- **many** domains, so a shop can eventually have its own — the actual finding
+- HL-BOS Core keeps its own hostname, and Auth is untouched
+- no add-on
+
+The Supabase deployment stays as it is. It is not wasted: it is the same handler,
+it proved the whole database path works as `anon` in production, and it remains a
+correct API-shaped endpoint. It is simply not where customer-facing HTML belongs,
+and the platform documentation agrees.
+
+### What this needs that engineering cannot supply
+
+A host account, and one CNAME on a subdomain of `hermanlegacydigital.com`. Both
+are access decisions. Nothing else about the module changes.
+
+### The console now says this out loud
+
+`apps/control-center/src/lib/site-serving.ts` probes the live address on every
+render of the Shop Analysis page and reports, in plain English, whether a
+customer would get a page or a wall of source code. It asks for a slug nothing is
+published at, so it works today, before any shop has a page — which is exactly
+when a status panel is most tempting to fake and least able to be.
