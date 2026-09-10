@@ -344,3 +344,80 @@ an engineering one.
 Nothing counts a page view. "Did anyone visit my page" is the obvious next
 question a shop will ask, and the honest answer today is that the platform does
 not know. It is deliberately not guessed at.
+
+---
+
+## Addendum — 2026-09-10: deployed, and the three things deploying found
+
+Migration 0053 is applied to canonical production and the `site` edge function is
+deployed — the first edge function this platform has ever deployed. The apply
+fingerprinted identical on the first comparison
+(`647ace45300930371f6d68e6b0b0b157`), including a reachability line asserted
+rather than assumed: `anon` has no USAGE on `barberos`, can execute the wrapper,
+and cannot execute the function the wrapper calls.
+
+Security advisors went **36 → 40**. I predicted 38 and was wrong about the
+arithmetic, not the cause: each of the two wrappers trips both
+`anon_security_definer_function_executable` and
+`authenticated_security_definer_function_executable`, so two functions produce
+four findings. Every finding names one of those two, which is the design.
+
+### 1. The function cannot know its own address (found in production)
+
+Version 1 was live and answering, and its `robots.txt` said:
+
+```
+Sitemap: https://edge-runtime.supabase.com/site/sitemap.xml
+```
+
+Inside Supabase's edge runtime, `x-forwarded-host` is the internal runtime host.
+Building absolute URLs from it advertised a sitemap on a domain we do not own,
+and sent the 301 redirect there too — which is why a capitalised URL answered
+`401 INVALID_DENO_SUBHOST` rather than the shop's page.
+
+The public address is now **configuration** (`SITE_PUBLIC_BASE`, defaulting to
+the project's API URL plus this function's path), not something inferred.
+
+### 2. The first fix was incomplete (found in production, again)
+
+Version 2 made the redirect relative, which fixes the host and not the path: the
+gateway also strips `/functions/v1` before the function sees the URL, so the
+function redirected to `/site/x` and the gateway answered _"requested path is
+invalid"_. A request behind a gateway knows neither its external host nor its
+external prefix. Version 3 takes both from the configured base and is verified
+on the real URL.
+
+Worth naming plainly: the same root cause produced two bugs, and I shipped a fix
+for the first that did not cover the second. Only redeploying caught it.
+
+### 3. HTML is sandboxed on the shared domain — the domain is now a blocker
+
+The gateway rewrote our `Content-Type` and our `Content-Security-Policy` on
+exactly the responses whose bodies were HTML and XML, and left the plain-text one
+untouched:
+
+| Response      | We sent                          | It arrived as                 |
+| ------------- | -------------------------------- | ----------------------------- |
+| `robots.txt`  | `text/plain; charset=utf-8`      | `text/plain; charset=utf-8` ✓ |
+| `robots.txt`  | our full CSP                     | our full CSP ✓                |
+| `sitemap.xml` | `application/xml; charset=utf-8` | `text/plain`                  |
+| 404 page      | `text/html; charset=utf-8`       | `text/plain`                  |
+| both above    | our full CSP                     | `default-src 'none'; sandbox` |
+
+That is content-type-driven sandboxing of active content on the shared
+`*.supabase.co` domain — observed, not assumed, and the plain-text control is
+what makes it conclusive.
+
+**Consequence: a shop's page opened on the Supabase URL renders as its own source
+code.** The serving layer is correct; the address is not usable for HTML. A
+custom domain on the project is therefore a **functional requirement** for this
+module, not the SEO preference the previous addendum described. That earlier
+framing understated it.
+
+### Still not verified from production
+
+No shop has published a page, so `renderSite()` has never run in HL-BOS Core.
+Everything about it is covered end to end locally against a real PostgreSQL as
+role `anon`; nothing about it has been served from production. The first real
+published page is what closes that gap, and it is deliberately not being faked
+to close it sooner.

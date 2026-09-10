@@ -134,6 +134,10 @@ const site = spawn(
       ...process.env,
       SUPABASE_URL: `http://127.0.0.1:${SHIM_PORT}`,
       SUPABASE_ANON_KEY: "local-anon-key",
+      // The public address is configuration. Set here so the run also proves
+      // the variable is read -- the first real deployment showed that a
+      // request cannot tell the function its own public address.
+      SITE_PUBLIC_BASE: `${BASE}/site`,
     },
     stdio: ["ignore", "inherit", "inherit"],
   },
@@ -200,19 +204,26 @@ try {
   // --- Redirect, robots, sitemap ----------------------------------------------
   const caps = await fetch(`${BASE}/site/Truth-Barbershop`, { redirect: "manual" });
   check(
-    "a capitalised URL redirects to the real one",
-    caps.status === 301 &&
-      (caps.headers.get("location") || "").endsWith("/site/truth-barbershop"),
+    "a capitalised URL redirects to the real one, relatively",
+    caps.status === 301 && caps.headers.get("location") === "/site/truth-barbershop",
     `${caps.status} ${caps.headers.get("location")}`,
   );
 
   const robots = await (await fetch(`${BASE}/site/robots.txt`)).text();
   check("robots.txt allows indexing", robots.includes("Allow: /"));
-  check("and names the sitemap", robots.includes("/site/sitemap.xml"));
+  check(
+    "and names the sitemap at the CONFIGURED address",
+    robots.includes(`Sitemap: ${BASE}/site/sitemap.xml`),
+    robots.trim(),
+  );
 
   const sitemap = await (await fetch(`${BASE}/site/sitemap.xml`)).text();
   check("the sitemap lists the published page", sitemap.includes("truth-barbershop"));
   check("and not the draft", !sitemap.includes("88-south"));
+  check(
+    "with an absolute URL built from the configured base",
+    sitemap.includes(`<loc>${BASE}/site/truth-barbershop</loc>`),
+  );
 
   // --- Methods and caching ----------------------------------------------------
   const head = await fetch(`${BASE}/site/truth-barbershop`, { method: "HEAD" });

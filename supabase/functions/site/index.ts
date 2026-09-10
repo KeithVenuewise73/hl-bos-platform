@@ -35,6 +35,23 @@ function required(name: string): string {
   return v;
 }
 
-const source = restSource(required("SUPABASE_URL"), required("SUPABASE_ANON_KEY"));
+const supabaseUrl = required("SUPABASE_URL");
+const source = restSource(supabaseUrl, required("SUPABASE_ANON_KEY"));
 
-Deno.serve((req) => handle(req, source));
+// THE PUBLIC ADDRESS IS CONFIGURATION, NOT SOMETHING TO SNIFF.
+//
+// The first deployment of this function proved why: inside Supabase's edge
+// runtime `x-forwarded-host` is `edge-runtime.supabase.com`, so a robots.txt
+// built from the request advertised a sitemap on a domain we do not own, and
+// the 301 redirect sent visitors there too (it answered 401
+// INVALID_DENO_SUBHOST). The request genuinely does not know.
+//
+// SITE_PUBLIC_BASE is what to set when these pages get a real address -- a
+// custom domain, or a proxy that serves them at the root. Until then the
+// project's own API URL plus this function's path is exactly right, and needs
+// no configuration to be correct.
+const publicBase =
+  Deno.env.get("SITE_PUBLIC_BASE") ??
+  `${supabaseUrl.replace(/\/+$/, "")}/functions/v1/site`;
+
+Deno.serve((req) => handle(req, source, publicBase));

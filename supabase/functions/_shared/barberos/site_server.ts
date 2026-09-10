@@ -41,7 +41,9 @@ export const SLUG_RE = /^[a-z0-9][a-z0-9-]{1,62}[a-z0-9]$/;
 
 export type Route =
   | { kind: "page"; slug: string }
-  | { kind: "moved"; to: string }
+  // Only the corrected slug. The PATH it lives at is not knowable from the
+  // request -- see the note on publicOrigin() -- so the caller builds it.
+  | { kind: "moved"; slug: string }
   | { kind: "robots" }
   | { kind: "sitemap" }
   | { kind: "none" };
@@ -64,7 +66,7 @@ export function splitPath(pathname: string): { basePath: string; rest: string[] 
 }
 
 export function routeOf(pathname: string): Route {
-  const { basePath, rest } = splitPath(pathname);
+  const { rest } = splitPath(pathname);
   if (rest.length !== 1) return { kind: "none" };
 
   const raw = rest[0]!;
@@ -84,16 +86,23 @@ export function routeOf(pathname: string): Route {
   // for a search engine to split the shop's ranking between.
   const slug = decoded.toLowerCase();
   if (!SLUG_RE.test(slug)) return { kind: "none" };
-  if (slug !== decoded) {
-    return { kind: "moved", to: `${basePath === "/" ? "" : basePath}/${slug}` };
-  }
+  if (slug !== decoded) return { kind: "moved", slug };
   return { kind: "page", slug };
 }
 
 /**
- * The address this page is being served at, as seen from outside. Read from the
- * forwarding headers when they are present, because behind Supabase's gateway
- * the request URL is the internal one.
+ * The address this page is being served at, as seen from outside.
+ *
+ * A REQUEST CANNOT TELL YOU YOUR OWN PUBLIC ADDRESS, and the first deployment
+ * proved it: inside Supabase's edge runtime `x-forwarded-host` is
+ * `edge-runtime.supabase.com`, an internal host. Trusting it made robots.txt
+ * advertise a sitemap on a domain we do not own, and made the 301 redirect
+ * point there too -- which is why a capitalised URL came back 401
+ * INVALID_DENO_SUBHOST instead of the shop's page.
+ *
+ * So the public base is CONFIGURATION (`publicBase`, from the environment),
+ * and this is only the fallback for the local harness and the tests, where the
+ * request really is the whole truth.
  */
 export function publicOrigin(req: Request): string {
   const h = req.headers;
@@ -101,6 +110,18 @@ export function publicOrigin(req: Request): string {
   const proto = h.get("x-forwarded-proto") ?? "https";
   if (host) return `${proto}://${host}`;
   return new URL(req.url).origin;
+}
+
+/**
+ * The path part of the public base, with no trailing slash. "" when the pages
+ * are served at the root of their host.
+ */
+function publicPathOf(base: string, fallback: string): string {
+  try {
+    return new URL(base).pathname.replace(/\/+$/, "");
+  } catch {
+    return fallback === "/" ? "" : fallback;
+  }
 }
 
 async function etagOf(body: string): Promise<string> {
@@ -167,7 +188,11 @@ function notFound(): Response {
  * One request in, one response out. `source` is the only thing that touches the
  * database; every other decision here is made from the request alone.
  */
-export async function handle(req: Request, source: SiteSource): Promise<Response> {
+export async function handle(
+  req: Request,
+  source: SiteSource,
+  publicBase?: string,
+): Promise<Response> {
   if (req.method !== "GET" && req.method !== "HEAD") {
     return new Response("Method not allowed\n", {
       status: 405,
@@ -177,34 +202,49 @@ export async function handle(req: Request, source: SiteSource): Promise<Response
 
   const url = new URL(req.url);
   const route = routeOf(url.pathname);
-  const origin = publicOrigin(req);
+  const { basePath } = splitPath(url.pathname);
+  // Configured if we have been told; otherwise reconstructed from the request,
+  // which is right locally and wrong behind a gateway. See publicOrigin().
+  const base =
+    publicBase?.replace(/\/+$/, "") ??
+    `${publicOrigin(req)}${basePath === "/" ? "" : basePath}`;
 
   if (route.kind === "none") return notFound();
 
   if (route.kind === "moved") {
+    // RELATIVE (RFC 7231 allows it), so the redirect stays on whatever host the
+    // visitor actually used -- but built from the PUBLIC path, not the one this
+    // request arrived on.
+    //
+    // The first fix here was relative-but-from-the-request, and it was still
+    // wrong: Supabase's gateway strips `/functions/v1` before the function sees
+    // the URL, so the function received `/site/X` and redirected to
+    // `/site/x` -- a path the gateway rejects with "requested path is invalid".
+    // The request does not know the external prefix any more than it knows the
+    // external host. Both come from the configured base.
     return new Response(null, {
       status: 301,
-      headers: { ...baseHeaders(), location: `${origin}${route.to}${url.search}` },
+      headers: {
+        ...baseHeaders(),
+        location: `${publicPathOf(base, basePath)}/${route.slug}${url.search}`,
+      },
     });
   }
 
   if (route.kind === "robots") {
-    const { basePath } = splitPath(url.pathname);
-    const body = `User-agent: *\nAllow: /\n\nSitemap: ${origin}${basePath === "/" ? "" : basePath}/sitemap.xml\n`;
+    const body = `User-agent: *\nAllow: /\n\nSitemap: ${base}/sitemap.xml\n`;
     return respond(req, body, "text/plain; charset=utf-8", "public, max-age=3600");
   }
 
   try {
     if (route.kind === "sitemap") {
-      const { basePath } = splitPath(url.pathname);
-      const prefix = `${origin}${basePath === "/" ? "" : basePath}`;
       const entries = await source.sitemap();
       const urls = entries
         .filter((e) => SLUG_RE.test(e.slug))
         .map((e) => {
           const lastmod = e.published_at ? e.published_at.slice(0, 10) : null;
           return (
-            `  <url><loc>${esc(`${prefix}/${e.slug}`)}</loc>` +
+            `  <url><loc>${esc(`${base}/${e.slug}`)}</loc>` +
             (lastmod ? `<lastmod>${esc(lastmod)}</lastmod>` : "") +
             `</url>`
           );

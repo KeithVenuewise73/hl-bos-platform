@@ -1060,7 +1060,7 @@ const ASSETS: Asset[] = [
     name: "Shop Page Server",
     summary:
       "Serves a shop's published owned_website page to the public internet: one slug in, one HTML page out, plus robots.txt and a sitemap. The only unauthenticated HTTP surface in the platform (verify_jwt = false) and the only one with no third-party dependency in its serving path.",
-    maturity: "built_undeployed",
+    maturity: "live",
     reuse: ["reusable"],
     owner: "Herman Legacy Platform",
     layer: "HL-BOS",
@@ -1072,7 +1072,7 @@ const ASSETS: Asset[] = [
       { kind: "consumes", to: "db.barberos" },
     ],
     evidence:
-      "supabase/functions/site + _shared/barberos/site_server.ts; 23 Deno tests and a 25-check end-to-end against a real PostgreSQL as role anon; NOT deployed (0 edge functions deployed to HL-BOS Core) and its read path (migration 0053) is not applied",
+      "DEPLOYED to HL-BOS Core 2026-09-10 (the first edge function in this platform that is), verify_jwt=false, version 3; migration 0053 applied the same day. Verified live from production via pg_net: robots.txt, sitemap.xml, the lowercase redirect and the 404 all correct. 27 Deno tests and a 27-check end-to-end. NOT verified live: the rendered page itself, because no shop has published one yet. NOT usable as a website on the *.supabase.co domain -- the gateway rewrites HTML responses to text/plain with a sandbox CSP, so it needs a custom domain.",
   },
   {
     id: "fn._shared",
@@ -1205,7 +1205,7 @@ const ASSETS: Asset[] = [
     "HL-BOS",
     "Module catalog, prerequisites, bundles, per-tenant capability toggle, the shop record, and the first module behind that toggle: owned_website (a page the shop owns -- hours, services, prices, address, tap-to-call, booking link), gated table-by-table by a trigger on the capability. The other eight modules remain 'planned' or 'deferred' and cannot be enabled.",
     "live",
-    "supabase/migrations 0048/0052 APPLIED to HL-BOS Core (fingerprint-verified 2026-09-09 and 2026-09-10); 0053 (the public read path) built and NOT applied; no tenant has the capability enabled and no page exists yet",
+    "supabase/migrations 0048/0052/0053 APPLIED to HL-BOS Core (each fingerprint-verified against the local build); the public read path is live and answering as role anon; no tenant has the capability enabled and no page exists yet",
   ),
   ...db(
     "transform_audit",

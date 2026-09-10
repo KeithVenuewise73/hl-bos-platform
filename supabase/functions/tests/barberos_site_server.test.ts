@@ -125,11 +125,7 @@ Deno.test(
   () => {
     const r = routeOf("/site/Elmwood-Barber-Co");
     assertEquals(r.kind, "moved", "permanent redirect");
-    assertEquals(
-      r.kind === "moved" ? r.to : "",
-      "/site/elmwood-barber-co",
-      "lowercased",
-    );
+    assertEquals(r.kind === "moved" ? r.slug : "", "elmwood-barber-co", "lowercased");
   },
 );
 
@@ -248,44 +244,126 @@ Deno.test("a stale etag gets the page", async () => {
 // ===========================================================================
 
 Deno.test(
-  "robots points at the sitemap on the address the request arrived at",
+  "robots points at the CONFIGURED sitemap address, not a sniffed one",
   async () => {
+    // The bug the first deployment found: inside Supabase's edge runtime
+    // x-forwarded-host is `edge-runtime.supabase.com`, so a robots.txt built
+    // from the request advertised a sitemap on a domain we do not own. The
+    // configured base must win over anything in the request.
     const res = await handle(
       new Request("https://internal.invalid/site/robots.txt", {
-        headers: { "x-forwarded-host": "shops.example", "x-forwarded-proto": "https" },
+        headers: { "x-forwarded-host": "edge-runtime.supabase.com" },
       }),
       source(),
+      "https://shops.example/functions/v1/site",
     );
     const body = await res.text();
     assert(body.includes("Allow: /"), "indexing is allowed -- that is the point");
     assert(
-      body.includes("Sitemap: https://shops.example/site/sitemap.xml"),
-      "absolute sitemap URL from the forwarded host",
+      body.includes("Sitemap: https://shops.example/functions/v1/site/sitemap.xml"),
+      "the configured base, not the forwarded host",
+    );
+    assert(!body.includes("edge-runtime"), "the internal host appears nowhere");
+  },
+);
+
+Deno.test("a trailing slash on the configured base does not double up", async () => {
+  const res = await handle(
+    new Request("https://x.invalid/site/robots.txt"),
+    source(),
+    "https://shops.example/site/",
+  );
+  assert(
+    (await res.text()).includes("Sitemap: https://shops.example/site/sitemap.xml"),
+    "one slash",
+  );
+});
+
+Deno.test("the redirect is relative, so it is right on every address", async () => {
+  // An absolute Location built from the request sent visitors to
+  // edge-runtime.supabase.com, which answered 401 INVALID_DENO_SUBHOST. A
+  // relative Location is resolved by the browser against the address it
+  // actually used, so it is correct on the Supabase URL, on a custom domain and
+  // behind any proxy.
+  const res = await handle(
+    new Request("https://internal.invalid/functions/v1/site/Elmwood-Barber-Co", {
+      headers: { "x-forwarded-host": "edge-runtime.supabase.com" },
+    }),
+    source(),
+  );
+  assertEquals(res.status, 301, "permanent");
+  assertEquals(
+    res.headers.get("location"),
+    "/functions/v1/site/elmwood-barber-co",
+    "relative, no host, and the PUBLIC path prefix",
+  );
+});
+
+Deno.test(
+  "the redirect uses the PUBLIC path, not the one the request arrived on",
+  async () => {
+    // The production bug, exactly. Supabase's gateway strips `/functions/v1`
+    // before the function sees the URL, so a redirect built from the request path
+    // pointed at `/site/x` -- which the gateway rejects as an invalid path. The
+    // configured base carries the external prefix; the request does not have it.
+    const res = await handle(
+      new Request("https://internal.invalid/site/Elmwood-Barber-Co"),
+      source(),
+      "https://shops.example/functions/v1/site",
+    );
+    assertEquals(res.status, 301, "permanent");
+    assertEquals(
+      res.headers.get("location"),
+      "/functions/v1/site/elmwood-barber-co",
+      "the prefix the visitor actually needs",
     );
   },
 );
 
-Deno.test("the sitemap lists published pages as absolute URLs", async () => {
+Deno.test("pages served at the root of a host redirect to the root", async () => {
   const res = await handle(
-    new Request("https://internal.invalid/functions/v1/site/sitemap.xml", {
-      headers: { "x-forwarded-host": "shops.example" },
-    }),
+    new Request("https://internal.invalid/site/Elmwood-Barber-Co"),
     source(),
+    "https://shops.example",
   );
-  assertEquals(
-    res.headers.get("content-type"),
-    "application/xml; charset=utf-8",
-    "xml",
-  );
-  const xml = await res.text();
-  assert(
-    xml.includes(
-      "<loc>https://shops.example/functions/v1/site/elmwood-barber-co</loc>",
-    ),
-    "absolute, with the prefix the request used",
-  );
-  assert(xml.includes("<lastmod>2026-09-10</lastmod>"), "a date, not a timestamp");
+  assertEquals(res.headers.get("location"), "/elmwood-barber-co", "no prefix at all");
 });
+
+Deno.test("a query string survives the redirect", async () => {
+  const res = await get("/site/Elmwood-Barber-Co?utm_source=card");
+  assertEquals(
+    res.headers.get("location"),
+    "/site/elmwood-barber-co?utm_source=card",
+    "kept",
+  );
+});
+
+Deno.test(
+  "the sitemap lists published pages as absolute, configured URLs",
+  async () => {
+    const res = await handle(
+      new Request("https://internal.invalid/functions/v1/site/sitemap.xml", {
+        headers: { "x-forwarded-host": "edge-runtime.supabase.com" },
+      }),
+      source(),
+      "https://shops.example/functions/v1/site",
+    );
+    assertEquals(
+      res.headers.get("content-type"),
+      "application/xml; charset=utf-8",
+      "xml",
+    );
+    const xml = await res.text();
+    assert(
+      xml.includes(
+        "<loc>https://shops.example/functions/v1/site/elmwood-barber-co</loc>",
+      ),
+      "absolute, from the configured base",
+    );
+    assert(!xml.includes("edge-runtime"), "and never the internal host");
+    assert(xml.includes("<lastmod>2026-09-10</lastmod>"), "a date, not a timestamp");
+  },
+);
 
 Deno.test(
   "a slug the sitemap should not contain is dropped rather than emitted",
