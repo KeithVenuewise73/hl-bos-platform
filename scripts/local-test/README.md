@@ -83,6 +83,36 @@ native `fetch`/`Response`/`Headers`).
 
 ---
 
+# Serving a shop's page end to end
+
+`site-serve-e2e.mjs` runs the **real** `site` edge function under `Deno.serve`,
+over real HTTP, against the real local PostgreSQL:
+
+```bash
+NODE_PATH=/path/to/local-test/node_modules node scripts/local-test/site-serve-e2e.mjs
+# set HLBOS_DENO if `deno` is not on PATH
+```
+
+The only stand-in is the transport to PostgREST (`postgrest-rpc-shim.cjs`), and
+it does two things that make the run worth trusting:
+
+- it executes every call **as the `anon` role**, in a transaction, the way
+  PostgREST does for an anonymous request. Connected as `postgres` the run would
+  prove the SQL works and say nothing about whether a stranger may call it,
+  which is the only interesting question about a public endpoint.
+- it will only call the two functions migration 0053 exposes. A shim that ran
+  whatever it was handed would be testing a wider door than the real one.
+
+It seeds Truth Barbershop (a real row of the WNY list) through the real
+permission-checked write functions, publishes it, and then asserts 25 things
+over HTTP — the page and its real hours, prices and tap-to-call number; a draft
+and an unused slug returning **byte-identical** 404s; the capitalised-URL
+redirect; robots and sitemap; `HEAD`, `POST` and `If-None-Match`; and the two
+that prove "published" means something on the wire: unpublishing takes the URL
+off the internet, and republishing brings it back.
+
+---
+
 # Update check
 
 `verify-update.sh` proves `scripts/update.mjs` — the step that collects finished

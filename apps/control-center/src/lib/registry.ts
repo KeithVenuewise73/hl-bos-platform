@@ -79,9 +79,9 @@ export const PORTFOLIO: readonly Product[] = [
     name: "BarberOS",
     stage: "development",
     status:
-      "Capability spine LIVE in HL-BOS Core (applied 2026-09-09), plus its first real module, LIVE since 2026-09-10. `owned_website` -- a page the shop owns, with hours, services, prices, address, tap-to-call and a booking link -- is applied to production (migration 0052) and is the only capability in the catalog marked 'available'. Every table in it is gated on the capability switch by a database trigger, so turning the capability off makes the rows unwritable rather than merely hidden. The other eight modules remain 'planned' or 'deferred' and cannot be enabled. NOT YET TRUE: no shop has the capability enabled, no shop has a page, and nothing hosts the rendered HTML.",
+      "Capability spine LIVE in HL-BOS Core (applied 2026-09-09), plus its first real module, LIVE since 2026-09-10. `owned_website` -- a page the shop owns, with hours, services, prices, address, tap-to-call and a booking link -- is applied to production (migration 0052) and is the only capability in the catalog marked 'available'. Every table in it is gated on the capability switch by a database trigger, so turning the capability off makes the rows unwritable rather than merely hidden. The pages now have a SERVER: an edge function that turns a slug into the shop's page, with robots.txt and a sitemap so search engines can find it, and a public read path (migration 0053) that serves published pages only -- a draft is indistinguishable from a slug nobody has used. Proved over real HTTP against a real database, including that unpublishing takes the URL off the internet. NOT YET TRUE: 0053 is not applied and the function is not deployed, so nothing is reachable on the internet yet; no shop has the capability enabled or a page; and the address is a Supabase URL, not a domain any shop owns.",
     version: null,
-    location: "HL-BOS Core (migrations 0048/0050/0052)",
+    location: "HL-BOS Core (migrations 0048/0050/0052/0053), supabase/functions/site",
   },
   {
     name: "SalonAI",

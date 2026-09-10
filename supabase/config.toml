@@ -57,3 +57,17 @@ double_confirm_changes = true
 enable_confirmations = true
 [analytics]
 enabled = false
+
+# ---------------------------------------------------------------------------
+# Edge functions
+#
+# Every function keeps the default (verify_jwt = true) except `site`, which
+# serves a shop's published page to the public. Requiring a JWT there would
+# mean a website nobody can read without an account, which is not a website.
+#
+# What makes that safe is not this setting but what the function can reach: it
+# calls two read-only RPCs with the ANON key, and those return published pages
+# only (migration 0053). Nothing else in this repository is unauthenticated.
+# ---------------------------------------------------------------------------
+[functions.site]
+verify_jwt = false

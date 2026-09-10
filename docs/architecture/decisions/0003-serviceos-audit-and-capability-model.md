@@ -268,3 +268,79 @@ Nothing hosts the rendered page. `barberos.site_content()` returns the content a
 `_shared/barberos/site_render.ts` turns it into HTML, but no service serves that
 HTML at an address a customer could visit. Until there is one, a shop can fill in
 its page and still have no page.
+
+---
+
+## Addendum — 2026-09-10: serving the pages, and the address they do not have
+
+Migration 0053 and `supabase/functions/site` turn a published row into a page a
+customer can open. Both are **built and applied/deployed nowhere** as of this
+entry.
+
+### The wrapper argument, settled the other way
+
+`public.barberos_published_site()` is the one function PostgREST can see, and it
+was written `SECURITY INVOKER` first, on the reasoning that a wrapper holding no
+privilege of its own is a smaller thing to have sitting in an HTTP-exposed
+schema — and that it would stay out of the
+`authenticated_security_definer_function_executable` advisory that every
+existing `bti_*` / `graph_*` wrapper appears in.
+
+The pgTAP run refused it: `permission denied for schema barberos`. An INVOKER
+wrapper executes as `anon`, so `anon` needs `USAGE` on schema `barberos` for the
+inner call to resolve at all. That is the real price, and it is much higher than
+the advisory:
+
+| Wrapper          | What `anon` can reach                                                    |
+| ---------------- | ------------------------------------------------------------------------ |
+| SECURITY INVOKER | schema `barberos`, bounded by every function in it having revoked PUBLIC |
+| SECURITY DEFINER | exactly two functions, both `STABLE`, both with an empty `search_path`   |
+
+PostgreSQL grants `EXECUTE` to `PUBLIC` on a new function by default, and
+revoking it is something each migration has to remember. Counted in the mirror
+at the time of writing: **5 of 19** `barberos` functions still carry that
+default. All five are trigger functions, which refuse to run outside a trigger,
+so nothing is exposed today — but "nothing, provided every future migration
+remembers" is an unchecked invariant, and it would have been load-bearing for an
+unauthenticated caller.
+
+So the wrappers are `SECURITY DEFINER`, `anon` gets no reach into `barberos` at
+all, and the test asserts the trade rather than the intention:
+`has_schema_privilege('anon','barberos','usage')` is false, and calling
+`barberos.published_site()` by its real name as `anon` raises 42501.
+
+### A draft and a wrong slug are the same answer
+
+`published_site()` returns NULL for a draft, for an unpublished page and for a
+slug nobody has used, and the server renders one byte-identical 404 for all
+three. If the layers distinguished them, anyone with a wordlist could enumerate
+which shops have pages they have not published. This is asserted twice — once in
+SQL, once over HTTP.
+
+### The sitemap is deliberate
+
+`barberos_published_sitemap()` lists every published slug, which is an aggregate
+view of who Herman Legacy Digital's live customers are. That is the trade: a page
+nothing links to is a page no search engine indexes, and local search is the
+entire reason `owned_website` exists. It lists published pages only, so
+unpublishing removes a shop from it — a control the shop already has, in the same
+place.
+
+### What this does NOT answer
+
+The audit's `owned_domain` finding is still open. These pages are served at a
+Supabase Functions URL, and a URL under `*.supabase.co` is not "a domain the shop
+owns" — which is the specific finding all 5 platform-only shops in the WNY list
+were marked down for. Serving is solved; the address is not.
+
+Per-shop custom domains cannot be delivered by this function alone: TLS for an
+arbitrary domain terminates before the request reaches it, so a `custom_domain`
+column added today would be a control that controls nothing. What it needs is a
+domain and a proxy in front, and choosing the domain is an access decision, not
+an engineering one.
+
+### Also not done
+
+Nothing counts a page view. "Did anyone visit my page" is the obvious next
+question a shop will ask, and the honest answer today is that the platform does
+not know. It is deliberately not guessed at.

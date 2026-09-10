@@ -1055,6 +1055,26 @@ const ASSETS: Asset[] = [
     ["Meta", "LinkedIn", "TikTok"],
   ),
   {
+    id: "fn.site",
+    kind: "edge_function",
+    name: "Shop Page Server",
+    summary:
+      "Serves a shop's published owned_website page to the public internet: one slug in, one HTML page out, plus robots.txt and a sitemap. The only unauthenticated HTTP surface in the platform (verify_jwt = false) and the only one with no third-party dependency in its serving path.",
+    maturity: "built_undeployed",
+    reuse: ["reusable"],
+    owner: "Herman Legacy Platform",
+    layer: "HL-BOS",
+    key: "site",
+    location: "supabase/functions/site",
+    tags: ["edge", "public", "http", "barberos"],
+    relationships: [
+      { kind: "owned_by", to: "repo.hl-bos-platform" },
+      { kind: "consumes", to: "db.barberos" },
+    ],
+    evidence:
+      "supabase/functions/site + _shared/barberos/site_server.ts; 23 Deno tests and a 25-check end-to-end against a real PostgreSQL as role anon; NOT deployed (0 edge functions deployed to HL-BOS Core) and its read path (migration 0053) is not applied",
+  },
+  {
     id: "fn._shared",
     kind: "edge_function",
     name: "Shared Edge Libraries",
@@ -1180,12 +1200,12 @@ const ASSETS: Asset[] = [
   ),
   ...db(
     "barberos",
-    "BarberOS Capability Spine",
-    6,
+    "BarberOS Capability Spine + owned_website",
+    10,
     "HL-BOS",
-    "Module catalog, prerequisites, bundles, per-tenant capability toggle and the shop record. The toggle exists; NO capability module does -- every module is catalogued 'planned' or 'deferred' and cannot be enabled.",
-    "built_undeployed",
-    "supabase/migrations 0048; NOT applied anywhere; 32 pgTAP assertions green locally",
+    "Module catalog, prerequisites, bundles, per-tenant capability toggle, the shop record, and the first module behind that toggle: owned_website (a page the shop owns -- hours, services, prices, address, tap-to-call, booking link), gated table-by-table by a trigger on the capability. The other eight modules remain 'planned' or 'deferred' and cannot be enabled.",
+    "live",
+    "supabase/migrations 0048/0052 APPLIED to HL-BOS Core (fingerprint-verified 2026-09-09 and 2026-09-10); 0053 (the public read path) built and NOT applied; no tenant has the capability enabled and no page exists yet",
   ),
   ...db(
     "transform_audit",

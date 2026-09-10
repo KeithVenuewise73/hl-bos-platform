@@ -98,9 +98,9 @@ describe("registry integrity", () => {
     expect(dangling, `dangling targets: ${dangling.join(", ")}`).toEqual([]);
   });
 
-  it("registers the 21 application databases and 10 edge functions", () => {
+  it("registers the 21 application databases and 11 edge functions", () => {
     expect(assetsByKind(catalog, "database").length).toBe(21);
-    expect(assetsByKind(catalog, "edge_function").length).toBe(10);
+    expect(assetsByKind(catalog, "edge_function").length).toBe(11);
   });
 
   it("groups only non-empty kinds", () => {
@@ -153,10 +153,15 @@ describe("repository scan (ground truth)", () => {
     // 0052 is the first BarberOS module with anything behind it: owned_website,
     // promoted from 'planned' to 'available' in the same migration that gives
     // it tables.
-    // See notYetAppliedOrdinals in .hlbos/canonical.json, which now names only
-    // 0030 and 0031.
-    expect(inv.migrations.length).toBe(52);
+    // 0053 gives that page a public read path -- the first anon-executable RPC
+    // in the platform -- so a published page can be read by a customer with no
+    // account. Built, not applied.
+    // See notYetAppliedOrdinals in .hlbos/canonical.json, which names 0030,
+    // 0031 and 0053.
+    expect(inv.migrations.length).toBe(53);
     expect(inv.edgeFunctions).toContain("ai-gateway");
+    // The one function meant to be deployed, and the only unauthenticated one.
+    expect(inv.edgeFunctions).toContain("site");
     expect(inv.edgeFunctions).not.toContain("tests");
     expect(inv.apps).toEqual(
       expect.arrayContaining(["control-center", "hl-bti", "hl-bti-alpha"]),
@@ -190,7 +195,7 @@ describe("executive metrics", () => {
     const inv = await scanRepository(REPO_ROOT);
     const m = metrics(catalog, completeness(catalog, inv));
     expect(m.databases).toBe(21);
-    expect(m.edgeFunctions).toBe(10);
+    expect(m.edgeFunctions).toBe(11);
     expect(m.sharedServices).toBeGreaterThanOrEqual(12);
     expect(m.products).toBeGreaterThanOrEqual(3);
     expect(m.reusableAssets).toBeGreaterThan(0);
