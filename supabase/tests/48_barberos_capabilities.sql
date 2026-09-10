@@ -19,7 +19,7 @@
 -- exactly what a real module's own migration will do when it ships.
 -- ===========================================================================
 begin;
-select plan(36);
+select plan(37);
 select tests.seed();
 
 -- --- The catalog is a shared, read-only vocabulary --------------------------
@@ -27,11 +27,16 @@ select is(
   (select count(*)::int from barberos.capabilities),
   9, 't_catalog_has_the_nine_v1_modules');
 
--- The honest state of BarberOS today. If this test starts failing because a
--- module shipped, the failing assertion is the reminder to update it.
+-- The honest state of BarberOS today. This assertion read 0 until 2026-09-10,
+-- and failing was its job: `owned_website` shipped in migration 0052 and the
+-- test made the catalog's new truth impossible to leave unstated.
 select is(
   (select count(*)::int from barberos.capabilities where status = 'available'),
-  0, 't_no_capability_has_shipped_yet');
+  1, 't_exactly_one_capability_has_shipped');
+select is(
+  (select string_agg(key::text, ',' order by key) from barberos.capabilities
+    where status = 'available'),
+  'owned_website', 't_and_it_is_owned_website');
 
 select is(
   (select status::text from barberos.capabilities where key = 'payments'),

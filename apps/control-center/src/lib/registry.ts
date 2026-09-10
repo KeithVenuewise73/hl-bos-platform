@@ -79,7 +79,7 @@ export const PORTFOLIO: readonly Product[] = [
     name: "BarberOS",
     stage: "development",
     status:
-      "Capability spine only, LIVE in HL-BOS Core (applied 2026-09-09). The `barberos` schema ships the module catalog, prerequisites, bundles and the per-tenant on/off switch. NO capability module is built: all nine are catalogued as 'planned' or 'deferred', and the switch REFUSES to turn on anything that has not shipped. No shop is running it.",
+      "Capability spine LIVE in HL-BOS Core (applied 2026-09-09), plus its first real module. `owned_website` -- a page the shop owns, with hours, services, prices, address, tap-to-call and a booking link -- is built and tested (migration 0052) but NOT YET APPLIED anywhere. Every table in it is gated on the capability switch, so turning the capability off makes the rows unwritable rather than merely hidden. The other eight modules remain 'planned' or 'deferred' and cannot be enabled. No shop has a page.",
     version: null,
     location: "HL-BOS Core (migrations 0048/0050)",
   },

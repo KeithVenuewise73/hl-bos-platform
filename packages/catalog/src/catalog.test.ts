@@ -150,9 +150,12 @@ describe("repository scan (ground truth)", () => {
     // format guards so they mean the same thing in the sandbox and in
     // production (they did not), and 0051, a forward-repair so a run that
     // assessed nothing stops calling itself 'completed'. All applied 2026-09-09.
+    // 0052 is the first BarberOS module with anything behind it: owned_website,
+    // promoted from 'planned' to 'available' in the same migration that gives
+    // it tables.
     // See notYetAppliedOrdinals in .hlbos/canonical.json, which now names only
     // 0030 and 0031.
-    expect(inv.migrations.length).toBe(51);
+    expect(inv.migrations.length).toBe(52);
     expect(inv.edgeFunctions).toContain("ai-gateway");
     expect(inv.edgeFunctions).not.toContain("tests");
     expect(inv.apps).toEqual(
