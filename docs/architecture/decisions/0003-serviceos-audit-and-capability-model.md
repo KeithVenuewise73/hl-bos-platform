@@ -576,3 +576,54 @@ deployed there yet. That is the intended behaviour: the probe reports the real
 address rather than a reachable one, because a status panel that checks something
 easier in order to look green is the exact failure mode this platform's honesty
 rules exist to prevent.
+
+---
+
+## Addendum — 2026-09-11: live
+
+`apps/shop-pages` is deployed on Coolify at
+**`https://shops.hermanlegacydigital.com`**, from commit `a5dc6cd`. The pinned
+`denoland/deno:alpine-2.9.6` base image — the one thing the previous addendum
+recorded as written-but-never-built — resolved and built on the first attempt.
+
+Verified from production via `pg_net`, because this build environment cannot
+reach arbitrary hosts:
+
+| Request             | Status | `Content-Type`                   |
+| ------------------- | ------ | -------------------------------- |
+| `/robots.txt`       | 200    | `text/plain; charset=utf-8`      |
+| `/sitemap.xml`      | 200    | `application/xml; charset=utf-8` |
+| a slug with no page | 404    | `text/html; charset=utf-8`       |
+
+The third row is the whole point of the move. The _identical_ response, from the
+_identical_ handler, came back from Supabase as `text/plain` with
+`content-security-policy: default-src 'none'; sandbox`. Here it arrives as real
+HTML carrying our own policy. Every response also kept our CSP intact, which the
+Supabase gateway replaced on exactly the HTML and XML ones.
+
+`robots.txt` reads `Sitemap: https://shops.hermanlegacydigital.com/sitemap.xml`
+— the configured base, with no trace of the `edge-runtime.supabase.com` bug the
+first deployment produced.
+
+TLS was issued by Let's Encrypt without intervention: `pg_net` verifies
+certificates, and all three requests succeeded.
+
+### What is still not true
+
+The sitemap is an empty `<urlset>`, correctly: **no shop has the `owned_website`
+capability enabled and none has published a page.** Nobody has read a real shop
+page. Everything between the database and the browser is now proven end to end;
+what is missing is a customer.
+
+### The DNS correction worth remembering
+
+This was set up with an **A record**, not a CNAME. Earlier guidance in this
+session said CNAME, which was wrong: the Coolify host is a bare IP
+(`161.35.181.10`), and a CNAME cannot point at an address. The apex already
+pointed there, so the subdomain inherited a working reverse proxy and resolved
+almost immediately.
+
+One consequence caught in passing: the apex sends HSTS with `includeSubDomains`,
+so before the certificate existed Chrome refused to offer a click-through on the
+subdomain at all. That is correct behaviour and resolved itself the moment a real
+certificate was issued.

@@ -190,7 +190,7 @@ const ASSETS: Asset[] = [
     name: "Shop Pages",
     summary:
       "The public server for a shop's owned_website page. Imports the same handler as the Supabase `site` function rather than copying it, so there is one implementation and one set of tests; what differs is a host that does not rewrite HTML to text/plain, and pages at /<slug> instead of /functions/v1/site/<slug>.",
-    maturity: "built_undeployed",
+    maturity: "live",
     reuse: ["commercial", "reusable"],
     owner: "Herman Legacy Digital",
     layer: "HL-BOS",
@@ -203,7 +203,7 @@ const ASSETS: Asset[] = [
       { kind: "owned_by", to: "repo.hl-bos-platform" },
     ],
     evidence:
-      "apps/shop-pages (Dockerfile + server.ts); proved over real HTTP against a real PostgreSQL as role anon, 8 checks on this exact root-path shape; NOT deployed -- the address is decided (shops.hermanlegacydigital.com) and nothing answers there yet",
+      "LIVE at https://shops.hermanlegacydigital.com (deployed 2026-09-11 from commit a5dc6cd, Coolify). Verified from production: HTML arrives as text/html with our own CSP, which is the thing Supabase could not do. No shop has published a page yet, so the sitemap is empty.",
   },
   {
     id: "app.hl-bti",
