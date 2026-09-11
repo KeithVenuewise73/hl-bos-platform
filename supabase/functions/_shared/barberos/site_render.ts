@@ -335,6 +335,46 @@ function actions(c: SiteContent): string {
  * not — including, in the limit, a page with nothing on it, which renders as a
  * page that says it has nothing on it rather than as a page of filler.
  */
+/**
+ * The one graphic device the page has.
+ *
+ * Inline SVG, not an image file: the page is served with `default-src 'none'`
+ * and cannot fetch anything, but inline markup is drawn by the browser with no
+ * request at all. A barber pole reduced to its stripes -- enough to say what
+ * kind of business this is at a glance, which is otherwise photography's job.
+ *
+ * Decorative, so it is hidden from screen readers rather than described.
+ */
+function poleMark(): string {
+  return `<svg class="mark" viewBox="0 0 120 12" preserveAspectRatio="none" aria-hidden="true" focusable="false">
+<defs><pattern id="bp" width="24" height="12" patternUnits="userSpaceOnUse" patternTransform="skewX(-32)">
+<rect width="24" height="12" fill="var(--stripe-a)"/>
+<rect width="8" height="12" fill="var(--stripe-b)"/>
+<rect x="12" width="4" height="12" fill="var(--stripe-c)"/>
+</pattern></defs>
+<rect width="120" height="12" fill="url(#bp)"/></svg>`;
+}
+
+/**
+ * The action bar that follows a visitor down a phone screen.
+ *
+ * A shop's page is read one-handed, standing up, deciding whether to walk in.
+ * The decision should never be more than a thumb away -- but it is the SAME
+ * two actions as the header, so it can still only offer what the shop gave us.
+ */
+function stickyBar(c: SiteContent): string {
+  const tel = telHref(c.phone);
+  const book = safeUrl(c.booking_url);
+  if (tel === null && book === null) return "";
+  const parts = [
+    book === null
+      ? ""
+      : `<a class="sb-btn sb-primary" href="${esc(book)}" rel="noopener noreferrer" target="_blank">Book</a>`,
+    tel === null ? "" : `<a class="sb-btn" href="tel:${esc(tel)}">Call</a>`,
+  ].join("");
+  return `<div class="stickybar" aria-hidden="false">${parts}</div>`;
+}
+
 export function renderSite(c: SiteContent): string {
   const theme = themeByKey(c.theme ?? DEFAULT_THEME);
   const name = c.shop_name?.trim() || c.headline?.trim() || "This shop";
@@ -378,16 +418,21 @@ ${description}
 <style>${theme.css}</style>
 </head>
 <body data-theme="${esc(theme.key)}">
+<header class="hero">
 <div class="wrap">
-<header>
+${poleMark()}
 <h1>${esc(name)}</h1>
 ${c.headline?.trim() ? `<p class="tagline">${esc(c.headline.trim())}</p>` : ""}
+${c.locality ? `<p class="place">${esc([c.locality, c.region].filter(Boolean).join(", "))}</p>` : ""}
 ${actions(c)}
+</div>
 </header>
+<main class="wrap">
 ${body}
 ${emptyNotice}
-<footer>${esc(name)}${addressLine(c) ? ` · ${esc(addressLine(c) ?? "")}` : ""}</footer>
-</div>
+</main>
+<footer><div class="wrap">${esc(name)}${addressLine(c) ? ` · ${esc(addressLine(c) ?? "")}` : ""}</div></footer>
+${stickyBar(c)}
 </body>
 </html>`;
 }

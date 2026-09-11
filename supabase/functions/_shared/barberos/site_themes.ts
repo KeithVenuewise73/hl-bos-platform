@@ -38,8 +38,8 @@ export interface SiteTheme {
 
 const SHARED = `
 *{box-sizing:border-box}
-body{margin:0}
-.wrap{margin:0 auto}
+body{margin:0;-webkit-text-size-adjust:100%}
+.wrap{margin:0 auto;width:100%}
 table{width:100%;border-collapse:collapse}
 th{text-align:left;font-weight:inherit}
 td{text-align:right}
@@ -47,9 +47,19 @@ td{text-align:right}
 .actions{display:flex;flex-wrap:wrap}
 .btn{display:inline-block;text-decoration:none}
 img{max-width:100%}
-@media (max-width:520px){
-.wrap{padding-left:18px;padding-right:18px}
-h1{font-size:clamp(30px,9vw,44px)}
+.mark{display:block;width:100%;height:10px}
+.hero{position:relative;overflow:hidden}
+main{display:block}
+
+/* The thumb-reach action bar. Phone only -- on a desktop the header CTA is
+   already on screen and a floating bar would just be in the way. */
+.stickybar{position:fixed;left:0;right:0;bottom:0;display:none;gap:10px;padding:12px 16px
+calc(12px + env(safe-area-inset-bottom));z-index:50}
+.sb-btn{flex:1;text-align:center;padding:15px 10px;text-decoration:none;font-weight:700;
+font-size:16px;border-radius:8px}
+@media (max-width:680px){
+.stickybar{display:flex}
+main{padding-bottom:88px}
 }
 `;
 
@@ -60,40 +70,76 @@ h1{font-size:clamp(30px,9vw,44px)}
 // dark walls, warm brass, a serif that has been there a while.
 // ---------------------------------------------------------------------------
 const CHAIR = `
-:root{color-scheme:dark;--ink:#f2ede4;--dim:#a1968a;--bg:#12100e;--panel:#1a1714;
---line:#2e2823;--accent:#c8934a}
+:root{color-scheme:dark;--ink:#f7f2e8;--dim:#9a9183;--bg:#0e0d0c;--panel:#17140f;
+--line:#2b2620;--accent:#c9963f;--stripe-a:#0e0d0c;--stripe-b:#c9963f;--stripe-c:#7d1f22}
 body{background:var(--bg);color:var(--ink);
-font:16px/1.65 ui-sans-serif,system-ui,-apple-system,'Segoe UI',Roboto,sans-serif}
-.wrap{max-width:660px;padding:64px 24px 96px}
-header{padding-bottom:34px;border-bottom:1px solid var(--line)}
-h1{margin:0;font:600 clamp(34px,7vw,52px)/1.03 ui-serif,Georgia,'Times New Roman',serif;
+font:17px/1.6 ui-sans-serif,system-ui,-apple-system,'Segoe UI',Roboto,sans-serif}
+.wrap{max-width:900px;padding:0 28px}
+
+/* HERO — the whole first screen, not a heading with a rule under it. */
+.hero{background:
+radial-gradient(120% 90% at 50% -20%, #241d14 0%, rgba(14,13,12,0) 60%),
+linear-gradient(180deg,#151210 0%,var(--bg) 100%);
+padding:0 0 72px;border-bottom:1px solid var(--line)}
+.hero .wrap{padding-top:76px}
+.hero .mark{margin:0 0 54px;height:12px;opacity:.9}
+h1{margin:0;font:600 clamp(46px,12vw,104px)/0.92 ui-serif,Georgia,'Times New Roman',serif;
+letter-spacing:-.035em;max-width:14ch}
+.tagline{margin:26px 0 0;font-size:clamp(19px,2.6vw,25px);line-height:1.35;color:var(--ink);
+max-width:22ch;font-weight:400}
+.place{margin:18px 0 0;font-size:12px;letter-spacing:.3em;text-transform:uppercase;
+color:var(--accent)}
+.actions{gap:12px;margin:44px 0 0}
+.btn{padding:17px 32px;border:1px solid var(--line);color:var(--ink);font-size:15px;
+font-weight:600;border-radius:2px;transition:background .15s,border-color .15s,color .15s}
+.btn:hover{border-color:var(--accent);color:var(--accent)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:#171008}
+.btn.primary:hover{background:#dda94e;border-color:#dda94e;color:#171008}
+
+/* SECTIONS — numbered, generous, with the label set against the content. */
+main{padding:0 0 40px}
+section{padding:72px 0 0}
+section+section{border-top:1px solid var(--line);margin-top:72px;padding-top:72px}
+h2{margin:0 0 30px;font:600 11px/1 ui-sans-serif,system-ui,sans-serif;letter-spacing:.32em;
+text-transform:uppercase;color:var(--accent)}
+
+/* Hours and services as a designed list, not a data table. */
+th,td{padding:19px 0;border-bottom:1px solid var(--line);vertical-align:baseline}
+tr:last-child th,tr:last-child td{border-bottom:0}
+th{font-size:clamp(19px,2.4vw,24px);font-weight:500;letter-spacing:-.01em}
+td{color:var(--dim);font-variant-numeric:tabular-nums;font-size:17px;white-space:nowrap;
+padding-left:20px}
+.price{color:var(--accent);font-weight:600;font-size:clamp(19px,2.4vw,24px)}
+.muted{color:var(--dim);font-weight:400;font-size:15px}
+.closed{color:var(--dim);font-style:italic}
+.dur{display:block;font-size:13px;letter-spacing:.14em;text-transform:uppercase;
+color:var(--dim);margin:7px 0 0;font-weight:400}
+.note{margin:26px 0 0;font-size:14px;color:var(--dim);max-width:52ch}
+.addr{margin:0;font:400 clamp(24px,4vw,38px)/1.25 ui-serif,Georgia,serif;max-width:16ch;
 letter-spacing:-.02em}
-.tagline{margin:14px 0 0;font-size:18px;color:var(--dim);max-width:42ch}
-.actions{gap:10px;margin:28px 0 0}
-.btn{padding:13px 22px;border:1px solid var(--line);color:var(--ink);font-size:15px;
-border-radius:2px;transition:border-color .15s}
-.btn:hover{border-color:var(--accent)}
-.btn.primary{background:var(--accent);border-color:var(--accent);color:#17120b;font-weight:600}
-section{margin:56px 0 0}
-h2{margin:0 0 18px;font:600 11px/1 ui-sans-serif,system-ui,sans-serif;
-letter-spacing:.22em;text-transform:uppercase;color:var(--accent)}
-th,td{padding:13px 0;border-bottom:1px solid var(--line)}
-th{font-size:16px}
-td{color:var(--dim);font-variant-numeric:tabular-nums}
-.price{color:var(--ink);font-weight:600}
-.muted,.closed,.note,.dur{color:var(--dim)}
-.dur{font-size:13px;margin-left:10px}
-.note{margin:16px 0 0;font-size:13px}
-.addr{margin:0;font-size:17px}
-.map{color:var(--accent)}
-.links{gap:18px;margin-top:2px}
-.links a{color:var(--ink);border-bottom:1px solid var(--line);padding-bottom:2px;
-text-decoration:none}
+.map{display:inline-block;margin:22px 0 0;color:var(--accent);font-size:15px;font-weight:600;
+border-bottom:1px solid currentColor;padding-bottom:3px;text-decoration:none}
+.links{gap:12px}
+.links a{color:var(--ink);border:1px solid var(--line);padding:12px 22px;text-decoration:none;
+font-size:14px;letter-spacing:.06em;transition:border-color .15s}
 .links a:hover{border-color:var(--accent)}
-section p{margin:0 0 14px;color:var(--dim);max-width:60ch}
-footer{margin:72px 0 0;padding-top:22px;border-top:1px solid var(--line);
-font-size:13px;color:var(--dim)}
-.empty{margin:40px 0 0;padding:22px;border:1px dashed var(--line);color:var(--dim)}
+section p{margin:0 0 20px;font-size:clamp(18px,2.2vw,21px);line-height:1.55;color:var(--ink);
+max-width:34ch}
+footer{padding:44px 0 56px;border-top:1px solid var(--line);font-size:13px;color:var(--dim);
+letter-spacing:.04em}
+.empty{margin:40px 0;padding:26px;border:1px dashed var(--line);color:var(--dim);max-width:46ch}
+.stickybar{background:rgba(14,13,12,.94);border-top:1px solid var(--line);
+backdrop-filter:blur(8px)}
+.sb-btn{background:transparent;border:1px solid var(--line);color:var(--ink)}
+.sb-primary{background:var(--accent);border-color:var(--accent);color:#171008}
+@media (max-width:680px){
+.hero{padding-bottom:52px}
+.hero .wrap{padding-top:52px}
+.hero .mark{margin-bottom:38px}
+section,section+section{padding-top:54px}
+section+section{margin-top:54px}
+td{font-size:16px}
+}
 `;
 
 // ---------------------------------------------------------------------------
