@@ -166,9 +166,14 @@ describe("repository scan (ground truth)", () => {
     // a proposal offering a deferred module or selling a planned one as
     // available. Applied 2026-09-11, and the trigger was exercised against
     // production itself rather than only against the local mirror.
-    // See notYetAppliedOrdinals in .hlbos/canonical.json, which names 0030
-    // and 0031.
-    expect(inv.migrations.length).toBe(55);
+    // 0056 is the door BarberOS never had: PostgREST exposes only `public`, so
+    // every permission-checked write function 0052 shipped was unreachable from
+    // any application -- the page could only ever be edited by the agency
+    // running SQL by hand. Nine SECURITY INVOKER wrappers make it reachable by
+    // the shop itself, adding reach and no authority. Built, NOT applied.
+    // See notYetAppliedOrdinals in .hlbos/canonical.json, which names 0030,
+    // 0031 and 0056.
+    expect(inv.migrations.length).toBe(56);
     expect(inv.edgeFunctions).toContain("ai-gateway");
     // The one function meant to be deployed, and the only unauthenticated one.
     expect(inv.edgeFunctions).toContain("site");

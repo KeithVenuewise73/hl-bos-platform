@@ -291,6 +291,41 @@ export const APPLICATIONS: ApplicationRecord[] = [
       "apps/shop-pages + supabase/functions/_shared/barberos/site_server.ts; 35-check end-to-end, 8 of them on this exact root-path shape",
   },
 
+  {
+    key: "barbershop",
+    name: "BarberOS (the shop's app)",
+    description:
+      "The first surface a barbershop signs into and operates itself. Until this existed BarberOS had a capability spine, a real module and a page on the internet, and no way for the shop to touch any of it -- PostgREST exposes only `public`, and every write function lives in `barberos`. Migration 0056 opened that door; this is what walks through it.",
+    category: "vertical_product",
+    repository: REPO,
+    owner: "KeithVenuewise73",
+    executiveOwner: "Keith Herman (CEO)",
+    currentBranch: "claude/shop-transformation-barber-os-ntwb2n",
+    environment: "local",
+    developmentStatus: "built_undeployed",
+    deploymentStatus: "not_deployed",
+    productionUrl: null,
+    stagingUrl: null,
+    localUrl: "http://localhost:4400",
+    supabaseProject: CORE,
+    version: "0.1.0",
+    health: "unknown",
+    hosting: "Not deployed. Intended for the same Coolify server as shop-pages.",
+    dependencies: [
+      "public.barberos_my_shops()",
+      "public.barberos_site()",
+      "public.barberos_save_site()",
+      "public.barberos_publish()",
+    ],
+    reusableModules: [],
+    softwareFactoryIntegration:
+      "The customer end of the Shop Transformation Analysis Tool: the audit finds the shop, the call scopes the work, the proposal sells it, and this is what they are actually given.",
+    notes:
+      "Holds NO service-role key and cannot hold one usefully: every request is made as the signed-in barber with the publishable key, so RLS and identity.has_permission() decide what happens. It has no authorization logic of its own -- it asks barberos_my_shops() what the person may do and draws its controls from the answer, and an unrecognised permission reads as false. Deliberately WITHOUT the dev-role bypass the Executive Portal has: a bypass that must be correctly guarded is one that can be incorrectly guarded, and this holds a customer's own data. NOT DEPLOYED, and no barber has signed in.",
+    evidence:
+      "apps/barbershop + migration 0056; 33 pgTAP assertions on the API surface and 24 unit tests on the mappings",
+  },
+
   // ======================================================================
   // VERTICAL PRODUCTS (HL-BOS)
   // ======================================================================

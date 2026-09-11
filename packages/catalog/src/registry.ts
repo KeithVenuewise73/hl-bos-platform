@@ -206,6 +206,26 @@ const ASSETS: Asset[] = [
       "LIVE at https://shops.hermanlegacydigital.com (deployed 2026-09-11 from commit a5dc6cd, Coolify). Verified from production: HTML arrives as text/html with our own CSP, which is the thing Supabase could not do. No shop has published a page yet, so the sitemap is empty.",
   },
   {
+    id: "app.barbershop",
+    kind: "application",
+    name: "BarberOS (the shop's app)",
+    summary:
+      "The shop's own surface: a barber signs in and runs their page themselves. BarberOS had a capability spine, a module and a public page long before it had anywhere for the shop to stand -- PostgREST exposes only `public` and every write function lives in `barberos`. Migration 0056 is the door; this is the room behind it.",
+    maturity: "built_undeployed",
+    reuse: ["commercial"],
+    owner: "Herman Legacy Digital",
+    layer: "HL-BOS",
+    key: "barbershop",
+    location: "apps/barbershop",
+    tags: ["authenticated", "barberos", "customer-facing", "deployable"],
+    relationships: [
+      { kind: "consumes", to: "db.barberos" },
+      { kind: "owned_by", to: "repo.hl-bos-platform" },
+    ],
+    evidence:
+      "apps/barbershop; 33 pgTAP assertions on the public.barberos_* API it calls and 24 unit tests on its mappings. NOT deployed and no barber has signed in.",
+  },
+  {
     id: "app.hl-bti",
     kind: "application",
     name: "HL-BTI App",

@@ -1,0 +1,31 @@
+{
+  "name": "@hl-bos/barbershop",
+  "version": "0.1.0",
+  "private": true,
+  "description": "BarberOS — the shop's own application. The first surface a barbershop signs into and operates itself, rather than one Herman Legacy Digital drives on its behalf. Talks to HL-BOS Core only through the public.barberos_* API (migration 0056) as the signed-in user; never holds a service-role key and never reaches a schema PostgREST does not expose.",
+  "type": "module",
+  "scripts": {
+    "dev": "next dev --port 4400",
+    "build": "next build",
+    "start": "next start --port 4400",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint .",
+    "test": "vitest run",
+    "clean": "rm -rf .next dist *.tsbuildinfo"
+  },
+  "dependencies": {
+    "@supabase/ssr": "catalog:",
+    "@supabase/supabase-js": "catalog:",
+    "next": "catalog:",
+    "react": "catalog:",
+    "react-dom": "catalog:",
+    "server-only": "catalog:"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "@types/react": "catalog:",
+    "@types/react-dom": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  }
+}

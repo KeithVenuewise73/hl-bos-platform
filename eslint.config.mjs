@@ -160,6 +160,24 @@ export default tseslint.config(
     },
   },
 
+  // BarberOS (the shop's own app) env boundary — same rationale as the
+  // Executive Portal, with one difference worth stating: this app has NO dev
+  // bypass, so these files read only the Supabase URL and the publishable key.
+  // The publishable key is browser-safe by ENV_SPEC (RLS is the boundary, not
+  // secrecy) and no service-role key is read anywhere in this app -- every
+  // request is made as the signed-in barber.
+  {
+    files: [
+      "apps/barbershop/src/lib/supabase.ts",
+      "apps/barbershop/src/lib/browser.ts",
+      "apps/barbershop/src/middleware.ts",
+    ],
+    rules: {
+      "no-restricted-properties": "off",
+      "no-restricted-syntax": "off",
+    },
+  },
+
   // Herman Legacy Digital's env boundary — same rationale as the Executive
   // Portal. Only the auth/session, middleware, browser client, health check, the
   // intake delivery adapter and the analytics sink read env directly; scoped to
