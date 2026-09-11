@@ -16,6 +16,7 @@ import {
   telHref,
   type SiteContent,
 } from "../_shared/barberos/site_render.ts";
+import { DEFAULT_THEME, THEMES, themeByKey } from "../_shared/barberos/site_themes.ts";
 
 function assert(cond: unknown, msg: string) {
   if (!cond) throw new Error("assertion failed: " + msg);
@@ -287,3 +288,82 @@ Deno.test("a service list with no prices at all counts prices as missing", () =>
   assert(c.present.includes("a service list"), "the list is there");
   assert(c.missing.includes("prices"), "but the prices are not");
 });
+
+// ===========================================================================
+// Themes
+//
+// The whole point of the split: a theme supplies CSS and cannot touch a word
+// of content. These tests are what stops "make it look better" from quietly
+// becoming "make it say more".
+// ===========================================================================
+
+Deno.test("every theme renders the SAME facts, and no theme invents one", () => {
+  const bodies = THEMES.map((t) => {
+    const html = renderSite({ ...FULL, theme: t.key });
+    // The facts the shop actually gave, present in every look.
+    for (const fact of [
+      "Elmwood Barber Co.",
+      "Traditional cuts on Elmwood",
+      "742 Elmwood Ave, Buffalo, NY 14222",
+      'href="tel:7165550100"',
+      "9:00 am – 7:00 pm",
+      "$35",
+      "Price on request",
+    ]) {
+      assert(html.includes(fact), `${t.key} keeps: ${fact}`);
+    }
+    // And the absences stay absent.
+    assert(!/\$0\b/.test(html), `${t.key} invents no free service`);
+    for (const d of ["Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"]) {
+      assert(
+        !html.includes(`<th scope="row">${d}</th>`),
+        `${t.key} adds no unstated day`,
+      );
+    }
+    return html.replace(/<style>[\s\S]*?<\/style>/, "");
+  });
+
+  // Strip the stylesheet and every theme must produce byte-identical markup
+  // apart from the theme name on <body>. That is the guarantee stated in
+  // site_themes.ts, checked rather than trusted.
+  const normalised = bodies.map((b) => b.replace(/ data-theme="[a-z]+"/, ""));
+  for (const b of normalised) {
+    assertEquals(b, normalised[0]!, "identical markup under every theme");
+  }
+});
+
+Deno.test("themes are actually different to look at", () => {
+  // The counterpart to the test above: prove they are not all the same CSS
+  // wearing different names, which would make the choice a lie.
+  const css = THEMES.map((t) => t.css);
+  assertEquals(new Set(css).size, THEMES.length, "no two themes share a stylesheet");
+  for (const t of THEMES) {
+    assert(t.name.trim() !== "", `${t.key} has a name to show a shop`);
+    assert(t.suits.trim() !== "", `${t.key} says who it suits`);
+  }
+});
+
+Deno.test("no theme reaches outside the page, because the policy forbids it", () => {
+  // The page is served with default-src 'none'. A web font or a CDN icon set
+  // would be silently blocked in a browser and look broken to the shop, so it
+  // must not get into a stylesheet in the first place.
+  for (const t of THEMES) {
+    for (const forbidden of ["@import", "url(http", "//fonts.", "https://"]) {
+      assert(!t.css.includes(forbidden), `${t.key} has no ${forbidden}`);
+    }
+  }
+});
+
+Deno.test(
+  "an unknown or missing theme falls back rather than breaking the page",
+  () => {
+    // A configuration mistake must not take a shop's page down.
+    assertEquals(themeByKey("no-such-theme").key, DEFAULT_THEME, "unknown falls back");
+    assertEquals(themeByKey(null).key, DEFAULT_THEME, "null falls back");
+    assertEquals(themeByKey("  FADE  ").key, "fade", "trimmed and case-insensitive");
+    assert(
+      renderSite({ ...FULL, theme: "nonsense" }).includes("Elmwood Barber Co."),
+      "still renders",
+    );
+  },
+);

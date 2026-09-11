@@ -24,6 +24,8 @@
 // survive `safeUrl()`, which permits only http and https, so a
 // `javascript:` booking link cannot become a script on the shop's own page.
 
+import { DEFAULT_THEME, themeByKey } from "./site_themes.ts";
+
 export interface SiteHours {
   /** 0 = Sunday, matching PostgreSQL's extract(dow). */
   day: number;
@@ -61,6 +63,13 @@ export interface SiteContent {
   hours: SiteHours[];
   services: SiteService[];
   links: SiteLink[];
+  /**
+   * Which look the shop has chosen. Absent means the default.
+   *
+   * A theme supplies CSS and nothing else -- see site_themes.ts -- so this
+   * cannot change a single word on the page.
+   */
+  theme?: string | null;
 }
 
 export const RENDERER_VERSION = "barberos-site-0.1.0";
@@ -315,42 +324,8 @@ function actions(c: SiteContent): string {
   return parts.length === 0 ? "" : `<div class="actions">${parts.join("")}</div>`;
 }
 
-const CSS = `:root{color-scheme:light dark}
-*{box-sizing:border-box}
-body{margin:0;font:16px/1.6 ui-sans-serif,system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
-color:#16181d;background:#fff}
-.wrap{max-width:680px;margin:0 auto;padding:40px 20px 72px}
-header{border-bottom:1px solid #e6e8eb;padding-bottom:22px;margin-bottom:8px}
-h1{margin:0;font-size:30px;letter-spacing:-.4px}
-.tagline{margin:8px 0 0;font-size:17px;color:#4a5058}
-.actions{display:flex;gap:10px;flex-wrap:wrap;margin:20px 0 0}
-.btn{display:inline-block;padding:11px 18px;border-radius:8px;border:1px solid #c9ced6;
-text-decoration:none;color:#16181d;font-size:15px}
-.btn.primary{background:#16181d;border-color:#16181d;color:#fff}
-section{margin:34px 0 0}
-h2{font-size:13px;letter-spacing:.9px;text-transform:uppercase;color:#6b7280;margin:0 0 10px}
-table{width:100%;border-collapse:collapse}
-th{text-align:left;font-weight:500;padding:8px 0;border-bottom:1px solid #f0f1f3}
-td{text-align:right;padding:8px 0;border-bottom:1px solid #f0f1f3}
-.closed{color:#6b7280}
-.muted{color:#6b7280}
-.dur{color:#6b7280;font-weight:400;font-size:14px;margin-left:8px}
-.price{font-variant-numeric:tabular-nums}
-.addr{margin:0;font-size:16px}
-.note{margin:10px 0 0;font-size:14px;color:#6b7280}
-.links{list-style:none;padding:0;margin:0;display:flex;gap:14px;flex-wrap:wrap}
-.links a{color:#16181d}
-footer{margin:44px 0 0;padding-top:18px;border-top:1px solid #e6e8eb;font-size:13px;color:#6b7280}
-.empty{margin:34px 0 0;padding:18px;border:1px dashed #c9ced6;border-radius:10px;color:#6b7280}
-@media (prefers-color-scheme:dark){
-body{background:#0f1115;color:#e8eaed}
-header,footer{border-color:#252a31}
-th,td{border-color:#1c2027}
-.tagline,.closed,.muted,.dur,.note,h2,footer{color:#9aa3ae}
-.btn{border-color:#333a44;color:#e8eaed}
-.btn.primary{background:#e8eaed;border-color:#e8eaed;color:#0f1115}
-.links a{color:#e8eaed}
-.empty{border-color:#333a44}}`;
+// The page's styling lives in site_themes.ts. Nothing in a theme can add or
+// remove content -- it is CSS only.
 
 /**
  * The whole page.
@@ -361,6 +336,7 @@ th,td{border-color:#1c2027}
  * page that says it has nothing on it rather than as a page of filler.
  */
 export function renderSite(c: SiteContent): string {
+  const theme = themeByKey(c.theme ?? DEFAULT_THEME);
   const name = c.shop_name?.trim() || c.headline?.trim() || "This shop";
   const state = completeness(c);
 
@@ -399,9 +375,9 @@ customer could act on, which is why it has not been published.</p>`
 <title>${esc(name)}${c.locality ? ` — Barbershop in ${esc(c.locality)}` : ""}</title>
 ${description}
 <meta name="generator" content="${esc(RENDERER_VERSION)}">
-<style>${CSS}</style>
+<style>${theme.css}</style>
 </head>
-<body>
+<body data-theme="${esc(theme.key)}">
 <div class="wrap">
 <header>
 <h1>${esc(name)}</h1>
