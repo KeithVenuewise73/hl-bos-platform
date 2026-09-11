@@ -1,5 +1,11 @@
 import { describe, it, expect } from "vitest";
-import { PROBE_SLUG, defaultSiteBase, describeServing, probeUrl } from "./site-serving";
+import {
+  PROBE_SLUG,
+  SHOP_PAGES_BASE,
+  describeServing,
+  probeUrl,
+  resolveSiteBase,
+} from "./site-serving";
 
 describe("the probe address", () => {
   it("asks for a slug nothing will ever be published at", () => {
@@ -17,13 +23,25 @@ describe("the probe address", () => {
     );
   });
 
-  it("is derived from the project ref, never hardcoded to production", () => {
-    expect(defaultSiteBase("abcdefghijklmnopqrst")).toBe(
-      "https://abcdefghijklmnopqrst.supabase.co/functions/v1/site",
-    );
-    // No ref means no guess. A console that is not connected must not probe
-    // some other project's address.
-    expect(defaultSiteBase(null)).toBeNull();
+  it("checks the real address unless a machine-local override says otherwise", () => {
+    expect(resolveSiteBase(null)).toEqual({ base: SHOP_PAGES_BASE, overridden: false });
+    expect(resolveSiteBase("")).toEqual({ base: SHOP_PAGES_BASE, overridden: false });
+    expect(resolveSiteBase("   ")).toEqual({
+      base: SHOP_PAGES_BASE,
+      overridden: false,
+    });
+    expect(resolveSiteBase("http://127.0.0.1:3000")).toEqual({
+      base: "http://127.0.0.1:3000",
+      overridden: true,
+    });
+  });
+
+  it("points at the agency's own domain, not a Supabase URL", () => {
+    // The Supabase function cannot serve HTML at all, so a console that probed
+    // it would be measuring the wrong thing and reporting a failure that no
+    // longer matters.
+    expect(SHOP_PAGES_BASE).toBe("https://shops.hermanlegacydigital.com");
+    expect(SHOP_PAGES_BASE).not.toContain("supabase");
   });
 });
 
@@ -72,7 +90,7 @@ describe("what a customer would actually get", () => {
     const v = describeServing({ error: "fetch failed" });
     expect(v.servedAsWebPage).toBe(false);
     expect(v.detail).toContain("fetch failed");
-    expect(v.remedy).toContain("this machine");
+    expect(v.remedy).toContain("not been deployed");
   });
 
   it("an empty error message still produces a sentence, not a blank", () => {

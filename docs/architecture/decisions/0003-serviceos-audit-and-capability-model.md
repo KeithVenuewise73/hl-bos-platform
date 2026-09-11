@@ -550,3 +550,29 @@ A new directory under `apps/` that appears in neither the application registry
 nor the catalog fails the completeness test — twice, once per registry. Both are
 now registered, `deploymentStatus: not_deployed`, `health: yellow`, which is what
 is true until it is running somewhere.
+
+---
+
+## Addendum — 2026-09-11: the address
+
+Shop pages are served at **`shops.hermanlegacydigital.com`**, by `apps/shop-pages`
+on the existing Coolify server. One CNAME on that subdomain; nothing else on
+`hermanlegacydigital.com` is touched, and the apex stays free for the agency's
+own site.
+
+A subdomain rather than the apex is not a Supabase constraint here — that
+constraint stopped mattering once the pages left Supabase — it is simply right:
+the agency's front door and its customers' pages are different things and should
+not share a hostname.
+
+The address is a constant in `apps/control-center/src/lib/site-serving.ts`, not a
+setting. It is a fact about the business; if it changes, the change belongs in a
+reviewed commit beside this ADR, not in an untracked file on one machine. A
+machine-local override exists for pointing the console at a staging deployment,
+and the panel says when one is in force.
+
+**The console now checks that address, and it currently fails** — nothing is
+deployed there yet. That is the intended behaviour: the probe reports the real
+address rather than a reachable one, because a status panel that checks something
+easier in order to look green is the exact failure mode this platform's honesty
+rules exist to prevent.

@@ -3,9 +3,9 @@ import { Card, Empty } from "@/components/ui";
 import { ShopActions, ImportList } from "@/components/ShopActions";
 import { readEnvFile } from "@/lib/secrets";
 import {
-  defaultSiteBase,
   describeServing,
   probeUrl,
+  resolveSiteBase,
   type ProbeResult,
 } from "@/lib/site-serving";
 
@@ -273,17 +273,7 @@ function Td({ children, right }: { children: React.ReactNode; right?: boolean })
  */
 async function ServingStatus() {
   const env = await readEnvFile();
-  const base =
-    env["HLBOS_SITE_PUBLIC_BASE"] ??
-    defaultSiteBase(env["HLBOS_SUPABASE_PROJECT_REF"] ?? null);
-
-  if (base === null) {
-    return (
-      <p style={{ margin: "14px 0 0", fontSize: 13, color: "#8b949e" }}>
-        Where shop pages are served is not configured, so this cannot be checked.
-      </p>
-    );
-  }
+  const { base, overridden } = resolveSiteBase(env["HLBOS_SITE_PUBLIC_BASE"]);
 
   let result: ProbeResult;
   try {
@@ -318,6 +308,7 @@ async function ServingStatus() {
       )}
       <p style={{ margin: "8px 0 0", fontSize: 12, color: "#6e7681" }}>
         Checked just now, from this machine: {base}
+        {overridden ? " (local override)" : ""}
       </p>
     </div>
   );

@@ -44,13 +44,33 @@ export function probeUrl(base: string): string {
 }
 
 /**
- * The default address, when nothing has been configured. Derived from the
- * project ref rather than hardcoded, because a second environment must not
- * silently probe production's.
+ * Where shop pages live. Decided 2026-09-11 (ADR-0003): a subdomain of the
+ * agency's own domain, served by `apps/shop-pages` on the existing Coolify
+ * server -- NOT the Supabase function URL, which cannot serve HTML.
+ *
+ * Hardcoded deliberately. This is a fact about the business, not a setting: if
+ * it ever changes, the change belongs in a reviewed commit next to the ADR that
+ * explains it, rather than in a file on one machine.
  */
-export function defaultSiteBase(projectRef: string | null): string | null {
-  if (!projectRef) return null;
-  return `https://${projectRef}.supabase.co/functions/v1/site`;
+export const SHOP_PAGES_BASE = "https://shops.hermanlegacydigital.com";
+
+export interface ResolvedBase {
+  base: string;
+  /** True when a machine-local override is in force rather than the real one. */
+  overridden: boolean;
+}
+
+/**
+ * The address to check. An override exists for pointing the console at a
+ * staging deployment; without one it checks the real address, including before
+ * that address exists -- which is the honest thing to report, not a reason to
+ * check something easier.
+ */
+export function resolveSiteBase(override: string | null | undefined): ResolvedBase {
+  const t = (override ?? "").trim();
+  return t === ""
+    ? { base: SHOP_PAGES_BASE, overridden: false }
+    : { base: t, overridden: true };
 }
 
 function isHtml(contentType: string | null | undefined): boolean {
@@ -74,8 +94,9 @@ export function describeServing(r: ProbeResult): ServingVerdict {
           ? `The request failed: ${r.error}`
           : "The request failed, with no reason given.",
       remedy:
-        "This is checked from this machine, so a firewall or a dropped connection here " +
-        "can cause it as easily as the server being down.",
+        "Nothing is answering at that address yet. Either it has not been deployed, the " +
+        "subdomain does not point at it, or this machine cannot reach it -- a firewall " +
+        "here causes this as readily as a server that is down.",
     };
   }
 

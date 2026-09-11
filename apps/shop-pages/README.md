@@ -31,12 +31,12 @@ API-shaped endpoint.
 Three variables, all required. The server refuses to start without them rather
 than guessing.
 
-| Variable            | Example                              | Why                                                              |
-| ------------------- | ------------------------------------ | ---------------------------------------------------------------- |
-| `SUPABASE_URL`      | `https://<ref>.supabase.co`          | Where the two read-only RPCs live.                               |
-| `SUPABASE_ANON_KEY` | the project's anon / publishable key | Read-only, published-pages-only. **Never** the service-role key. |
-| `SITE_PUBLIC_BASE`  | `https://shops.example.com`          | The address customers type.                                      |
-| `PORT`              | `3000` (default)                     | Optional; the container is told its port.                        |
+| Variable            | Example                                    | Why                                                              |
+| ------------------- | ------------------------------------------ | ---------------------------------------------------------------- |
+| `SUPABASE_URL`      | `https://mvvtngiopdrgiedjmhfb.supabase.co` | Where the two read-only RPCs live.                               |
+| `SUPABASE_ANON_KEY` | the project's anon / publishable key       | Read-only, published-pages-only. **Never** the service-role key. |
+| `SITE_PUBLIC_BASE`  | `https://shops.hermanlegacydigital.com`    | The address customers type.                                      |
+| `PORT`              | `3000` (default)                           | Optional; the container is told its port.                        |
 
 `SITE_PUBLIC_BASE` is required, not inferred, and that is the scar of a real
 bug: the first deployment of this module built absolute URLs from the request
@@ -45,6 +45,10 @@ Behind any proxy a request knows neither its external hostname nor its external
 path prefix. It has to be told.
 
 ## Deploying on Coolify
+
+The address is **`shops.hermanlegacydigital.com`** (decided 2026-09-11). One
+CNAME on that subdomain, pointing at the Coolify host; nothing else on
+`hermanlegacydigital.com` is touched.
 
 - **Build pack:** Dockerfile
 - **Base directory:** `/` — the build context must be the repository root,

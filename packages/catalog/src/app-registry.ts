@@ -280,13 +280,13 @@ export const APPLICATIONS: ApplicationRecord[] = [
     version: "0.1.0",
     health: "yellow",
     hosting:
-      "Coolify (self-hosted), from apps/shop-pages/Dockerfile with the repository root as build context",
+      "Coolify (self-hosted), from apps/shop-pages/Dockerfile with the repository root as build context; address decided 2026-09-11 as shops.hermanlegacydigital.com (one CNAME on that subdomain)",
     dependencies: ["barberos.published_site()", "barberos.published_sitemap()"],
     reusableModules: ["_shared/barberos/site_server", "_shared/barberos/site_render"],
     softwareFactoryIntegration:
       "The delivery half of the Shop Transformation Analysis Tool: the audit finds a shop has no website, this serves the one it gets.",
     notes:
-      "Reads two read-only RPCs with the ANON key; no service-role key and no write path at any depth. Proved over real HTTP against a real PostgreSQL as role anon (scripts/local-test/site-serve-e2e.mjs). NOT yet deployed: it needs a host and a subdomain.",
+      "Reads two read-only RPCs with the ANON key; no service-role key and no write path at any depth. Proved over real HTTP against a real PostgreSQL as role anon (scripts/local-test/site-serve-e2e.mjs). NOT yet deployed -- productionUrl stays null until something answers at shops.hermanlegacydigital.com, which the Control Center checks on every render of the Shop Analysis page.",
     evidence:
       "apps/shop-pages + supabase/functions/_shared/barberos/site_server.ts; 35-check end-to-end, 8 of them on this exact root-path shape",
   },

@@ -203,7 +203,7 @@ const ASSETS: Asset[] = [
       { kind: "owned_by", to: "repo.hl-bos-platform" },
     ],
     evidence:
-      "apps/shop-pages (Dockerfile + server.ts); proved over real HTTP against a real PostgreSQL as role anon, 8 checks on this exact root-path shape; NOT deployed -- needs a host and a subdomain",
+      "apps/shop-pages (Dockerfile + server.ts); proved over real HTTP against a real PostgreSQL as role anon, 8 checks on this exact root-path shape; NOT deployed -- the address is decided (shops.hermanlegacydigital.com) and nothing answers there yet",
   },
   {
     id: "app.hl-bti",
