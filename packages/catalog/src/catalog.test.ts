@@ -164,9 +164,10 @@ describe("repository scan (ground truth)", () => {
     // has exactly one right answer -- and its honesty trigger promotes
     // capability-match's first two rules to database law, so no path can store
     // a proposal offering a deferred module or selling a planned one as
-    // available. Built, NOT applied.
-    // See notYetAppliedOrdinals in .hlbos/canonical.json, which names 0030,
-    // 0031 and 0055.
+    // available. Applied 2026-09-11, and the trigger was exercised against
+    // production itself rather than only against the local mirror.
+    // See notYetAppliedOrdinals in .hlbos/canonical.json, which names 0030
+    // and 0031.
     expect(inv.migrations.length).toBe(55);
     expect(inv.edgeFunctions).toContain("ai-gateway");
     // The one function meant to be deployed, and the only unauthenticated one.
