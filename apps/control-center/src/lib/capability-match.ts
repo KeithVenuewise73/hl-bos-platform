@@ -1,5 +1,12 @@
 // What the shop already has, against what BarberOS can give it.
 //
+// LIVES HERE, in the console, because the console is what runs a discovery
+// call. The first draft put it in supabase/functions/_shared, which is Deno
+// territory the Next app deliberately does not reach into -- a second copy or
+// a cross-boundary import hack would both have been worse than moving it to
+// where its only caller is. If an edge function ever needs it, that is when it
+// moves again.
+//
 // This is the cross-reference the sale is built on: not "here is our feature
 // list", but "here is the specific thing costing you money, and here is the
 // module that stops it". A generic pitch is worth nothing to a barber who

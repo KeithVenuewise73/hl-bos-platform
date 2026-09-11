@@ -165,3 +165,39 @@ console think it is connected to a project that is not there.
 This is how the "site did not answer" bug was found: five shops that had never
 been fetched were being described as unreadable, and only a rendered page with
 real data showed it.
+
+---
+
+# The discovery call, end to end
+
+`discovery-call-e2e.mts` runs the call screen's real SQL and real mappings
+against the local PostgreSQL carrying migration 0054:
+
+```bash
+NODE_PATH=/path/to/pg/node_modules \
+  node --experimental-strip-types --import ./scripts/local-test/ts-extensionless.mjs \
+  scripts/local-test/discovery-call-e2e.mts
+```
+
+19 checks. What is worth proving here is not that a row can be written — it is
+the three things that would quietly produce a false claim in a proposal:
+
+- the write goes through **`set local role authenticated`** as the tenant
+  owner, so the permission check and the RLS policy are exercised. The SQL
+  endpoint connects as `postgres`; writing that way would let the console store
+  what the application itself would refuse, and prove nothing.
+- a second call **adds to** the first rather than overwriting it, and an
+  explicit `null` clears an answer back to "nobody asked". That absent-versus-
+  null distinction is the whole design of 0054, and it only holds if the
+  payload builder, the JSON cast and the function agree.
+- a `false` survives the round trip as `false` and a `null` as `null`. A
+  transport that collapsed them would have the screen telling an owner they
+  have no online booking when nobody raised the subject.
+
+The React is typechecked, not rendered. What can be wrong is the SQL and the
+mapping, and those are what this runs.
+
+`ts-extensionless.mjs` (and the hooks file beside it) let plain Node resolve the
+console's extensionless imports — Next bundles the app, so `./shop-audit-sql`
+has no extension and Node's ESM resolver will not find it. Used only by this
+harness; nothing shipped depends on it.

@@ -4,6 +4,8 @@ import { revalidatePath } from "next/cache";
 import { cmd } from "@/lib/shell";
 import { readEnvFile } from "@/lib/secrets";
 import { explain } from "@/lib/translate";
+import { connect, HLD_TENANT_SLUG } from "@/lib/shop-audit";
+import { RECORD_CALL_SQL, answersPayload } from "@/lib/discovery-sql";
 import type { ActionResult } from "@/app/actions";
 
 /**
@@ -177,5 +179,69 @@ export async function importProspectList(formData: FormData): Promise<ActionResu
       " Re-importing a corrected file updates the shops rather than duplicating them. " +
       "Nothing has been analysed yet — use Look at the websites for that.",
     detail: r.output,
+  };
+}
+
+/**
+ * Record what a shop said on the discovery call.
+ *
+ * Unlike the two actions above, this one writes to HL-BOS Core directly rather
+ * than shelling out -- there is no crawling to do and no third party to wait
+ * for. It goes through the Management API's SQL endpoint, which connects as
+ * `postgres`; RECORD_CALL_SQL puts the permission checks back by impersonating
+ * the tenant owner, and refuses outright if the tenant has no active owner to
+ * act as. A console that can store what the application itself would refuse is
+ * not a console, it is a back door.
+ */
+export async function recordCall(
+  prospectId: string,
+  answers: Record<string, unknown>,
+): Promise<ActionResult> {
+  // A uuid, because it is inlined into SQL. Anything else never reaches the
+  // database.
+  if (
+    !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(prospectId)
+  ) {
+    return {
+      ok: false,
+      headline: "That is not a shop.",
+      meaning: "The page was opened with an address the console does not recognise.",
+      detail: "",
+    };
+  }
+  if (Object.keys(answers).length === 0) {
+    return {
+      ok: false,
+      headline: "Nothing to save.",
+      meaning: "No answer was changed, so there is nothing to record.",
+      detail: "",
+    };
+  }
+
+  const state = await connect();
+  if (!state.connected) {
+    return {
+      ok: false,
+      headline: "Supabase is not connected yet.",
+      meaning: state.reason,
+      detail: "",
+      href: "/connect",
+    };
+  }
+
+  try {
+    await state.conn.run(
+      RECORD_CALL_SQL(HLD_TENANT_SLUG, prospectId, answersPayload(answers)),
+    );
+  } catch (e) {
+    return fail(e instanceof Error ? e.message : String(e));
+  }
+  revalidatePath(`/shops/${prospectId}/call`);
+  revalidatePath("/shops");
+  return {
+    ok: true,
+    headline: "Saved.",
+    meaning: "Only the answers you changed were written; the rest are as they were.",
+    detail: "",
   };
 }

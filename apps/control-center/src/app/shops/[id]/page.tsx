@@ -56,6 +56,26 @@ export default async function ShopReportPage({
 
   return (
     <Shell name={report.name}>
+      {/* The audit is half the picture. The other half only the owner can give
+          us, so the way to it lives right beside the findings. */}
+      <p style={{ margin: "0 0 16px", fontSize: 14 }}>
+        <a
+          href={`/shops/${id}/call`}
+          style={{
+            display: "inline-block",
+            padding: "9px 16px",
+            borderRadius: 6,
+            border: "1px solid #2f3742",
+            color: "#58a6ff",
+            textDecoration: "none",
+          }}
+        >
+          Discovery call →
+        </a>
+        <span style={{ marginLeft: 12, color: "#6e7681", fontSize: 13 }}>
+          What they already run, and what we can do about it.
+        </span>
+      </p>
       <Card
         title="Where this shop stands"
         sub={[report.address, report.locality, report.postalCode]
