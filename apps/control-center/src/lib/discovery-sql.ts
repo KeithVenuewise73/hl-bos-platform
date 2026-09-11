@@ -6,7 +6,7 @@
  * and the mappings are unit-tested. Nothing here holds a token or calls fetch.
  */
 
-import { lit, type SqlRunner } from "./shop-audit-sql";
+import { asTenantOwner, lit, type SqlRunner } from "./shop-audit-sql";
 import type { CapabilityOffer, ShopStack } from "./capability-match";
 
 export type { SqlRunner };
@@ -122,6 +122,70 @@ export function toCallContext(r: Record<string, unknown>): CallContext {
   };
 }
 
+/**
+ * The six things worth asking, and the two ways each of them gets said.
+ *
+ * `ask` is for the phone -- it is how you actually raise the subject with a
+ * barber mid-afternoon. `topic` is for the document, where the same fact has to
+ * be read back to them as a statement rather than a question.
+ *
+ * ONE TABLE, because the call screen and the proposal must not drift. If the
+ * screen asks about the phones and the document calls it something else, the
+ * shop is reading back an answer it does not recognise giving.
+ */
+export interface Topic {
+  key: Exclude<AnswerKey, "booking_platform" | "chairs" | "notes">;
+  stack: keyof ShopStack;
+  /** How it is raised on the call. */
+  ask: string;
+  /** What a "yes" means, when that is not obvious from the question. */
+  hint?: string;
+  /** How it is read back in the proposal. */
+  topic: string;
+}
+
+export const TOPICS: readonly Topic[] = [
+  {
+    key: "own_website",
+    stack: "ownWebsite",
+    ask: "Do you have a website of your own?",
+    hint: "Their own domain \u2014 not a Booksy or GlossGenius page.",
+    topic: "A website of your own",
+  },
+  {
+    key: "online_booking",
+    stack: "onlineBooking",
+    ask: "Can someone book without phoning you?",
+    topic: "Customers can book without phoning",
+  },
+  {
+    key: "missed_call_handling",
+    stack: "missedCallHandling",
+    ask: "When you're mid-cut and the phone goes, what happens to that call?",
+    hint: "Yes only if something actually catches it \u2014 voicemail they return, or a person.",
+    topic: "Something catches a call you miss",
+  },
+  {
+    key: "takes_walkins",
+    stack: "takesWalkIns",
+    ask: "Do you take walk-ins?",
+    topic: "You take walk-ins",
+  },
+  {
+    key: "client_records",
+    stack: "clientRecords",
+    ask: "Do you keep a record of a regular \u2014 what they had last time?",
+    hint: "Anything written down. Not the barber's memory.",
+    topic: "A record of what a regular had last time",
+  },
+  {
+    key: "review_process",
+    stack: "reviewProcess",
+    ask: "Do you ask customers for reviews, as a routine?",
+    topic: "You ask for reviews as a routine",
+  },
+];
+
 /** The answer keys `transform_audit.record_discovery` understands. */
 export const ANSWER_KEYS = [
   "own_website",
@@ -169,27 +233,12 @@ export const RECORD_CALL_SQL = (
   tenantSlug: string,
   prospectId: string,
   payload: Record<string, unknown>,
-) => `do $hl$
-declare v_owner uuid;
-begin
-  select m.user_id into v_owner
-    from identity.memberships m
-    join identity.membership_roles mr on mr.membership_id = m.id
-    join platform.tenants t on t.id = m.tenant_id
-   where t.slug = ${lit(tenantSlug)} and m.status = 'active'
-     and mr.role_key = 'tenant_owner'
-   limit 1;
-  if v_owner is null then
-    raise exception 'tenant % has no active owner to act as; refusing to write as a superuser',
-      ${lit(tenantSlug)};
-  end if;
-  perform set_config('request.jwt.claims',
-    json_build_object('sub', v_owner::text, 'role', 'authenticated')::text, true);
-  set local role authenticated;
-  perform transform_audit.record_discovery(
-    ${lit(prospectId)}::uuid, ${lit(JSON.stringify(payload))}::jsonb);
-  reset role;
-end $hl$;`;
+) =>
+  asTenantOwner(
+    tenantSlug,
+    `  perform transform_audit.record_discovery(
+    ${lit(prospectId)}::uuid, ${lit(JSON.stringify(payload))}::jsonb);`,
+  );
 
 export async function loadCall(
   run: SqlRunner,

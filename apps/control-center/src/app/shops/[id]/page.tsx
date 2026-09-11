@@ -72,6 +72,20 @@ export default async function ShopReportPage({
         >
           Discovery call →
         </a>
+        <a
+          href={`/shops/${id}/proposal`}
+          style={{
+            display: "inline-block",
+            marginLeft: 10,
+            padding: "9px 16px",
+            borderRadius: 6,
+            border: "1px solid #2f3742",
+            color: "#58a6ff",
+            textDecoration: "none",
+          }}
+        >
+          Proposal →
+        </a>
         <span style={{ marginLeft: 12, color: "#6e7681", fontSize: 13 }}>
           What they already run, and what we can do about it.
         </span>

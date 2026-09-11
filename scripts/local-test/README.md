@@ -201,3 +201,41 @@ mapping, and those are what this runs.
 console's extensionless imports — Next bundles the app, so `./shop-audit-sql`
 has no extension and Node's ESM resolver will not find it. Used only by this
 harness; nothing shipped depends on it.
+
+---
+
+# The proposal, end to end
+
+`proposal-e2e.mts` runs the whole proposal path against the local PostgreSQL
+carrying migration 0055:
+
+```bash
+NODE_PATH=/path/to/pg/node_modules \
+  node --experimental-strip-types --import ./scripts/local-test/ts-extensionless.mjs \
+  scripts/local-test/proposal-e2e.mts
+```
+
+34 checks, and the four groups are chosen because each one is a way a proposal
+could quietly become a lie:
+
+- **The honesty rules belong to the DATABASE.** `capability-match.ts` already
+  refuses to offer a deferred module or to sell a planned one as available, and
+  it has tests — but that holds only for documents it composed. So the run goes
+  straight at the trigger: a deferred module, an invented module and a planned
+  module claimed as deliverable today are each refused by PostgreSQL, with the
+  reason quoted.
+- **The snapshot does not move.** It promotes `review_engine` to `available`
+  mid-run and asserts the proposal drafted a moment earlier still says roadmap.
+  A live-rendered document would have silently changed what the shop was told.
+- **Sent is immutable, by every route.** Through the function, and by a direct
+  `UPDATE` — the shape of every future fix-up script — which the trigger refuses
+  rather than a missing grant.
+- **The document tells the truth about its own gaps.** It renders a real
+  proposal from real rows: the verified finding with its evidence URL is in it,
+  the `unknown`-confidence finding is not, the audit's coverage is stated
+  ("over 1 of the 2 dimensions"), the roadmap is labelled "not available yet",
+  and what nobody asked on the call appears as a limit rather than a "no".
+
+Every write goes through the permission-checked function **as the tenant
+owner**. Connected as the superuser the run would prove the SQL parses and say
+nothing about whether the application would allow it.

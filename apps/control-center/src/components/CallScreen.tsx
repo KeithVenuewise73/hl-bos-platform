@@ -8,7 +8,7 @@ import {
   type CapabilityOffer,
   type ShopStack,
 } from "@/lib/capability-match";
-import type { AnswerKey } from "@/lib/discovery-sql";
+import { TOPICS, type AnswerKey } from "@/lib/discovery-sql";
 import { recordCall } from "@/app/shops/actions";
 import type { ActionResult } from "@/app/actions";
 
@@ -29,50 +29,6 @@ import type { ActionResult } from "@/app/actions";
  *   * the right-hand column recomputes on every click, so the person on the
  *     phone can see the pitch change as the shop answers.
  */
-
-interface Question {
-  key: Exclude<AnswerKey, "booking_platform" | "chairs" | "notes">;
-  stack: keyof ShopStack;
-  ask: string;
-  /** What a "yes" means, when that is not obvious from the question. */
-  hint?: string;
-}
-
-const QUESTIONS: readonly Question[] = [
-  {
-    key: "own_website",
-    stack: "ownWebsite",
-    ask: "Do you have a website of your own?",
-    hint: "Their own domain — not a Booksy or GlossGenius page.",
-  },
-  {
-    key: "online_booking",
-    stack: "onlineBooking",
-    ask: "Can someone book without phoning you?",
-  },
-  {
-    key: "missed_call_handling",
-    stack: "missedCallHandling",
-    ask: "When you're mid-cut and the phone goes, what happens to that call?",
-    hint: "Yes only if something actually catches it — voicemail they return, or a person.",
-  },
-  {
-    key: "takes_walkins",
-    stack: "takesWalkIns",
-    ask: "Do you take walk-ins?",
-  },
-  {
-    key: "client_records",
-    stack: "clientRecords",
-    ask: "Do you keep a record of a regular — what they had last time?",
-    hint: "Anything written down. Not the barber's memory.",
-  },
-  {
-    key: "review_process",
-    stack: "reviewProcess",
-    ask: "Do you ask customers for reviews, as a routine?",
-  },
-];
 
 type Tri = boolean | null;
 
@@ -113,7 +69,7 @@ export function CallScreen({
 
   function save() {
     const answers: Record<string, unknown> = {};
-    for (const q of QUESTIONS) {
+    for (const q of TOPICS) {
       if (touched.has(q.key)) answers[q.key] = stack[q.stack];
     }
     if (touched.has("booking_platform"))
@@ -160,7 +116,7 @@ export function CallScreen({
           </p>
         )}
 
-        {QUESTIONS.map((q) => (
+        {TOPICS.map((q) => (
           <div key={q.key} style={{ margin: "0 0 18px" }}>
             <div style={{ fontSize: 15, color: "#e6edf3", marginBottom: 2 }}>
               {q.ask}

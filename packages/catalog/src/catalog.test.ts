@@ -158,10 +158,16 @@ describe("repository scan (ground truth)", () => {
     // account. Applied 2026-09-11 alongside the deployment of apps/shop-pages.
     // 0054 records what a shop told us on the introductory call: the half of
     // the picture a crawler can never see, and the input to the capability
-    // cross-reference. Built, NOT applied.
+    // cross-reference. Applied 2026-09-11.
+    // 0055 stores the document that comes out of it. A proposal is a snapshot
+    // rather than a live render, because "what did we offer them in September"
+    // has exactly one right answer -- and its honesty trigger promotes
+    // capability-match's first two rules to database law, so no path can store
+    // a proposal offering a deferred module or selling a planned one as
+    // available. Built, NOT applied.
     // See notYetAppliedOrdinals in .hlbos/canonical.json, which names 0030,
-    // 0031 and 0054.
-    expect(inv.migrations.length).toBe(54);
+    // 0031 and 0055.
+    expect(inv.migrations.length).toBe(55);
     expect(inv.edgeFunctions).toContain("ai-gateway");
     // The one function meant to be deployed, and the only unauthenticated one.
     expect(inv.edgeFunctions).toContain("site");

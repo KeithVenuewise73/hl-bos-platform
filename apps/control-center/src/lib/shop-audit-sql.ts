@@ -207,3 +207,41 @@ select c.key::text as key, c.name
 export function lit(v: string): string {
   return `'${v.replace(/'/g, "''")}'`;
 }
+
+/**
+ * Run `body` AS THE TENANT OWNER, through the permission checks.
+ *
+ * The Management API's SQL endpoint connects as `postgres`, which bypasses RLS
+ * and every permission check in the schema. Writing that way would let the
+ * console store what the application itself would refuse -- so every write from
+ * this console assumes a real person's identity first, and REFUSES OUTRIGHT if
+ * the tenant has no active owner to act as. The same rule scripts/lib/hlbos-sql
+ * applies, for the same reason.
+ *
+ * `set local role` is transaction-scoped, and a multi-statement submission runs
+ * in one implicit transaction -- so a statement placed after this block still
+ * runs as the owner, and the role is dropped when the submission ends. The
+ * explicit `reset role` inside is belt and braces.
+ *
+ * `body` must be complete plpgsql statements, indented two spaces.
+ */
+export const asTenantOwner = (tenantSlug: string, body: string): string => `do $hl$
+declare v_owner uuid;
+begin
+  select m.user_id into v_owner
+    from identity.memberships m
+    join identity.membership_roles mr on mr.membership_id = m.id
+    join platform.tenants t on t.id = m.tenant_id
+   where t.slug = ${lit(tenantSlug)} and m.status = 'active'
+     and mr.role_key = 'tenant_owner'
+   limit 1;
+  if v_owner is null then
+    raise exception 'tenant % has no active owner to act as; refusing to write as a superuser',
+      ${lit(tenantSlug)};
+  end if;
+  perform set_config('request.jwt.claims',
+    json_build_object('sub', v_owner::text, 'role', 'authenticated')::text, true);
+  set local role authenticated;
+${body}
+  reset role;
+end $hl$;`;

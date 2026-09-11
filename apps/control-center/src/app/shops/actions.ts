@@ -6,7 +6,22 @@ import { readEnvFile } from "@/lib/secrets";
 import { explain } from "@/lib/translate";
 import { connect, HLD_TENANT_SLUG } from "@/lib/shop-audit";
 import { RECORD_CALL_SQL, answersPayload } from "@/lib/discovery-sql";
+import {
+  DECIDE_SQL,
+  DRAFT_SQL,
+  SAVE_SQL,
+  SEND_SQL,
+  loadAssembleContext,
+  loadCatalog,
+  loadProposal,
+} from "@/lib/proposal-sql";
+import { assembleDocument, type ProposalDocument } from "@/lib/proposal-doc";
+import { matchCapabilities } from "@/lib/capability-match";
+import type { SqlRunner } from "@/lib/shop-audit-sql";
+
 import type { ActionResult } from "@/app/actions";
+
+type Investment = ProposalDocument["investment"];
 
 /**
  * The Shop Analysis page's two real actions.
@@ -242,6 +257,203 @@ export async function recordCall(
     ok: true,
     headline: "Saved.",
     meaning: "Only the answers you changed were written; the rest are as they were.",
+    detail: "",
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Proposals
+//
+// Four actions, all of them writing as the tenant owner through the
+// permission-checked functions in migration 0055. None of them decides
+// anything the database would not also enforce: the honesty rules live in the
+// trigger, the lifecycle lives in the trigger, and these report what happened.
+// ---------------------------------------------------------------------------
+
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+function notAThing(what: string): ActionResult {
+  return {
+    ok: false,
+    headline: `That is not a ${what}.`,
+    meaning: "The page was opened with an address the console does not recognise.",
+    detail: "",
+  };
+}
+
+async function runner(): Promise<
+  { ok: true; run: SqlRunner } | { ok: false; result: ActionResult }
+> {
+  const state = await connect();
+  if (!state.connected) {
+    return {
+      ok: false,
+      result: {
+        ok: false,
+        headline: "Supabase is not connected yet.",
+        meaning: state.reason,
+        detail: "",
+        href: "/connect",
+      },
+    };
+  }
+  return { ok: true, run: state.conn.run };
+}
+
+/**
+ * Freeze what we currently know into a draft.
+ *
+ * The snapshot is taken HERE, from live data, and never again. Everything
+ * after this edits words around evidence that has stopped moving.
+ */
+export async function createProposal(prospectId: string): Promise<ActionResult> {
+  if (!UUID.test(prospectId)) return notAThing("shop");
+  const r = await runner();
+  if (!r.ok) return r.result;
+
+  try {
+    const ctx = await loadAssembleContext(r.run, HLD_TENANT_SLUG, prospectId);
+    if (ctx === null) {
+      return {
+        ok: false,
+        headline: "No such shop.",
+        meaning: "Nothing in the prospect list has that id.",
+        detail: "",
+      };
+    }
+    const catalog = await loadCatalog(r.run);
+    const gaps = matchCapabilities(ctx.stack, catalog);
+    if (gaps.length === 0) {
+      // A proposal that offers nothing is not a proposal. The database refuses
+      // to SEND one; there is no reason to let a person build one either.
+      return {
+        ok: false,
+        headline: "There is nothing to propose yet.",
+        meaning:
+          "Cross-referencing what this shop has against the catalog produced no gaps. " +
+          "Either they are already covered, or nobody has audited or called them.",
+        detail: "",
+      };
+    }
+    const document = assembleDocument({
+      shop: ctx.shop,
+      audit: ctx.audit,
+      stack: ctx.stack,
+      answeredAt: ctx.answeredAt,
+      notes: ctx.notes,
+      gaps,
+      preparedAt: new Date().toISOString(),
+    });
+    await r.run(DRAFT_SQL(HLD_TENANT_SLUG, prospectId, ctx.runId, document));
+  } catch (e) {
+    return fail(e instanceof Error ? e.message : String(e));
+  }
+
+  revalidatePath(`/shops/${prospectId}/proposal`);
+  return {
+    ok: true,
+    headline: "Draft created.",
+    meaning:
+      "What we know about this shop is now frozen into it. Add the covering note and " +
+      "the pricing, then send it.",
+    detail: "",
+  };
+}
+
+/** Edit the words. The snapshot inside the document is passed back untouched. */
+export async function saveProposal(
+  prospectId: string,
+  proposalId: string,
+  edits: { message: string; investment: Investment; nextSteps: string[] },
+): Promise<ActionResult> {
+  if (!UUID.test(prospectId)) return notAThing("shop");
+  if (!UUID.test(proposalId)) return notAThing("proposal");
+  const r = await runner();
+  if (!r.ok) return r.result;
+
+  try {
+    const current = await loadProposal(r.run, HLD_TENANT_SLUG, proposalId);
+    if (current === null) return notAThing("proposal");
+    const document = {
+      ...current.document,
+      message: edits.message,
+      investment: edits.investment,
+      next_steps: edits.nextSteps,
+    };
+    await r.run(SAVE_SQL(HLD_TENANT_SLUG, proposalId, document));
+  } catch (e) {
+    return fail(e instanceof Error ? e.message : String(e));
+  }
+
+  revalidatePath(`/shops/${prospectId}/proposal/${proposalId}`);
+  return {
+    ok: true,
+    headline: "Saved.",
+    meaning: "The evidence in the document is unchanged; only the wording moved.",
+    detail: "",
+  };
+}
+
+/** The commitment. After this the document cannot change. */
+export async function sendProposal(
+  prospectId: string,
+  proposalId: string,
+): Promise<ActionResult> {
+  if (!UUID.test(prospectId)) return notAThing("shop");
+  if (!UUID.test(proposalId)) return notAThing("proposal");
+  const r = await runner();
+  if (!r.ok) return r.result;
+
+  try {
+    await r.run(SEND_SQL(HLD_TENANT_SLUG, proposalId));
+  } catch (e) {
+    return fail(e instanceof Error ? e.message : String(e));
+  }
+
+  revalidatePath(`/shops/${prospectId}/proposal/${proposalId}`);
+  revalidatePath(`/shops/${prospectId}/proposal`);
+  return {
+    ok: true,
+    headline: "Marked as sent.",
+    meaning:
+      "The document is frozen from here. If something needs to change, draft a new " +
+      "one -- the shop has this version.",
+    detail: "",
+  };
+}
+
+/** What came back. */
+export async function decideProposal(
+  prospectId: string,
+  proposalId: string,
+  status: string,
+  note: string,
+): Promise<ActionResult> {
+  if (!UUID.test(prospectId)) return notAThing("shop");
+  if (!UUID.test(proposalId)) return notAThing("proposal");
+  if (status !== "accepted" && status !== "declined" && status !== "withdrawn") {
+    return {
+      ok: false,
+      headline: "That is not an outcome.",
+      meaning: "A proposal is accepted, declined or withdrawn.",
+      detail: "",
+    };
+  }
+  const r = await runner();
+  if (!r.ok) return r.result;
+
+  try {
+    await r.run(DECIDE_SQL(HLD_TENANT_SLUG, proposalId, status, note));
+  } catch (e) {
+    return fail(e instanceof Error ? e.message : String(e));
+  }
+
+  revalidatePath(`/shops/${prospectId}/proposal/${proposalId}`);
+  revalidatePath(`/shops/${prospectId}/proposal`);
+  return {
+    ok: true,
+    headline: "Recorded.",
+    meaning: "",
     detail: "",
   };
 }
