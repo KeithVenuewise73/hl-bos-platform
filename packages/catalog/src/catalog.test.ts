@@ -155,10 +155,13 @@ describe("repository scan (ground truth)", () => {
     // it tables.
     // 0053 gives that page a public read path -- the first anon-executable RPC
     // in the platform -- so a published page can be read by a customer with no
-    // account. Built, not applied.
+    // account. Applied 2026-09-11 alongside the deployment of apps/shop-pages.
+    // 0054 records what a shop told us on the introductory call: the half of
+    // the picture a crawler can never see, and the input to the capability
+    // cross-reference. Built, NOT applied.
     // See notYetAppliedOrdinals in .hlbos/canonical.json, which names 0030,
-    // 0031 and 0053.
-    expect(inv.migrations.length).toBe(53);
+    // 0031 and 0054.
+    expect(inv.migrations.length).toBe(54);
     expect(inv.edgeFunctions).toContain("ai-gateway");
     // The one function meant to be deployed, and the only unauthenticated one.
     expect(inv.edgeFunctions).toContain("site");
