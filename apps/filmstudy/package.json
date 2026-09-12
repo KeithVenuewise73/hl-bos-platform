@@ -1,0 +1,32 @@
+{
+  "name": "@hl-bos/filmstudy",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Football FilmStudy AI (Venuewise) — upload the film, understand the game, coach the next rep. Phase 1: the film operating system. Reads and writes the `filmstudy` schema through RLS-protected queries and permission-checked RPCs; holds no service-role key and runs no shell command.",
+  "type": "module",
+  "scripts": {
+    "dev": "next dev --port 4400",
+    "build": "next build",
+    "start": "next start --port 4400",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint .",
+    "test": "vitest run",
+    "clean": "rm -rf .next dist *.tsbuildinfo"
+  },
+  "dependencies": {
+    "@hl-bos/football": "workspace:*",
+    "@supabase/ssr": "catalog:",
+    "@supabase/supabase-js": "catalog:",
+    "next": "catalog:",
+    "react": "catalog:",
+    "react-dom": "catalog:",
+    "server-only": "catalog:"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "@types/react": "catalog:",
+    "@types/react-dom": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  }
+}

@@ -98,9 +98,18 @@ export const PORTFOLIO: readonly Product[] = [
   {
     name: "Venuewise",
     stage: "not-started",
-    status: "Planned. No code yet.",
+    status:
+      "The Venuewise platform itself has no code yet. Its first product, Football FilmStudy AI, does \u2014 listed separately below.",
     version: null,
     location: null,
+  },
+  {
+    name: "Football FilmStudy AI (Venuewise)",
+    stage: "development",
+    status:
+      "Phase 1 \u2014 the film operating system \u2014 is built: film upload, manual play segmentation, play tagging, player grading, coaching notes, clips and film assignments, with AI predictions held separately from coach-confirmed football data. Verified locally against PostgreSQL 17.6 (100 database assertions) and by 99 application tests, and the app builds and serves. It has never been run against a live Supabase project and migration 0048 has not been applied anywhere.",
+    version: null,
+    location: "this repository (apps/filmstudy, packages/football, migration 0048)",
   },
 ];
 

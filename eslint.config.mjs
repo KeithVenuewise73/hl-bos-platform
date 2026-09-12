@@ -202,6 +202,24 @@ export default tseslint.config(
     },
   },
 
+  // Football FilmStudy AI's env boundary — same rationale as the Executive
+  // Portal. Four files read env directly: the server client factory, the single
+  // browser client, the session's cookie options, and the request gate.
+  // Publishable key only; this app reads no service-role key anywhere, because
+  // every one of its queries depends on RLS applying.
+  {
+    files: [
+      "apps/filmstudy/src/lib/supabase.ts",
+      "apps/filmstudy/src/lib/browser.ts",
+      "apps/filmstudy/src/lib/session.ts",
+      "apps/filmstudy/src/middleware.ts",
+    ],
+    rules: {
+      "no-restricted-properties": "off",
+      "no-restricted-syntax": "off",
+    },
+  },
+
   {
     files: ["**/*.{mjs,js}"],
     ...tseslint.configs.disableTypeChecked,

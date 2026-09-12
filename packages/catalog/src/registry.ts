@@ -491,6 +491,27 @@ const ASSETS: Asset[] = [
     relationships: [{ kind: "owned_by", to: "repo.hl-bos-platform" }],
     evidence: "packages/football; apps/filmstudy",
   },
+  {
+    id: "app.filmstudy",
+    kind: "application",
+    name: "Football FilmStudy AI",
+    summary:
+      "Venuewise football film analysis. Phase 1 is the film operating system: teams, roster, games, film upload, manual play segmentation, play tagging, player grading, coaching notes, clips, cutups and film assignments. AI output is held strictly apart from coach-confirmed football data \u2014 a model suggestion carries a confidence band and three buttons, and becomes team data only when a coach accepts it. Never applied to a live project.",
+    maturity: "built_undeployed",
+    reuse: ["internal_only"],
+    owner: "Venuewise",
+    layer: "HL-BOS",
+    key: "filmstudy",
+    location: "apps/filmstudy",
+    tags: ["football", "venuewise", "film", "athletics"],
+    metrics: { tables: 21, tests: "100 db + 99 app" },
+    relationships: [
+      { kind: "owned_by", to: "repo.hl-bos-platform" },
+      { kind: "depends_on", to: "pkg.football" },
+    ],
+    evidence:
+      "apps/filmstudy; supabase/migrations 0048; supabase/tests/48_football_filmstudy.sql",
+  },
 
   // ======================================================================
   // SHARED SERVICES

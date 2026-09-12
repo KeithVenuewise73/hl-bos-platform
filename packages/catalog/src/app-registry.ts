@@ -144,6 +144,37 @@ export const APPLICATIONS: ApplicationRecord[] = [
     evidence: "apps/executive-portal; GitHub Actions deploy.yml run count = 0",
   },
   {
+    key: "filmstudy",
+    name: "Football FilmStudy AI",
+    description:
+      "Venuewise football film analysis for coaches, athletes and teams. Phase 1 is the film operating system: film upload, manual play segmentation, play tagging, player participation and grading, coaching notes, clips, cutups and film assignments. AI predictions are stored and displayed strictly apart from coach-confirmed football data.",
+    category: "vertical_product",
+    repository: REPO,
+    owner: "KeithVenuewise73",
+    executiveOwner: "Keith Herman (CEO)",
+    currentBranch: "claude/football-filmstudy-ai-mvp-nk67w3",
+    environment: "local",
+    developmentStatus: "built_undeployed",
+    deploymentStatus: "not_deployed",
+    productionUrl: null,
+    stagingUrl: null,
+    localUrl: "http://localhost:4400",
+    // Deliberately null, not CORE: migration 0048 has never been applied to any
+    // Supabase project, so naming one would record a link that does not exist.
+    supabaseProject: null,
+    version: "0.1.0",
+    health: "unknown",
+    hosting: "none",
+    dependencies: ["@hl-bos/football", "@supabase/ssr", "@supabase/supabase-js"],
+    reusableModules: ["identity_core"],
+    softwareFactoryIntegration:
+      "Reuses platform.tenants, identity memberships/permissions, audit.emit and events.emit. Adds the `filmstudy` schema; introduces no second identity, permission or audit system.",
+    notes:
+      "Database layer verified locally against PostgreSQL 17.6 (100 pgTAP assertions). The app itself has never been run against a live Supabase project, and no migration has been applied anywhere.",
+    evidence:
+      "apps/filmstudy; supabase/migrations/20260912090000_hlbos_0048_football_filmstudy.sql; supabase/tests/48_football_filmstudy.sql",
+  },
+  {
     key: "herman-legacy-digital",
     name: "Herman Legacy Digital",
     description:

@@ -1,0 +1,879 @@
+/*
+ * Football FilmStudy AI — the design system.
+ *
+ * A football operations centre, not a generic SaaS dashboard. Dark first,
+ * because film rooms are dark and because a coach reviewing film at 6am should
+ * not be flashbanged. Strong typography, one accent, no gradients, no glowing
+ * "AI" ornament.
+ *
+ * Field cues are used sparingly and only where they mean something: the yard
+ * markers on the field-position strip are real yard lines, and the accent
+ * green is the one on a painted field. Everything else is neutral so the film
+ * is the brightest thing on the screen.
+ *
+ * Plain CSS with custom properties, not Tailwind. The build brief names
+ * Tailwind and shadcn/ui; this monorepo has neither, pins its dependency graph
+ * deliberately (docs/architecture/dependency-policy.md) and installs with a
+ * frozen lockfile in CI. Adding a utility framework and a Radix component tree
+ * to get the same result as 400 lines of CSS would be the wrong trade here.
+ * The design decisions the brief actually asks for — dark-mode first, strong
+ * typography, subtle field cues, professional enough for a college staff and
+ * simple enough for a youth team — are all made below.
+ */
+
+:root {
+  --bg: #0a0c0f;
+  --surface: #11151b;
+  --surface-2: #171c24;
+  --raised: #1e242e;
+  --line: #252c37;
+  --line-bright: #323b49;
+
+  --text: #e9edf2;
+  --text-dim: #98a3b3;
+  --text-faint: #66717f;
+
+  /* The one accent: painted-field green. */
+  --accent: #3ddc84;
+  --accent-dim: #1f7a4c;
+  --accent-ink: #06130c;
+
+  --offense: #4c9aff;
+  --defense: #ff7b5c;
+  --special: #c792ea;
+
+  --good: #3fb950;
+  --warn: #d29922;
+  --bad: #f85149;
+  --unknown: #6e7681;
+
+  --radius: 10px;
+  --radius-sm: 6px;
+
+  --font:
+    ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue",
+    sans-serif;
+  --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font);
+  font-size: 14px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+h1,
+h2,
+h3,
+h4 {
+  margin: 0;
+  font-weight: 650;
+  letter-spacing: -0.01em;
+}
+
+h1 {
+  font-size: 22px;
+}
+h2 {
+  font-size: 15px;
+}
+h3 {
+  font-size: 13px;
+}
+
+/* --- Layout ------------------------------------------------------------- */
+
+.app {
+  display: grid;
+  grid-template-columns: 216px 1fr;
+  min-height: 100vh;
+}
+
+.sidebar {
+  background: var(--surface);
+  border-right: 1px solid var(--line);
+  padding: 16px 12px 24px;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  overflow-y: auto;
+}
+
+.brand {
+  padding: 4px 10px 18px;
+}
+
+.brand-name {
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.brand-sub {
+  font-size: 10.5px;
+  color: var(--text-faint);
+  text-transform: uppercase;
+  letter-spacing: 0.09em;
+  margin-top: 3px;
+}
+
+.nav-group-label {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--text-faint);
+  padding: 14px 10px 5px;
+}
+
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 7px 10px;
+  border-radius: var(--radius-sm);
+  color: var(--text-dim);
+  font-size: 13px;
+}
+
+.nav-item:hover {
+  background: var(--surface-2);
+  color: var(--text);
+}
+
+.nav-item[aria-current="page"] {
+  background: var(--raised);
+  color: var(--text);
+  font-weight: 600;
+  box-shadow: inset 2px 0 0 var(--accent);
+}
+
+.nav-item .glyph {
+  width: 15px;
+  text-align: center;
+  opacity: 0.75;
+  font-size: 12px;
+}
+
+.main {
+  min-width: 0;
+  padding: 22px 26px 64px;
+  max-width: 1500px;
+}
+
+.page-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 18px;
+}
+
+.page-sub {
+  color: var(--text-dim);
+  font-size: 13px;
+  margin: 4px 0 0;
+}
+
+/* --- Surfaces ----------------------------------------------------------- */
+
+.card {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 16px 18px;
+}
+
+.card + .card {
+  margin-top: 14px;
+}
+
+.card-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.card-sub {
+  color: var(--text-dim);
+  font-size: 12px;
+  margin: 3px 0 0;
+}
+
+.grid {
+  display: grid;
+  gap: 14px;
+}
+
+.grid-2 {
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+}
+.grid-3 {
+  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+}
+.grid-4 {
+  grid-template-columns: repeat(auto-fit, minmax(165px, 1fr));
+}
+
+/* --- Stat tiles --------------------------------------------------------- */
+
+.tile {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 13px 15px;
+}
+
+.tile-value {
+  font-size: 25px;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.15;
+}
+
+.tile-value.muted {
+  color: var(--text-faint);
+  font-size: 16px;
+  font-weight: 600;
+  letter-spacing: 0;
+}
+
+.tile-label {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--text-dim);
+  margin-top: 5px;
+}
+
+.tile-hint {
+  font-size: 11.5px;
+  color: var(--text-faint);
+  margin-top: 5px;
+}
+
+/* --- Type helpers ------------------------------------------------------- */
+
+.dim {
+  color: var(--text-dim);
+}
+.faint {
+  color: var(--text-faint);
+}
+.mono {
+  font-family: var(--mono);
+  font-variant-numeric: tabular-nums;
+}
+.small {
+  font-size: 12px;
+}
+.tiny {
+  font-size: 11px;
+}
+.nowrap {
+  white-space: nowrap;
+}
+.row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.between {
+  justify-content: space-between;
+}
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* --- Badges ------------------------------------------------------------- */
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  border: 1px solid var(--line-bright);
+  border-radius: 999px;
+  padding: 2px 9px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  color: var(--text-dim);
+  white-space: nowrap;
+}
+
+.badge.good {
+  color: var(--good);
+  border-color: color-mix(in srgb, var(--good) 40%, transparent);
+}
+.badge.warn {
+  color: var(--warn);
+  border-color: color-mix(in srgb, var(--warn) 40%, transparent);
+}
+.badge.bad {
+  color: var(--bad);
+  border-color: color-mix(in srgb, var(--bad) 40%, transparent);
+}
+.badge.accent {
+  color: var(--accent);
+  border-color: color-mix(in srgb, var(--accent) 40%, transparent);
+}
+.badge.offense {
+  color: var(--offense);
+  border-color: color-mix(in srgb, var(--offense) 40%, transparent);
+}
+.badge.defense {
+  color: var(--defense);
+  border-color: color-mix(in srgb, var(--defense) 40%, transparent);
+}
+.badge.demo {
+  color: var(--warn);
+  border-color: var(--warn);
+  background: color-mix(in srgb, var(--warn) 12%, transparent);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  font-size: 10px;
+}
+
+/* --- Buttons ------------------------------------------------------------ */
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  border: 1px solid var(--line-bright);
+  background: var(--raised);
+  color: var(--text);
+  border-radius: var(--radius-sm);
+  padding: 7px 13px;
+  font-size: 13px;
+  font-weight: 550;
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.btn:hover:not(:disabled) {
+  border-color: #46526380;
+  background: #242b36;
+}
+
+.btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.btn.primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-ink);
+  font-weight: 650;
+}
+
+.btn.primary:hover:not(:disabled) {
+  background: #55e698;
+  border-color: #55e698;
+}
+
+.btn.ghost {
+  background: transparent;
+}
+
+.btn.sm {
+  padding: 4px 9px;
+  font-size: 12px;
+}
+
+.btn.danger {
+  color: var(--bad);
+  border-color: color-mix(in srgb, var(--bad) 45%, transparent);
+}
+
+/* --- Forms -------------------------------------------------------------- */
+
+.field {
+  display: block;
+  margin-bottom: 12px;
+}
+
+.field-label {
+  display: block;
+  font-size: 11.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-dim);
+  margin-bottom: 5px;
+}
+
+input[type="text"],
+input[type="email"],
+input[type="password"],
+input[type="number"],
+input[type="date"],
+input[type="datetime-local"],
+input[type="file"],
+select,
+textarea {
+  width: 100%;
+  background: var(--bg);
+  border: 1px solid var(--line-bright);
+  border-radius: var(--radius-sm);
+  color: var(--text);
+  padding: 8px 10px;
+  font-size: 13px;
+  font-family: inherit;
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+  outline: 2px solid color-mix(in srgb, var(--accent) 55%, transparent);
+  outline-offset: -1px;
+}
+
+textarea {
+  resize: vertical;
+  min-height: 74px;
+}
+
+/* --- Tables ------------------------------------------------------------- */
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.table th {
+  text-align: left;
+  font-size: 10.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--text-faint);
+  font-weight: 600;
+  padding: 0 10px 8px;
+  border-bottom: 1px solid var(--line);
+}
+
+.table td {
+  padding: 9px 10px;
+  border-bottom: 1px solid var(--line);
+  vertical-align: top;
+}
+
+.table tr:last-child td {
+  border-bottom: none;
+}
+
+.table-scroll {
+  overflow-x: auto;
+}
+
+/* --- Empty / notice states ---------------------------------------------- */
+/*
+ * These carry real weight in this product. A panel with no data says why it has
+ * no data. An unbuilt capability says which phase it lands in. Neither ever
+ * renders a plausible-looking number.
+ */
+
+.empty {
+  border: 1px dashed var(--line-bright);
+  border-radius: var(--radius);
+  padding: 22px 20px;
+  color: var(--text-dim);
+  font-size: 13px;
+  text-align: center;
+}
+
+.empty strong {
+  display: block;
+  color: var(--text);
+  font-size: 14px;
+  margin-bottom: 5px;
+}
+
+.notice {
+  border: 1px solid var(--line-bright);
+  border-left: 3px solid var(--warn);
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+  padding: 12px 15px;
+  font-size: 13px;
+  color: var(--text-dim);
+}
+
+.notice.bad {
+  border-left-color: var(--bad);
+}
+.notice.accent {
+  border-left-color: var(--accent);
+}
+
+.notice strong {
+  color: var(--text);
+}
+
+.phase {
+  border: 1px dashed var(--line-bright);
+  border-radius: var(--radius);
+  padding: 30px 26px;
+  text-align: center;
+}
+
+.phase-tag {
+  display: inline-block;
+  border: 1px solid var(--line-bright);
+  border-radius: 999px;
+  padding: 3px 11px;
+  font-size: 10.5px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+  margin-bottom: 12px;
+}
+
+/* --- Film room ---------------------------------------------------------- */
+
+.film-room {
+  display: grid;
+  grid-template-columns: 250px minmax(0, 1fr) 320px;
+  gap: 14px;
+  align-items: start;
+}
+
+.panel {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+.panel-head {
+  padding: 10px 13px;
+  border-bottom: 1px solid var(--line);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.panel-title {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.09em;
+  color: var(--text-dim);
+  font-weight: 650;
+}
+
+.panel-body {
+  padding: 13px;
+}
+
+.panel-scroll {
+  max-height: 62vh;
+  overflow-y: auto;
+}
+
+.play-row {
+  display: block;
+  width: 100%;
+  text-align: left;
+  border: none;
+  border-bottom: 1px solid var(--line);
+  background: transparent;
+  color: var(--text);
+  padding: 9px 13px;
+  font-family: inherit;
+  font-size: 12.5px;
+  cursor: pointer;
+}
+
+.play-row:hover {
+  background: var(--surface-2);
+}
+
+.play-row[aria-current="true"] {
+  background: var(--raised);
+  box-shadow: inset 2px 0 0 var(--accent);
+}
+
+.play-row-num {
+  font-family: var(--mono);
+  color: var(--text-faint);
+  font-size: 11px;
+}
+
+.video-frame {
+  background: #000;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  aspect-ratio: 16 / 9;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.video-frame video {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+/* The field-position strip. Real yard lines, used because they carry meaning,
+   not as decoration. */
+.field-strip {
+  position: relative;
+  height: 26px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--accent) 9%, var(--surface-2)) 0%,
+    var(--surface-2) 18%,
+    var(--surface-2) 82%,
+    color-mix(in srgb, var(--offense) 9%, var(--surface-2)) 100%
+  );
+  overflow: hidden;
+}
+
+.field-tick {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background: var(--line-bright);
+}
+
+.field-ball {
+  position: absolute;
+  top: 3px;
+  bottom: 3px;
+  width: 3px;
+  border-radius: 2px;
+  background: var(--accent);
+}
+
+.field-label {
+  position: absolute;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 9px;
+  color: var(--text-faint);
+  font-family: var(--mono);
+}
+
+/* --- Timeline ----------------------------------------------------------- */
+
+.timeline {
+  position: relative;
+  height: 34px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+  overflow: hidden;
+  cursor: pointer;
+}
+
+.timeline-play {
+  position: absolute;
+  top: 4px;
+  bottom: 4px;
+  background: color-mix(in srgb, var(--accent) 28%, transparent);
+  border: 1px solid color-mix(in srgb, var(--accent) 55%, transparent);
+  border-radius: 2px;
+  min-width: 2px;
+}
+
+.timeline-play.current {
+  background: color-mix(in srgb, var(--accent) 55%, transparent);
+}
+
+.timeline-head {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: var(--text);
+}
+
+/* --- Grade marks -------------------------------------------------------- */
+
+.grade-mark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 26px;
+  height: 24px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--line-bright);
+  background: var(--raised);
+  font-family: var(--mono);
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  color: var(--text-dim);
+  padding: 0 5px;
+}
+
+.grade-mark[aria-pressed="true"].positive {
+  color: var(--good);
+  border-color: var(--good);
+  background: color-mix(in srgb, var(--good) 15%, transparent);
+}
+.grade-mark[aria-pressed="true"].neutral {
+  color: var(--text);
+  border-color: var(--line-bright);
+  background: var(--raised);
+}
+.grade-mark[aria-pressed="true"].negative {
+  color: var(--bad);
+  border-color: var(--bad);
+  background: color-mix(in srgb, var(--bad) 15%, transparent);
+}
+
+/* --- Confidence --------------------------------------------------------- */
+
+.confidence {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  color: var(--text-faint);
+}
+
+.confidence-bar {
+  width: 34px;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--line-bright);
+  overflow: hidden;
+}
+
+.confidence-fill {
+  display: block;
+  height: 100%;
+}
+
+.confidence-fill.high {
+  background: var(--good);
+}
+.confidence-fill.moderate {
+  background: var(--warn);
+}
+.confidence-fill.low {
+  background: var(--unknown);
+}
+
+/* --- Keyboard hints ----------------------------------------------------- */
+
+kbd {
+  font-family: var(--mono);
+  font-size: 10.5px;
+  border: 1px solid var(--line-bright);
+  border-bottom-width: 2px;
+  border-radius: 4px;
+  padding: 1px 5px;
+  background: var(--raised);
+  color: var(--text-dim);
+}
+
+/* --- Skeletons ---------------------------------------------------------- */
+
+.skeleton {
+  background: linear-gradient(90deg, var(--surface-2), var(--raised), var(--surface-2));
+  background-size: 200% 100%;
+  animation: shimmer 1.4s ease-in-out infinite;
+  border-radius: var(--radius-sm);
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skeleton {
+    animation: none;
+  }
+}
+
+/* --- Mobile: the coach standing on the practice field -------------------- */
+
+@media (max-width: 900px) {
+  .app {
+    grid-template-columns: 1fr;
+  }
+
+  .sidebar {
+    position: fixed;
+    bottom: 0;
+    top: auto;
+    left: 0;
+    right: 0;
+    height: auto;
+    border-right: none;
+    border-top: 1px solid var(--line);
+    display: flex;
+    gap: 2px;
+    overflow-x: auto;
+    padding: 6px 8px calc(6px + env(safe-area-inset-bottom));
+    z-index: 30;
+  }
+
+  .brand,
+  .nav-group-label {
+    display: none;
+  }
+
+  .sidebar .nav-item {
+    flex-direction: column;
+    gap: 3px;
+    font-size: 10px;
+    padding: 5px 9px;
+    min-width: 58px;
+    text-align: center;
+    white-space: nowrap;
+  }
+
+  .sidebar .nav-item[aria-current="page"] {
+    box-shadow: inset 0 2px 0 var(--accent);
+  }
+
+  .main {
+    padding: 16px 14px 96px;
+  }
+
+  .film-room {
+    grid-template-columns: 1fr;
+  }
+
+  .panel-scroll {
+    max-height: 40vh;
+  }
+}
