@@ -1,0 +1,23 @@
+{
+  "name": "@hl-bos/football",
+  "version": "0.1.0",
+  "private": true,
+  "description": "The football domain, as code. Vocabulary (personnel, formations, concepts, coverages, fronts, pressures), situational classification, grading scales, tendency aggregation with an explicit not-enough-data result, and film-search query parsing. Pure and deterministic: no network, no database, no AI provider. Shared by Football FilmStudy AI and, later, the rest of the Venuewise athletics products so they cannot disagree about what 'explosive' means.",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "default": "./src/index.ts"
+    }
+  },
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run",
+    "clean": "rm -rf dist *.tsbuildinfo"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  }
+}

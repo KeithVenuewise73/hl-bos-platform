@@ -3,7 +3,7 @@
   "schemaVersion": 1,
   "sourceDir": "supabase/migrations",
   "canonicalRepository": "KeithVenuewise73/hl-bos-platform",
-  "count": 47,
+  "count": 48,
   "migrations": [
     {
       "ordinal": 1,
@@ -379,6 +379,14 @@
       "filename": "20260826170000_hlbos_0047_social_deny_mutation_search_path.sql",
       "version": "20260826170000",
       "sha256": "a3e215b362d578a5f476e8fc78037753e5cc47b8c20a6479f614752fb73c0930",
+      "foundation": false
+    },
+    {
+      "ordinal": 48,
+      "name": "hlbos_0048_football_filmstudy",
+      "filename": "20260912090000_hlbos_0048_football_filmstudy.sql",
+      "version": "20260912090000",
+      "sha256": "55c35751d22dc42f7b1a18e763da07b6e1cae0c27b671dfcb774d3c798235c96",
       "foundation": false
     }
   ]

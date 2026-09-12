@@ -134,15 +134,19 @@ describe("repository scan (ground truth)", () => {
     // APPLIED to canonical production on 2026-08-26 under CEO approval, with
     // 0047 (forward-repair pinning search_path on
     // social.deny_attempt_mutation — the post-apply advisor check caught it
-    // and the local suite had not).
-    expect(inv.migrations.length).toBe(47);
+    // and the local suite had not) — plus 0048 (Football FilmStudy AI Phase 1:
+    // the film operating system — teams, roster, film, manual play
+    // segmentation, tagging, grading, clips and assignments, with AI
+    // predictions held strictly apart from coach-confirmed football data).
+    // NOT applied to any live project.
+    expect(inv.migrations.length).toBe(48);
     expect(inv.edgeFunctions).toContain("ai-gateway");
     expect(inv.edgeFunctions).not.toContain("tests");
     expect(inv.apps).toEqual(
       expect.arrayContaining(["control-center", "hl-bti", "hl-bti-alpha"]),
     );
     expect(inv.packages).toEqual(
-      expect.arrayContaining(["config", "bti-engine", "catalog"]),
+      expect.arrayContaining(["config", "bti-engine", "catalog", "football"]),
     );
     expect(inv.testFiles).toBeGreaterThan(0);
   });

@@ -474,6 +474,23 @@ const ASSETS: Asset[] = [
     relationships: [{ kind: "owned_by", to: "repo.hl-bos-platform" }],
     evidence: "packages/video-studio; apps/control-center/src/app/video",
   },
+  {
+    id: "pkg.football",
+    kind: "package",
+    name: "@hl-bos/football",
+    summary:
+      "The football domain, as code. Canonical vocabulary (personnel, formations, run and pass concepts, coverages, fronts, pressures), situational classification, the grading ladder, tendency aggregation with a sample floor that refuses to report a percentage from too little confirmed film, and film-search query parsing that reports the words it could not place. Pure and deterministic \u2014 no network, no database, no AI provider.",
+    maturity: "live",
+    reuse: ["reusable"],
+    owner: "Venuewise",
+    layer: "Tooling",
+    key: "football",
+    location: "packages/football",
+    tags: ["football", "venuewise", "deterministic", "athletics"],
+    metrics: { tests: 57 },
+    relationships: [{ kind: "owned_by", to: "repo.hl-bos-platform" }],
+    evidence: "packages/football; apps/filmstudy",
+  },
 
   // ======================================================================
   // SHARED SERVICES
