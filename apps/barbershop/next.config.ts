@@ -9,7 +9,11 @@ import type { NextConfig } from "next";
 // permission checks decide what happens. It is safe to deploy publicly behind
 // authentication.
 //
-// connect-src allows Supabase because that is the only host this app talks to.
+// The Content-Security-Policy is NOT here. It needs a fresh nonce on every
+// request so Next's inline hydration scripts are allowed, and a static header
+// cannot do that -- see src/middleware.ts, which is also where the first
+// deployment's dead sign-in button came from. The headers below are the ones
+// that are genuinely the same for every response.
 const config: NextConfig = {
   output: "standalone",
   reactStrictMode: true,
@@ -30,13 +34,6 @@ const config: NextConfig = {
           {
             key: "Strict-Transport-Security",
             value: "max-age=63072000; includeSubDomains; preload",
-          },
-          {
-            key: "Content-Security-Policy",
-            value:
-              "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; " +
-              "img-src 'self' data:; connect-src 'self' https://*.supabase.co; " +
-              "frame-ancestors 'none'; base-uri 'self'; form-action 'self'",
           },
         ],
       },

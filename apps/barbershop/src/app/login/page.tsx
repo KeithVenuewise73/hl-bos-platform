@@ -1,76 +1,21 @@
-"use client";
+import { LoginForm } from "@/components/LoginForm";
 
-import { useState } from "react";
-import { browserSupabase } from "@/lib/browser";
-import { button, input } from "@/components/ui";
+/**
+ * FORCE-DYNAMIC, AND FOR A REASON THAT COST A DEPLOYMENT.
+ *
+ * The security policy in middleware.ts carries a per-request nonce, and Next
+ * only stamps that nonce onto its own script tags while RENDERING the request.
+ * A statically prerendered page's HTML is produced at build time, long before
+ * any nonce exists -- so this page came back with a policy naming a nonce and
+ * fifteen script tags carrying none of it. Every inline hydration script was
+ * blocked, React never hydrated, and the sign-in button did nothing at all.
+ *
+ * That is also why the form is a separate client component: route segment
+ * configuration like this cannot be exported from a "use client" file, and the
+ * first version of this page was one.
+ */
+export const dynamic = "force-dynamic";
 
 export default function LoginPage() {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [error, setError] = useState<string | null>(null);
-  const [busy, setBusy] = useState(false);
-
-  async function onSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    setError(null);
-    const supabase = browserSupabase();
-    if (supabase === null) {
-      // Not "sign-in failed" -- nothing was attempted, and saying so is the
-      // difference between a wrong password and a misconfigured install.
-      setError("This installation is not pointed at a BarberOS database yet.");
-      return;
-    }
-    setBusy(true);
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-    setBusy(false);
-    if (error) {
-      setError("That email and password did not match an account.");
-      return;
-    }
-    const next = new URLSearchParams(window.location.search).get("next") ?? "/";
-    window.location.assign(next);
-  }
-
-  return (
-    <main style={{ maxWidth: 360, margin: "0 auto", padding: "80px 24px" }}>
-      <h1 style={{ fontSize: 22, margin: "0 0 4px" }}>BarberOS</h1>
-      <p style={{ fontSize: 13, color: "#8b949e", margin: "0 0 22px" }}>
-        Sign in to run your shop.
-      </p>
-      <form
-        onSubmit={(e) => {
-          void onSubmit(e);
-        }}
-      >
-        <input
-          type="email"
-          required
-          placeholder="Email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          autoComplete="username"
-          style={{ ...input, marginBottom: 10 }}
-        />
-        <input
-          type="password"
-          required
-          placeholder="Password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          autoComplete="current-password"
-          style={{ ...input, marginBottom: 14 }}
-        />
-        {error !== null && (
-          <p style={{ color: "#f85149", fontSize: 13, margin: "0 0 12px" }}>{error}</p>
-        )}
-        <button
-          type="submit"
-          disabled={busy}
-          style={{ ...button(!busy), width: "100%" }}
-        >
-          {busy ? "Signing in…" : "Sign in"}
-        </button>
-      </form>
-    </main>
-  );
+  return <LoginForm />;
 }
