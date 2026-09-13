@@ -301,16 +301,17 @@ export const APPLICATIONS: ApplicationRecord[] = [
     owner: "KeithVenuewise73",
     executiveOwner: "Keith Herman (CEO)",
     currentBranch: "claude/shop-transformation-barber-os-ntwb2n",
-    environment: "local",
-    developmentStatus: "built_undeployed",
-    deploymentStatus: "not_deployed",
-    productionUrl: null,
+    environment: "production",
+    developmentStatus: "live",
+    deploymentStatus: "deployed",
+    productionUrl: "https://app.hermanlegacydigital.com",
     stagingUrl: null,
     localUrl: "http://localhost:4400",
     supabaseProject: CORE,
     version: "0.1.0",
-    health: "unknown",
-    hosting: "Not deployed. Intended for the same Coolify server as shop-pages.",
+    health: "green",
+    hosting:
+      "Coolify (self-hosted), from apps/barbershop/Dockerfile with the repository root as build context, port 4400. Deployed 2026-09-13 at app.hermanlegacydigital.com -- `shops.` serves the barber's customers, `app.` serves the barber.",
     dependencies: [
       "public.barberos_my_shops()",
       "public.barberos_site()",
@@ -321,7 +322,7 @@ export const APPLICATIONS: ApplicationRecord[] = [
     softwareFactoryIntegration:
       "The customer end of the Shop Transformation Analysis Tool: the audit finds the shop, the call scopes the work, the proposal sells it, and this is what they are actually given.",
     notes:
-      "Holds NO service-role key and cannot hold one usefully: every request is made as the signed-in barber with the publishable key, so RLS and identity.has_permission() decide what happens. It has no authorization logic of its own -- it asks barberos_my_shops() what the person may do and draws its controls from the answer, and an unrecognised permission reads as false. Deliberately WITHOUT the dev-role bypass the Executive Portal has: a bypass that must be correctly guarded is one that can be incorrectly guarded, and this holds a customer's own data. The API it calls is LIVE in HL-BOS Core (0056 applied 2026-09-13, fingerprint-verified, and exercised against production: a signed-in stranger sees no shops and is refused every write). THE APP ITSELF IS NOT DEPLOYED. Its data path, however, is proved end to end in production: a real test barber (hl-test-shop) signed in over HTTPS and called the API over PostgREST as themselves, built a page, priced and deleted services and published -- and the page was served at shops.hermanlegacydigital.com as real HTML. What remains untested is the React in front of that path.",
+      "Holds NO service-role key and cannot hold one usefully: every request is made as the signed-in barber with the publishable key, so RLS and identity.has_permission() decide what happens. It has no authorization logic of its own -- it asks barberos_my_shops() what the person may do and draws its controls from the answer, and an unrecognised permission reads as false. Deliberately WITHOUT the dev-role bypass the Executive Portal has: a bypass that must be correctly guarded is one that can be incorrectly guarded, and this holds a customer's own data. The API it calls is LIVE in HL-BOS Core (0056 applied 2026-09-13, fingerprint-verified, and exercised against production: a signed-in stranger sees no shops and is refused every write). DEPLOYED 2026-09-13 and verified serving from production: /login returns 200 text/html carrying the sign-in form, / redirects an unauthenticated visitor to /login, and the page does NOT carry the 'not pointed at a BarberOS database' warning -- so the build-time public variables were inlined correctly. Its data path was proved end to end beforehand: a real test barber (hl-test-shop) signed in over HTTPS and called the API over PostgREST as themselves, built a page, priced and deleted services and published -- and the page was served at shops.hermanlegacydigital.com as real HTML. What remains untested is the React in front of that path.",
     evidence:
       "apps/barbershop + migration 0056; 33 pgTAP assertions on the API surface and 24 unit tests on the mappings",
   },

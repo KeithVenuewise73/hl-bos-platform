@@ -211,7 +211,7 @@ const ASSETS: Asset[] = [
     name: "BarberOS (the shop's app)",
     summary:
       "The shop's own surface: a barber signs in and runs their page themselves. BarberOS had a capability spine, a module and a public page long before it had anywhere for the shop to stand -- PostgREST exposes only `public` and every write function lives in `barberos`. Migration 0056 is the door; this is the room behind it.",
-    maturity: "built_undeployed",
+    maturity: "live",
     reuse: ["commercial"],
     owner: "Herman Legacy Digital",
     layer: "HL-BOS",
@@ -223,7 +223,7 @@ const ASSETS: Asset[] = [
       { kind: "owned_by", to: "repo.hl-bos-platform" },
     ],
     evidence:
-      "apps/barbershop; 33 pgTAP assertions on the public.barberos_* API it calls and 24 unit tests on its mappings. That API is LIVE in HL-BOS Core (0056 applied 2026-09-13). The app is NOT deployed and no barber has signed in.",
+      "LIVE at https://app.hermanlegacydigital.com (deployed 2026-09-13, Coolify). Verified from production: /login serves the sign-in form and / redirects an unauthenticated visitor to it. 33 pgTAP assertions on the public.barberos_* API it calls (0056, applied) and 24 unit tests on its mappings. No barber has signed in yet.",
   },
   {
     id: "app.hl-bti",

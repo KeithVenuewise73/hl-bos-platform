@@ -87,6 +87,16 @@ required at BUILD time (Next only inlines literal `NEXT_PUBLIC_*` dot-access):
 
 Listens on `4400`. The service-role key is never used and must never be added.
 
-**The Dockerfile has been written and never run** — there is no Docker in the
-build environment. That is the same caveat `shop-pages` carried, and its image
-resolved and built first time.
+**Deployed 2026-09-13** at `https://app.hermanlegacydigital.com`, from this
+Dockerfile on the Coolify server. It built first time, in 42 seconds. Verified
+from production (the build environment can reach neither host): `/login` returns
+200 `text/html` with the sign-in form, `/` redirects an unauthenticated visitor
+to `/login`, and the page does not carry the "not pointed at a BarberOS
+database" warning — which is the tell that both build variables were inlined.
+
+DNS is an **A record** on `app` pointing at the Coolify host's IP, not a CNAME:
+the host is a bare IP and a CNAME cannot point at one.
+
+Coolify reports health as _unknown_ until a healthcheck path is set. `/login`
+is the right one — it is static and needs no database, so it proves the process
+is answering and nothing about whether Supabase is reachable.
