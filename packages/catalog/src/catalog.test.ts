@@ -178,9 +178,11 @@ describe("repository scan (ground truth)", () => {
     // is waiting on and WHO CAN CLEAR IT -- an account is a different fact from
     // engineering time, and only one of them is the engineer's to resolve. Most
     // of the remaining product turns out to be blocked on integrations rather
-    // than on code. Built, NOT applied.
-    // See notYetAppliedOrdinals in .hlbos/canonical.json, which names 0030,
-    // 0031 and 0057.
+    // than on code. Applied 2026-09-13, and both new constraints were exercised
+    // against production: a blocked module cannot be marked shipped, and a
+    // blocker cannot exist with nobody named to clear it.
+    // See notYetAppliedOrdinals in .hlbos/canonical.json, which names 0030
+    // and 0031.
     expect(inv.migrations.length).toBe(57);
     expect(inv.edgeFunctions).toContain("ai-gateway");
     // The one function meant to be deployed, and the only unauthenticated one.
