@@ -32,16 +32,17 @@ select is(
   (select count(*)::int from barberos.capabilities),
   16, 't_catalog_carries_the_whole_product');
 
--- The honest state of BarberOS today. This assertion read 0 until 2026-09-10,
--- and failing was its job: `owned_website` shipped in migration 0052 and the
--- test made the catalog's new truth impossible to leave unstated.
+-- The honest state of BarberOS today. This assertion read 0 until 2026-09-10
+-- and 1 until 2026-09-13, and failing each time was its job: `owned_website`
+-- shipped in 0052 and `client_crm` in 0058, and the test makes the catalog's
+-- new truth impossible to leave unstated.
 select is(
   (select count(*)::int from barberos.capabilities where status = 'available'),
-  1, 't_exactly_one_capability_has_shipped');
+  2, 't_two_capabilities_have_shipped');
 select is(
   (select string_agg(key::text, ',' order by key) from barberos.capabilities
     where status = 'available'),
-  'owned_website', 't_and_it_is_owned_website');
+  'client_crm,owned_website', 't_and_they_are_the_page_and_the_client_record');
 
 select is(
   (select status::text from barberos.capabilities where key = 'payments'),

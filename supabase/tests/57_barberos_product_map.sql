@@ -18,7 +18,7 @@
 --     account from what needs engineering time.
 -- ===========================================================================
 begin;
-select plan(18);
+select plan(19);
 select tests.seed();
 
 -- ===========================================================================
@@ -39,11 +39,12 @@ select is(
 
 select is(
   (select count(*)::int from barberos.capabilities where status = 'available'),
-  1, 't_exactly_one_module_is_still_actually_shipped');
+  2, 't_only_two_modules_are_actually_shipped');
 
 select is(
-  (select key::text from barberos.capabilities where status = 'available'),
-  'owned_website', 't_and_it_is_the_one_that_works');
+  (select string_agg(key::text, ',' order by key) from barberos.capabilities
+    where status = 'available'),
+  'client_crm,owned_website', 't_and_they_are_the_ones_that_work');
 
 -- The audit is how we WIN a shop, not something the shop buys. Offering it
 -- back to the business it was performed on would be absurd.
@@ -99,9 +100,16 @@ select ok(
   (select count(*) from barberos.capabilities where blocker_owner = 'engineering') > 0,
   't_and_some_are_waiting_only_on_engineering_time');
 
+-- client_crm's blocker read "nothing but its turn" until 0058 took its turn.
+-- A shipped module is waiting on nothing, so both fields are now NULL -- and
+-- that transition is the one this whole column exists to make visible.
 select is(
-  (select blocker_owner::text from barberos.capabilities where key = 'client_crm'),
-  'engineering', 't_the_crm_needs_no_account_from_anybody');
+  (select blocked_on from barberos.capabilities where key = 'client_crm'),
+  null, 't_the_crm_is_shipped_so_it_is_waiting_on_nothing');
+
+select is(
+  (select blocker_owner::text from barberos.capabilities where key = 'booking'),
+  'engineering', 't_and_booking_still_needs_no_account_from_anybody');
 
 select is(
   (select blocker_owner::text from barberos.capabilities where key = 'missed_call_capture'),

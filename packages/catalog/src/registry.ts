@@ -1241,12 +1241,12 @@ const ASSETS: Asset[] = [
   ),
   ...db(
     "barberos",
-    "BarberOS Capability Spine + owned_website",
-    10,
+    "BarberOS Capability Spine + owned_website + client_crm",
+    14,
     "HL-BOS",
-    "Module catalog, prerequisites, bundles, per-tenant capability toggle, the shop record, and the first module behind that toggle: owned_website (a page the shop owns -- hours, services, prices, address, tap-to-call, booking link), gated table-by-table by a trigger on the capability. The other eight modules remain 'planned' or 'deferred' and cannot be enabled.",
+    "Module catalog, prerequisites, bundles, per-tenant capability toggle, the shop record, and the two modules behind that toggle: owned_website (a page the shop owns -- hours, services, prices, address, tap-to-call, booking link) and client_crm (the client, their visits, the cut that was actually given, and the rhythm they come back on), each gated table-by-table by a trigger on the capability. Fourteen of the sixteen catalogued modules remain 'planned' or 'deferred' and cannot be enabled.",
     "live",
-    "supabase/migrations 0048/0052/0053 APPLIED to HL-BOS Core (each fingerprint-verified against the local build); the public read path is live and answering as role anon; no tenant has the capability enabled and no page exists yet",
+    "supabase/migrations 0048/0052/0053/0056/0057/0058 APPLIED to HL-BOS Core (each fingerprint-verified against the local build); the public read path is live and answering as role anon; no tenant has either capability enabled, so no page and no client record exists yet",
   ),
   ...db(
     "transform_audit",

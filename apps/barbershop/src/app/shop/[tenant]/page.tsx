@@ -86,6 +86,24 @@ export default async function ShopPage({
           <Badge status={site.status} />
         </p>
       )}
+      {shop.capabilities.includes("client_crm") && (
+        <p style={{ margin: "0 0 18px" }}>
+          <a
+            href={`/shop/${tenant}/clients`}
+            style={{
+              display: "inline-block",
+              padding: "9px 16px",
+              borderRadius: 6,
+              border: "1px solid #2f3742",
+              color: "#58a6ff",
+              textDecoration: "none",
+              fontWeight: 600,
+            }}
+          >
+            Clients →
+          </a>
+        </p>
+      )}
       <SiteEditor
         tenantId={tenant}
         site={site}

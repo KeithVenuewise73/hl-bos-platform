@@ -22,10 +22,11 @@ select is(
   (select status::text from barberos.capabilities where key = 'owned_website'),
   'available', 't_owned_website_is_now_available');
 
--- Everything else is still honestly unbuilt.
+-- Everything else is still honestly unbuilt. Two since 0058 shipped the client
+-- record, which is the module every other one waits on.
 select is(
   (select count(*)::int from barberos.capabilities where status = 'available'),
-  1, 't_it_is_the_only_shipped_module');
+  2, 't_only_two_modules_have_shipped');
 
 select is(
   (select count(*)::int from barberos.capability_requires

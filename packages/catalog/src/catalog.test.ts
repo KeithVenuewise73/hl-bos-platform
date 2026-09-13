@@ -181,9 +181,19 @@ describe("repository scan (ground truth)", () => {
     // than on code. Applied 2026-09-13, and both new constraints were exercised
     // against production: a blocked module cannot be marked shipped, and a
     // blocker cannot exist with nobody named to clear it.
+    // 0058 is the client record: the module every retention, marketing and
+    // advisory layer above it is measured against, and the second of fifteen
+    // sellable modules to actually ship. Four tables, thirteen functions, and
+    // a rhythm that stays NULL until three visits exist -- "overdue" inferred
+    // from one haircut is how this module would lose a shop's trust in week
+    // one. Applied 2026-09-13, fingerprint-identical to local across all nine
+    // components, and every guard exercised against production inside an
+    // aborted transaction: a visit dated tomorrow, a guard length on a scissor
+    // top, a beard guard with no beard and a visit filed against another
+    // shop's client were all refused, leaving zero rows behind.
     // See notYetAppliedOrdinals in .hlbos/canonical.json, which names 0030
     // and 0031.
-    expect(inv.migrations.length).toBe(57);
+    expect(inv.migrations.length).toBe(58);
     expect(inv.edgeFunctions).toContain("ai-gateway");
     // The one function meant to be deployed, and the only unauthenticated one.
     expect(inv.edgeFunctions).toContain("site");
