@@ -47,8 +47,10 @@ path prefix. It has to be told.
 ## Deploying on Coolify
 
 The address is **`shops.hermanlegacydigital.com`** (decided 2026-09-11). One
-CNAME on that subdomain, pointing at the Coolify host; nothing else on
-`hermanlegacydigital.com` is touched.
+**A record** on that subdomain pointing at the Coolify host's IP; nothing else
+on `hermanlegacydigital.com` is touched. It is an A record and not a CNAME
+because the Coolify host is a bare IP address, and a CNAME cannot point at one
+-- an earlier version of this file said CNAME and was wrong.
 
 - **Build pack:** Dockerfile
 - **Base directory:** `/` — the build context must be the repository root,
