@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 import { devRoleFromEnv } from "@/lib/access";
+import { newNonce, policy } from "@/lib/csp";
 
 // Public paths that never require authentication.
 const PUBLIC = ["/login", "/api/health"];
@@ -16,7 +17,24 @@ function isPublic(pathname: string): boolean {
  */
 export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
-  if (isPublic(pathname)) return NextResponse.next();
+
+  // The nonce is minted here and mirrored onto the REQUEST headers, which is
+  // what makes Next stamp the same value onto its own script tags. Every
+  // response below carries the matching policy -- including the public paths
+  // and the dev bypass, which previously returned early with no policy at all.
+  const nonce = newNonce();
+  const csp = policy(nonce);
+  const requestHeaders = new Headers(req.headers);
+  requestHeaders.set("x-nonce", nonce);
+  requestHeaders.set("content-security-policy", csp);
+
+  const pass = () => {
+    const r = NextResponse.next({ request: { headers: requestHeaders } });
+    r.headers.set("content-security-policy", csp);
+    return r;
+  };
+
+  if (isPublic(pathname)) return pass();
 
   // Local dev bypass (impossible in production — see access.ts).
   const dev = devRoleFromEnv({
@@ -24,12 +42,12 @@ export async function middleware(req: NextRequest) {
     hlBosEnv: process.env["HL_BOS_ENV"],
     devRole: process.env["PORTAL_DEV_ROLE"],
   });
-  if (dev) return NextResponse.next();
+  if (dev) return pass();
 
   const url = process.env["NEXT_PUBLIC_SUPABASE_URL"];
   const key = process.env["NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY"];
 
-  const res = NextResponse.next();
+  const res = pass();
   let authenticated = false;
 
   if (url && key) {
@@ -56,7 +74,9 @@ export async function middleware(req: NextRequest) {
     const loginUrl = req.nextUrl.clone();
     loginUrl.pathname = "/login";
     loginUrl.searchParams.set("next", pathname);
-    return NextResponse.redirect(loginUrl);
+    const redirect = NextResponse.redirect(loginUrl);
+    redirect.headers.set("content-security-policy", csp);
+    return redirect;
   }
 
   return res;

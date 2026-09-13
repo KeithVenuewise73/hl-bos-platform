@@ -17,6 +17,9 @@ const config: NextConfig = {
       {
         source: "/:path*",
         headers: [
+          // The Content-Security-Policy is NOT here. It needs a fresh nonce on
+          // every request so Next's inline hydration scripts are allowed, and a
+          // static header cannot do that -- see src/lib/csp.ts and the middleware.
           { key: "X-Frame-Options", value: "DENY" },
           { key: "X-Content-Type-Options", value: "nosniff" },
           { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
@@ -27,13 +30,6 @@ const config: NextConfig = {
           {
             key: "Strict-Transport-Security",
             value: "max-age=63072000; includeSubDomains; preload",
-          },
-          {
-            key: "Content-Security-Policy",
-            value:
-              "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; " +
-              "img-src 'self' data:; connect-src 'self' https://*.supabase.co; " +
-              "frame-ancestors 'none'; base-uri 'self'; form-action 'self'",
           },
         ],
       },
