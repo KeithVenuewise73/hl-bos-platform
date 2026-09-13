@@ -223,7 +223,7 @@ const ASSETS: Asset[] = [
       { kind: "owned_by", to: "repo.hl-bos-platform" },
     ],
     evidence:
-      "apps/barbershop; 33 pgTAP assertions on the public.barberos_* API it calls and 24 unit tests on its mappings. NOT deployed and no barber has signed in.",
+      "apps/barbershop; 33 pgTAP assertions on the public.barberos_* API it calls and 24 unit tests on its mappings. That API is LIVE in HL-BOS Core (0056 applied 2026-09-13). The app is NOT deployed and no barber has signed in.",
   },
   {
     id: "app.hl-bti",

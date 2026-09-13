@@ -170,9 +170,11 @@ describe("repository scan (ground truth)", () => {
     // every permission-checked write function 0052 shipped was unreachable from
     // any application -- the page could only ever be edited by the agency
     // running SQL by hand. Nine SECURITY INVOKER wrappers make it reachable by
-    // the shop itself, adding reach and no authority. Built, NOT applied.
-    // See notYetAppliedOrdinals in .hlbos/canonical.json, which names 0030,
-    // 0031 and 0056.
+    // the shop itself, adding reach and no authority. Applied 2026-09-13, and
+    // exercised against production: a signed-in stranger sees [] and is
+    // refused every write.
+    // See notYetAppliedOrdinals in .hlbos/canonical.json, which names 0030
+    // and 0031.
     expect(inv.migrations.length).toBe(56);
     expect(inv.edgeFunctions).toContain("ai-gateway");
     // The one function meant to be deployed, and the only unauthenticated one.
