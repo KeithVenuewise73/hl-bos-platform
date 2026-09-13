@@ -286,7 +286,7 @@ export const APPLICATIONS: ApplicationRecord[] = [
     softwareFactoryIntegration:
       "The delivery half of the Shop Transformation Analysis Tool: the audit finds a shop has no website, this serves the one it gets.",
     notes:
-      "Reads two read-only RPCs with the ANON key; no service-role key and no write path at any depth. DEPLOYED 2026-09-11 from commit a5dc6cd and verified live from production: /robots.txt 200 text/plain with the configured sitemap URL, /sitemap.xml 200 application/xml, and a slug with no page 404 as text/html -- the same response Supabase rewrote to text/plain, arriving here as real HTML with our own CSP. Let's Encrypt issued without intervention. NOT yet true: no shop has the capability enabled and none has published a page, so the sitemap is an empty urlset and nobody has read a real page.",
+      "Reads two read-only RPCs with the ANON key; no service-role key and no write path at any depth. DEPLOYED 2026-09-11 from commit a5dc6cd and verified live from production: /robots.txt 200 text/plain with the configured sitemap URL, /sitemap.xml 200 application/xml, and a slug with no page 404 as text/html -- the same response Supabase rewrote to text/plain, arriving here as real HTML with our own CSP. Let's Encrypt issued without intervention. NOT yet true: the only shop with the capability enabled is our own test shop, its page is currently `unpublished`, so the sitemap is an empty urlset and nobody has read a real page.",
     evidence:
       "apps/shop-pages + supabase/functions/_shared/barberos/site_server.ts; 35-check end-to-end, 8 of them on this exact root-path shape",
   },

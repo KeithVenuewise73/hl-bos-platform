@@ -1246,7 +1246,7 @@ const ASSETS: Asset[] = [
     "HL-BOS",
     "Module catalog, prerequisites, bundles, per-tenant capability toggle, the shop record, and the two modules behind that toggle: owned_website (a page the shop owns -- hours, services, prices, address, tap-to-call, booking link) and client_crm (the client, their visits, the cut that was actually given, and the rhythm they come back on), each gated table-by-table by a trigger on the capability. Fourteen of the sixteen catalogued modules remain 'planned' or 'deferred' and cannot be enabled.",
     "live",
-    "supabase/migrations 0048/0052/0053/0056/0057/0058 APPLIED to HL-BOS Core (each fingerprint-verified against the local build); the public read path is live and answering as role anon; no tenant has either capability enabled, so no page and no client record exists yet",
+    "supabase/migrations 0048/0052/0053/0056/0057/0058 APPLIED to HL-BOS Core (each fingerprint-verified against the local build); the public read path is live and answering as role anon; the ONLY tenant with either capability enabled is our own test shop (hl-test-shop, whose page says on its face that it is not a real barbershop) -- it has both, its page is currently `unpublished` so nothing is served publicly, and it holds zero clients and zero visits. No customer shop exists",
   ),
   ...db(
     "transform_audit",
