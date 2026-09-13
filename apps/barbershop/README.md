@@ -70,3 +70,23 @@ secrecy. Without them the app says so rather than showing an empty shop.
 **Not proved: anything between them.** The PostgREST hop and the screens
 themselves have never been exercised — no barber has signed in, nothing is
 deployed, and migration 0056 is not applied anywhere.
+
+## Deploying
+
+Built from `apps/barbershop/Dockerfile` **with the repository root as the build
+context** — the build needs the whole workspace, the same as `shop-pages` and
+the Executive Portal.
+
+Two build arguments, both browser-safe by the platform's ENV_SPEC and both
+required at BUILD time (Next only inlines literal `NEXT_PUBLIC_*` dot-access):
+
+| Build arg                              | Value                                      |
+| -------------------------------------- | ------------------------------------------ |
+| `NEXT_PUBLIC_SUPABASE_URL`             | `https://mvvtngiopdrgiedjmhfb.supabase.co` |
+| `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | the project's publishable key              |
+
+Listens on `4400`. The service-role key is never used and must never be added.
+
+**The Dockerfile has been written and never run** — there is no Docker in the
+build environment. That is the same caveat `shop-pages` carried, and its image
+resolved and built first time.
