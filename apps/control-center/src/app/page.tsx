@@ -53,6 +53,10 @@ export default async function Page() {
             Shop Analysis
           </a>{" "}
           ·{" "}
+          <a href="/barberos" style={{ color: "#58a6ff" }}>
+            BarberOS
+          </a>{" "}
+          ·{" "}
           <a href="/video" style={{ color: "#58a6ff" }}>
             Video Studio
           </a>

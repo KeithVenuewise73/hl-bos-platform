@@ -23,9 +23,14 @@ select plan(37);
 select tests.seed();
 
 -- --- The catalog is a shared, read-only vocabulary --------------------------
+-- Sixteen since 0057, which widened the catalog from the nine v1 modules to
+-- the CEO's twelve-layer definition of the product. That was not cosmetic:
+-- 0055's honesty trigger refuses any proposal naming a capability the catalog
+-- has never heard of, so seven of the twelve layers could not be mentioned in
+-- the document we hand a shop until they existed here.
 select is(
   (select count(*)::int from barberos.capabilities),
-  9, 't_catalog_has_the_nine_v1_modules');
+  16, 't_catalog_carries_the_whole_product');
 
 -- The honest state of BarberOS today. This assertion read 0 until 2026-09-10,
 -- and failing was its job: `owned_website` shipped in migration 0052 and the
@@ -114,10 +119,15 @@ select is(
 
 -- ===========================================================================
 -- Ship two modules, test-locally, so the enable path can be exercised at all.
--- This is precisely the one-line change a real module's migration makes.
+-- This is precisely the change a real module's migration makes -- INCLUDING
+-- clearing the blocker. Since 0057 a shipped module is waiting on nothing, and
+-- `capabilities_available_is_unblocked` refuses the half-done version: a row
+-- cannot be both sellable and stuck, because one of those would be a lie to
+-- somebody. 0052 promoted owned_website exactly this way.
 -- ===========================================================================
 select tests.logout();
-update barberos.capabilities set status = 'available'
+update barberos.capabilities
+   set status = 'available', blocked_on = null, blocker_owner = null
  where key in ('client_crm', 'review_engine');
 
 select tests.login_as(tests.uid('owner_a'));

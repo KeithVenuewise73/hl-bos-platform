@@ -173,9 +173,15 @@ describe("repository scan (ground truth)", () => {
     // the shop itself, adding reach and no authority. Applied 2026-09-13, and
     // exercised against production: a signed-in stranger sees [] and is
     // refused every write.
-    // See notYetAppliedOrdinals in .hlbos/canonical.json, which names 0030
-    // and 0031.
-    expect(inv.migrations.length).toBe(56);
+    // 0057 widens the catalog from the nine v1 modules to the CEO's
+    // twelve-layer definition of BarberOS, and records what each unbuilt module
+    // is waiting on and WHO CAN CLEAR IT -- an account is a different fact from
+    // engineering time, and only one of them is the engineer's to resolve. Most
+    // of the remaining product turns out to be blocked on integrations rather
+    // than on code. Built, NOT applied.
+    // See notYetAppliedOrdinals in .hlbos/canonical.json, which names 0030,
+    // 0031 and 0057.
+    expect(inv.migrations.length).toBe(57);
     expect(inv.edgeFunctions).toContain("ai-gateway");
     // The one function meant to be deployed, and the only unauthenticated one.
     expect(inv.edgeFunctions).toContain("site");
