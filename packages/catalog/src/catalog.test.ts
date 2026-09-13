@@ -191,9 +191,18 @@ describe("repository scan (ground truth)", () => {
     // aborted transaction: a visit dated tomorrow, a guard length on a scissor
     // top, a beard guard with no beard and a visit filed against another
     // shop's client were all refused, leaving zero rows behind.
-    // See notYetAppliedOrdinals in .hlbos/canonical.json, which names 0030
-    // and 0031.
-    expect(inv.migrations.length).toBe(58);
+    // 0059 is the appointment book, and the third of fifteen sellable modules.
+    // The rule it exists to keep -- two people cannot have the same barber at
+    // the same time -- is an EXCLUSION CONSTRAINT rather than application
+    // logic, because everything else in this platform can be wrong and
+    // recoverable and that cannot. It also corrects a modelling mistake from
+    // 0052: the shop's service list hung off its WEB PAGE, so booking could
+    // not have been sold without the website module -- which would have broken
+    // the `starter` bundle, since starter is client_crm + booking +
+    // review_engine and contains no website. NOT APPLIED; it awaits approval.
+    // See notYetAppliedOrdinals in .hlbos/canonical.json, which names 0030,
+    // 0031 and 0059.
+    expect(inv.migrations.length).toBe(59);
     expect(inv.edgeFunctions).toContain("ai-gateway");
     // The one function meant to be deployed, and the only unauthenticated one.
     expect(inv.edgeFunctions).toContain("site");

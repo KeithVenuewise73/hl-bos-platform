@@ -32,17 +32,18 @@ select is(
   (select count(*)::int from barberos.capabilities),
   16, 't_catalog_carries_the_whole_product');
 
--- The honest state of BarberOS today. This assertion read 0 until 2026-09-10
--- and 1 until 2026-09-13, and failing each time was its job: `owned_website`
--- shipped in 0052 and `client_crm` in 0058, and the test makes the catalog's
--- new truth impossible to leave unstated.
+-- The honest state of BarberOS today. This assertion read 0 until 2026-09-10,
+-- 1 until 2026-09-13 and 2 for a few hours after that, and failing each time
+-- was its job: `owned_website` shipped in 0052, `client_crm` in 0058 and
+-- `booking` in 0059. The test makes the catalog's new truth impossible to
+-- leave unstated.
 select is(
   (select count(*)::int from barberos.capabilities where status = 'available'),
-  2, 't_two_capabilities_have_shipped');
+  3, 't_three_capabilities_have_shipped');
 select is(
   (select string_agg(key::text, ',' order by key) from barberos.capabilities
     where status = 'available'),
-  'client_crm,owned_website', 't_and_they_are_the_page_and_the_client_record');
+  'booking,client_crm,owned_website', 't_and_they_are_the_page_the_client_and_the_book');
 
 select is(
   (select status::text from barberos.capabilities where key = 'payments'),
@@ -53,8 +54,10 @@ select is(
   0, 't_nothing_is_default_on_while_nothing_has_shipped');
 
 -- --- A default that has not shipped is refused by the schema ----------------
+-- Asserted against walkin_queue rather than booking since 0059 shipped the
+-- book. The assertion is about UNSHIPPED modules, so it has to name one.
 select throws_ok($$
-  update barberos.capabilities set is_default = true where key = 'booking'
+  update barberos.capabilities set is_default = true where key = 'walkin_queue'
 $$, '23514', null, 't_a_planned_capability_cannot_be_marked_default');
 
 -- --- Prerequisites are real edges, not documentation ------------------------
@@ -99,8 +102,12 @@ select throws_ok(
 
 -- --- Nothing has shipped, so nothing can be enabled -------------------------
 select tests.login_as(tests.uid('owner_a'));
+-- missed_call_capture rather than booking, for the same reason, and chosen
+-- because it has no prerequisites -- so the refusal that fires is the one this
+-- assertion is about (the module has not shipped) rather than a missing
+-- dependency, which is a different refusal with a different SQLSTATE.
 select throws_ok(
-  format($$select barberos.enable_capability(%L::uuid, 'booking')$$, tests.uid('tenant_a')),
+  format($$select barberos.enable_capability(%L::uuid, 'missed_call_capture')$$, tests.uid('tenant_a')),
   '23514', null, 't_a_planned_capability_cannot_be_enabled');
 
 -- The payments deferral, enforced rather than documented. This is the same
@@ -193,15 +200,20 @@ select ok(
   't_review_engine_accepts_a_timing_setting');
 
 -- --- A bundle refuses to half-apply -----------------------------------------
--- `starter` is client_crm + booking + review_engine, and booking has not
--- shipped. Enabling two of three and calling it "Starter" would be a lie about
--- what the shop bought, so the whole call fails.
+-- `growth` is owned_website + client_crm + booking + review_engine +
+-- missed_call_capture + walkin_queue, and the last two have not shipped.
+-- Enabling four of six and calling it "Growth" would be a lie about what the
+-- shop bought, so the whole call fails.
+--
+-- This assertion used `starter` until 0059. It had to move because starter is
+-- client_crm + booking + review_engine and all three of those are now
+-- available in this file -- which is progress, not a broken test.
 select tests.logout();
 delete from barberos.tenant_capabilities where tenant_id = tests.uid('tenant_b');
 insert into barberos.shops (tenant_id, shop_name) values (tests.uid('tenant_b'), 'Tenant B Barbershop');
 select tests.login_as(tests.uid('owner_b'));
 select throws_ok(
-  format($$select barberos.apply_bundle(%L::uuid, 'starter')$$, tests.uid('tenant_b')),
+  format($$select barberos.apply_bundle(%L::uuid, 'growth')$$, tests.uid('tenant_b')),
   '23514', null, 't_a_bundle_containing_an_unshipped_module_fails_whole');
 select is(
   (select count(*)::int from barberos.tenant_capabilities where tenant_id = tests.uid('tenant_b')),

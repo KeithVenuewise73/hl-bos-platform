@@ -3,7 +3,7 @@
   "schemaVersion": 1,
   "sourceDir": "supabase/migrations",
   "canonicalRepository": "KeithVenuewise73/hl-bos-platform",
-  "count": 58,
+  "count": 59,
   "migrations": [
     {
       "ordinal": 1,
@@ -469,6 +469,14 @@
       "filename": "20260913140000_hlbos_0058_barberos_client_crm.sql",
       "version": "20260913140000",
       "sha256": "7c6de87d55bd92fb7feeace83627f39326925440a6b4548c5e9c14d7a89931c1",
+      "foundation": false
+    },
+    {
+      "ordinal": 59,
+      "name": "hlbos_0059_barberos_booking",
+      "filename": "20260913160000_hlbos_0059_barberos_booking.sql",
+      "version": "20260913160000",
+      "sha256": "f9c96137af7d42f1f8ae77eb2c573beab00bcf008e9b14a816a3615c8e23e572",
       "foundation": false
     }
   ]

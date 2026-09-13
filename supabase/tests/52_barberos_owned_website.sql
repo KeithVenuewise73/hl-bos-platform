@@ -22,11 +22,11 @@ select is(
   (select status::text from barberos.capabilities where key = 'owned_website'),
   'available', 't_owned_website_is_now_available');
 
--- Everything else is still honestly unbuilt. Two since 0058 shipped the client
--- record, which is the module every other one waits on.
+-- Everything else is still honestly unbuilt. Three since 0059 shipped the
+-- appointment book, on top of the client record 0058 built underneath it.
 select is(
   (select count(*)::int from barberos.capabilities where status = 'available'),
-  2, 't_only_two_modules_have_shipped');
+  3, 't_only_three_modules_have_shipped');
 
 select is(
   (select count(*)::int from barberos.capability_requires
@@ -75,7 +75,10 @@ select throws_ok(
 select throws_ok(
   format($$insert into barberos.site_services (tenant_id, name) values (%L::uuid, 'Fade')$$,
     tests.uid('tenant_a')),
-  '42501', 'the owned_website capability is not enabled for this shop, so site_services cannot be written',
+  -- Two capability names in one message since 0059: the service list belongs to
+  -- the SHOP and is shared with booking, so a shop with neither module still
+  -- cannot write it -- which is the same guarantee, stated for both doors.
+  '42501', 'the owned_website or the booking capability is not enabled for this shop, so site_services cannot be written',
   't_and_no_service_can_be_added_either');
 select tests.login_as(tests.uid('owner_a'));
 

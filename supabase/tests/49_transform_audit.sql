@@ -458,13 +458,17 @@ select is(
   'Let customers book without calling',
   't_and_it_is_the_recommendation_the_outreach_hook_is_built_on');
 
--- Phase 5, honestly: the audit points at a module, and says it has not shipped.
+-- Phase 5, honestly: the audit points at a module, and says whether it has
+-- shipped. Until 0059 it had not, and this assertion was the guard against
+-- selling a shop something that did not exist. It now reads the other way --
+-- the first time in this platform's history that the audit's top
+-- recommendation points at a module a shop could actually be given.
 select is(
   (select count(*)::int from transform_audit.recommended_bundle((select v from t_ids where k = 'run'))),
   1, 't_the_recommended_bundle_has_one_module');
 select ok(
-  not (select is_shipped from transform_audit.recommended_bundle((select v from t_ids where k = 'run'))),
-  't_the_recommended_bundle_admits_the_module_has_not_shipped');
+  (select is_shipped from transform_audit.recommended_bundle((select v from t_ids where k = 'run'))),
+  't_the_recommended_bundle_now_points_at_a_module_that_exists');
 
 -- --- Tenant isolation -------------------------------------------------------
 select tests.login_as(tests.uid('owner_b'));

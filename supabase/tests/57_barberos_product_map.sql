@@ -39,12 +39,12 @@ select is(
 
 select is(
   (select count(*)::int from barberos.capabilities where status = 'available'),
-  2, 't_only_two_modules_are_actually_shipped');
+  3, 't_only_three_modules_are_actually_shipped');
 
 select is(
   (select string_agg(key::text, ',' order by key) from barberos.capabilities
     where status = 'available'),
-  'client_crm,owned_website', 't_and_they_are_the_ones_that_work');
+  'booking,client_crm,owned_website', 't_and_they_are_the_ones_that_work');
 
 -- The audit is how we WIN a shop, not something the shop buys. Offering it
 -- back to the business it was performed on would be absurd.
@@ -107,9 +107,12 @@ select is(
   (select blocked_on from barberos.capabilities where key = 'client_crm'),
   null, 't_the_crm_is_shipped_so_it_is_waiting_on_nothing');
 
+-- booking carried this assertion until 0059 shipped it. walkin_queue now does:
+-- it is the next module that needs nothing but engineering time, which is the
+-- fact this column exists to keep visible.
 select is(
-  (select blocker_owner::text from barberos.capabilities where key = 'booking'),
-  'engineering', 't_and_booking_still_needs_no_account_from_anybody');
+  (select blocker_owner::text from barberos.capabilities where key = 'walkin_queue'),
+  'engineering', 't_and_the_walk_in_queue_still_needs_no_account_from_anybody');
 
 select is(
   (select blocker_owner::text from barberos.capabilities where key = 'missed_call_capture'),

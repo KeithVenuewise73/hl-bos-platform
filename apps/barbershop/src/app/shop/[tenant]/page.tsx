@@ -1,5 +1,7 @@
 import { connect } from "@/lib/supabase";
 import {
+  BOOKING,
+  CLIENT_CRM,
   loadSite,
   missingBeforePublish,
   myShops,
@@ -86,24 +88,25 @@ export default async function ShopPage({
           <Badge status={site.status} />
         </p>
       )}
-      {shop.capabilities.includes("client_crm") && (
-        <p style={{ margin: "0 0 18px" }}>
-          <a
-            href={`/shop/${tenant}/clients`}
-            style={{
-              display: "inline-block",
-              padding: "9px 16px",
-              borderRadius: 6,
-              border: "1px solid #2f3742",
-              color: "#58a6ff",
-              textDecoration: "none",
-              fontWeight: 600,
-            }}
-          >
+      {/* One link per module the shop actually has. A module that is off has
+          no link, rather than a link to a screen that explains it is off. */}
+      <p style={{ margin: "0 0 18px" }}>
+        {shop.capabilities.includes(CLIENT_CRM) && (
+          <a href={`/shop/${tenant}/clients`} style={moduleLink}>
             Clients →
           </a>
-        </p>
-      )}
+        )}
+        {shop.capabilities.includes(BOOKING) && (
+          <>
+            <a href={`/shop/${tenant}/book`} style={moduleLink}>
+              Appointments →
+            </a>
+            <a href={`/shop/${tenant}/rota`} style={moduleLink}>
+              Rota →
+            </a>
+          </>
+        )}
+      </p>
       <SiteEditor
         tenantId={tenant}
         site={site}
@@ -150,3 +153,14 @@ function Shell({
     </main>
   );
 }
+
+const moduleLink: React.CSSProperties = {
+  display: "inline-block",
+  padding: "9px 16px",
+  marginRight: 10,
+  borderRadius: 6,
+  border: "1px solid #2f3742",
+  color: "#58a6ff",
+  textDecoration: "none",
+  fontWeight: 600,
+};

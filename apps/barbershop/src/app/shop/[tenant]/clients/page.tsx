@@ -177,7 +177,7 @@ export default async function ClientsPage({
           ))
         )}
         <div style={{ marginTop: 16 }}>
-          <AddClient tenantId={tenant} />
+          <AddClient tenantId={tenant} mayManage={shop.can.manageClients} />
         </div>
       </Card>
     </Shell>

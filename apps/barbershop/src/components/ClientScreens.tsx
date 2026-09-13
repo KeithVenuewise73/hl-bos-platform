@@ -25,11 +25,22 @@ function Note({ r }: { r: Result | null }) {
   );
 }
 
-export function AddClient({ tenantId }: { tenantId: string }) {
+export function AddClient({
+  tenantId,
+  mayManage,
+}: {
+  tenantId: string;
+  mayManage: boolean;
+}) {
   const [open, setOpen] = useState(false);
   const [f, setF] = useState({ name: "", phone: "", email: "", notes: "" });
   const [r, setR] = useState<Result | null>(null);
   const [busy, start] = useTransition();
+
+  // A viewer was shown this button until 0059 and refused by the database
+  // after pressing it. A control that cannot do its job is worse than no
+  // control: it reads as permission that is not there.
+  if (!mayManage) return null;
 
   if (!open) {
     return (
@@ -108,10 +119,12 @@ export function RecordVisit({
   tenantId,
   clientId,
   knownTools,
+  mayManage,
 }: {
   tenantId: string;
   clientId: string;
   knownTools: string[];
+  mayManage: boolean;
 }) {
   const today = new Date().toISOString().slice(0, 10);
   const [v, setV] = useState({
@@ -133,6 +146,10 @@ export function RecordVisit({
   const [newTool, setNewTool] = useState("");
   const [r, setR] = useState<Result | null>(null);
   const [busy, start] = useTransition();
+
+  // Same rule as AddClient: a viewer must not be offered a form the database
+  // will refuse. Placed after the hooks so their order never changes.
+  if (!mayManage) return null;
 
   const set = (k: keyof typeof v, value: unknown) => {
     setV({ ...v, [k]: value });

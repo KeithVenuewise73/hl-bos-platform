@@ -1,4 +1,5 @@
 import { connect } from "@/lib/supabase";
+import { myShops } from "@/lib/barberos";
 import { loadClient, money, shopTools } from "@/lib/crm";
 import { Card, Empty } from "@/components/ui";
 import { RecordVisit, Timeline } from "@/components/ClientScreens";
@@ -27,11 +28,14 @@ export default async function ClientPage({
     );
   }
 
-  let client, tools;
+  let client, tools, shops;
   try {
-    [client, tools] = await Promise.all([
+    // The shop comes back too, because what this person may DO decides which
+    // controls are drawn -- and the app must never work that out for itself.
+    [client, tools, shops] = await Promise.all([
       loadClient(state.client, clientId),
       shopTools(state.client, tenant),
+      myShops(state.client),
     ]);
   } catch (e) {
     return (
@@ -53,6 +57,8 @@ export default async function ClientPage({
     );
   }
 
+  const mayManage =
+    shops.find((s) => s.tenantId === tenant)?.can.manageClients === true;
   const r = client.rhythm;
   const value = money(client.value.totalCents);
 
@@ -96,7 +102,12 @@ export default async function ClientPage({
         )}
       </Card>
 
-      <RecordVisit tenantId={tenant} clientId={clientId} knownTools={tools} />
+      <RecordVisit
+        tenantId={tenant}
+        clientId={clientId}
+        knownTools={tools}
+        mayManage={mayManage}
+      />
       <Timeline client={client} />
     </Shell>
   );

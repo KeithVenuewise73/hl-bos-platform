@@ -29,6 +29,14 @@ export interface ShopPermissions {
   editPage: boolean;
   publish: boolean;
   manageShop: boolean;
+  /**
+   * Added in 0059. Before it, the clients screen drew "Add a client" for a
+   * viewer the database would then refuse -- a control that could not do its
+   * job, which the platform brief calls worse than no control at all.
+   */
+  manageClients: boolean;
+  takeBookings: boolean;
+  manageRota: boolean;
 }
 
 export interface Shop {
@@ -115,6 +123,12 @@ export const SHOP_PAGES_BASE = "https://shops.hermanlegacydigital.com";
 /** The capability this app's page editor requires to be switched on. */
 export const OWNED_WEBSITE = "owned_website";
 
+/** The capability the clients screens require. */
+export const CLIENT_CRM = "client_crm";
+
+/** The capability the appointment book requires. */
+export const BOOKING = "booking";
+
 // ---------------------------------------------------------------------------
 // Mapping
 // ---------------------------------------------------------------------------
@@ -177,6 +191,9 @@ export function toShop(raw: unknown): Shop | null {
       editPage: may(can["edit_page"]),
       publish: may(can["publish"]),
       manageShop: may(can["manage_shop"]),
+      manageClients: may(can["manage_clients"]),
+      takeBookings: may(can["take_bookings"]),
+      manageRota: may(can["manage_rota"]),
     },
   };
 }
