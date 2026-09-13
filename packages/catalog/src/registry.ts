@@ -439,6 +439,27 @@ const ASSETS: Asset[] = [
       "packages/bti-venuewise; 15 tests; report from docs/products/venuewise-*harvest",
   },
   {
+    id: "pkg.hld-transformation-pipeline",
+    kind: "package",
+    name: "@hl-bos/hld-transformation-pipeline",
+    summary:
+      "Herman Legacy Digital Business Transformation Pipeline — the eleven-stage workflow around BTI (Business Discovery → Continuous Transformation). Reuses @hl-bos/bti-venuewise (Client #1) and @hl-bos/bti-cycle; turns every BTI recommendation into executable implementation tasks mapped to HLD capabilities, sequences a roadmap (full commercialization gated until BTI reruns firm), tracks progress, ties to the Measurement Contract, and closes the loop. Deterministic; plans but never executes; no dashboards, UI, persistence or migrations.",
+    maturity: "built_undeployed",
+    reuse: ["reusable", "commercial"],
+    owner: "Herman Legacy Digital",
+    layer: "HL-BTI",
+    key: "hld-transformation-pipeline",
+    location: "packages/hld-transformation-pipeline",
+    tags: ["package", "workflow", "transformation", "deterministic", "truth-mode"],
+    relationships: [
+      { kind: "uses", to: "pkg.bti-venuewise" },
+      { kind: "uses", to: "pkg.bti-cycle" },
+      { kind: "owned_by", to: "repo.hl-bos-platform" },
+    ],
+    evidence:
+      "packages/hld-transformation-pipeline; 14 tests; runs Venuewise (Client #1) through 11 stages",
+  },
+  {
     id: "pkg.catalog",
     kind: "package",
     name: "@hl-bos/catalog",
