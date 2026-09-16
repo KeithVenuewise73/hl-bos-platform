@@ -25,6 +25,17 @@ export const LOCAL_APPS: readonly LocalApp[] = [
     port: 4600,
     healthPath: "/api/health",
   },
+  {
+    key: "playtime-tracker",
+    name: "PlayTime Tracker",
+    what: "Track how long every athlete actually plays: tap a player on, tap them off, and see at a glance who is short of their minutes — with or without a signal.",
+    filter: "@hl-bos/playtime-tracker",
+    port: 4700,
+    // A static export has no route handlers, so its health answer is a file.
+    // It carries the real version, so this panel reports the build it is
+    // actually looking at rather than merely that a port is open.
+    healthPath: "/health.json",
+  },
 ];
 
 export function findApp(key: string): LocalApp | undefined {

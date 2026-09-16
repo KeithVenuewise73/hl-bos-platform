@@ -22,9 +22,9 @@ export default function LoginPage() {
         {/* No form is shown, because there is nothing behind it. A sign-in box
             that cannot sign anyone in is worse than none. */}
         <InfoNote>
-          This build has no account service configured, so there is nothing to sign in to.
-          Everything you record is saved on this device and works exactly as it does with an
-          account — it is simply not backed up anywhere.
+          This build has no account service configured, so there is nothing to sign in
+          to. Everything you record is saved on this device and works exactly as it does
+          with an account — it is simply not backed up anywhere.
         </InfoNote>
         <Link className="btn btn-primary btn-block" href="/">
           Continue
@@ -37,7 +37,9 @@ export default function LoginPage() {
     <main>
       <TopBar back="/" />
       <h1>Sign in</h1>
-      <p className="lead">Your games are backed up and available on your other devices.</p>
+      <p className="lead">
+        Your games are backed up and available on your other devices.
+      </p>
 
       {error ? <ErrorNote>{error}</ErrorNote> : null}
 
@@ -71,7 +73,12 @@ export default function LoginPage() {
             required
           />
         </Field>
-        <button type="submit" className="btn-primary btn-block" style={{ marginTop: 20 }} disabled={busy}>
+        <button
+          type="submit"
+          className="btn-primary btn-block"
+          style={{ marginTop: 20 }}
+          disabled={busy}
+        >
           {busy ? "Signing in…" : "Sign in"}
         </button>
       </form>

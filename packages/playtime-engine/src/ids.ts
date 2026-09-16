@@ -8,13 +8,26 @@
  * row already exists.
  */
 
-declare const globalThis: { crypto?: { randomUUID?: () => string; getRandomValues?: <T extends ArrayBufferView>(a: T) => T } };
+interface Csprng {
+  randomUUID?: () => string;
+  getRandomValues?: <T extends ArrayBufferView>(array: T) => T;
+}
+
+/**
+ * The platform CSPRNG, wherever this happens to be running.
+ *
+ * Read through a cast rather than by redeclaring `globalThis`. This package is
+ * used from a browser, from a native web view and from Node, and each of those
+ * types that global differently -- shadowing it here would be both a lint error
+ * and a lie about two of the three.
+ */
+const csprng = (): Csprng | undefined => (globalThis as { crypto?: Csprng }).crypto;
 
 const HEX = "0123456789abcdef";
 
 /** RFC 4122 v4 identifier. Uses the platform CSPRNG wherever one exists. */
 export function newId(): string {
-  const c = globalThis.crypto;
+  const c = csprng();
   if (c?.randomUUID) return c.randomUUID();
 
   const bytes = new Uint8Array(16);

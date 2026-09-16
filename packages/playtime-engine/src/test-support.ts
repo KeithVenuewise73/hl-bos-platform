@@ -4,7 +4,8 @@ import type { GameEvent } from "./events";
 
 export const T0 = Date.parse("2026-09-12T18:00:00.000Z");
 
-export const at = (seconds: number): string => new Date(T0 + seconds * 1000).toISOString();
+export const at = (seconds: number): string =>
+  new Date(T0 + seconds * 1000).toISOString();
 
 let counter = 0;
 export function resetSeq(): void {
@@ -24,8 +25,16 @@ type Spec =
 export const start = (s: number): Spec => ({ t: "start", s });
 export const pause = (s: number): Spec => ({ t: "pause", s });
 export const resume = (s: number): Spec => ({ t: "resume", s });
-export const endPeriod = (s: number, period: number): Spec => ({ t: "endPeriod", s, period });
-export const startPeriod = (s: number, period: number): Spec => ({ t: "startPeriod", s, period });
+export const endPeriod = (s: number, period: number): Spec => ({
+  t: "endPeriod",
+  s,
+  period,
+});
+export const startPeriod = (s: number, period: number): Spec => ({
+  t: "startPeriod",
+  s,
+  period,
+});
 export const playerIn = (s: number, p: string): Spec => ({ t: "in", s, p });
 export const playerOut = (s: number, p: string): Spec => ({ t: "out", s, p });
 export const end = (s: number): Spec => ({ t: "end", s });

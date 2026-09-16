@@ -76,6 +76,14 @@ export const PORTFOLIO: readonly Product[] = [
     location: "this repository (apps/ats-resume-optimizer, packages/ats-resume)",
   },
   {
+    name: "PlayTime Tracker",
+    stage: "development",
+    status:
+      "Built in this repository and proven by playing a game in it: 39 acceptance assertions drive the production build in a real browser through twenty athletes, repeated substitutions, the app backgrounded, the process killed, and the network pulled out mid-game — including the arithmetic check that individual minutes must sum to exactly eleven full games. Native iOS and Android projects exist and carry the app's own icons and version. NOT SUBMITTED to either store: no iOS archive has been built (that needs Xcode on a Mac), no Android bundle has been built (that needs the SDK), no signing identities or store records exist, and migration 0049 is UNAPPLIED, so the app currently stores everything on the device and says so on its own Account screen.",
+    version: null,
+    location: "this repository (apps/playtime-tracker, packages/playtime-engine)",
+  },
+  {
     name: "SalonAI",
     stage: "not-started",
     status: "Planned as the first HL-BOS vertical. No code yet.",

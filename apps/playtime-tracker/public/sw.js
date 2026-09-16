@@ -15,8 +15,12 @@ const CACHE = "playtime-shell-v1";
  * Every file this build produced, injected by scripts/build-sw.mjs from the
  * real export. Generated, never hand-maintained, so it cannot drift from what
  * shipped.
+ *
+ * The literal below is what a build that skipped that step would fall back to:
+ * valid JavaScript that precaches the shell and nothing else, rather than a
+ * placeholder token that would make this file fail to parse.
  */
-const PRECACHE = __PRECACHE__;
+const PRECACHE = ["/"]; // __PRECACHE__
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
@@ -35,7 +39,9 @@ self.addEventListener("activate", (event) => {
   event.waitUntil(
     caches
       .keys()
-      .then((keys) => Promise.all(keys.filter((k) => k !== CACHE).map((k) => caches.delete(k))))
+      .then((keys) =>
+        Promise.all(keys.filter((k) => k !== CACHE).map((k) => caches.delete(k))),
+      )
       .then(() => self.clients.claim()),
   );
 });
@@ -55,7 +61,8 @@ self.addEventListener("fetch", (event) => {
         // Refresh in the background so the next launch is current.
         void fetch(request)
           .then((res) => {
-            if (res.ok) void caches.open(CACHE).then((c) => c.put(request, res.clone()));
+            if (res.ok)
+              void caches.open(CACHE).then((c) => c.put(request, res.clone()));
           })
           .catch(() => {});
         return hit;
@@ -73,10 +80,13 @@ self.addEventListener("fetch", (event) => {
           // link still opens the app rather than a browser error page.
           const shell = await caches.match("/");
           if (shell) return shell;
-          return new Response("You are offline and this page has not been saved on this device.", {
-            status: 503,
-            headers: { "content-type": "text/plain" },
-          });
+          return new Response(
+            "You are offline and this page has not been saved on this device.",
+            {
+              status: 503,
+              headers: { "content-type": "text/plain" },
+            },
+          );
         });
     }),
   );

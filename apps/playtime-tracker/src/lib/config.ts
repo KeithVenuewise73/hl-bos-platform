@@ -7,12 +7,38 @@
  * rejection, and a user following one is worse.
  */
 
-import { APP_VERSION as RELEASE_VERSION, BUILD_NUMBER as RELEASE_BUILD } from "./release";
+import {
+  APP_VERSION as RELEASE_VERSION,
+  BUILD_NUMBER as RELEASE_BUILD,
+} from "./release";
 
-const env = (key: string): string | undefined => {
-  const value = process.env[key];
-  return value && value.length > 0 ? value : undefined;
+/*
+ * LITERAL dot-access, deliberately, on every NEXT_PUBLIC_ value below.
+ *
+ * A Next.js static export inlines `process.env.NEXT_PUBLIC_X` at build time by
+ * textual substitution. Reading the same value through a helper --
+ * `env("NEXT_PUBLIC_X")`, or any bracket access with a variable key -- is NOT
+ * substituted, so it is undefined in the browser and the app silently decides
+ * it has no backend. This file was written the wrong way first and the lint
+ * rule caught it; the shape is spelled out here so it does not get "tidied"
+ * back.
+ *
+ * Both Supabase values are browser-safe by the platform's own ENV_SPEC: the
+ * URL is in every request, and the publishable key is documented as public
+ * because Row Level Security -- not secrecy -- is the boundary. The
+ * service-role key is never referenced anywhere in this app.
+ */
+const raw = {
+  version: process.env.NEXT_PUBLIC_APP_VERSION,
+  build: process.env.NEXT_PUBLIC_BUILD_NUMBER,
+  supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL,
+  supabaseKey: process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY,
+  supportEmail: process.env.NEXT_PUBLIC_SUPPORT_EMAIL,
 };
+
+/** Treat an empty string as absent: an unset variable often arrives as "". */
+const set = (value: string | undefined): string | undefined =>
+  value !== undefined && value.length > 0 ? value : undefined;
 
 /**
  * Marketing version and build number, from store/release.json via
@@ -23,8 +49,8 @@ const env = (key: string): string | undefined => {
  * An environment variable can override them for a one-off build; nothing here
  * is ever invented.
  */
-export const APP_VERSION = env("NEXT_PUBLIC_APP_VERSION") ?? RELEASE_VERSION;
-export const BUILD_NUMBER = env("NEXT_PUBLIC_BUILD_NUMBER") ?? RELEASE_BUILD;
+export const APP_VERSION = set(raw.version) ?? RELEASE_VERSION;
+export const BUILD_NUMBER = set(raw.build) ?? RELEASE_BUILD;
 
 export const APP_NAME = "PlayTime Tracker";
 
@@ -40,10 +66,10 @@ export const LINKS = {
 } as const;
 
 /** Support contact. Absent rather than invented if the build did not set one. */
-export const SUPPORT_EMAIL = env("NEXT_PUBLIC_SUPPORT_EMAIL") ?? null;
+export const SUPPORT_EMAIL = set(raw.supportEmail) ?? null;
 
-export const SUPABASE_URL = env("NEXT_PUBLIC_SUPABASE_URL") ?? null;
-export const SUPABASE_KEY = env("NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY") ?? null;
+export const SUPABASE_URL = set(raw.supabaseUrl) ?? null;
+export const SUPABASE_KEY = set(raw.supabaseKey) ?? null;
 
 /**
  * Whether this build has an account service behind it at all.

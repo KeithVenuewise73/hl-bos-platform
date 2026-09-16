@@ -25,12 +25,12 @@ a counter that something has to keep incrementing.**
 
 A running timer is a promise the operating system does not keep:
 
-| What happens on a real sideline | What a `setInterval` does | What this engine does |
-| --- | --- | --- |
-| Coach switches to the camera app | Throttled, then suspended | Nothing — the arithmetic runs on return |
-| Phone locks in a pocket | Stops firing | Nothing |
-| OS kills the app for memory | Stops forever, silently | Nothing — the log is on disk |
-| App reopened an hour later | Total is short and nobody knows | Same answer, to the second |
+| What happens on a real sideline  | What a `setInterval` does       | What this engine does                   |
+| -------------------------------- | ------------------------------- | --------------------------------------- |
+| Coach switches to the camera app | Throttled, then suspended       | Nothing — the arithmetic runs on return |
+| Phone locks in a pocket          | Stops firing                    | Nothing                                 |
+| OS kills the app for memory      | Stops forever, silently         | Nothing — the log is on disk            |
+| App reopened an hour later       | Total is short and nobody knows | Same answer, to the second              |
 
 Every assertion in `acceptance.test.ts` that involves backgrounding, locking or
 killing the app is modelled as what it actually is at this layer: a stretch of
@@ -66,12 +66,12 @@ a tap made in a dead zone.
 The target is always the user's own configuration. This engine makes no
 league-specific claim, and the shared report says so in as many words.
 
-| State | Meaning |
-| --- | --- |
-| `safe` | Already met the target, or on pace to meet it |
-| `at_risk` | Still reachable, but behind the pace it needs — raised while there is time to act |
-| `below_target` | Cannot reach it even by playing every remaining second |
-| `no_target` | No target configured. Stated, never invented |
+| State          | Meaning                                                                           |
+| -------------- | --------------------------------------------------------------------------------- |
+| `safe`         | Already met the target, or on pace to meet it                                     |
+| `at_risk`      | Still reachable, but behind the pace it needs — raised while there is time to act |
+| `below_target` | Cannot reach it even by playing every remaining second                            |
+| `no_target`    | No target configured. Stated, never invented                                      |
 
 ## Tests
 

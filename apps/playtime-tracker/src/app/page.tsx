@@ -36,12 +36,13 @@ export default function HomePage() {
       <main>
         <h1>This device will not let the app save anything</h1>
         <p>
-          PlayTime Tracker stores your teams and games in this browser&rsquo;s storage. It is
-          currently blocked — private browsing and blocked site data are the usual causes.
+          PlayTime Tracker stores your teams and games in this browser&rsquo;s storage.
+          It is currently blocked — private browsing and blocked site data are the usual
+          causes.
         </p>
         <p>
-          Nothing will be recorded until that is changed, so the app has stopped rather than let
-          you track a game it cannot keep.
+          Nothing will be recorded until that is changed, so the app has stopped rather
+          than let you track a game it cannot keep.
         </p>
       </main>
     );
@@ -104,8 +105,8 @@ export default function HomePage() {
             </Link>
           }
         >
-          A team holds your roster. You can add players and start tracking a game in about a
-          minute.
+          A team holds your roster. You can add players and start tracking a game in
+          about a minute.
         </Empty>
       ) : (
         <div className="stack">
@@ -113,12 +114,18 @@ export default function HomePage() {
             const roster = players(t.id).filter((p) => p.active);
             const played = allGames.filter((g) => g.teamId === t.id).length;
             return (
-              <Link key={t.id} href={`/team/?id=${t.id}`} className="card row" style={{ color: "inherit", textDecoration: "none" }}>
+              <Link
+                key={t.id}
+                href={`/team/?id=${t.id}`}
+                className="card row"
+                style={{ color: "inherit", textDecoration: "none" }}
+              >
                 <div className="grow">
                   <strong>{t.name}</strong>
                   <div className="muted">
-                    {SPORT_LABEL[t.sport]} · {roster.length} player{roster.length === 1 ? "" : "s"} ·{" "}
-                    {played} game{played === 1 ? "" : "s"}
+                    {SPORT_LABEL[t.sport]} · {roster.length} player
+                    {roster.length === 1 ? "" : "s"} · {played} game
+                    {played === 1 ? "" : "s"}
                   </div>
                 </div>
                 <span aria-hidden="true" className="muted">

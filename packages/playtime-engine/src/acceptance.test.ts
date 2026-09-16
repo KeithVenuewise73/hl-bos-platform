@@ -39,14 +39,26 @@ const stamp = (s: number) => ({
 
 const started = (s: number): GameEvent => ({ ...stamp(s), type: "game_started" });
 const ended = (s: number): GameEvent => ({ ...stamp(s), type: "game_ended" });
-const periodEnded = (s: number, period: number): GameEvent =>
-  ({ ...stamp(s), type: "period_ended", period });
-const periodStarted = (s: number, period: number): GameEvent =>
-  ({ ...stamp(s), type: "period_started", period });
-const playerIn = (s: number, playerId: string): GameEvent =>
-  ({ ...stamp(s), type: "player_in", playerId });
-const playerOut = (s: number, playerId: string): GameEvent =>
-  ({ ...stamp(s), type: "player_out", playerId });
+const periodEnded = (s: number, period: number): GameEvent => ({
+  ...stamp(s),
+  type: "period_ended",
+  period,
+});
+const periodStarted = (s: number, period: number): GameEvent => ({
+  ...stamp(s),
+  type: "period_started",
+  period,
+});
+const playerIn = (s: number, playerId: string): GameEvent => ({
+  ...stamp(s),
+  type: "player_in",
+  playerId,
+});
+const playerOut = (s: number, playerId: string): GameEvent => ({
+  ...stamp(s),
+  type: "player_out",
+  playerId,
+});
 
 /**
  * Play a full game with an eleven-a-side rotation.
@@ -140,9 +152,14 @@ describe("acceptance: a full 20-player game with repeated substitutions", () => 
   });
 
   it("evaluates the 25% target for every athlete", () => {
-    expect(state.participation.every((p) => p.requiredSeconds === REGULATION * 0.25)).toBe(true);
-    expect(state.participation.every((p) => p.status === "safe" || p.status === "below_target"))
-      .toBe(true);
+    expect(
+      state.participation.every((p) => p.requiredSeconds === REGULATION * 0.25),
+    ).toBe(true);
+    expect(
+      state.participation.every(
+        (p) => p.status === "safe" || p.status === "below_target",
+      ),
+    ).toBe(true);
   });
 
   it("records more than one entry for a rotated athlete", () => {
@@ -154,20 +171,24 @@ describe("acceptance: interruptions do not change a single number", () => {
   const { events, wallEnd } = playGame();
   const reference = finalState(events, T0 + (wallEnd + 60) * 1000);
   const totals = (s: ReturnType<typeof finalState>) =>
-    [...s.participation].sort((a, b) => a.playerId.localeCompare(b.playerId))
+    [...s.participation]
+      .sort((a, b) => a.playerId.localeCompare(b.playerId))
       .map((p) => [p.playerId, p.secondsPlayed] as const);
 
   it("is unchanged by the app being backgrounded and the screen locked", () => {
     // Backgrounding records no events and runs no code. The log is identical,
     // so the report is identical -- which is the entire point of deriving
     // duration from timestamps instead of counting ticks.
-    expect(totals(finalState(events, T0 + (wallEnd + 60) * 1000))).toEqual(totals(reference));
+    expect(totals(finalState(events, T0 + (wallEnd + 60) * 1000))).toEqual(
+      totals(reference),
+    );
   });
 
   it("is unchanged by the process being killed and the log replayed later", () => {
     const relaunched = normalizeLog(JSON.parse(JSON.stringify(events)) as GameEvent[]);
-    expect(totals(finalState(relaunched, T0 + (wallEnd + 86_400) * 1000)))
-      .toEqual(totals(reference));
+    expect(totals(finalState(relaunched, T0 + (wallEnd + 86_400) * 1000))).toEqual(
+      totals(reference),
+    );
   });
 
   it("is unchanged by losing connectivity for the second half and syncing after", () => {
@@ -177,17 +198,23 @@ describe("acceptance: interruptions do not change a single number", () => {
     const server = events.filter((e) => Date.parse(e.at) <= cutoff);
     expect(server.length).toBeLessThan(events.length);
     const merged = mergeLogs(events, server);
-    expect(totals(finalState(merged, T0 + (wallEnd + 60) * 1000))).toEqual(totals(reference));
+    expect(totals(finalState(merged, T0 + (wallEnd + 60) * 1000))).toEqual(
+      totals(reference),
+    );
   });
 
   it("is unchanged when a flaky connection delivers every event twice", () => {
     const doubled = [...events, ...events.map((e) => ({ ...e }))];
-    expect(totals(finalState(doubled, T0 + (wallEnd + 60) * 1000))).toEqual(totals(reference));
+    expect(totals(finalState(doubled, T0 + (wallEnd + 60) * 1000))).toEqual(
+      totals(reference),
+    );
   });
 
   it("is unchanged when sync delivers the log in reverse order", () => {
     const reversed = [...events].reverse();
-    expect(totals(finalState(reversed, T0 + (wallEnd + 60) * 1000))).toEqual(totals(reference));
+    expect(totals(finalState(reversed, T0 + (wallEnd + 60) * 1000))).toEqual(
+      totals(reference),
+    );
   });
 });
 

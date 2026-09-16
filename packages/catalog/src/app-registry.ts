@@ -263,6 +263,39 @@ export const APPLICATIONS: ApplicationRecord[] = [
       "apps/ats-resume-optimizer + packages/ats-resume; migration 0048 written UNAPPLIED; verified by running the app (generate, edit, validate, export)",
   },
   {
+    key: "playtime-tracker",
+    name: "PlayTime Tracker",
+    description:
+      "Tracks how long each athlete actually participates in a game. A coach taps a player on and off; the app records the instant of every tap and derives every duration from those, so backgrounding the app, locking the phone or having the process killed changes no number. The whole live game works with no signal at all, because a sports field is where connectivity goes to die.",
+    category: "vertical_product",
+    repository: REPO,
+    owner: "KeithVenuewise73",
+    executiveOwner: "Keith Herman (CEO)",
+    currentBranch: "claude/playtime-tracker-mvp-qjbmrm",
+    environment: "local",
+    developmentStatus: "built_undeployed",
+    deploymentStatus: "not_deployed",
+    productionUrl: null,
+    stagingUrl: null,
+    localUrl: "http://localhost:4700",
+    supabaseProject: CORE,
+    version: "1.0.0",
+    health: "unknown",
+    hosting: "none yet",
+    dependencies: [
+      "@hl-bos/playtime-engine",
+      "@supabase/supabase-js",
+      "@capacitor/core",
+    ],
+    reusableModules: [],
+    softwareFactoryIntegration:
+      "None. The participation engine (@hl-bos/playtime-engine) is a standalone capability package with no platform dependencies, built so AthleteHuddle, CoachesHuddle, OrganizationHuddle, GameTracker and 5-Star Sports Media can reuse it without pulling in identity or tenancy.",
+    notes:
+      "Statically exported Next.js app wrapped by Capacitor; both native projects exist and carry the app's own icons and version. NOT SUBMITTED to either store: no iOS archive (needs Xcode on macOS), no Android bundle (needs the SDK), no signing identities and no store records. Migration 0049 (playtime) is written and verified against a local PostgreSQL 16.13 but is UNAPPLIED, so the app stores everything on the device and says so on its own Account screen. 93 engine tests, 10 app tests, 35 pgTAP assertions and 39 browser acceptance assertions, all run and green.",
+    evidence:
+      "apps/playtime-tracker + packages/playtime-engine; migration 0049 written UNAPPLIED; verified by playing a full game in the production build (qa/acceptance.mjs, 39 assertions)",
+  },
+  {
     key: "control-center",
     name: "CEO Development Control Center",
     description:

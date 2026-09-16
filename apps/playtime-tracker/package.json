@@ -7,13 +7,13 @@
   "scripts": {
     "dev": "next dev --port 4700",
     "build": "next build && node scripts/build-sw.mjs",
-    "start": "npx serve out -l 4700",
+    "start": "node scripts/serve.mjs out 4700",
     "typecheck": "tsc --noEmit",
     "lint": "eslint .",
     "test": "vitest run",
     "clean": "rm -rf .next out dist *.tsbuildinfo",
     "qa": "node qa/acceptance.mjs",
-    "qa:serve": "node qa/serve.mjs out 4700",
+    "qa:serve": "node scripts/serve.mjs out 4700",
     "native:sync": "npx cap sync",
     "native:add:ios": "npx cap add ios",
     "native:add:android": "npx cap add android"

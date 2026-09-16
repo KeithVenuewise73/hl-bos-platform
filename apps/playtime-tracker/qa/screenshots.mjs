@@ -12,7 +12,7 @@
  * percentages and the statuses are all computed by the shipped engine from the
  * taps this script makes.
  *
- *   node qa/serve.mjs out 4700 &
+ *   node scripts/serve.mjs out 4700 &
  *   node qa/screenshots.mjs
  */
 import { chromium } from "playwright";
@@ -35,12 +35,18 @@ const TARGETS = [
 ];
 
 const ROSTER = [
-  ["Dominic", "Herman", "22", "RB"], ["Marcus", "Reed", "18", "WR"],
-  ["Eli", "Vance", "7", "QB"], ["Noah", "Pike", "44", "LB"],
-  ["Owen", "Hale", "12", "WR"], ["Liam", "Foss", "56", "OL"],
-  ["Caleb", "Nunez", "3", "DB"], ["Jonah", "Reyes", "88", "TE"],
-  ["Miles", "Darcy", "30", "RB"], ["Asher", "Quinn", "5", "DB"],
-  ["Levi", "Barnes", "71", "OL"], ["Ezra", "Cole", "9", "K"],
+  ["Dominic", "Herman", "22", "RB"],
+  ["Marcus", "Reed", "18", "WR"],
+  ["Eli", "Vance", "7", "QB"],
+  ["Noah", "Pike", "44", "LB"],
+  ["Owen", "Hale", "12", "WR"],
+  ["Liam", "Foss", "56", "OL"],
+  ["Caleb", "Nunez", "3", "DB"],
+  ["Jonah", "Reyes", "88", "TE"],
+  ["Miles", "Darcy", "30", "RB"],
+  ["Asher", "Quinn", "5", "DB"],
+  ["Levi", "Barnes", "71", "OL"],
+  ["Ezra", "Cole", "9", "K"],
 ];
 
 const browser = await chromium
@@ -71,12 +77,13 @@ for (const target of TARGETS) {
     colorScheme: "light",
   });
   const page = await context.newPage();
-  let elapsed = 0;
+  // The clock is PAUSED after installation, so only these deliberate jumps
+  // advance it and the screenshots show exact, reproducible times rather than
+  // whatever the browser happened to take.
   await page.clock.install({ time: new Date(START) });
   await page.clock.pauseAt(new Date(START));
-  const advance = async (s) => {
-    elapsed += s * 1000;
-    await page.clock.fastForward(s * 1000);
+  const advance = async (seconds) => {
+    await page.clock.fastForward(seconds * 1000);
     await page.waitForTimeout(60);
   };
 
@@ -88,7 +95,9 @@ for (const target of TARGETS) {
   await page.getByRole("button", { name: "Create team" }).click();
   await page.waitForSelector("h1:has-text('Orchard Park U12')");
 
-  const form = page.locator("form").filter({ has: page.getByRole("button", { name: "Add player" }) });
+  const form = page
+    .locator("form")
+    .filter({ has: page.getByRole("button", { name: "Add player" }) });
   for (const [first, last, jersey, position] of ROSTER) {
     await form.getByLabel("First name").fill(first);
     await form.getByLabel("Last name").fill(last);
@@ -118,7 +127,8 @@ for (const target of TARGETS) {
   await page.getByRole("button", { name: "Create game" }).click();
   await page.waitForSelector("text=START GAME");
 
-  for (let i = 0; i < 7; i++) await page.locator("button.player:not(.on)").first().click();
+  for (let i = 0; i < 7; i++)
+    await page.locator("button.player:not(.on)").first().click();
   await page.getByRole("button", { name: "START GAME" }).click();
   await advance(300);
   for (let i = 0; i < 2; i++) {

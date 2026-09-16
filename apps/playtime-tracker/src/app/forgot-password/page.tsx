@@ -17,7 +17,10 @@ export default function ForgotPasswordPage() {
       <main>
         <TopBar back="/" />
         <h1>Reset password</h1>
-        <InfoNote>This build has no account service configured, so there is no password to reset.</InfoNote>
+        <InfoNote>
+          This build has no account service configured, so there is no password to
+          reset.
+        </InfoNote>
         <Link className="btn btn-primary btn-block" href="/">
           Continue
         </Link>
@@ -33,12 +36,15 @@ export default function ForgotPasswordPage() {
       {sent ? (
         <>
           <p>
-            If an account exists for <strong>{email}</strong>, a reset link is on its way.
+            If an account exists for <strong>{email}</strong>, a reset link is on its
+            way.
           </p>
           {/* Deliberately worded so the response is the same whether or not the
               address is registered: confirming which emails have accounts is
               how an account list leaks. */}
-          <p className="muted">Check your spam folder if it has not arrived in a few minutes.</p>
+          <p className="muted">
+            Check your spam folder if it has not arrived in a few minutes.
+          </p>
           <Link className="btn btn-primary btn-block" href="/login/">
             Back to sign in
           </Link>
@@ -68,7 +74,12 @@ export default function ForgotPasswordPage() {
                 required
               />
             </Field>
-            <button type="submit" className="btn-primary btn-block" style={{ marginTop: 20 }} disabled={busy}>
+            <button
+              type="submit"
+              className="btn-primary btn-block"
+              style={{ marginTop: 20 }}
+              disabled={busy}
+            >
               {busy ? "Sending…" : "Send reset link"}
             </button>
           </form>

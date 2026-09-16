@@ -32,7 +32,8 @@ export function SyncStatus() {
   if (state.status === "unavailable") {
     return (
       <div className="muted" style={{ marginTop: 4 }}>
-        Saved on this device. This build has no account service, so nothing is uploaded anywhere.
+        Saved on this device. This build has no account service, so nothing is uploaded
+        anywhere.
       </div>
     );
   }
@@ -49,7 +50,9 @@ export function SyncStatus() {
     return (
       <div className="muted" style={{ marginTop: 4 }}>
         Offline. Everything is saved on this device
-        {pending > 0 ? `; ${pending} change${pending === 1 ? "" : "s"} will upload when you are back online.` : "."}
+        {pending > 0
+          ? `; ${pending} change${pending === 1 ? "" : "s"} will upload when you are back online.`
+          : "."}
       </div>
     );
   }

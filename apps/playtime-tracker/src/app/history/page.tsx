@@ -49,7 +49,9 @@ export default function HistoryPage() {
     <main>
       <TopBar back="/" />
       <h1>Game history</h1>
-      <p className="lead">{all.length} game{all.length === 1 ? "" : "s"} on this device.</p>
+      <p className="lead">
+        {all.length} game{all.length === 1 ? "" : "s"} on this device.
+      </p>
 
       <div className="stack">
         {all.map((g) => (
@@ -67,7 +69,9 @@ function GameRow({ id }: { id: string }) {
   if (g === undefined) return null;
 
   const timeline = buildTimeline(events);
-  const elapsed = Math.round(spanTotal(materialize(timeline.running, Date.now())) / 1000);
+  const elapsed = Math.round(
+    spanTotal(materialize(timeline.running, Date.now())) / 1000,
+  );
   const finished = timeline.phase === "final";
   const started = timeline.phase !== "scheduled";
 

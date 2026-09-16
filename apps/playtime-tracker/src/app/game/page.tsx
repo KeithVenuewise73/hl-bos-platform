@@ -15,7 +15,14 @@ import {
 } from "@hl-bos/playtime-engine";
 import { Confirm } from "@/components/Confirm";
 import { SyncStatus } from "@/components/SyncStatus";
-import { Empty, ErrorNote, Loading, StatusPill, TopBar, WarnNote } from "@/components/ui";
+import {
+  Empty,
+  ErrorNote,
+  Loading,
+  StatusPill,
+  TopBar,
+  WarnNote,
+} from "@/components/ui";
 import { useMounted, useNow, useQueryParam, useStore } from "@/lib/hooks";
 import { game, gameLog, player, recordEvent, team } from "@/lib/store";
 import { StorageFullError } from "@/lib/storage";
@@ -122,7 +129,9 @@ function Tracker({ gameId }: { gameId: string }) {
       <div className="row" style={{ marginBottom: 8 }}>
         <div className="grow">
           <strong>{t?.name ?? "Team"}</strong>
-          <div className="muted">{g.opponent ? `vs ${g.opponent}` : "No opponent recorded"}</div>
+          <div className="muted">
+            {g.opponent ? `vs ${g.opponent}` : "No opponent recorded"}
+          </div>
         </div>
       </div>
 
@@ -146,8 +155,8 @@ function Tracker({ gameId }: { gameId: string }) {
 
       {state.phase === "scheduled" ? (
         <WarnNote>
-          The clock has not started. Tap athletes now to set your starting lineup, then press START
-          GAME.
+          The clock has not started. Tap athletes now to set your starting lineup, then
+          press START GAME.
         </WarnNote>
       ) : null}
 
@@ -169,7 +178,9 @@ function Tracker({ gameId }: { gameId: string }) {
 
       <h2>On the field</h2>
       {onField.length === 0 ? (
-        <p className="muted">Nobody is on the field. Tap an athlete below to send them on.</p>
+        <p className="muted">
+          Nobody is on the field. Tap an athlete below to send them on.
+        </p>
       ) : (
         <div className="players">
           {onField.map((p) => (
@@ -177,7 +188,11 @@ function Tracker({ gameId }: { gameId: string }) {
               key={p.playerId}
               p={p}
               disabled={finished}
-              onTap={() => tap(() => recordEvent(g.id, { type: "player_out", playerId: p.playerId }))}
+              onTap={() =>
+                tap(() =>
+                  recordEvent(g.id, { type: "player_out", playerId: p.playerId }),
+                )
+              }
             />
           ))}
         </div>
@@ -198,7 +213,11 @@ function Tracker({ gameId }: { gameId: string }) {
               key={p.playerId}
               p={p}
               disabled={finished}
-              onTap={() => tap(() => recordEvent(g.id, { type: "player_in", playerId: p.playerId }))}
+              onTap={() =>
+                tap(() =>
+                  recordEvent(g.id, { type: "player_in", playerId: p.playerId }),
+                )
+              }
             />
           ))}
         </div>
@@ -234,7 +253,10 @@ function Tracker({ gameId }: { gameId: string }) {
                 type="button"
                 onClick={() =>
                   tap(() =>
-                    recordEvent(g.id, { type: "period_ended", period: state.currentPeriod }),
+                    recordEvent(g.id, {
+                      type: "period_ended",
+                      period: state.currentPeriod,
+                    }),
                   )
                 }
               >
@@ -256,7 +278,10 @@ function Tracker({ gameId }: { gameId: string }) {
                 type="button"
                 onClick={() =>
                   tap(() =>
-                    recordEvent(g.id, { type: "period_ended", period: state.currentPeriod }),
+                    recordEvent(g.id, {
+                      type: "period_ended",
+                      period: state.currentPeriod,
+                    }),
                   )
                 }
               >
@@ -272,7 +297,10 @@ function Tracker({ gameId }: { gameId: string }) {
                 className="btn-primary btn-block"
                 onClick={() =>
                   tap(() =>
-                    recordEvent(g.id, { type: "period_started", period: state.currentPeriod + 1 }),
+                    recordEvent(g.id, {
+                      type: "period_started",
+                      period: state.currentPeriod + 1,
+                    }),
                   )
                 }
               >
@@ -280,8 +308,8 @@ function Tracker({ gameId }: { gameId: string }) {
               </button>
             ) : (
               <p className="muted">
-                All {g.periodCount} {noun.toLowerCase()}s are complete. End the game to close the
-                log — or start another period if you are playing overtime.
+                All {g.periodCount} {noun.toLowerCase()}s are complete. End the game to
+                close the log — or start another period if you are playing overtime.
               </p>
             )
           ) : null}
@@ -291,7 +319,10 @@ function Tracker({ gameId }: { gameId: string }) {
               type="button"
               onClick={() =>
                 tap(() =>
-                  recordEvent(g.id, { type: "period_started", period: state.currentPeriod + 1 }),
+                  recordEvent(g.id, {
+                    type: "period_started",
+                    period: state.currentPeriod + 1,
+                  }),
                 )
               }
             >
@@ -309,8 +340,8 @@ function Tracker({ gameId }: { gameId: string }) {
                 router.push(`/report/?id=${g.id}`);
               }}
             >
-              The clock stops, everyone still on the field is checked out, and the log is closed.
-              This cannot be undone.
+              The clock stops, everyone still on the field is checked out, and the log
+              is closed. This cannot be undone.
             </Confirm>
           ) : null}
         </div>

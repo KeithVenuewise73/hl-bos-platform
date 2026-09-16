@@ -14,7 +14,15 @@ import { STATUS_LABEL } from "@hl-bos/playtime-engine";
  * cold morning with one bar of signal.
  */
 
-export function TopBar({ back, title, action }: { back?: string; title?: string; action?: ReactNode }) {
+export function TopBar({
+  back,
+  title,
+  action,
+}: {
+  back?: string;
+  title?: string;
+  action?: ReactNode;
+}) {
   return (
     <div className="topbar">
       {back ? (
@@ -122,7 +130,11 @@ export function Field({
         <span className="field-label">{label}</span>
         {children}
       </label>
-      {hint ? <div className="muted" style={{ marginTop: 6 }}>{hint}</div> : null}
+      {hint ? (
+        <div className="muted" style={{ marginTop: 6 }}>
+          {hint}
+        </div>
+      ) : null}
     </div>
   );
 }

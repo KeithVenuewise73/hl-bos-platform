@@ -1,6 +1,13 @@
 "use client";
 
-import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
 import type { ReactNode } from "react";
 import { accountsConfigured } from "./config";
 import { claimLocalRecords, setOwner, wipeDevice } from "./store";
@@ -149,7 +156,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const api = useMemo<AuthApi>(
-    () => ({ state, signUp, signIn, signOut, sendPasswordReset, updatePassword, deleteAccount }),
+    () => ({
+      state,
+      signUp,
+      signIn,
+      signOut,
+      sendPasswordReset,
+      updatePassword,
+      deleteAccount,
+    }),
     [state, signUp, signIn, signOut, sendPasswordReset, updatePassword, deleteAccount],
   );
 

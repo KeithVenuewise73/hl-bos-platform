@@ -83,12 +83,12 @@ no user-to-user visibility of any kind.
 
 ## Required URLs
 
-| Field | Value |
-| --- | --- |
+| Field          | Value                                                                |
+| -------------- | -------------------------------------------------------------------- |
 | Privacy Policy | `/legal/privacy/` (in-app), plus a public copy on the marketing site |
-| Terms of Use | `/legal/terms/` (in-app), plus a public copy |
-| Support URL | `/support/` (in-app), plus a public copy |
-| Marketing URL | optional |
+| Terms of Use   | `/legal/terms/` (in-app), plus a public copy                         |
+| Support URL    | `/support/` (in-app), plus a public copy                             |
+| Marketing URL  | optional                                                             |
 
 **Both stores require these as public HTTPS URLs**, not only as in-app screens.
 The in-app pages are the source text; hosting them is a deployment step, listed
@@ -113,16 +113,16 @@ which the system share sheet already serves without a permission.
 
 ## Apple: App Privacy answers
 
-| Question | Answer |
-| --- | --- |
-| Does the app collect data? | Yes |
-| Contact Info → Email Address | Collected, linked to identity, for **App Functionality** (the account). Not used for tracking. |
+| Question                          | Answer                                                                                                                                                      |
+| --------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Does the app collect data?        | Yes                                                                                                                                                         |
+| Contact Info → Email Address      | Collected, linked to identity, for **App Functionality** (the account). Not used for tracking.                                                              |
 | User Content → Other User Content | Team names, athlete names, jersey numbers, positions, games and the substitution log. Linked to identity, for **App Functionality**. Not used for tracking. |
-| Identifiers | Not collected. No advertising identifier, no device identifier. |
-| Usage Data | Not collected. There is no analytics package in the build. |
-| Diagnostics | Not collected. There is no crash reporter in the build. |
-| Tracking (ATT) | No. The app does not track and does not present the ATT prompt. |
-| Third-party SDKs | None that collect data. The only network dependency is the app's own backend. |
+| Identifiers                       | Not collected. No advertising identifier, no device identifier.                                                                                             |
+| Usage Data                        | Not collected. There is no analytics package in the build.                                                                                                  |
+| Diagnostics                       | Not collected. There is no crash reporter in the build.                                                                                                     |
+| Tracking (ATT)                    | No. The app does not track and does not present the ATT prompt.                                                                                             |
+| Third-party SDKs                  | None that collect data. The only network dependency is the app's own backend.                                                                               |
 
 Account deletion: **Account → Delete my account permanently**, reachable
 without contacting support, as Apple requires of any app that offers account
@@ -132,13 +132,13 @@ creation.
 
 ## Google Play: Data safety answers
 
-| Question | Answer |
-| --- | --- |
-| Data collected | Email address (account); app-entered content (teams, athletes, games, substitutions). |
-| Data shared with third parties | None. |
-| Data encrypted in transit | Yes (HTTPS). |
-| Can users request deletion? | Yes, in-app: Account → Delete my account permanently. |
-| Data used for advertising or analytics | No. |
+| Question                               | Answer                                                                                   |
+| -------------------------------------- | ---------------------------------------------------------------------------------------- |
+| Data collected                         | Email address (account); app-entered content (teams, athletes, games, substitutions).    |
+| Data shared with third parties         | None.                                                                                    |
+| Data encrypted in transit              | Yes (HTTPS).                                                                             |
+| Can users request deletion?            | Yes, in-app: Account → Delete my account permanently.                                    |
+| Data used for advertising or analytics | No.                                                                                      |
 | Committed to the Play Families Policy? | The app is not in the Designed for Families programme and its target audience is adults. |
 
 ---
@@ -149,7 +149,7 @@ Generated from the running application:
 
 ```bash
 pnpm --filter @hl-bos/playtime-tracker build
-node qa/serve.mjs out 4700 &
+node scripts/serve.mjs out 4700 &
 node qa/screenshots.mjs
 ```
 

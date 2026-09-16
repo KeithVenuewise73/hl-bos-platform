@@ -28,7 +28,8 @@ function migrationSql(): string {
 /** Column names declared in `create table if not exists playtime.<name> ( … )`. */
 function columnsOf(sql: string, tableName: string): Set<string> {
   const start = sql.indexOf(`create table if not exists playtime.${tableName} (`);
-  if (start < 0) throw new Error(`table playtime.${tableName} not found in the migration`);
+  if (start < 0)
+    throw new Error(`table playtime.${tableName} not found in the migration`);
   const open = sql.indexOf("(", start);
   let depth = 0;
   let end = open;
@@ -135,7 +136,9 @@ describe("every field this app syncs exists in migration 0049", () => {
       const sent = Object.keys(rowFor(item(kind, payload), OWNER));
       expect(sent.length).toBeGreaterThan(0);
       for (const key of sent) {
-        expect(columns, `playtime.${table(kind)} has no column "${key}"`).toContain(key);
+        expect(columns, `playtime.${table(kind)} has no column "${key}"`).toContain(
+          key,
+        );
       }
     });
   }
@@ -147,11 +150,20 @@ describe("every field this app syncs exists in migration 0049", () => {
   });
 
   it("maps a percentage target onto minimum_kind and minimum_value", () => {
-    const row = rowFor(item("game", {
-      id: "g1", teamId: "t1", opponent: "", gameDate: "2026-09-12",
-      periodCount: 4, periodSeconds: 720,
-      minimum: { kind: "percent", percent: 25 }, rosterPlayerIds: [], score: null,
-    }), OWNER);
+    const row = rowFor(
+      item("game", {
+        id: "g1",
+        teamId: "t1",
+        opponent: "",
+        gameDate: "2026-09-12",
+        periodCount: 4,
+        periodSeconds: 720,
+        minimum: { kind: "percent", percent: 25 },
+        rosterPlayerIds: [],
+        score: null,
+      }),
+      OWNER,
+    );
     expect(row["minimum_kind"]).toBe("percent");
     expect(row["minimum_value"]).toBe(25);
   });
@@ -159,11 +171,20 @@ describe("every field this app syncs exists in migration 0049", () => {
   it("sends no minimum_value when there is no target, rather than zero", () => {
     // The migration's CHECK constraint rejects a 'none' target carrying a
     // value, and 0 would in any case be a different and false claim.
-    const row = rowFor(item("game", {
-      id: "g1", teamId: "t1", opponent: "", gameDate: "2026-09-12",
-      periodCount: 4, periodSeconds: 720,
-      minimum: { kind: "none" }, rosterPlayerIds: [], score: null,
-    }), OWNER);
+    const row = rowFor(
+      item("game", {
+        id: "g1",
+        teamId: "t1",
+        opponent: "",
+        gameDate: "2026-09-12",
+        periodCount: 4,
+        periodSeconds: 720,
+        minimum: { kind: "none" },
+        rosterPlayerIds: [],
+        score: null,
+      }),
+      OWNER,
+    );
     expect(row["minimum_kind"]).toBe("none");
     expect(row["minimum_value"]).toBeNull();
   });
@@ -175,10 +196,16 @@ describe("every field this app syncs exists in migration 0049", () => {
   });
 
   it("carries the device-minted event id through as the row's primary key", () => {
-    const row = rowFor(item("game_event", {
-      id: "the-tap-id", gameId: "g1", type: "game_started",
-      at: "2026-09-12T18:00:00.000Z", seq: 0,
-    }), OWNER);
+    const row = rowFor(
+      item("game_event", {
+        id: "the-tap-id",
+        gameId: "g1",
+        type: "game_started",
+        at: "2026-09-12T18:00:00.000Z",
+        seq: 0,
+      }),
+      OWNER,
+    );
     expect(row["id"]).toBe("the-tap-id");
     expect(row["player_id"]).toBeNull();
     expect(row["period"]).toBeNull();

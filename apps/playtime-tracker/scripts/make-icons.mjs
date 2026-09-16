@@ -22,7 +22,10 @@ for (const size of [180, 192, 512]) {
   written.push(`icon-${size}.png`);
 }
 for (const size of [192, 512]) {
-  writeFileSync(path.join(OUT, `icon-maskable-${size}.png`), draw(size, { maskable: true }));
+  writeFileSync(
+    path.join(OUT, `icon-maskable-${size}.png`),
+    draw(size, { maskable: true }),
+  );
   written.push(`icon-maskable-${size}.png`);
 }
 // The 1024 icon App Store Connect wants is a LISTING asset, not something the

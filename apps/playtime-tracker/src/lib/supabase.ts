@@ -52,13 +52,18 @@ export function supabase(): PlaytimeClient | null {
  */
 export function readableError(message: string): string {
   const m = message.toLowerCase();
-  if (m.includes("invalid login credentials")) return "That email and password do not match an account.";
-  if (m.includes("email not confirmed")) return "Check your email and confirm your address before signing in.";
-  if (m.includes("user already registered")) return "An account already exists for that email. Try signing in.";
-  if (m.includes("password should be at least")) return "Choose a password of at least 6 characters.";
+  if (m.includes("invalid login credentials"))
+    return "That email and password do not match an account.";
+  if (m.includes("email not confirmed"))
+    return "Check your email and confirm your address before signing in.";
+  if (m.includes("user already registered"))
+    return "An account already exists for that email. Try signing in.";
+  if (m.includes("password should be at least"))
+    return "Choose a password of at least 6 characters.";
   if (m.includes("failed to fetch") || m.includes("network")) {
     return "No connection. Your data is safe on this device and will sync when you are back online.";
   }
-  if (m.includes("rate limit") || m.includes("too many")) return "Too many attempts. Wait a minute and try again.";
+  if (m.includes("rate limit") || m.includes("too many"))
+    return "Too many attempts. Wait a minute and try again.";
   return message;
 }

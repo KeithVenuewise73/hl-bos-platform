@@ -69,7 +69,10 @@ export interface EnqueueInput {
 }
 
 /** Append to the queue, collapsing a superseded write of the same mutable row. */
-export function enqueue(outbox: readonly OutboxItem[], input: EnqueueInput): OutboxItem[] {
+export function enqueue(
+  outbox: readonly OutboxItem[],
+  input: EnqueueInput,
+): OutboxItem[] {
   const item: OutboxItem = {
     id: input.id,
     kind: input.kind,
@@ -129,7 +132,10 @@ export function dueItems(outbox: readonly OutboxItem[], now: number): OutboxItem
     });
 }
 
-export function markSynced(outbox: readonly OutboxItem[], ids: readonly string[]): OutboxItem[] {
+export function markSynced(
+  outbox: readonly OutboxItem[],
+  ids: readonly string[],
+): OutboxItem[] {
   const done = new Set(ids);
   return outbox.filter((i) => !done.has(i.id));
 }
@@ -143,7 +149,12 @@ export function markFailed(
   return outbox.map((i) => {
     if (i.id !== id) return i;
     const attempts = i.attempts + 1;
-    return { ...i, attempts, lastError: error, nextAttemptAt: now + backoffMs(attempts) };
+    return {
+      ...i,
+      attempts,
+      lastError: error,
+      nextAttemptAt: now + backoffMs(attempts),
+    };
   });
 }
 

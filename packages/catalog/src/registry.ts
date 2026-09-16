@@ -204,6 +204,25 @@ const ASSETS: Asset[] = [
     evidence: "apps/ats-resume-optimizer",
   },
   {
+    id: "app.playtime-tracker",
+    kind: "application",
+    name: "PlayTime Tracker",
+    summary:
+      "Tap an athlete on, tap them off, and know exactly how long every child actually played. Offline-first by construction: every tap is written to the device before any network is attempted, and durations are derived from recorded instants rather than counted by a timer the operating system can quietly stop.",
+    maturity: "built_undeployed",
+    reuse: ["commercial", "reusable"],
+    owner: "Herman Legacy Software Ventures",
+    layer: "HL-BOS",
+    key: "playtime-tracker",
+    location: "apps/playtime-tracker",
+    tags: ["sports", "mobile", "offline-first", "local-first", "capacitor"],
+    relationships: [
+      { kind: "uses", to: "pkg.playtime-engine" },
+      { kind: "owned_by", to: "repo.hl-bos-platform" },
+    ],
+    evidence: "apps/playtime-tracker",
+  },
+  {
     id: "app.hl-bti",
     kind: "application",
     name: "HL-BTI App",
@@ -360,6 +379,22 @@ const ASSETS: Asset[] = [
     tags: ["package", "domain-logic", "evidence-gated", "document-generation"],
     relationships: [{ kind: "owned_by", to: "repo.hl-bos-platform" }],
     evidence: "packages/ats-resume",
+  },
+  {
+    id: "pkg.playtime-engine",
+    kind: "package",
+    name: "@hl-bos/playtime-engine",
+    summary:
+      'The game participation engine: an append-only log of timestamped events in, an accurate picture of who played and for how long out. No UI, no database, no network and no running timer -- an athlete\'s playing time is the overlap of "on the field" and "clock running", computed on demand. Built to be lifted into AthleteHuddle, CoachesHuddle, OrganizationHuddle, GameTracker and 5-Star Sports Media intact.',
+    maturity: "live",
+    reuse: ["reusable", "commercial"],
+    owner: "Herman Legacy Software Ventures",
+    layer: "HL-BOS",
+    key: "playtime-engine",
+    location: "packages/playtime-engine",
+    tags: ["package", "domain-logic", "offline-first", "event-sourced", "sports"],
+    relationships: [{ kind: "owned_by", to: "repo.hl-bos-platform" }],
+    evidence: "packages/playtime-engine",
   },
   {
     id: "pkg.config",

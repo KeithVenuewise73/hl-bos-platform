@@ -68,7 +68,7 @@ number.
 
 ```bash
 pnpm --filter @hl-bos/playtime-tracker build
-node qa/serve.mjs out 4700 &
+node scripts/serve.mjs out 4700 &
 pnpm --filter @hl-bos/playtime-tracker qa
 ```
 

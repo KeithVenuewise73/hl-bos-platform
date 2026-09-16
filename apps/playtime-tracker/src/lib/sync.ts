@@ -130,7 +130,10 @@ export function rowFor(item: OutboxItem, ownerId: string): Record<string, unknow
       };
     }
     case "game_score": {
-      const s = item.payload as { id: string; score: { us: number; them: number } | null };
+      const s = item.payload as {
+        id: string;
+        score: { us: number; them: number } | null;
+      };
       return {
         id: s.id,
         owner_id: ownerId,

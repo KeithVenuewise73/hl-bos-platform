@@ -81,7 +81,11 @@ export function buildTimeline(events: readonly GameEvent[]): ClockTimeline {
       case "period_started": {
         if (phase === "scheduled") break;
         close(running, at);
-        if (currentPeriod > 0 && !completedPeriods.includes(currentPeriod) && phase !== "period_break") {
+        if (
+          currentPeriod > 0 &&
+          !completedPeriods.includes(currentPeriod) &&
+          phase !== "period_break"
+        ) {
           // A period started without the previous one being explicitly ended.
           completedPeriods.push(currentPeriod);
         }

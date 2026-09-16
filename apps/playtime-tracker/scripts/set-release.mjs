@@ -28,7 +28,9 @@ if (process.argv.includes("--bump")) {
 
 const { version, build } = release;
 if (!/^\d+\.\d+\.\d+$/.test(String(version))) {
-  console.error(`store/release.json: version must be MAJOR.MINOR.PATCH, got ${version}`);
+  console.error(
+    `store/release.json: version must be MAJOR.MINOR.PATCH, got ${version}`,
+  );
   process.exit(1);
 }
 if (!Number.isInteger(build) || build < 1) {
@@ -78,5 +80,7 @@ if (existsSync(pbxproj)) {
 console.log(`PlayTime Tracker ${version} (${build})`);
 for (const f of touched) console.log(`  updated ${f}`);
 if (touched.length < 3) {
-  console.log("  (a native project is missing; run `npx cap add ios` / `npx cap add android`)");
+  console.log(
+    "  (a native project is missing; run `npx cap add ios` / `npx cap add android`)",
+  );
 }

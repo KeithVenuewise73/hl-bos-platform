@@ -7,7 +7,7 @@ pulls the network out, kills the process, and then checks the report.
 
 ```bash
 pnpm --filter @hl-bos/playtime-tracker build
-node qa/serve.mjs out 4700 &
+node scripts/serve.mjs out 4700 &
 pnpm --filter @hl-bos/playtime-tracker qa
 ```
 
@@ -18,8 +18,8 @@ otherwise `npx playwright install chromium` fetches one.
 
 With Playwright's clock control, which replaces the page's `Date` and its
 timers. That is exactly the right instrument, because the claim under test is
-*"durations come from recorded instants, not from a timer that has to keep
-running"*. Jumping the clock forward twelve minutes while running none of the
+_"durations come from recorded instants, not from a timer that has to keep
+running"_. Jumping the clock forward twelve minutes while running none of the
 app's code is indistinguishable, from the app's point of view, from having been
 suspended by the operating system — which is the thing that actually happens on
 a sideline.

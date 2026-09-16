@@ -44,8 +44,16 @@ const base = {
 
 export const gameEventSchema = z.discriminatedUnion("type", [
   z.object({ ...base, type: z.literal("game_started") }),
-  z.object({ ...base, type: z.literal("period_started"), period: z.number().int().positive() }),
-  z.object({ ...base, type: z.literal("period_ended"), period: z.number().int().positive() }),
+  z.object({
+    ...base,
+    type: z.literal("period_started"),
+    period: z.number().int().positive(),
+  }),
+  z.object({
+    ...base,
+    type: z.literal("period_ended"),
+    period: z.number().int().positive(),
+  }),
   z.object({ ...base, type: z.literal("clock_paused") }),
   z.object({ ...base, type: z.literal("clock_resumed") }),
   z.object({ ...base, type: z.literal("player_in"), playerId: z.string().min(1) }),

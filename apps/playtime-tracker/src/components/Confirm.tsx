@@ -38,7 +38,11 @@ export function Confirm({
   return (
     <div className="card" style={{ marginBottom: 0 }}>
       <strong>{question}</strong>
-      {children ? <p className="muted" style={{ marginTop: 6 }}>{children}</p> : null}
+      {children ? (
+        <p className="muted" style={{ marginTop: 6 }}>
+          {children}
+        </p>
+      ) : null}
       <div className="btn-row" style={{ marginTop: 12 }}>
         <button type="button" onClick={() => setAsking(false)}>
           Cancel

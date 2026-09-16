@@ -13,8 +13,12 @@ import { end, log, playerIn, playerOut, resetSeq, start } from "./test-support";
 
 beforeEach(resetSeq);
 
-const q = (kind: Parameters<typeof enqueue>[1]["kind"], id: string, recordId: string, at: string) =>
-  ({ id, kind, recordId, payload: { id }, at });
+const q = (
+  kind: Parameters<typeof enqueue>[1]["kind"],
+  id: string,
+  recordId: string,
+  at: string,
+) => ({ id, kind, recordId, payload: { id }, at });
 
 describe("enqueue", () => {
   it("collapses repeated edits of the same mutable row", () => {

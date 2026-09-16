@@ -7,7 +7,13 @@ import { Confirm } from "@/components/Confirm";
 import { SyncStatus } from "@/components/SyncStatus";
 import { ErrorNote, InfoNote, Loading, TopBar } from "@/components/ui";
 import { useAuth } from "@/lib/auth";
-import { APP_VERSION, BUILD_NUMBER, LINKS, SUPPORT_EMAIL, accountsConfigured } from "@/lib/config";
+import {
+  APP_VERSION,
+  BUILD_NUMBER,
+  LINKS,
+  SUPPORT_EMAIL,
+  accountsConfigured,
+} from "@/lib/config";
 import { useMounted, useStore } from "@/lib/hooks";
 import { games, getCore, pendingCount, players, teams, wipeDevice } from "@/lib/store";
 
@@ -58,8 +64,9 @@ export default function AccountPage() {
             <div className="muted">Accounts</div>
             <strong>Not available in this build</strong>
             <p className="muted" style={{ marginTop: 6 }}>
-              No account service is configured, so nothing is uploaded anywhere. Everything you
-              record lives on this device only. If you delete the app, it goes with it.
+              No account service is configured, so nothing is uploaded anywhere.
+              Everything you record lives on this device only. If you delete the app, it
+              goes with it.
             </p>
           </>
         ) : (
@@ -67,8 +74,8 @@ export default function AccountPage() {
             <div className="muted">Accounts</div>
             <strong>Not signed in</strong>
             <p className="muted" style={{ marginTop: 6 }}>
-              Everything works without an account and is saved on this device. Sign in to back it
-              up.
+              Everything works without an account and is saved on this device. Sign in
+              to back it up.
             </p>
             <Link className="btn btn-primary btn-block" href="/login/">
               Sign in
@@ -83,7 +90,8 @@ export default function AccountPage() {
         <div className="row">
           <div className="grow">
             {teamCount} team{teamCount === 1 ? "" : "s"} · {playerCount} athlete
-            {playerCount === 1 ? "" : "s"} · {gameCount} game{gameCount === 1 ? "" : "s"}
+            {playerCount === 1 ? "" : "s"} · {gameCount} game
+            {gameCount === 1 ? "" : "s"}
           </div>
         </div>
         {pending > 0 ? (
@@ -109,9 +117,7 @@ export default function AccountPage() {
       {state.status === "signed-in" ? (
         <>
           <h2>Sign out</h2>
-          <p className="muted">
-            Your games stay on this device. Nothing is deleted.
-          </p>
+          <p className="muted">Your games stay on this device. Nothing is deleted.</p>
           <button
             type="button"
             className="btn-block"
@@ -159,16 +165,17 @@ export default function AccountPage() {
               });
             }}
           >
-            This deletes your account and every team, athlete, game and playing-time record it
-            holds, on the server and on this device. It cannot be undone and there is no recovery.
+            This deletes your account and every team, athlete, game and playing-time
+            record it holds, on the server and on this device. It cannot be undone and
+            there is no recovery.
           </Confirm>
         ) : null}
       </div>
 
       {!accountsConfigured() ? (
         <InfoNote>
-          There is no account to delete in this build — &ldquo;Erase everything on this device&rdquo;
-          above removes all of your data.
+          There is no account to delete in this build — &ldquo;Erase everything on this
+          device&rdquo; above removes all of your data.
         </InfoNote>
       ) : null}
 

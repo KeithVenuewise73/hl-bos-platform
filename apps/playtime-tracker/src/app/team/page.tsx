@@ -37,7 +37,11 @@ function TeamScreen() {
       </main>
     );
   }
-  return id === null ? <NewTeam onCreated={(t) => router.replace(`/team/?id=${t}`)} /> : <EditTeam id={id} />;
+  return id === null ? (
+    <NewTeam onCreated={(t) => router.replace(`/team/?id=${t}`)} />
+  ) : (
+    <EditTeam id={id} />
+  );
 }
 
 function NewTeam({ onCreated }: { onCreated: (id: string) => void }) {
@@ -60,7 +64,11 @@ function NewTeam({ onCreated }: { onCreated: (id: string) => void }) {
           try {
             onCreated(createTeam(name, sport).id);
           } catch (err) {
-            setError(err instanceof StorageFullError ? err.message : "The team could not be saved.");
+            setError(
+              err instanceof StorageFullError
+                ? err.message
+                : "The team could not be saved.",
+            );
           }
         }}
       >
@@ -73,7 +81,10 @@ function NewTeam({ onCreated }: { onCreated: (id: string) => void }) {
             required
           />
         </Field>
-        <Field label="Sport" hint="This only changes wording — quarters, halves, periods or innings.">
+        <Field
+          label="Sport"
+          hint="This only changes wording — quarters, halves, periods or innings."
+        >
           <select value={sport} onChange={(e) => setSport(e.target.value as Sport)}>
             {SPORTS.map((s) => (
               <option key={s} value={s}>
@@ -82,7 +93,11 @@ function NewTeam({ onCreated }: { onCreated: (id: string) => void }) {
             ))}
           </select>
         </Field>
-        <button type="submit" className="btn-primary btn-block" style={{ marginTop: 20 }}>
+        <button
+          type="submit"
+          className="btn-primary btn-block"
+          style={{ marginTop: 20 }}
+        >
           Create team
         </button>
       </form>
@@ -116,7 +131,8 @@ function EditTeam({ id }: { id: string }) {
       <TopBar back="/" />
       <h1>{t.name}</h1>
       <p className="lead">
-        {SPORT_LABEL[t.sport]} · {active.length} active player{active.length === 1 ? "" : "s"}
+        {SPORT_LABEL[t.sport]} · {active.length} active player
+        {active.length === 1 ? "" : "s"}
       </p>
 
       {error ? <ErrorNote>{error}</ErrorNote> : null}
@@ -132,7 +148,8 @@ function EditTeam({ id }: { id: string }) {
 
       {active.length === 0 && inactive.length === 0 ? (
         <Empty title="No players yet">
-          Add at least one athlete before starting a game. Only a jersey number is required.
+          Add at least one athlete before starting a game. Only a jersey number is
+          required.
         </Empty>
       ) : (
         <div className="stack">
@@ -146,7 +163,8 @@ function EditTeam({ id }: { id: string }) {
         <>
           <h2>Not on the roster</h2>
           <p className="muted">
-            These athletes keep every minute already recorded. Past reports do not change.
+            These athletes keep every minute already recorded. Past reports do not
+            change.
           </p>
           <div className="stack">
             {inactive.map((p) => (
@@ -171,7 +189,8 @@ function EditTeam({ id }: { id: string }) {
               router.push("/");
             }}
           >
-            It leaves your team list. Every game and report is kept, and you can restore it later.
+            It leaves your team list. Every game and report is kept, and you can restore
+            it later.
           </Confirm>
         ) : null}
 
@@ -185,8 +204,8 @@ function EditTeam({ id }: { id: string }) {
           }}
         >
           This removes the roster and all {teamGames.length} game
-          {teamGames.length === 1 ? "" : "s"}, including every playing-time record. It cannot be
-          undone.
+          {teamGames.length === 1 ? "" : "s"}, including every playing-time record. It
+          cannot be undone.
         </Confirm>
       </div>
     </main>
@@ -221,7 +240,10 @@ function TeamSettings({
         <input value={draftName} onChange={(e) => setDraftName(e.target.value)} />
       </Field>
       <Field label="Sport">
-        <select value={draftSport} onChange={(e) => setDraftSport(e.target.value as Sport)}>
+        <select
+          value={draftSport}
+          onChange={(e) => setDraftSport(e.target.value as Sport)}
+        >
           {SPORTS.map((s) => (
             <option key={s} value={s}>
               {SPORT_LABEL[s]}
@@ -240,7 +262,11 @@ function TeamSettings({
             onError(null);
             setSaved(true);
           } catch (err) {
-            onError(err instanceof StorageFullError ? err.message : "The change was not saved.");
+            onError(
+              err instanceof StorageFullError
+                ? err.message
+                : "The change was not saved.",
+            );
           }
         }}
       >
@@ -250,7 +276,13 @@ function TeamSettings({
   );
 }
 
-function AddPlayer({ teamId, onError }: { teamId: string; onError: (m: string | null) => void }) {
+function AddPlayer({
+  teamId,
+  onError,
+}: {
+  teamId: string;
+  onError: (m: string | null) => void;
+}) {
   const [first, setFirst] = useState("");
   const [last, setLast] = useState("");
   const [jersey, setJersey] = useState("");
@@ -278,16 +310,26 @@ function AddPlayer({ teamId, onError }: { teamId: string; onError: (m: string | 
           setJersey("");
           setPosition("");
         } catch (err) {
-          onError(err instanceof StorageFullError ? err.message : "The player was not saved.");
+          onError(
+            err instanceof StorageFullError ? err.message : "The player was not saved.",
+          );
         }
       }}
     >
       <div className="field-row">
         <Field label="First name">
-          <input value={first} onChange={(e) => setFirst(e.target.value)} autoComplete="off" />
+          <input
+            value={first}
+            onChange={(e) => setFirst(e.target.value)}
+            autoComplete="off"
+          />
         </Field>
         <Field label="Last name">
-          <input value={last} onChange={(e) => setLast(e.target.value)} autoComplete="off" />
+          <input
+            value={last}
+            onChange={(e) => setLast(e.target.value)}
+            autoComplete="off"
+          />
         </Field>
       </div>
       <div className="field-row" style={{ marginTop: 14 }}>
@@ -317,7 +359,13 @@ function AddPlayer({ teamId, onError }: { teamId: string; onError: (m: string | 
   );
 }
 
-function PlayerRow({ id, onError }: { id: string; onError: (m: string | null) => void }) {
+function PlayerRow({
+  id,
+  onError,
+}: {
+  id: string;
+  onError: (m: string | null) => void;
+}) {
   const p = useStore(() => player(id));
   const [editing, setEditing] = useState(false);
   const [first, setFirst] = useState("");
@@ -394,7 +442,11 @@ function PlayerRow({ id, onError }: { id: string; onError: (m: string | null) =>
               onError(null);
               setEditing(false);
             } catch (err) {
-              onError(err instanceof StorageFullError ? err.message : "The change was not saved.");
+              onError(
+                err instanceof StorageFullError
+                  ? err.message
+                  : "The change was not saved.",
+              );
             }
           }}
         >
@@ -428,8 +480,8 @@ function PlayerRow({ id, onError }: { id: string; onError: (m: string | null) =>
           </Confirm>
         ) : (
           <div className="muted">
-            This athlete has playing time recorded, so they cannot be deleted — taking them off the
-            roster is what keeps past reports accurate.
+            This athlete has playing time recorded, so they cannot be deleted — taking
+            them off the roster is what keeps past reports accurate.
           </div>
         )}
       </div>

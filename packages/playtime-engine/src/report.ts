@@ -116,7 +116,8 @@ export function reportText(report: GameReport): string {
     `Game time tracked: ${clockText(report.gameSeconds)} over ${report.periodsPlayed} ${noun}${report.periodsPlayed === 1 ? "" : "s"}`,
   );
   lines.push(minimumText(report.minimum));
-  if (!report.complete) lines.push("NOTE: this game has not been ended. Totals are still live.");
+  if (!report.complete)
+    lines.push("NOTE: this game has not been ended. Totals are still live.");
   lines.push("");
 
   for (const row of report.rows) {

@@ -195,7 +195,10 @@ export const player = (id: string): Player | undefined =>
   mine(getCore().players).find((p) => p.id === id);
 
 export const games = (): Game[] =>
-  mine(getCore().games).sort((a, b) => b.gameDate.localeCompare(a.gameDate) || b.createdAt.localeCompare(a.createdAt));
+  mine(getCore().games).sort(
+    (a, b) =>
+      b.gameDate.localeCompare(a.gameDate) || b.createdAt.localeCompare(a.createdAt),
+  );
 
 export const game = (id: string): Game | undefined =>
   mine(getCore().games).find((g) => g.id === id);
@@ -222,7 +225,11 @@ export function createTeam(name: string, sport: Sport): Team {
     createdAt: nowIso(),
     updatedAt: nowIso(),
   };
-  mutate((core) => ({ ...core, teams: [...core.teams, t], outbox: queue(core, "team", t.id, t) }));
+  mutate((core) => ({
+    ...core,
+    teams: [...core.teams, t],
+    outbox: queue(core, "team", t.id, t),
+  }));
   return t;
 }
 
@@ -325,18 +332,27 @@ export function createPlayer(teamId: string, input: PlayerInput): Player {
   return p;
 }
 
-export function updatePlayer(id: string, input: Partial<PlayerInput> & { active?: boolean }): void {
+export function updatePlayer(
+  id: string,
+  input: Partial<PlayerInput> & { active?: boolean },
+): void {
   mutate((core) => {
     const next = core.players.map((p) =>
       p.id === id
         ? {
             ...p,
-            ...(input.firstName === undefined ? {} : { firstName: input.firstName.trim() }),
-            ...(input.lastName === undefined ? {} : { lastName: input.lastName.trim() }),
+            ...(input.firstName === undefined
+              ? {}
+              : { firstName: input.firstName.trim() }),
+            ...(input.lastName === undefined
+              ? {}
+              : { lastName: input.lastName.trim() }),
             ...(input.jerseyNumber === undefined
               ? {}
               : { jerseyNumber: input.jerseyNumber.trim() }),
-            ...(input.position === undefined ? {} : { position: input.position.trim() || null }),
+            ...(input.position === undefined
+              ? {}
+              : { position: input.position.trim() || null }),
             ...(input.active === undefined ? {} : { active: input.active }),
             updatedAt: nowIso(),
           }
@@ -360,9 +376,11 @@ export function updatePlayer(id: string, input: Partial<PlayerInput> & { active?
  * not change because a roster did.
  */
 export function canDeletePlayer(id: string): boolean {
-  return !getCore().games.some((g) => gameLog(g.id).some(
-    (e) => (e.type === "player_in" || e.type === "player_out") && e.playerId === id,
-  ));
+  return !getCore().games.some((g) =>
+    gameLog(g.id).some(
+      (e) => (e.type === "player_in" || e.type === "player_out") && e.playerId === id,
+    ),
+  );
 }
 
 export function deletePlayer(id: string): void {
@@ -404,16 +422,27 @@ export function createGame(input: GameInput): Game {
     createdAt: nowIso(),
     updatedAt: nowIso(),
   };
-  mutate((core) => ({ ...core, games: [...core.games, g], outbox: queue(core, "game", g.id, g) }));
+  mutate((core) => ({
+    ...core,
+    games: [...core.games, g],
+    outbox: queue(core, "game", g.id, g),
+  }));
   return g;
 }
 
-export function setScore(gameId: string, score: { us: number; them: number } | null): void {
+export function setScore(
+  gameId: string,
+  score: { us: number; them: number } | null,
+): void {
   mutate((core) => {
     const next = core.games.map((g) =>
       g.id === gameId ? { ...g, score, updatedAt: nowIso() } : g,
     );
-    return { ...core, games: next, outbox: queue(core, "game_score", gameId, { id: gameId, score }) };
+    return {
+      ...core,
+      games: next,
+      outbox: queue(core, "game_score", gameId, { id: gameId, score }),
+    };
   });
 }
 
@@ -453,13 +482,13 @@ export type EventDraft =
  */
 export function recordEvent(gameId: string, draft: EventDraft): GameEvent {
   const existing = gameLog(gameId);
-  const event = {
+  const event: GameEvent = {
     ...draft,
     id: newId(),
     gameId,
     at: nowIso(),
     seq: existing.length,
-  } as GameEvent;
+  };
 
   writeJson(logKey(gameId), normalizeLog([...existing, event]));
   mutate((core) => ({ ...core, outbox: queue(core, "game_event", event.id, event) }));

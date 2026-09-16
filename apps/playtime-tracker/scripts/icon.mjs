@@ -127,7 +127,9 @@ export function rasterise(size, { maskable = false, transparent = false } = {}) 
           tile += 1;
           const d = Math.hypot(px - cx, py - cy);
           const inStem =
-            Math.abs(px - cx) <= stemW / 2 && py >= stemTop && py <= stemTop + stemH * 1.6;
+            Math.abs(px - cx) <= stemW / 2 &&
+            py >= stemTop &&
+            py <= stemTop + stemH * 1.6;
           if ((d <= ringOuter && d >= ringInner) || inStem) ring += 1;
           else if (onHand(px, py)) hand += 1;
         }

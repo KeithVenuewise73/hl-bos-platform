@@ -20,3 +20,13 @@ packages/database/src/generated/**
 # Generated single-file preview build (inlined, minified engine bundle).
 # It is a build output, like dist -- never hand-formatted. See apps/hl-bti-alpha/preview/README.md.
 apps/hl-bti-alpha/preview/hl-bti-preview.html
+
+# Static export output, like .next and dist.
+out
+
+# The Capacitor-generated native projects. They are Gradle, Java, Swift and
+# Xcode plists that Capacitor owns and regenerates; reformatting them would
+# produce a diff against upstream every time the toolchain is updated, for no
+# benefit. The app's own source lives in apps/playtime-tracker/src.
+apps/playtime-tracker/android
+apps/playtime-tracker/ios

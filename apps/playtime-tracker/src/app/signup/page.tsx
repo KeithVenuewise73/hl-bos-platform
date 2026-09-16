@@ -20,8 +20,8 @@ export default function SignUpPage() {
         <TopBar back="/" />
         <h1>Create an account</h1>
         <InfoNote>
-          This build has no account service configured. Everything works on this device without
-          one.
+          This build has no account service configured. Everything works on this device
+          without one.
         </InfoNote>
         <Link className="btn btn-primary btn-block" href="/">
           Continue
@@ -36,12 +36,12 @@ export default function SignUpPage() {
         <TopBar back="/login/" />
         <h1>Check your email</h1>
         <p>
-          We sent a confirmation link to <strong>{email}</strong>. Open it, then come back and sign
-          in.
+          We sent a confirmation link to <strong>{email}</strong>. Open it, then come
+          back and sign in.
         </p>
         <p className="muted">
-          Anything you have already recorded stays on this device and will be attached to your
-          account the first time you sign in here.
+          Anything you have already recorded stays on this device and will be attached
+          to your account the first time you sign in here.
         </p>
         <Link className="btn btn-primary btn-block" href="/login/">
           Back to sign in
@@ -55,7 +55,8 @@ export default function SignUpPage() {
       <TopBar back="/login/" />
       <h1>Create an account</h1>
       <p className="lead">
-        An account backs your games up. It is not required — the app works fully without one.
+        An account backs your games up. It is not required — the app works fully without
+        one.
       </p>
 
       {error ? <ErrorNote>{error}</ErrorNote> : null}
@@ -91,15 +92,21 @@ export default function SignUpPage() {
             required
           />
         </Field>
-        <button type="submit" className="btn-primary btn-block" style={{ marginTop: 20 }} disabled={busy}>
+        <button
+          type="submit"
+          className="btn-primary btn-block"
+          style={{ marginTop: 20 }}
+          disabled={busy}
+        >
           {busy ? "Creating…" : "Create account"}
         </button>
       </form>
 
       <p className="muted" style={{ marginTop: 16 }}>
-        By creating an account you agree to the <Link href={LINKS.terms}>Terms of Use</Link> and the{" "}
-        <Link href={LINKS.privacy}>Privacy Policy</Link>. You can delete your account, and
-        everything in it, from the Account screen at any time.
+        By creating an account you agree to the{" "}
+        <Link href={LINKS.terms}>Terms of Use</Link> and the{" "}
+        <Link href={LINKS.privacy}>Privacy Policy</Link>. You can delete your account,
+        and everything in it, from the Account screen at any time.
       </p>
     </main>
   );

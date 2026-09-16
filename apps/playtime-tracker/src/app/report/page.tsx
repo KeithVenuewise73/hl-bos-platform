@@ -103,7 +103,9 @@ function Report({ gameId }: { gameId: string }) {
       await navigator.clipboard.writeText(text);
       setShareNote("The report was copied to your clipboard.");
     } catch {
-      setShareNote("This device would not let the app share or copy. The report is shown below.");
+      setShareNote(
+        "This device would not let the app share or copy. The report is shown below.",
+      );
     }
   }
 
@@ -127,7 +129,8 @@ function Report({ gameId }: { gameId: string }) {
 
       {!report.complete ? (
         <WarnNote>
-          This game has not been ended, so these totals are still live and will keep changing.
+          This game has not been ended, so these totals are still live and will keep
+          changing.
         </WarnNote>
       ) : null}
 
@@ -169,7 +172,10 @@ function Report({ gameId }: { gameId: string }) {
               <div className="bar" aria-hidden="true">
                 <span
                   style={{
-                    width: longest > 0 ? `${Math.round((row.secondsPlayed / longest) * 100)}%` : "0%",
+                    width:
+                      longest > 0
+                        ? `${Math.round((row.secondsPlayed / longest) * 100)}%`
+                        : "0%",
                     background:
                       row.status === "below_minimum" ? "var(--below)" : "var(--accent)",
                   }}
@@ -186,15 +192,20 @@ function Report({ gameId }: { gameId: string }) {
 
       {report.didNotPlay > 0 ? (
         <InfoNote>
-          {report.didNotPlay} athlete{report.didNotPlay === 1 ? "" : "s"} on this game&rsquo;s roster
-          recorded no playing time. They are listed above at 0:00 rather than hidden.
+          {report.didNotPlay} athlete{report.didNotPlay === 1 ? "" : "s"} on this
+          game&rsquo;s roster recorded no playing time. They are listed above at 0:00
+          rather than hidden.
         </InfoNote>
       ) : null}
 
       {shareNote ? <InfoNote>{shareNote}</InfoNote> : null}
 
       <div className="sticky-actions">
-        <button type="button" className="btn-primary btn-block" onClick={() => void share()}>
+        <button
+          type="button"
+          className="btn-primary btn-block"
+          onClick={() => void share()}
+        >
           Share this report
         </button>
       </div>
@@ -242,10 +253,22 @@ function ScoreEditor({
     <div className="card">
       <div className="field-row">
         <Field label="Us">
-          <input type="number" inputMode="numeric" min={0} value={us} onChange={(e) => setUs(e.target.value)} />
+          <input
+            type="number"
+            inputMode="numeric"
+            min={0}
+            value={us}
+            onChange={(e) => setUs(e.target.value)}
+          />
         </Field>
         <Field label="Them">
-          <input type="number" inputMode="numeric" min={0} value={them} onChange={(e) => setThem(e.target.value)} />
+          <input
+            type="number"
+            inputMode="numeric"
+            min={0}
+            value={them}
+            onChange={(e) => setThem(e.target.value)}
+          />
         </Field>
       </div>
       <div className="btn-row" style={{ marginTop: 14 }}>

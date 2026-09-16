@@ -36,17 +36,48 @@ const files = walk(OUT)
   .filter((url) => !url.startsWith("/__next."))
   .filter((url) => url !== "/icon-store-1024.png")
   // A directory index is requested as its directory, not as index.html.
-  .map((url) => (url.endsWith("/index.html") ? url.slice(0, -"index.html".length) : url))
+  .map((url) =>
+    url.endsWith("/index.html") ? url.slice(0, -"index.html".length) : url,
+  )
   .sort();
 
+const MARKER = '["/"]; // __PRECACHE__';
+
 const source = readFileSync(path.join(APP, "public", "sw.js"), "utf8");
-if (!source.includes("__PRECACHE__")) {
-  console.error("public/sw.js no longer contains the __PRECACHE__ placeholder.");
+if (!source.includes(MARKER)) {
+  console.error(
+    `public/sw.js no longer contains the precache marker (${MARKER}).\n` +
+      "Without it the shipped worker would cache only the shell, and a route " +
+      "the coach had never opened would not open at the field.",
+  );
   process.exit(1);
 }
 
 writeFileSync(
   path.join(OUT, "sw.js"),
-  source.replace("__PRECACHE__", JSON.stringify(files, null, 2)),
+  source.replace(MARKER, `${JSON.stringify(files, null, 2)};`),
 );
 console.log(`sw.js: precaching ${files.length} files`);
+
+/*
+ * A health file, so the Development Control Center can ask this app whether it
+ * is actually serving rather than assume it from a process id. A static export
+ * has no route handlers, so the answer is a file -- and it carries the real
+ * version from store/release.json rather than a hardcoded "ok".
+ */
+const release = JSON.parse(readFileSync(path.join(APP, "store/release.json"), "utf8"));
+writeFileSync(
+  path.join(OUT, "health.json"),
+  `${JSON.stringify(
+    {
+      app: "playtime-tracker",
+      status: "ok",
+      version: release.version,
+      build: release.build,
+      builtAt: new Date().toISOString(),
+    },
+    null,
+    2,
+  )}\n`,
+);
+console.log(`health.json: ${release.version} (${release.build})`);

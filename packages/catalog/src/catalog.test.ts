@@ -138,7 +138,13 @@ describe("repository scan (ground truth)", () => {
     // Plus 0048 (ats — ATS Resume Optimizer), written and verified against a
     // local PostgreSQL 16 (17 tables, RLS enabled and forced, 68 policies, the
     // anti-fabrication CHECK constraints exercised), UNAPPLIED to any project.
-    expect(inv.migrations.length).toBe(48);
+    // Plus 0049 (playtime — PlayTime Tracker), written and verified against a
+    // local PostgreSQL 16.13 from an empty database: 7 tables, RLS enabled and
+    // forced on every one, an append-only trigger on the event log, and a
+    // SECURITY INVOKER rebuild function whose arithmetic is asserted against
+    // the same expected seconds as the TypeScript engine. 35 pgTAP assertions,
+    // 0 failing. UNAPPLIED to any project.
+    expect(inv.migrations.length).toBe(49);
     expect(inv.edgeFunctions).toContain("ai-gateway");
     expect(inv.edgeFunctions).not.toContain("tests");
     expect(inv.apps).toEqual(

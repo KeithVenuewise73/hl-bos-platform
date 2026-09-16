@@ -87,7 +87,12 @@ describe("buildReport", () => {
   });
 
   it("names an athlete below the target rather than softening it", () => {
-    const events = log("g", [start(0), playerIn(0, "p22"), playerIn(2400, "p7"), end(2880)]);
+    const events = log("g", [
+      start(0),
+      playerIn(0, "p22"),
+      playerIn(2400, "p7"),
+      end(2880),
+    ]);
     const state = computeGameState({
       gameId: "g",
       rosterPlayerIds: ["p22", "p7"],

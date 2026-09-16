@@ -39,10 +39,13 @@ if (existsSync(ANDROID)) {
     // The adaptive foreground is 108dp where only the centre 72dp is
     // guaranteed visible, so the mark is drawn into that safe zone and the
     // tile colour comes from the background layer.
-    write(path.join(dir, "ic_launcher_foreground.png"), draw(Math.round(size * 2.25), {
-      maskable: true,
-      transparent: true,
-    }));
+    write(
+      path.join(dir, "ic_launcher_foreground.png"),
+      draw(Math.round(size * 2.25), {
+        maskable: true,
+        transparent: true,
+      }),
+    );
   }
 
   // The adaptive background must be the app's navy, not the template's white.
@@ -65,7 +68,7 @@ if (existsSync(ANDROID)) {
   }
 
   const SPLASH = {
-    "drawable": [480, 320],
+    drawable: [480, 320],
     "drawable-port-mdpi": [320, 480],
     "drawable-port-hdpi": [480, 800],
     "drawable-port-xhdpi": [720, 1280],
@@ -88,15 +91,24 @@ if (existsSync(ANDROID)) {
 if (existsSync(IOS)) {
   // App Store Connect rejects an icon with an alpha channel, so this one is
   // drawn square and fully opaque.
-  write(path.join(IOS, "AppIcon.appiconset/AppIcon-512@2x.png"), draw(1024, { maskable: true }));
-  for (const name of ["splash-2732x2732.png", "splash-2732x2732-1.png", "splash-2732x2732-2.png"]) {
+  write(
+    path.join(IOS, "AppIcon.appiconset/AppIcon-512@2x.png"),
+    draw(1024, { maskable: true }),
+  );
+  for (const name of [
+    "splash-2732x2732.png",
+    "splash-2732x2732-1.png",
+    "splash-2732x2732-2.png",
+  ]) {
     const file = path.join(IOS, "Splash.imageset", name);
     if (existsSync(path.dirname(file))) write(file, splash(2732, 2732));
   }
 }
 
 if (written.length === 0) {
-  console.log("No native project found. Run `npx cap add ios` / `npx cap add android` first.");
+  console.log(
+    "No native project found. Run `npx cap add ios` / `npx cap add android` first.",
+  );
 } else {
   console.log(`wrote ${written.length} native assets`);
   for (const f of written) console.log(`  ${f}`);

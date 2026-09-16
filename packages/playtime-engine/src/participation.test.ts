@@ -78,7 +78,10 @@ describe("computeGameState", () => {
 
   it("does not count time while the clock is stopped", () => {
     // On the field the whole time, but the clock was paused for five minutes.
-    const s = state(log("g", [start(0), playerIn(0, "p1"), pause(100), resume(400)]), 500);
+    const s = state(
+      log("g", [start(0), playerIn(0, "p1"), pause(100), resume(400)]),
+      500,
+    );
     expect(timeOf(s, "p1")).toBe(200);
     expect(s.elapsedSeconds).toBe(200);
   });
@@ -100,7 +103,12 @@ describe("computeGameState", () => {
 
   it("produces the identical answer when the same log is replayed later", () => {
     // Close the app, reopen it, replay from storage: same numbers, no drift.
-    const events = log("g", [start(0), playerIn(0, "p1"), playerOut(600, "p1"), end(720)]);
+    const events = log("g", [
+      start(0),
+      playerIn(0, "p1"),
+      playerOut(600, "p1"),
+      end(720),
+    ]);
     expect(timeOf(state(events, 720), "p1")).toBe(timeOf(state(events, 50_000), "p1"));
   });
 
@@ -115,7 +123,11 @@ describe("computeGameState", () => {
     // The single most dangerous duplicate: two concurrent sessions would make
     // an athlete's minutes count twice.
     const base = log("g", [start(0), playerIn(0, "p1")]);
-    const duplicate: GameEvent = { ...(base[1] as GameEvent), id: "different-id", seq: 99 };
+    const duplicate: GameEvent = {
+      ...(base[1] as GameEvent),
+      id: "different-id",
+      seq: 99,
+    };
     const s = state([...base, duplicate], 600);
     expect(timeOf(s, "p1")).toBe(600);
     expect(s.participation.find((p) => p.playerId === "p1")?.entries).toBe(1);
@@ -127,7 +139,10 @@ describe("computeGameState", () => {
   });
 
   it("ignores a player_out for an athlete who is not on the field", () => {
-    const s = state(log("g", [start(0), playerOut(100, "p1"), playerIn(200, "p1")]), 400);
+    const s = state(
+      log("g", [start(0), playerOut(100, "p1"), playerIn(200, "p1")]),
+      400,
+    );
     expect(timeOf(s, "p1")).toBe(200);
   });
 
@@ -170,9 +185,13 @@ describe("computeGameState", () => {
   });
 
   it("still reports an athlete who has been taken off the roster since", () => {
-    const s = state(log("g", [start(0), playerIn(0, "gone"), playerOut(300, "gone")]), 600, {
-      roster: ["p1"],
-    });
+    const s = state(
+      log("g", [start(0), playerIn(0, "gone"), playerOut(300, "gone")]),
+      600,
+      {
+        roster: ["p1"],
+      },
+    );
     expect(timeOf(s, "gone")).toBe(300);
   });
 
@@ -197,39 +216,66 @@ describe("requiredSecondsFor", () => {
 });
 
 describe("classify", () => {
-  const base = { requiredSeconds: 720, regulationSeconds: 2880, remainingSeconds: 2880 };
+  const base = {
+    requiredSeconds: 720,
+    regulationSeconds: 2880,
+    remainingSeconds: 2880,
+  };
 
   it("says nothing when no target is set", () => {
-    expect(classify({ ...base, requiredSeconds: null, secondsPlayed: 0, elapsedSeconds: 0 }))
-      .toBe("no_target");
+    expect(
+      classify({ ...base, requiredSeconds: null, secondsPlayed: 0, elapsedSeconds: 0 }),
+    ).toBe("no_target");
   });
 
   it("is safe once the target is met", () => {
-    expect(classify({ ...base, secondsPlayed: 720, elapsedSeconds: 1000 })).toBe("safe");
+    expect(classify({ ...base, secondsPlayed: 720, elapsedSeconds: 1000 })).toBe(
+      "safe",
+    );
   });
 
   it("is safe while on pace, before the target is met", () => {
     // Half the game gone, half the requirement banked.
     expect(
-      classify({ ...base, secondsPlayed: 360, elapsedSeconds: 1440, remainingSeconds: 1440 }),
+      classify({
+        ...base,
+        secondsPlayed: 360,
+        elapsedSeconds: 1440,
+        remainingSeconds: 1440,
+      }),
     ).toBe("safe");
   });
 
   it("is at risk when behind the pace but still able to get there", () => {
     expect(
-      classify({ ...base, secondsPlayed: 60, elapsedSeconds: 1440, remainingSeconds: 1440 }),
+      classify({
+        ...base,
+        secondsPlayed: 60,
+        elapsedSeconds: 1440,
+        remainingSeconds: 1440,
+      }),
     ).toBe("at_risk");
   });
 
   it("is below target once the arithmetic rules it out", () => {
     expect(
-      classify({ ...base, secondsPlayed: 100, elapsedSeconds: 2400, remainingSeconds: 480 }),
+      classify({
+        ...base,
+        secondsPlayed: 100,
+        elapsedSeconds: 2400,
+        remainingSeconds: 480,
+      }),
     ).toBe("below_target");
   });
 
   it("is below target at the final whistle when unmet", () => {
     expect(
-      classify({ ...base, secondsPlayed: 719, elapsedSeconds: 2880, remainingSeconds: 0 }),
+      classify({
+        ...base,
+        secondsPlayed: 719,
+        elapsedSeconds: 2880,
+        remainingSeconds: 0,
+      }),
     ).toBe("below_target");
   });
 });

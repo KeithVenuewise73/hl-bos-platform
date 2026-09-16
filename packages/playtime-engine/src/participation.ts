@@ -70,13 +70,19 @@ export function classify(args: {
   regulationSeconds: number;
   remainingSeconds: number;
 }): ComplianceStatus {
-  const { secondsPlayed, requiredSeconds, elapsedSeconds, regulationSeconds, remainingSeconds } =
-    args;
+  const {
+    secondsPlayed,
+    requiredSeconds,
+    elapsedSeconds,
+    regulationSeconds,
+    remainingSeconds,
+  } = args;
   if (requiredSeconds === null) return "no_target";
   if (secondsPlayed >= requiredSeconds) return "safe";
   if (secondsPlayed + remainingSeconds < requiredSeconds) return "below_target";
   if (regulationSeconds <= 0) return "at_risk";
-  const paceTarget = (requiredSeconds * Math.min(elapsedSeconds, regulationSeconds)) / regulationSeconds;
+  const paceTarget =
+    (requiredSeconds * Math.min(elapsedSeconds, regulationSeconds)) / regulationSeconds;
   return secondsPlayed < paceTarget ? "at_risk" : "safe";
 }
 

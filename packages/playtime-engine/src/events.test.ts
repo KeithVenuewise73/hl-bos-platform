@@ -12,19 +12,37 @@ describe("parseEvent", () => {
 
   it("rejects an unknown event type", () => {
     expect(() =>
-      parseEvent({ id: "1", gameId: "g", at: new Date().toISOString(), seq: 0, type: "nope" }),
+      parseEvent({
+        id: "1",
+        gameId: "g",
+        at: new Date().toISOString(),
+        seq: 0,
+        type: "nope",
+      }),
     ).toThrow();
   });
 
   it("rejects a timestamp that is not a date", () => {
     expect(() =>
-      parseEvent({ id: "1", gameId: "g", at: "sometime tuesday", seq: 0, type: "game_started" }),
+      parseEvent({
+        id: "1",
+        gameId: "g",
+        at: "sometime tuesday",
+        seq: 0,
+        type: "game_started",
+      }),
     ).toThrow();
   });
 
   it("rejects a player event with no player", () => {
     expect(() =>
-      parseEvent({ id: "1", gameId: "g", at: new Date().toISOString(), seq: 0, type: "player_in" }),
+      parseEvent({
+        id: "1",
+        gameId: "g",
+        at: new Date().toISOString(),
+        seq: 0,
+        type: "player_in",
+      }),
     ).toThrow();
   });
 });
@@ -50,7 +68,10 @@ describe("normalizeLog", () => {
 
   it("orders by timestamp", () => {
     const events = log("g", [playerIn(50, "p1"), start(0)]);
-    expect(normalizeLog(events).map((e) => e.type)).toEqual(["game_started", "player_in"]);
+    expect(normalizeLog(events).map((e) => e.type)).toEqual([
+      "game_started",
+      "player_in",
+    ]);
   });
 
   it("is a total order, so two devices sort the same log identically", () => {

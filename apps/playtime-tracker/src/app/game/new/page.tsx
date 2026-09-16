@@ -40,7 +40,9 @@ function NewGameScreen() {
     return (
       <main>
         <TopBar back="/" />
-        <Empty title="Pick a team first">Open a team and start the game from there.</Empty>
+        <Empty title="Pick a team first">
+          Open a team and start the game from there.
+        </Empty>
       </main>
     );
   }
@@ -60,7 +62,9 @@ function Setup({ teamId }: { teamId: string }) {
   const [minKind, setMinKind] = useState<MinimumTarget["kind"]>("none");
   const [minPercent, setMinPercent] = useState("25");
   const [minMinutes, setMinMinutes] = useState("12");
-  const [selected, setSelected] = useState<Set<string>>(() => new Set(roster.map((p) => p.id)));
+  const [selected, setSelected] = useState<Set<string>>(
+    () => new Set(roster.map((p) => p.id)),
+  );
   const [error, setError] = useState<string | null>(null);
 
   if (t === undefined) {
@@ -97,7 +101,8 @@ function Setup({ teamId }: { teamId: string }) {
 
   const minimum = (): MinimumTarget => {
     if (minKind === "percent") return { kind: "percent", percent: Number(minPercent) };
-    if (minKind === "seconds") return { kind: "seconds", seconds: Number(minMinutes) * 60 };
+    if (minKind === "seconds")
+      return { kind: "seconds", seconds: Number(minMinutes) * 60 };
     return { kind: "none" };
   };
 
@@ -116,7 +121,11 @@ function Setup({ teamId }: { teamId: string }) {
             setError(`Choose between 1 and 12 ${noun.toLowerCase()}s.`);
             return;
           }
-          if (!Number.isFinite(periodMinutes) || periodMinutes < 1 || periodMinutes > 120) {
+          if (
+            !Number.isFinite(periodMinutes) ||
+            periodMinutes < 1 ||
+            periodMinutes > 120
+          ) {
             setError("Choose a period length between 1 and 120 minutes.");
             return;
           }
@@ -124,7 +133,10 @@ function Setup({ teamId }: { teamId: string }) {
             setError("Choose at least one athlete who is available for this game.");
             return;
           }
-          if (minKind === "percent" && (Number(minPercent) < 1 || Number(minPercent) > 100)) {
+          if (
+            minKind === "percent" &&
+            (Number(minPercent) < 1 || Number(minPercent) > 100)
+          ) {
             setError("A percentage target must be between 1 and 100.");
             return;
           }
@@ -144,7 +156,11 @@ function Setup({ teamId }: { teamId: string }) {
             });
             router.replace(`/game/?id=${g.id}`);
           } catch (err) {
-            setError(err instanceof StorageFullError ? err.message : "The game was not created.");
+            setError(
+              err instanceof StorageFullError
+                ? err.message
+                : "The game was not created.",
+            );
           }
         }}
       >
@@ -158,7 +174,12 @@ function Setup({ teamId }: { teamId: string }) {
         </Field>
 
         <Field label="Date">
-          <input type="date" value={gameDate} onChange={(e) => setGameDate(e.target.value)} required />
+          <input
+            type="date"
+            value={gameDate}
+            onChange={(e) => setGameDate(e.target.value)}
+            required
+          />
         </Field>
 
         <div className="field-row" style={{ marginTop: 14 }}>
@@ -191,8 +212,8 @@ function Setup({ teamId }: { teamId: string }) {
 
         <h2>Minimum participation</h2>
         <p className="muted">
-          Your own target, used to flag athletes who are falling short. PlayTime Tracker does not
-          know your league&rsquo;s rules and makes no claim about them.
+          Your own target, used to flag athletes who are falling short. PlayTime Tracker
+          does not know your league&rsquo;s rules and makes no claim about them.
         </p>
         <Field label="Target">
           <select
@@ -237,8 +258,8 @@ function Setup({ teamId }: { teamId: string }) {
 
         <h2>Who is here today</h2>
         <p className="muted">
-          {selected.size} of {roster.length} selected. An athlete who is absent should be
-          unselected, so the report does not show them as having played zero minutes.
+          {selected.size} of {roster.length} selected. An athlete who is absent should
+          be unselected, so the report does not show them as having played zero minutes.
         </p>
         <div className="stack">
           {roster.map((p) => {
