@@ -1,0 +1,26 @@
+{
+  "name": "@hl-bos/playtime-engine",
+  "version": "0.1.0",
+  "private": true,
+  "description": "The game participation engine. Given a log of timestamped game events, it derives the game clock, who is on the field, how long every athlete has actually played, and whether a user-configured minimum participation target is being met. Pure TypeScript: no UI, no database, no timers. Built to be reused by AthleteHuddle, CoachesHuddle, OrganizationHuddle, GameTracker and 5-Star Sports Media, not only by PlayTime Tracker.",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "default": "./src/index.ts"
+    }
+  },
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run",
+    "clean": "rm -rf dist *.tsbuildinfo"
+  },
+  "dependencies": {
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  }
+}
