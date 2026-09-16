@@ -146,3 +146,6 @@ vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
 .vite/
 .hlbos/toolchain/
+
+# ATS Resume Optimizer local store (personal career data, never committed).
+.data/

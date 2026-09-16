@@ -6,9 +6,11 @@ import { approvalQueue } from "@/lib/approvals";
 import { PORTFOLIO, PORTFOLIO_NOTE } from "@/lib/registry";
 import { Card, Dot, Row, Empty, LABEL } from "@/components/ui";
 import { ActionsIsland } from "@/components/ActionsIsland";
+import { AppsIsland } from "@/components/AppsIsland";
 import { MergeButton } from "@/components/MergeButton";
 import { supabaseState } from "@/lib/supabase";
 import { connectionStatus } from "@/lib/secrets";
+import { localAppStatuses } from "@/lib/apps";
 import { readdir } from "node:fs/promises";
 import path from "node:path";
 import { REPO_ROOT } from "@/lib/shell";
@@ -24,6 +26,7 @@ export default async function Page() {
   const milestone = await milestoneState();
   const approvals = approvalQueue({ gh, health: health.health, milestone });
   const conn = await connectionStatus();
+  const localApps = await localAppStatuses();
 
   let repoMigrations: string[];
   try {
@@ -128,6 +131,55 @@ export default async function Page() {
       {/* ---- 2. ONE-CLICK ACTIONS ---- */}
       <Card title="Actions" sub="No terminal. No Git commands.">
         <ActionsIsland />
+      </Card>
+
+      {/* ---- Apps you can actually open ---- */}
+      <Card
+        title="Your software"
+        sub="Built on this machine. Start it here — there is nothing to type."
+      >
+        {localApps.map((status) => (
+          <div key={status.app.key} style={{ marginBottom: 12 }}>
+            <div
+              style={{
+                display: "flex",
+                alignItems: "baseline",
+                gap: 10,
+                flexWrap: "wrap",
+              }}
+            >
+              <strong style={{ fontSize: 13.5 }}>{status.app.name}</strong>
+              <span
+                style={{
+                  fontSize: 11.5,
+                  color: status.running ? "#3fb950" : "#8b949e",
+                }}
+              >
+                {status.detail}
+              </span>
+              {status.running && (
+                <a
+                  href={status.url}
+                  target="_blank"
+                  rel="noreferrer"
+                  style={{ color: "#58a6ff", fontSize: 12.5 }}
+                >
+                  {status.url}
+                </a>
+              )}
+            </div>
+            <p style={{ margin: "4px 0 0", fontSize: 12.5, color: "#8b949e" }}>
+              {status.app.what}
+            </p>
+          </div>
+        ))}
+        <AppsIsland
+          apps={localApps.map((s) => ({
+            key: s.app.key,
+            name: s.app.name,
+            running: s.running,
+          }))}
+        />
       </Card>
 
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
