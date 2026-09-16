@@ -2,7 +2,7 @@
   "name": "@hl-bos/ats-resume-optimizer",
   "version": "0.1.0",
   "private": true,
-  "description": "ATS Resume Optimizer — compare a job posting against a master resume, see every requirement matched against real evidence, and generate a tailored, ATS-friendly resume in which every sentence is traceable to a source fact. Optimize aggressively, fabricate nothing.",
+  "description": "ATS Resume Optimizer \u2014 compare a job posting against a master resume, see every requirement matched against real evidence, and generate a tailored, ATS-friendly resume in which every sentence is traceable to a source fact. Optimize aggressively, fabricate nothing.",
   "type": "module",
   "scripts": {
     "dev": "next dev --port 4600",
@@ -15,6 +15,8 @@
   },
   "dependencies": {
     "@hl-bos/ats-resume": "workspace:*",
+    "@supabase/ssr": "catalog:",
+    "@supabase/supabase-js": "catalog:",
     "next": "catalog:",
     "react": "catalog:",
     "react-dom": "catalog:",

@@ -37,6 +37,7 @@ import type {
 } from "@hl-bos/ats-resume";
 
 import { config } from "./config.ts";
+import { getViewer } from "./session.ts";
 
 export interface Workspace {
   readonly version: 1;
@@ -73,10 +74,35 @@ function emptyWorkspace(userId: string): Workspace {
   };
 }
 
-function storePath(): string {
+/**
+ * One file per owner.
+ *
+ * In local mode there is exactly one owner and one file. Once an identity
+ * provider is configured there is one per account, so two people signed into
+ * the same deployment never see each other's career database — the same
+ * property `ats` row-level security gives the PostgreSQL path.
+ *
+ * The id is a UUID from the identity provider and is used as a path segment,
+ * so it is validated rather than trusted: anything that is not a plain UUID is
+ * refused instead of being written somewhere unexpected.
+ */
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+export function storePathFor(ownerId: string): string {
+  if (!UUID_RE.test(ownerId)) {
+    throw new Error("Refusing to open a career store for a malformed owner id.");
+  }
   const dir = config().dataDir;
   const base = isAbsolute(dir) ? dir : resolve(process.cwd(), dir);
-  return join(base, "workspace.json");
+  return join(base, `workspace-${ownerId.toLowerCase()}.json`);
+}
+
+async function currentStorePath(): Promise<string> {
+  const viewer = await getViewer();
+  if (viewer.userId === null) {
+    throw new Error("No signed-in user, so there is no career store to open.");
+  }
+  return storePathFor(viewer.userId);
 }
 
 /**
@@ -95,7 +121,7 @@ function storePath(): string {
  * removes the whole class of bug. For a document someone sends to an employer,
  * serving yesterday's bytes is not an acceptable failure mode.
  */
-let memo: { workspace: Workspace; mtimeMs: number } | undefined;
+const memo = new Map<string, { workspace: Workspace; mtimeMs: number }>();
 
 /**
  * Seed the demo dataset on first run.
@@ -119,25 +145,31 @@ function seed(userId: string): Workspace {
 }
 
 export async function loadWorkspace(): Promise<Workspace> {
-  const path = storePath();
+  const viewer = await getViewer();
+  if (viewer.userId === null) {
+    throw new Error("No signed-in user, so there is no career store to open.");
+  }
+  const path = storePathFor(viewer.userId);
   try {
     const stats = await stat(path);
-    if (memo !== undefined && memo.mtimeMs === stats.mtimeMs) return memo.workspace;
+    const cached = memo.get(path);
+    if (cached !== undefined && cached.mtimeMs === stats.mtimeMs)
+      return cached.workspace;
     const raw = await readFile(path, "utf8");
     const parsed = JSON.parse(raw) as Workspace;
     const workspace = { ...emptyWorkspace(parsed.userId), ...parsed };
-    memo = { workspace, mtimeMs: stats.mtimeMs };
+    memo.set(path, { workspace, mtimeMs: stats.mtimeMs });
     return workspace;
   } catch {
     // No store yet (or an unreadable one): start fresh and seed the sample.
-    const workspace = seed(randomUUID());
+    const workspace = seed(viewer.userId);
     await saveWorkspace(workspace);
     return workspace;
   }
 }
 
 export async function saveWorkspace(workspace: Workspace): Promise<void> {
-  const path = storePath();
+  const path = await currentStorePath();
   await mkdir(dirname(path), { recursive: true });
   // Write-then-rename: a crash mid-write leaves the previous file intact
   // rather than a truncated one. Losing a career database to a half-write
@@ -146,7 +178,7 @@ export async function saveWorkspace(workspace: Workspace): Promise<void> {
   await writeFile(temporary, JSON.stringify(workspace, null, 2), "utf8");
   await rename(temporary, path);
   const stats = await stat(path);
-  memo = { workspace, mtimeMs: stats.mtimeMs };
+  memo.set(path, { workspace, mtimeMs: stats.mtimeMs });
 }
 
 /** Read, mutate, write. The only way the app changes stored state. */
@@ -159,9 +191,9 @@ export async function updateWorkspace<T>(
   return result;
 }
 
-/** Testing hook: forget the cached workspace. */
+/** Testing hook: forget every cached workspace. */
 export function resetWorkspaceCache(): void {
-  memo = undefined;
+  memo.clear();
 }
 
 // ---------------------------------------------------------------------------
@@ -198,6 +230,8 @@ export async function analysesFor(profileId: string): Promise<JobAnalysis[]> {
     .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
 }
 
-export function storageDescription(): string {
-  return `Local JSON store at ${storePath()}. Nothing leaves this machine except calls to the AI provider, if one is configured.`;
+export async function storageDescription(): Promise<string> {
+  const viewer = await getViewer();
+  const where = viewer.userId === null ? config().dataDir : storePathFor(viewer.userId);
+  return `JSON store at ${where}. One file per account, so two signed-in people never share a career database. Nothing leaves this machine except calls to the AI provider, if one is configured.`;
 }
