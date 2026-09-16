@@ -5,10 +5,10 @@
 -- engine in packages/ats-resume). Purely additive: a new schema, no existing
 -- object is touched.
 --
--- NOT YET APPLIED ANYWHERE. It is committed so the data model is reviewable and
--- versioned, and because the app is designed against it. The app currently runs
--- on a local JSON store and its Settings page says exactly that — it does not
--- claim a database it does not have.
+-- APPLIED TO PRODUCTION on 2026-09-16. The app reads and writes these tables
+-- when it is configured with Supabase credentials, and falls back to a local
+-- JSON store when it is not — its Settings page says which of the two is in
+-- use, so it never claims a database it does not have.
 --
 -- WHOSE DATA THIS IS. A resume is the most personal document most people own:
 -- employment history, salary-adjacent scope, education, certifications, and a

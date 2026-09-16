@@ -24,55 +24,22 @@ import { dirname, isAbsolute, join, resolve } from "node:path";
 import { randomUUID } from "node:crypto";
 
 import { buildDemoDataset } from "@hl-bos/ats-resume";
+import { emptyWorkspace, type Workspace } from "./store/workspace.ts";
+
+export type { Workspace } from "./store/workspace.ts";
 import type {
-  Application,
   CandidateProfile,
   CareerFact,
-  CoverLetter,
-  GeneratedResume,
-  InterviewPrep,
   JobAnalysis,
-  JobPosting,
   MasterResume,
 } from "@hl-bos/ats-resume";
 
 import { config } from "./config.ts";
-import { getViewer } from "./session.ts";
-
-export interface Workspace {
-  readonly version: 1;
-  readonly userId: string;
-  // Mutable by design: `updateWorkspace` hands this object to a mutator and
-  // writes the result. Everything that reaches a page is a copy of a record,
-  // not a live reference into this object.
-  profiles: CandidateProfile[];
-  facts: CareerFact[];
-  resumes: MasterResume[];
-  jobs: JobPosting[];
-  analyses: JobAnalysis[];
-  generated: GeneratedResume[];
-  applications: Application[];
-  coverLetters: CoverLetter[];
-  interviewPreps: InterviewPrep[];
-  settings: Record<string, string>;
-}
-
-function emptyWorkspace(userId: string): Workspace {
-  return {
-    version: 1,
-    userId,
-    profiles: [],
-    facts: [],
-    resumes: [],
-    jobs: [],
-    analyses: [],
-    generated: [],
-    applications: [],
-    coverLetters: [],
-    interviewPreps: [],
-    settings: {},
-  };
-}
+import { currentMode, getViewer, serverSupabase } from "./session.ts";
+import {
+  loadWorkspaceFromSupabase,
+  saveWorkspaceToSupabase,
+} from "./store/supabase-store.ts";
 
 /**
  * One file per owner.
@@ -149,6 +116,17 @@ export async function loadWorkspace(): Promise<Workspace> {
   if (viewer.userId === null) {
     throw new Error("No signed-in user, so there is no career store to open.");
   }
+
+  if (currentMode() === "authenticated") {
+    const client = await serverSupabase();
+    if (client === null) {
+      throw new Error(
+        "Signed-in mode is active but no database client could be built.",
+      );
+    }
+    return loadWorkspaceFromSupabase(client, viewer.userId);
+  }
+
   const path = storePathFor(viewer.userId);
   try {
     const stats = await stat(path);
@@ -185,10 +163,28 @@ export async function saveWorkspace(workspace: Workspace): Promise<void> {
 export async function updateWorkspace<T>(
   mutate: (workspace: Workspace) => T | Promise<T>,
 ): Promise<T> {
-  const workspace = await loadWorkspace();
-  const result = await mutate(workspace);
-  await saveWorkspace(workspace);
+  const before = await loadWorkspace();
+  // The mutator edits in place, so the SQL path would have nothing to diff
+  // against without a pristine copy. Cloning is also what stops a failed write
+  // leaving a half-mutated workspace in the in-memory cache.
+  const working = structuredClone(before);
+  const result = await mutate(working);
+  await persist(before, working);
   return result;
+}
+
+/** Write the mutated workspace, by whichever route this installation uses. */
+async function persist(before: Workspace, after: Workspace): Promise<void> {
+  if (currentMode() !== "authenticated") {
+    await saveWorkspace(after);
+    return;
+  }
+  const viewer = await getViewer();
+  const client = await serverSupabase();
+  if (client === null || viewer.userId === null) {
+    throw new Error("Signed-in mode is active but no database client could be built.");
+  }
+  await saveWorkspaceToSupabase(client, before, after, viewer.userId);
 }
 
 /** Testing hook: forget every cached workspace. */
@@ -231,7 +227,11 @@ export async function analysesFor(profileId: string): Promise<JobAnalysis[]> {
 }
 
 export async function storageDescription(): Promise<string> {
+  if (currentMode() === "authenticated") {
+    const url = config().supabaseUrl ?? "the configured project";
+    return `PostgreSQL (${url}), schema \`ats\`. Every query runs under your own session, so row-level security — not application code — is what keeps one account's career database invisible to another.`;
+  }
   const viewer = await getViewer();
   const where = viewer.userId === null ? config().dataDir : storePathFor(viewer.userId);
-  return `JSON store at ${where}. One file per account, so two signed-in people never share a career database. Nothing leaves this machine except calls to the AI provider, if one is configured.`;
+  return `JSON store at ${where}. One file per account. Nothing leaves this machine except calls to the AI provider, if one is configured.`;
 }
