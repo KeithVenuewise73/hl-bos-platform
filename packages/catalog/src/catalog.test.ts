@@ -98,8 +98,9 @@ describe("registry integrity", () => {
     expect(dangling, `dangling targets: ${dangling.join(", ")}`).toEqual([]);
   });
 
-  it("registers the 19 application databases and 10 edge functions", () => {
-    expect(assetsByKind(catalog, "database").length).toBe(19);
+  it("registers the 20 application databases and 10 edge functions", () => {
+    // 20th: `highlight` (migration 0048, HighlightAI Football).
+    expect(assetsByKind(catalog, "database").length).toBe(20);
     expect(assetsByKind(catalog, "edge_function").length).toBe(10);
   });
 
@@ -111,8 +112,9 @@ describe("registry integrity", () => {
 describe("repository scan (ground truth)", () => {
   it("discovers the real schemas, functions, apps and packages", async () => {
     const inv = await scanRepository(REPO_ROOT);
-    expect(inv.schemas.length).toBe(19);
+    expect(inv.schemas.length).toBe(20);
     expect(inv.schemas).toContain("hlvs");
+    expect(inv.schemas).toContain("highlight");
     expect(inv.schemas).toContain("social");
     expect(inv.schemas).toContain("bti");
     expect(inv.schemas).toContain("intake");
@@ -134,8 +136,10 @@ describe("repository scan (ground truth)", () => {
     // APPLIED to canonical production on 2026-08-26 under CEO approval, with
     // 0047 (forward-repair pinning search_path on
     // social.deny_attempt_mutation — the post-apply advisor check caught it
-    // and the local suite had not).
-    expect(inv.migrations.length).toBe(47);
+    // and the local suite had not) — plus 0048 (HighlightAI Football: the
+    // `highlight` schema, 23 tables, written and verified locally against
+    // PostgreSQL 16.13 and UNAPPLIED to any Supabase project).
+    expect(inv.migrations.length).toBe(48);
     expect(inv.edgeFunctions).toContain("ai-gateway");
     expect(inv.edgeFunctions).not.toContain("tests");
     expect(inv.apps).toEqual(
@@ -169,7 +173,7 @@ describe("executive metrics", () => {
     const catalog = buildCatalog();
     const inv = await scanRepository(REPO_ROOT);
     const m = metrics(catalog, completeness(catalog, inv));
-    expect(m.databases).toBe(19);
+    expect(m.databases).toBe(20);
     expect(m.edgeFunctions).toBe(10);
     expect(m.sharedServices).toBeGreaterThanOrEqual(12);
     expect(m.products).toBeGreaterThanOrEqual(3);

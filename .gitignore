@@ -146,3 +146,11 @@ vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
 .vite/
 .hlbos/toolchain/
+
+# --- Python ----------------------------------------------------------------
+# services/highlight-cv is a Python package. Byte-code caches are build output
+# and are machine-specific.
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/

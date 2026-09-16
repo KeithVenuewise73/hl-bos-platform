@@ -1,0 +1,28 @@
+[project]
+name = "highlight-cv"
+version = "0.1.0"
+description = "HighlightAI Football computer-vision worker. Runs the GPU pipeline that turns game film into detections, tracks, plays and clips, and hands them to the HighlightAI database."
+requires-python = ">=3.11"
+
+# Deliberately EMPTY. Importing highlight_cv must work on a laptop with no GPU
+# stack so the contracts, the pipeline orchestration and the FFmpeg command
+# construction can be unit-tested anywhere. The heavy dependencies are optional
+# extras, imported lazily inside the adapters that need them.
+dependencies = []
+
+[project.optional-dependencies]
+# The real models. Installed on the GPU box, not on a developer's machine and
+# never inside a serverless function.
+gpu = [
+  "torch>=2.4",
+  "ultralytics>=8.3",
+  "opencv-python-headless>=4.10",
+  "numpy>=1.26",
+]
+# The durable job queue. Redis + Celery per the brief; the worker module is
+# written so the queue can be swapped without touching the pipeline.
+queue = ["celery>=5.4", "redis>=5.0"]
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
