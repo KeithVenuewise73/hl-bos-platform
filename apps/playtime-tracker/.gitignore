@@ -2,5 +2,18 @@
 out/
 next-env.d.ts
 *.tsbuildinfo
-ios/
-android/
+
+# The native projects ARE committed: they carry the app's identity, icons,
+# version and signing configuration, and regenerating them from a template
+# would silently discard all of it. Only their build output is ignored.
+android/build/
+android/app/build/
+android/.gradle/
+android/local.properties
+android/app/src/main/assets/public/
+android/app/src/main/assets/capacitor.config.json
+ios/App/build/
+ios/App/Pods/
+ios/App/App/public/
+ios/App/App/capacitor.config.json
+ios/App/DerivedData/

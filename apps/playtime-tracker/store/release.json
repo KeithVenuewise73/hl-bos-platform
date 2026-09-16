@@ -1,0 +1,6 @@
+{
+  "$comment": "The single source of truth for what version this is. scripts/set-release.mjs writes it into the web build, the Android Gradle config and the Xcode project, so the three can never disagree -- a mismatch between the version a user reports and the build you have is a support conversation that goes nowhere.",
+  "version": "1.0.0",
+  "build": 1,
+  "$build_note": "Both stores require this to increase with EVERY upload, including one that was rejected. Bump it before each submission."
+}

@@ -13,14 +13,18 @@
     "test": "vitest run",
     "clean": "rm -rf .next out dist *.tsbuildinfo",
     "qa": "node qa/acceptance.mjs",
-    "qa:serve": "node qa/serve.mjs out 4700"
+    "qa:serve": "node qa/serve.mjs out 4700",
+    "native:sync": "npx cap sync",
+    "native:add:ios": "npx cap add ios",
+    "native:add:android": "npx cap add android"
   },
   "dependencies": {
     "@hl-bos/playtime-engine": "workspace:*",
     "@supabase/supabase-js": "catalog:",
     "next": "catalog:",
     "react": "catalog:",
-    "react-dom": "catalog:"
+    "react-dom": "catalog:",
+    "@capacitor/core": "catalog:"
   },
   "devDependencies": {
     "@types/node": "catalog:",
@@ -28,6 +32,9 @@
     "@types/react-dom": "catalog:",
     "typescript": "catalog:",
     "vitest": "catalog:",
-    "playwright": "1.57.0"
+    "playwright": "1.57.0",
+    "@capacitor/cli": "catalog:",
+    "@capacitor/ios": "catalog:",
+    "@capacitor/android": "catalog:"
   }
 }

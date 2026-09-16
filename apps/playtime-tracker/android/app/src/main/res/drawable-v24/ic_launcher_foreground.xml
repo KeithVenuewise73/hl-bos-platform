@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Replaced by scripts/make-native-assets.mjs: the template's vector
+     drew Capacitor's logo, which must never reach a store build. -->
+<bitmap xmlns:android="http://schemas.android.com/apk/res/android"
+    android:src="@mipmap/ic_launcher_foreground" />

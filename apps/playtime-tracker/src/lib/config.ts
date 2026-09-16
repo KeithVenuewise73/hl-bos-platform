@@ -7,19 +7,24 @@
  * rejection, and a user following one is worse.
  */
 
+import { APP_VERSION as RELEASE_VERSION, BUILD_NUMBER as RELEASE_BUILD } from "./release";
+
 const env = (key: string): string | undefined => {
   const value = process.env[key];
   return value && value.length > 0 ? value : undefined;
 };
 
-/** Marketing version, e.g. "1.0.0". Set at build time. */
-export const APP_VERSION = env("NEXT_PUBLIC_APP_VERSION") ?? "0.1.0";
-
 /**
- * Build number. Apple and Google both require this to increase with every
- * upload. It is injected by the release build; "dev" locally, never faked.
+ * Marketing version and build number, from store/release.json via
+ * scripts/set-release.mjs. The same two values are written into the Gradle
+ * config and the Xcode project by that script, so the number a user reads on
+ * the Account screen is the number of the build they are running.
+ *
+ * An environment variable can override them for a one-off build; nothing here
+ * is ever invented.
  */
-export const BUILD_NUMBER = env("NEXT_PUBLIC_BUILD_NUMBER") ?? "dev";
+export const APP_VERSION = env("NEXT_PUBLIC_APP_VERSION") ?? RELEASE_VERSION;
+export const BUILD_NUMBER = env("NEXT_PUBLIC_BUILD_NUMBER") ?? RELEASE_BUILD;
 
 export const APP_NAME = "PlayTime Tracker";
 
