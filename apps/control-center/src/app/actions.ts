@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { cmd } from "@/lib/shell";
+import { startApp } from "@/lib/apps";
 import { repoStatus } from "@/lib/git";
 import { explain, type Explained } from "@/lib/translate";
 
@@ -201,4 +202,30 @@ export async function saveConnection(form: FormData): Promise<ActionResult> {
     "The console can now see your builds. This is stored on this machine only and is never committed.",
     Object.keys(values).join(", ") + " saved",
   );
+}
+
+/**
+ * Start one of the local apps and hand back a link to it.
+ *
+ * The contract: no terminal, ever. Building and starting a web server is an
+ * engineering chore, so it lives behind this button instead of in a runbook.
+ * `startApp` waits until the app actually answers before this reports success
+ * — a link to a page that will not load is worse than no link.
+ */
+export async function openLocalApp(key: string): Promise<ActionResult> {
+  const result = await startApp(key);
+  revalidatePath("/");
+  return result.ok
+    ? ok(
+        result.message,
+        `Open it at ${result.url}. It keeps running until this machine is restarted.`,
+        result.message,
+        result.url,
+      )
+    : {
+        ok: false,
+        headline: "The app did not start.",
+        meaning: result.message,
+        detail: result.message,
+      };
 }

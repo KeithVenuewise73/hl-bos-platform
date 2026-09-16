@@ -8,6 +8,10 @@ The engine is [`@hl-bos/ats-resume`](../../packages/ats-resume/README.md); this 
 
 ## Run it
 
+**If you are Keith:** open the Development Control Center (`scripts\control-center.bat`) and click **Start ATS Resume Optimizer** under _Your software_. It builds the app if it needs building, starts it, waits until it actually answers, and gives you the link. There is nothing to type.
+
+**If you are working on the code:**
+
 ```bash
 pnpm install
 pnpm --filter @hl-bos/ats-resume-optimizer dev
