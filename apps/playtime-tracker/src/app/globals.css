@@ -1,0 +1,519 @@
+/*
+ * PlayTime Tracker's visual system.
+ *
+ * Designed for the worst conditions this app will ever be used in, not the
+ * best: direct September sunlight, one hand, a coach who is watching the field
+ * and not the phone. That drives every decision here.
+ *
+ *   - Touch targets are at least 56px tall. A missed tap during a substitution
+ *     is a missing minute in a child's report.
+ *   - ON and BENCH differ in colour, fill, border AND text. Colour alone would
+ *     fail in glare and fail anyone colour-blind.
+ *   - Jersey numbers are enormous. In a glance, that is what a coach reads.
+ *   - Contrast is pushed well past 4.5:1 for anything that matters.
+ */
+
+:root {
+  --bg: #f4f6f8;
+  --surface: #ffffff;
+  --surface-2: #eef1f4;
+  --ink: #10161d;
+  --ink-2: #47525e;
+  --ink-3: #6b7885;
+  --line: #d3dae1;
+
+  --on: #0a6b2f;
+  --on-ink: #ffffff;
+  --on-soft: #d9f0e1;
+
+  --bench: #e8ecf0;
+  --bench-ink: #1d2630;
+
+  --risk: #8a5000;
+  --risk-soft: #ffeccc;
+  --below: #9a1c1c;
+  --below-soft: #ffe0e0;
+  --safe: #0a6b2f;
+  --safe-soft: #d9f0e1;
+
+  --accent: #14508f;
+  --accent-ink: #ffffff;
+
+  --radius: 14px;
+  --tap: 56px;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0d1116;
+    --surface: #161c23;
+    --surface-2: #1e252e;
+    --ink: #f2f5f8;
+    --ink-2: #b4c0cc;
+    --ink-3: #8593a1;
+    --line: #2c3540;
+
+    --on: #1f9d52;
+    --on-ink: #05140a;
+    --on-soft: #10301c;
+
+    --bench: #222a33;
+    --bench-ink: #e6ecf2;
+
+    --risk: #ffbe5c;
+    --risk-soft: #3a2a08;
+    --below: #ff7a7a;
+    --below-soft: #3c1414;
+    --safe: #4ade80;
+    --safe-soft: #0e2a18;
+
+    --accent: #5ea9ff;
+    --accent-ink: #05121f;
+  }
+}
+
+* {
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family:
+    -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  font-size: 17px;
+  line-height: 1.45;
+  /* Stop a mistimed double-tap from zooming the page mid-substitution. */
+  touch-action: manipulation;
+  -webkit-text-size-adjust: 100%;
+}
+
+/* The native shells run full-bleed; keep content clear of the notch and the
+   home indicator. */
+body {
+  padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom)
+    env(safe-area-inset-left);
+}
+
+.shell {
+  max-width: 680px;
+  margin: 0 auto;
+  padding: 16px 16px 96px;
+}
+
+h1 {
+  font-size: 26px;
+  line-height: 1.2;
+  margin: 8px 0 4px;
+  letter-spacing: -0.01em;
+}
+h2 {
+  font-size: 19px;
+  margin: 28px 0 10px;
+}
+p {
+  margin: 0 0 12px;
+  color: var(--ink-2);
+}
+a {
+  color: var(--accent);
+}
+
+.muted {
+  color: var(--ink-3);
+  font-size: 14px;
+}
+.lead {
+  color: var(--ink-2);
+  font-size: 15px;
+}
+
+/* --- Bars ---------------------------------------------------------------- */
+
+.topbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 44px;
+  margin-bottom: 4px;
+}
+.topbar .spacer {
+  flex: 1;
+}
+.back {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 44px;
+  padding: 0 4px;
+  color: var(--accent);
+  text-decoration: none;
+  font-weight: 600;
+  font-size: 15px;
+}
+
+/* --- Cards --------------------------------------------------------------- */
+
+.card {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 14px;
+  margin-bottom: 12px;
+}
+.card.tight {
+  padding: 12px;
+}
+.row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.row .grow {
+  flex: 1;
+  min-width: 0;
+}
+.stack > * + * {
+  margin-top: 10px;
+}
+
+/* --- Buttons ------------------------------------------------------------- */
+
+button,
+.btn {
+  font: inherit;
+  min-height: var(--tap);
+  padding: 0 18px;
+  border-radius: var(--radius);
+  border: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--ink);
+  font-weight: 650;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  text-decoration: none;
+}
+button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+.btn-primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-ink);
+}
+.btn-danger {
+  background: var(--below-soft);
+  border-color: var(--below);
+  color: var(--below);
+}
+.btn-block {
+  width: 100%;
+}
+.btn-small {
+  min-height: 44px;
+  padding: 0 12px;
+  font-size: 15px;
+  font-weight: 600;
+}
+.btn-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 10px;
+}
+
+/* --- Forms --------------------------------------------------------------- */
+
+label {
+  display: block;
+}
+.field-label {
+  display: block;
+  font-size: 14px;
+  font-weight: 650;
+  color: var(--ink-2);
+  margin-bottom: 6px;
+}
+input,
+select,
+textarea {
+  font: inherit;
+  width: 100%;
+  min-height: var(--tap);
+  padding: 0 14px;
+  border-radius: var(--radius);
+  border: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--ink);
+}
+input:focus-visible,
+select:focus-visible,
+button:focus-visible,
+a:focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: 2px;
+}
+.field + .field {
+  margin-top: 14px;
+}
+.field-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+/* --- Player cards -------------------------------------------------------- */
+
+.players {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 10px;
+}
+
+.player {
+  position: relative;
+  min-height: 104px;
+  padding: 10px 12px;
+  border-radius: var(--radius);
+  border: 2px solid var(--line);
+  background: var(--bench);
+  color: var(--bench-ink);
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  align-items: stretch;
+  font-weight: 600;
+}
+.player.on {
+  background: var(--on);
+  border-color: var(--on);
+  color: var(--on-ink);
+}
+.player .jersey {
+  font-size: 34px;
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: -0.02em;
+}
+.player .name {
+  font-size: 14px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  opacity: 0.92;
+}
+.player .time {
+  font-variant-numeric: tabular-nums;
+  font-size: 19px;
+  font-weight: 750;
+}
+.player .state {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  opacity: 0.85;
+}
+.player .head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+.player .foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+/* --- Status pills -------------------------------------------------------- */
+
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 9px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  border: 1px solid transparent;
+  white-space: nowrap;
+}
+.pill-safe {
+  background: var(--safe-soft);
+  color: var(--safe);
+  border-color: var(--safe);
+}
+.pill-risk {
+  background: var(--risk-soft);
+  color: var(--risk);
+  border-color: var(--risk);
+}
+.pill-below {
+  background: var(--below-soft);
+  color: var(--below);
+  border-color: var(--below);
+}
+.pill-none {
+  background: var(--surface-2);
+  color: var(--ink-3);
+  border-color: var(--line);
+}
+
+/* --- The game clock ------------------------------------------------------ */
+
+.clock {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 14px 16px;
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+.clock .time {
+  font-size: 44px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+  line-height: 1;
+}
+.clock .meta {
+  flex: 1;
+  min-width: 0;
+}
+.clock .period {
+  font-size: 15px;
+  font-weight: 700;
+}
+.clock .counts {
+  font-size: 13px;
+  color: var(--ink-3);
+}
+.clock.paused .time {
+  color: var(--ink-3);
+}
+
+/* --- Banners ------------------------------------------------------------- */
+
+.banner {
+  border-radius: var(--radius);
+  padding: 12px 14px;
+  margin-bottom: 12px;
+  font-size: 14px;
+  border: 1px solid;
+}
+.banner-info {
+  background: var(--surface-2);
+  border-color: var(--line);
+  color: var(--ink-2);
+}
+.banner-warn {
+  background: var(--risk-soft);
+  border-color: var(--risk);
+  color: var(--risk);
+}
+.banner-error {
+  background: var(--below-soft);
+  border-color: var(--below);
+  color: var(--below);
+}
+
+/* --- States -------------------------------------------------------------- */
+
+.empty {
+  text-align: center;
+  padding: 40px 20px;
+  border: 1px dashed var(--line);
+  border-radius: var(--radius);
+  color: var(--ink-3);
+}
+.empty h3 {
+  margin: 0 0 6px;
+  color: var(--ink);
+  font-size: 17px;
+}
+
+.skeleton {
+  background: var(--surface-2);
+  border-radius: var(--radius);
+  height: 72px;
+  margin-bottom: 10px;
+}
+
+/* --- Report -------------------------------------------------------------- */
+
+.report-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--line);
+}
+.report-row:last-child {
+  border-bottom: 0;
+}
+.report-row .jersey {
+  font-size: 24px;
+  font-weight: 800;
+  min-width: 52px;
+  font-variant-numeric: tabular-nums;
+}
+.report-row .figures {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+.report-row .figures .big {
+  font-size: 19px;
+  font-weight: 750;
+}
+
+.bar {
+  height: 8px;
+  border-radius: 4px;
+  background: var(--surface-2);
+  overflow: hidden;
+  margin-top: 6px;
+}
+.bar > span {
+  display: block;
+  height: 100%;
+  background: var(--accent);
+}
+
+.tabular {
+  font-variant-numeric: tabular-nums;
+}
+
+/* --- Sticky action bar --------------------------------------------------- */
+
+/* A solid bar with a hairline, not a gradient fade. The fade overlapped the
+   card above it and read as a smudge across a player's tile -- visible the
+   moment a real screenshot was taken at store resolution. */
+.sticky-actions {
+  position: sticky;
+  bottom: 0;
+  background: var(--bg);
+  border-top: 1px solid var(--line);
+  margin: 16px -16px 0;
+  padding: 12px 16px calc(8px + env(safe-area-inset-bottom));
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    transition: none !important;
+    animation: none !important;
+  }
+}

@@ -1,0 +1,33 @@
+{
+  "name": "@hl-bos/playtime-tracker",
+  "version": "0.1.0",
+  "private": true,
+  "description": "PlayTime Tracker \u2014 tap an athlete on, tap them off, and know exactly how long every child actually played. Offline-first by construction: the whole live game works with no signal at all, because a sports field is where connectivity goes to die.",
+  "type": "module",
+  "scripts": {
+    "dev": "next dev --port 4700",
+    "build": "next build && node scripts/build-sw.mjs",
+    "start": "npx serve out -l 4700",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint .",
+    "test": "vitest run",
+    "clean": "rm -rf .next out dist *.tsbuildinfo",
+    "qa": "node qa/acceptance.mjs",
+    "qa:serve": "node qa/serve.mjs out 4700"
+  },
+  "dependencies": {
+    "@hl-bos/playtime-engine": "workspace:*",
+    "@supabase/supabase-js": "catalog:",
+    "next": "catalog:",
+    "react": "catalog:",
+    "react-dom": "catalog:"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "@types/react": "catalog:",
+    "@types/react-dom": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:",
+    "playwright": "1.57.0"
+  }
+}
