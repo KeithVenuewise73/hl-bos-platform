@@ -68,6 +68,14 @@ export const PORTFOLIO: readonly Product[] = [
     location: "legacy project (not reachable from this console)",
   },
   {
+    name: "ATS Resume Optimizer",
+    stage: "development",
+    status:
+      "Built in this repository and proven by running it: the engine parses a resume and a posting, matches every requirement to real evidence, scores the fit, generates a tailored resume and writes real DOCX and PDF files. An unsupported claim cannot reach an exported file — that was tested by editing a line to an invented $250M P&L and confirming the export dropped it. Storage is a local JSON file; the PostgreSQL schema (migration 0048) is written and verified against a local PostgreSQL 16 but is UNAPPLIED, and nothing is deployed.",
+    version: null,
+    location: "this repository (apps/ats-resume-optimizer, packages/ats-resume)",
+  },
+  {
     name: "SalonAI",
     stage: "not-started",
     status: "Planned as the first HL-BOS vertical. No code yet.",

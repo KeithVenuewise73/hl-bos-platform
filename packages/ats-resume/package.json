@@ -1,0 +1,27 @@
+{
+  "name": "@hl-bos/ats-resume",
+  "version": "0.1.0",
+  "private": true,
+  "description": "The ATS Resume Optimizer engine. Parses a master resume and a job posting, matches every job requirement against real evidence, scores the fit, and generates a tailored resume in which every sentence is traceable to a source fact. Optimize aggressively, fabricate nothing: the claim validator is the boundary, and nothing unsupported can reach an export.",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "default": "./src/index.ts"
+    }
+  },
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run",
+    "clean": "rm -rf dist *.tsbuildinfo"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "catalog:",
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  }
+}

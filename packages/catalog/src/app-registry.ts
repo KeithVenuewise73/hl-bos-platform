@@ -234,6 +234,35 @@ export const APPLICATIONS: ApplicationRecord[] = [
       "apps/venture-studio (HLVS V2); migration 0029 applied to production; 0030 (CEO Notebook) written UNAPPLIED; not deployed",
   },
   {
+    key: "ats-resume-optimizer",
+    name: "ATS Resume Optimizer",
+    description:
+      "Compares a job posting against a master resume, matches every requirement to real evidence from the candidate's own material, scores the fit on an internal model, and generates a tailored ATS-friendly resume in which every sentence is traceable to a source fact. The product principle is enforced in code, not in a prompt: optimize aggressively, fabricate nothing.",
+    category: "executive_tooling",
+    repository: REPO,
+    owner: "KeithVenuewise73",
+    executiveOwner: "Keith Herman (CEO)",
+    currentBranch: "claude/ats-resume-optimizer-dc3nh3",
+    environment: "local",
+    developmentStatus: "built_undeployed",
+    deploymentStatus: "not_deployed",
+    productionUrl: null,
+    stagingUrl: null,
+    localUrl: "http://localhost:4600",
+    supabaseProject: CORE,
+    version: "0.1.0",
+    health: "unknown",
+    hosting: "none yet",
+    dependencies: ["@hl-bos/ats-resume"],
+    reusableModules: [],
+    softwareFactoryIntegration:
+      "None. The engine (@hl-bos/ats-resume) is a standalone capability package with no platform dependencies, so it can be reused by any future product without pulling in identity or tenancy.",
+    notes:
+      "Storage is a local JSON file; the PostgreSQL schema (migration 0048, ats) is written and verified against a local PostgreSQL 16 but is UNAPPLIED to any project, and the Supabase-backed store is not built. The app says so on its Settings page. Claude is optional: with no API key the built-in rules engine runs every feature. 76 unit tests plus an end-to-end verification against the running app.",
+    evidence:
+      "apps/ats-resume-optimizer + packages/ats-resume; migration 0048 written UNAPPLIED; verified by running the app (generate, edit, validate, export)",
+  },
+  {
     key: "control-center",
     name: "CEO Development Control Center",
     description:
