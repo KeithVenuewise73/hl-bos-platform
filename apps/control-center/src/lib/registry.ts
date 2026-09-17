@@ -71,9 +71,17 @@ export const PORTFOLIO: readonly Product[] = [
     name: "ATS Resume Optimizer",
     stage: "development",
     status:
-      "Built in this repository and proven by running it: the engine parses a resume and a posting, matches every requirement to real evidence, scores the fit, generates a tailored resume and writes real DOCX and PDF files. An unsupported claim cannot reach an exported file — that was tested by editing a line to an invented $250M P&L and confirming the export dropped it. Storage is a local JSON file; the PostgreSQL schema (migration 0048) is written and verified against a local PostgreSQL 16 but is UNAPPLIED, and nothing is deployed.",
+      "Built in this repository and proven by running it: the engine parses a resume and a posting, matches every requirement to real evidence, scores the fit, generates a tailored resume and writes real DOCX and PDF files. An unsupported claim cannot reach an exported file — that was tested by editing a line to an invented $250M P&L and confirming the export dropped it. Storage is a local JSON file. Its PostgreSQL schema (migration 0048) HAS been applied to canonical production — verified 2026-09-17 by reading the live migration ledger — though the app does not yet use it, and nothing is deployed.",
     version: null,
     location: "this repository (apps/ats-resume-optimizer, packages/ats-resume)",
+  },
+  {
+    name: "BarberOS",
+    stage: "development",
+    status:
+      'Real, and not in this repository. Its database half is live in canonical production \u2014 a barberos schema of 14 tables and a transform_audit schema of 10, behind 17 public RPCs \u2014 installed by eleven migrations that exist in no file here, so none of it is tested, reviewable or rebuildable from source. What works: a shop and service catalogue, an owned-website builder that can publish and unpublish, a client book, and an engine that learns a client\'s usual haircut interval and ranks who is overdue. What does not: the client book is empty (0 clients, 0 visits), the only shop is "Herman Legacy Test Shop" and its site is unpublished, nothing can read the 40 diagnostic runs because that schema has no public API, and every finding they produced is inferred with no evidence and a score of 0 \u2014 the diagnostic has never actually fetched a website. No BarberOS application exists in this repository for those 17 RPCs to have a caller.',
+    version: null,
+    location: "canonical production database only \u2014 NOT in source control",
   },
   {
     name: "SalonAI",
