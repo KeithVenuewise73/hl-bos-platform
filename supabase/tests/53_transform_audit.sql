@@ -99,7 +99,9 @@ select is(
 select is(
   (select count(*)::int from pg_proc p join pg_namespace n on n.oid = p.pronamespace
     where n.nspname = 'public' and p.proname like 'barberos\_audit\_%'),
-  22, 't_the_schema_is_reachable_through_exactly_twenty_two_public_functions');
+  -- 22 from 0055, plus barberos_audit_my_agencies and barberos_audit_pipeline
+  -- from 0056.
+  24, 't_the_schema_is_reachable_through_exactly_twenty_four_public_functions');
 
 -- ===========================================================================
 -- B. Campaign, shops, and starting a run

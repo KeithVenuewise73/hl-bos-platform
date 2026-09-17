@@ -54,7 +54,9 @@ grant execute on function tests.api_finding() to public;
 select is(
   (select count(*)::int from pg_proc p join pg_namespace n on n.oid = p.pronamespace
     where n.nspname = 'public' and p.proname like 'barberos\_audit\_%'),
-  22, 't_twenty_two_public_functions');
+  -- The 22 this migration shipped, plus the two 0056 added
+  -- (barberos_audit_my_agencies, barberos_audit_pipeline).
+  24, 't_twenty_four_public_functions');
 
 -- The design rule, asserted rather than trusted: not one of them is its own
 -- authority.

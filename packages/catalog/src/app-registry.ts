@@ -234,6 +234,35 @@ export const APPLICATIONS: ApplicationRecord[] = [
       "apps/venture-studio (HLVS V2); migration 0029 applied to production; 0030 (CEO Notebook) written UNAPPLIED; not deployed",
   },
   {
+    key: "barberos-cockpit",
+    name: "Barbershop Transformation Cockpit",
+    description:
+      "The internal operator console for the BarberOS managed service, and the first application on this platform to call a barberos_* RPC at all. Fifteen screens over the existing public.barberos_* and public.barberos_audit_* RPCs: pipeline board, prospect intake, campaigns, audit runs with evidence labelling, the discovery call, the catalog-bounded proposal builder, the sale, onboarding a sold shop into its own tenant, capability delivery, the shop's owned page, the client book, the retention call list, the capability catalog and reporting. It adds no schema and no second implementation of anything: RLS, tenancy, permissions, audit logging and the catalog's honesty rules stay the only authority.",
+    category: "vertical_product",
+    repository: REPO,
+    owner: "KeithVenuewise73",
+    executiveOwner: "Keith Herman (CEO)",
+    currentBranch: "claude/barberos-current-state-audit-xz3psp",
+    environment: "local",
+    developmentStatus: "built_undeployed",
+    deploymentStatus: "not_deployed",
+    productionUrl: null,
+    stagingUrl: null,
+    localUrl: "http://localhost:4700",
+    supabaseProject: CORE,
+    version: "0.1.0",
+    health: "unknown",
+    hosting: "none yet (static export; the apps/hl-bti Coolify pattern would apply)",
+    dependencies: ["@supabase/supabase-js"],
+    reusableModules: ["identity_core", "barberos", "transform_audit"],
+    softwareFactoryIntegration:
+      "None. It is a UI over RPCs that already exist; it creates no Factory work and introduces no engine of its own.",
+    notes:
+      'NOT DEPLOYED and not yet usable against production, for one reason stated plainly: it depends on migration 0056, which is written, applied from empty locally and covered by 75 pgTAP assertions, but is UNAPPLIED to any project pending CEO approval. Without 0056 the catalog reads, the shop upsert, capability enablement and onboarding have no browser-reachable path, so those screens would fail. The 22 barberos_audit_* RPCs it also uses ARE live (0055, applied 2026-09-17). Two things it deliberately does not do: nothing here sends an email or an SMS (no provider is configured on this platform, so the proposal control says "Mark as sent" and the retention screen is a call list), and the reporting screen carries no revenue, traffic, ranking or conversion figure, because the platform holds none of those and a number there would be invented.',
+    evidence:
+      "apps/barberos-cockpit; migration 0056 written UNAPPLIED; 59 unit assertions in src/lib/model.test.ts and 75 pgTAP assertions in supabase/tests/56_barberos_cockpit_api.sql; format, lint, typecheck and next build all green",
+  },
+  {
     key: "ats-resume-optimizer",
     name: "ATS Resume Optimizer",
     description:

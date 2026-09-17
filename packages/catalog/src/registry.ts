@@ -204,6 +204,29 @@ const ASSETS: Asset[] = [
     evidence: "apps/ats-resume-optimizer",
   },
   {
+    id: "app.barberos-cockpit",
+    kind: "application",
+    name: "Barbershop Transformation Cockpit",
+    summary:
+      "The internal operator console for the BarberOS managed service, and the first application on this platform to call a barberos_* RPC at all: pipeline board, prospect intake, audit runs with evidence labelling, the discovery call, the catalog-bounded proposal builder, the sale, onboarding a sold shop into its own tenant, capability delivery, the shop's owned page, the client book and the retention call list. It adds NO schema of its own \u2014 it is a UI over the public.barberos_* and public.barberos_audit_* RPCs, so RLS, tenancy, permissions, audit logging and the capability catalog's honesty rules remain the only authority. What it refuses to do is the point: it cannot offer a capability the catalog has not shipped, cannot show a composite score without its coverage, cannot create a client tenant without an accepted proposal, labels every unevidenced finding as inference, and reports no revenue, traffic, ranking or message-delivery figure because this platform holds none of those.",
+    maturity: "built_undeployed",
+    reuse: ["internal_only", "reusable"],
+    owner: "Herman Legacy Digital",
+    layer: "HL-BOS",
+    key: "barberos-cockpit",
+    location: "apps/barberos-cockpit",
+    tags: ["spa", "authenticated", "internal", "operator"],
+    relationships: [
+      { kind: "uses", to: "api.barberos-audit" },
+      { kind: "uses", to: "api.barberos-cockpit" },
+      { kind: "uses", to: "db.barberos" },
+      { kind: "uses", to: "db.transform_audit" },
+      { kind: "uses", to: "svc.identity" },
+      { kind: "owned_by", to: "repo.hl-bos-platform" },
+    ],
+    evidence: "apps/barberos-cockpit (59 unit assertions in src/lib/model.test.ts)",
+  },
+  {
     id: "app.hl-bti",
     kind: "application",
     name: "HL-BTI App",
@@ -963,19 +986,41 @@ const ASSETS: Asset[] = [
     kind: "api",
     name: "BarberOS Audit API",
     summary:
-      "The 22 public.barberos_audit_* RPCs over the pre-sale diagnostic. Every one is SECURITY INVOKER and delegates to a transform_audit function that checks its own permission, so a wrapper adds reachability and never authority. No anon grant anywhere: this describes other people's businesses before they are customers and carries the sales hook, so it has no public audience. Everything returning composite_score returns coverage in the same object, because a bare 0 cannot be told apart from \u201cnothing reached this dimension\u201d \u2014 which in production is what it is: 35 runs completed at 1 of 1 scoring 0, 5 partially completed at 0 of 1 with no score, and not one of the 45 findings carrying an evidence URL. NEW work, not a reconstruction \u2014 UNAPPLIED to any project, pending CEO approval.",
+      "The 24 public.barberos_audit_* RPCs over the pre-sale diagnostic. Every one is SECURITY INVOKER and delegates to a transform_audit function that checks its own permission, so a wrapper adds reachability and never authority. No anon grant anywhere: this describes other people's businesses before they are customers and carries the sales hook, so it has no public audience. Everything returning composite_score returns coverage in the same object, because a bare 0 cannot be told apart from \u201cnothing reached this dimension\u201d \u2014 which in production is what it is: 35 runs completed at 1 of 1 scoring 0, 5 partially completed at 0 of 1 with no score, and not one of the 45 findings carrying an evidence URL. 22 of the 24 shipped in migration 0055, APPLIED to canonical production on 2026-09-17 under CEO approval (with two forward repairs, r01 and r02, for comment parity the body fingerprint caught). The other two \u2014 barberos_audit_my_agencies and barberos_audit_pipeline \u2014 are migration 0056 and are UNAPPLIED anywhere, pending CEO approval.",
     maturity: "built_undeployed",
     reuse: ["internal_only"],
     owner: "Herman Legacy Platform",
     layer: "HL-BOS",
     tags: ["rpc", "internal", "unapplied"],
-    metrics: { functions: 22 },
+    metrics: { functions: 24 },
     relationships: [
       { kind: "uses", to: "db.transform_audit" },
       { kind: "uses", to: "db.barberos" },
+      { kind: "referenced_by", to: "app.barberos-cockpit" },
     ],
     evidence:
-      "migration 0055; supabase/tests/55_barberos_audit_api.sql (55 assertions)",
+      "migrations 0055 + 0056; supabase/tests/55_barberos_audit_api.sql (55 assertions), 56_barberos_cockpit_api.sql (75 assertions)",
+  },
+  {
+    id: "api.barberos-cockpit",
+    kind: "api",
+    name: "BarberOS Cockpit API",
+    summary:
+      "The nine public RPCs migration 0056 added, all SECURITY INVOKER and none granted to anon. They exist because 0049\u20130055 left the transformation workflow reachable at both ends and broken in the middle: the capability catalog was readable under RLS but unreachable (so a proposal builder could not see which capability names the honesty trigger would accept), barberos.upsert_shop had been granted to authenticated since 0050 and never wrapped (so the shop row an accepted proposal needs could not be created, and enable_capability refuses a tenant with no shop), and platform.provision_tenant was the same (so a sold shop had nowhere to live). barberos_provision_client is the one new business primitive: it refuses a prospect with no accepted proposal, and refuses one already onboarded. barberos_catalog reports deliverable_today per bundle, which is false for all three seeded bundles because apply_bundle is all-or-nothing. UNAPPLIED anywhere, pending CEO approval.",
+    maturity: "built_undeployed",
+    reuse: ["internal_only"],
+    owner: "Herman Legacy Platform",
+    layer: "HL-BOS",
+    tags: ["rpc", "internal", "unapplied"],
+    metrics: { functions: 9 },
+    relationships: [
+      { kind: "uses", to: "db.barberos" },
+      { kind: "uses", to: "db.transform_audit" },
+      { kind: "uses", to: "svc.identity" },
+      { kind: "referenced_by", to: "app.barberos-cockpit" },
+    ],
+    evidence:
+      "migration 0056; supabase/tests/56_barberos_cockpit_api.sql (75 assertions)",
   },
   {
     id: "api.bti-public",
@@ -1230,14 +1275,14 @@ const ASSETS: Asset[] = [
     "Business Transformation Audit",
     10,
     "HL-BOS",
-    "The pre-sale diagnostic: a campaign weights the dimensions, a run scores one prospect against them, findings are the evidence and recommendations resolve to real BarberOS capabilities. Agency-tenant scoped \u2014 the tenant is Herman Legacy doing the auditing, not the shop being audited. Its honesty guards are structural: findings are append-only, 'unknown' and a null score are the same fact, a dimension cannot be called 'verified' without a finding carrying an evidence URL, composite_score is derived and cannot be written by hand, an outreach hook must cite a finding from its own run, and a proposal cannot name a capability the catalog lacks, mention a deferred one at all, or call a planned one deliverable today. Reconstructed into source control on 2026-09-17 and verified byte-for-byte against production across eleven fingerprint categories. It has NO public API: nothing outside the database can read its 40 recorded runs.",
+    "The pre-sale diagnostic: a campaign weights the dimensions, a run scores one prospect against them, findings are the evidence and recommendations resolve to real BarberOS capabilities. Agency-tenant scoped \u2014 the tenant is Herman Legacy doing the auditing, not the shop being audited. Its honesty guards are structural: findings are append-only, 'unknown' and a null score are the same fact, a dimension cannot be called 'verified' without a finding carrying an evidence URL, composite_score is derived and cannot be written by hand, an outreach hook must cite a finding from its own run, and a proposal cannot name a capability the catalog lacks, mention a deferred one at all, or call a planned one deliverable today. Reconstructed into source control on 2026-09-17 and verified byte-for-byte against production across eleven fingerprint categories. It had NO public API until migration 0055 gave it one \u2014 nothing outside the database could read its 40 recorded runs \u2014 and 0056 added the pipeline read the operator cockpit is drawn from.",
   ),
   ...db(
     "barberos",
     "BarberOS",
     14,
     "HL-BOS",
-    "The BarberOS vertical: capability catalog and per-tenant toggles, the shop record and its owned website, and the client book — every client, every visit and the cut itself. RLS enabled AND forced on all 14 tables, no write policy anywhere (every write goes through a permission-checked RPC), and exactly two anon-reachable functions, both the public shop page. Reconstructed into source control on 2026-09-17 from a schema that was built directly against production and never committed; verified byte-for-byte against production across twelve structural fingerprint categories. The transform_audit schema that accompanies it in production is NOT yet in this repository.",
+    "The BarberOS vertical: capability catalog and per-tenant toggles, the shop record and its owned website, and the client book — every client, every visit and the cut itself. RLS enabled AND forced on all 14 tables, no write policy anywhere (every write goes through a permission-checked RPC), and exactly two anon-reachable functions, both the public shop page. Reconstructed into source control on 2026-09-17 from a schema that was built directly against production and never committed; verified byte-for-byte against production across twelve structural fingerprint categories. The transform_audit schema that accompanies it in production was brought into source control alongside it, as migrations 0053 and 0054.",
   ),
 
   // ======================================================================

@@ -49,8 +49,8 @@
     }
   ],
   "foundationOrdinals": [1, 2, 3, 4, 5, 6, 7, 8],
-  "$notYetAppliedOrdinals_note": "Measured against the live migration ledger on 2026-09-17, not assumed. Production carries 98 migrations; this repository carries 52. Fifty-four are applied there and exist in no repository file (dma_* 17, jobscout_* 8, disco_* 7, BarberOS 11, hlbos_* split/rename variants 5, hlvs_board/ingest 3, and one temp_perftest_page_twin). Four repo migrations have never been applied: 0030 (CEO Notebook), 0031 (transformation intake -- previously untracked as unapplied, and the live /api/business-transformation-intake route depends on it), and 0044/0045 which production superseded with 0044a/0044b/0045_..._honestly. Ordinals 0049-0054 are a special case: see reconstructedFromProduction. Ordinal 0055 (BarberOS Audit public API) was the first NEW work in this sequence rather than a reconstruction, and was APPLIED to canonical production on 2026-09-17 under CEO approval.",
-  "notYetAppliedOrdinals": [30, 31, 44, 45],
+  "$notYetAppliedOrdinals_note": "Measured against the live migration ledger on 2026-09-17, not assumed. Production carries 99 migrations (98 plus 0055 applied under approval, with its two forward repairs r01 and r02); this repository carries 56. Fifty-four are applied there and exist in no repository file (dma_* 17, jobscout_* 8, disco_* 7, temp_perftest_page_twin and the rest); 0030, 0031, 0044 and 0045 are written here and have never been applied anywhere; and 0056 is NEW WORK written here on 2026-09-17, applied from empty locally and covered by 75 pgTAP assertions, but UNAPPLIED to any project pending CEO approval. Sixteen further repository migrations are recorded in production under different version stamps, which is the mechanical reason the protected one-click migration workflow cannot pass its own check.",
+  "notYetAppliedOrdinals": [30, 31, 44, 45, 56],
   "knownMigrationDrift": {
     "$comment": "ACTIVE drift, measured against the live ledger 2026-09-17. Seventeen migrations were applied to canonical production under different version stamps than the files carry. Content is believed unchanged; only the recorded version differs. This is the mechanical reason the protected one-click migration workflow's drift check cannot pass, and reconciling it is its own approved piece of work. Ordinal 48 also collides by NAME in production: hlbos_0048 identifies BOTH hlbos_0048_ats_resume_optimizer (this file) and hlbos_0048_barberos_capability_catalog (applied 2026-09-09), so migration numbers no longer identify migrations there.",
     "entries": [
@@ -226,6 +226,22 @@
         ],
         "verification": "Post-apply: function signatures, grants and BODIES all fingerprint-identical to a local PostgreSQL 16.13 with all 55 migrations applied from empty. 22 public functions, 0 SECURITY DEFINER among them, 0 reachable by anon, all with search_path pinned. Security advisors unchanged at 40 findings, finding for finding. Fail-closed proved in production (an unauthenticated call raises 42501 from the inner function), and the 40 runs / 50 shops / 1 campaign read back correctly through the API under a platform-owner session.",
         "dataUnchanged": "40 runs, 45 findings, 40 recommendations before and after; purely additive, no table touched."
+      }
+    ]
+  },
+  "pendingApproval": {
+    "$comment": "Migrations that are written, tested and deliberately NOT applied. They are listed here so nothing reads their absence from production as an oversight.",
+    "entries": [
+      {
+        "ordinal": "0056",
+        "file": "supabase/migrations/20260917180000_hlbos_0056_barberos_cockpit_api.sql",
+        "writtenOn": "2026-09-17",
+        "appliedTo": null,
+        "additiveOnly": true,
+        "why": "Closes the middle of the BarberOS transformation workflow, which 0049-0055 left unreachable. The capability catalog was readable under RLS but had no public wrapper, so nothing could see which capabilities have shipped; barberos.upsert_shop had been granted to authenticated since 0050 and never wrapped, so the shop row an accepted proposal needs could not be created and enable_capability refuses a tenant with no shop; platform.provision_tenant was the same, so a sold shop had nowhere to live; and reading the pipeline took four calls per row.",
+        "adds": "9 public wrappers (barberos_catalog, barberos_capability_state, barberos_save_shop, barberos_enable_capability, barberos_disable_capability, barberos_apply_bundle, barberos_provision_client, barberos_audit_my_agencies, barberos_audit_pipeline) plus two schema functions (barberos.provision_client, transform_audit.pipeline). No table, column, constraint, policy, trigger or existing grant is altered. Nothing granted to anon.",
+        "verifiedBy": "56 migrations applied from empty on local PostgreSQL 16.13; supabase/tests/56_barberos_cockpit_api.sql, 75 assertions passing; full suite 1190 pgTAP assertions, 0 failing.",
+        "blocks": "apps/barberos-cockpit cannot be used against the live database until this is applied."
       }
     ]
   }

@@ -156,11 +156,20 @@ describe("repository scan (ground truth)", () => {
     // 0050_citext_guard_semantics, 0051_unknown_is_not_complete,
     // 0054_discovery_call and 0055_proposal.
     // Plus 0055 (barberos_audit public API) — the first migration in this
-    // sequence that is NEW WORK rather than a reconstruction. It does not exist
-    // in production and is UNAPPLIED anywhere, pending CEO approval. It exists
+    // sequence that is NEW WORK rather than a reconstruction. It existed
     // because transform_audit had 27 functions and zero public RPCs, so the 40
     // audit runs recorded in production could not be read by any application.
-    expect(inv.migrations.length).toBe(55);
+    // APPLIED to canonical production on 2026-09-17 under CEO approval, as
+    // version 20260917212122, with two forward repairs (r01, r02) for the
+    // in-body comment parity the body fingerprint caught.
+    // Plus 0056 (barberos cockpit API) — also NEW WORK, and UNAPPLIED
+    // anywhere, pending CEO approval. Purely additive: nine public wrappers
+    // plus two schema functions, no table, column, constraint, policy or grant
+    // altered. It closes the middle of the workflow, which 0049–0055 left
+    // unreachable: the capability catalog had no public read, barberos.
+    // upsert_shop and platform.provision_tenant were granted to authenticated
+    // but never wrapped, and there was no single read of the pipeline.
+    expect(inv.migrations.length).toBe(56);
     expect(inv.schemas).toContain("barberos");
     expect(inv.schemas).toContain("transform_audit");
     expect(inv.edgeFunctions).toContain("ai-gateway");

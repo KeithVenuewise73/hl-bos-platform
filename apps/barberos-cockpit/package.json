@@ -1,0 +1,29 @@
+{
+  "name": "@hl-bos/barberos-cockpit",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Herman Legacy Digital — Barbershop Transformation Cockpit. The INTERNAL operator application for the BarberOS managed service: prospect, verified audit, discovery call, recommendations, proposal, sale, onboarding, capability delivery, client CRM, retention and reporting. Adds no schema of its own — it is a UI over the existing public.barberos_* and public.barberos_audit_* RPCs, so RLS, tenancy, permissions, audit logging and the capability catalog's honesty rules remain the only authority.",
+  "type": "module",
+  "scripts": {
+    "dev": "next dev --port 4700",
+    "build": "next build",
+    "start": "next start --port 4700",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint .",
+    "test": "vitest run",
+    "clean": "rm -rf .next out dist *.tsbuildinfo"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "catalog:",
+    "next": "catalog:",
+    "react": "catalog:",
+    "react-dom": "catalog:"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "@types/react": "catalog:",
+    "@types/react-dom": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  }
+}

@@ -60,14 +60,15 @@ Keith clicks Send to GitHub  ->  CI runs  ->  console shows plain-English result
 
 ## Where things are
 
-|                     |                                                                                                                               |
-| ------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
-| Console             | `apps/control-center` — runs locally only; see its README                                                                     |
-| Database            | `supabase/migrations` (0001–0055), `supabase/tests` (47 pgTAP files)                                                          |
-| Milestone state     | `.hlbos/milestone.json` — the console reads this; keep it true                                                                |
-| Failure translation | `apps/control-center/src/lib/translate.ts` — add a rule whenever a new failure surfaces jargon                                |
-| Portfolio truth     | `apps/control-center/src/lib/registry.ts` — a product moves off `not-started` only when it has code                           |
-| Production truth    | The live database, not this repo. Read it before you audit anything — see `docs/products/barberos/02-production-drift-map.md` |
+|                       |                                                                                                                               |
+| --------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| Console               | `apps/control-center` — runs locally only; see its README                                                                     |
+| Database              | `supabase/migrations` (0001–0056), `supabase/tests` (48 pgTAP files)                                                          |
+| Milestone state       | `.hlbos/milestone.json` — the console reads this; keep it true                                                                |
+| Failure translation   | `apps/control-center/src/lib/translate.ts` — add a rule whenever a new failure surfaces jargon                                |
+| Portfolio truth       | `apps/control-center/src/lib/registry.ts` — a product moves off `not-started` only when it has code                           |
+| BarberOS operator app | `apps/barberos-cockpit` — the internal console over the existing `barberos_*` RPCs; it adds no schema. See its README         |
+| Production truth      | The live database, not this repo. Read it before you audit anything — see `docs/products/barberos/02-production-drift-map.md` |
 
 ## Standing constraints
 

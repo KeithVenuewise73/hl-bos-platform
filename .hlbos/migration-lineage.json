@@ -3,7 +3,7 @@
   "schemaVersion": 1,
   "sourceDir": "supabase/migrations",
   "canonicalRepository": "KeithVenuewise73/hl-bos-platform",
-  "count": 55,
+  "count": 56,
   "migrations": [
     {
       "ordinal": 1,
@@ -465,6 +465,14 @@
       "sha256": "97fa605b8542714d2761c2cbfd30acf7dc4248081246da6acf5ea67220d49541",
       "foundation": false,
       "productionAppliedVersion": "20260917212122"
+    },
+    {
+      "ordinal": 56,
+      "name": "hlbos_0056_barberos_cockpit_api",
+      "filename": "20260917180000_hlbos_0056_barberos_cockpit_api.sql",
+      "version": "20260917180000",
+      "sha256": "769bd7d23f328c404ac7f88c1e79a7debe127410fd817064dd43fb2ba2e96497",
+      "foundation": false
     }
   ]
 }

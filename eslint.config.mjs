@@ -202,6 +202,23 @@ export default tseslint.config(
     },
   },
 
+  // Barbershop Transformation Cockpit env boundary — same rationale as HL-BTI,
+  // which this app's deployment shape copies. ONE file reads process.env: the
+  // Supabase client factory. A Next.js static export inlines only literal
+  // `process.env.NEXT_PUBLIC_*` dot-access at build time, so reading the same
+  // values through @hl-bos/config's loadEnv() would be `undefined` in the
+  // browser bundle. Both values are browser-safe by the platform's own ENV_SPEC
+  // (the publishable key is documented as public and gated by RLS and the
+  // permission-checked RPCs, not by secrecy). No service-role key is read
+  // anywhere in this app, and it has no route handler that could hold one.
+  {
+    files: ["apps/barberos-cockpit/src/lib/supabase.ts"],
+    rules: {
+      "no-restricted-properties": "off",
+      "no-restricted-syntax": "off",
+    },
+  },
+
   // ATS Resume Optimizer env boundary. ONE file reads process.env: the config
   // module that every other module takes its settings from. Nothing it reads
   // is browser-visible — the Anthropic key is read on the server, used on the
