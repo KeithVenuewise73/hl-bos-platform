@@ -1,6 +1,7 @@
 import { AI_SERVICES, SCORE_DISCLAIMER, SCORE_WEIGHTS } from "@hl-bos/ats-resume";
 import { Card, Notice, PageHead } from "@/components/ui.tsx";
 import { aiStatus } from "@/lib/config.ts";
+import { currentMode, getViewer, modeDescription } from "@/lib/session.ts";
 import { currentProfile, loadWorkspace, storageDescription } from "@/lib/store.ts";
 import { removeSampleData, restoreSampleData } from "@/lib/actions.ts";
 
@@ -16,7 +17,9 @@ export default async function SettingsPage() {
   const workspace = await loadWorkspace();
   const profile = await currentProfile();
   const ai = aiStatus();
-  const storage = storageDescription();
+  const storage = await storageDescription();
+  const mode = currentMode();
+  const viewer = await getViewer();
   const sampleCount =
     workspace.profiles.filter((p) => p.isSample === true).length +
     workspace.facts.filter((f) => f.isSample === true).length;
@@ -27,6 +30,28 @@ export default async function SettingsPage() {
         title="Settings"
         lead="What this installation has switched on, stated plainly."
       />
+
+      <Card title="How this installation runs">
+        <p>
+          <span className={mode === "local" ? "tag tag-partial" : "tag tag-strong"}>
+            {mode === "local" ? "Local mode — no sign-in" : "Signed-in mode"}
+          </span>
+          {viewer.email === null ? null : (
+            <span className="small muted" style={{ marginLeft: 8 }}>
+              signed in as {viewer.email}
+            </span>
+          )}
+        </p>
+        <p className="small">{modeDescription()}</p>
+        {mode === "local" ? (
+          <Notice tone="warn">
+            <strong>Do not put this on a public address as it stands.</strong> In local
+            mode there is no login, so anyone who could reach the URL could read this
+            career database. Deploying it sets an environment that requires sign-in, and
+            the app refuses to start if it finds itself deployed without one.
+          </Notice>
+        ) : null}
+      </Card>
 
       <Card title="AI provider">
         <p>

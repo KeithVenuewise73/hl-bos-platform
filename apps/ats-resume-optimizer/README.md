@@ -29,6 +29,12 @@ pnpm --filter @hl-bos/ats-resume-optimizer start
 
 ---
 
+## Running it somewhere other than your own machine
+
+The app requires a sign-in whenever it is not local, and **refuses to serve at all** if it finds itself deployed with no identity provider configured. That guard exists because the alternative failure — one forgotten environment variable publishing a resume, an employment history and a record of every rejection — is not recoverable by apologising afterwards.
+
+See [DEPLOYMENT.md](./DEPLOYMENT.md) for the Coolify configuration. Note the persistent volume: without it, a redeploy destroys the stored data.
+
 ## Environment variables
 
 All optional. All server-side; none of them is browser-visible.

@@ -18,7 +18,7 @@ const LINKS: readonly { readonly href: string; readonly label: string }[] = [
  * the current path to mark the active link, and `usePathname` is the only way
  * to get that without threading a prop through every page.
  */
-export function Nav() {
+export function Nav({ signedInAs }: { signedInAs?: string | null }) {
   const current = usePathname() ?? "/";
   return (
     <aside className="sidebar">
@@ -45,6 +45,16 @@ export function Nav() {
           </Link>
         ))}
       </nav>
+      {signedInAs === undefined || signedInAs === null ? null : (
+        <form action="/logout" method="post" style={{ marginTop: 18 }}>
+          <div className="small muted" style={{ padding: "0 10px 6px" }}>
+            {signedInAs}
+          </div>
+          <button className="btn btn-sm" type="submit" style={{ width: "100%" }}>
+            Sign out
+          </button>
+        </form>
+      )}
     </aside>
   );
 }

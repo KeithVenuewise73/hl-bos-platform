@@ -208,7 +208,15 @@ export default tseslint.config(
   // server, and never returned to a page — so there is no NEXT_PUBLIC_ value
   // here at all.
   {
-    files: ["apps/ats-resume-optimizer/src/lib/config.ts"],
+    files: [
+      "apps/ats-resume-optimizer/src/lib/config.ts",
+      // The browser client and the request gate must read NEXT_PUBLIC_* as
+      // literal dot-access (Next inlines it into the client bundle) and must
+      // run before the config module is available. Publishable key only —
+      // browser-safe by ENV_SPEC, gated by RLS rather than by secrecy.
+      "apps/ats-resume-optimizer/src/lib/browser.ts",
+      "apps/ats-resume-optimizer/src/middleware.ts",
+    ],
     rules: {
       "no-restricted-properties": "off",
       "no-restricted-syntax": "off",

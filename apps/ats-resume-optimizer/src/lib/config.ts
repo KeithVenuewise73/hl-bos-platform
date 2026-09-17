@@ -20,6 +20,12 @@ export interface AppConfig {
   readonly anthropicModel: string;
   /** Whether demo data is seeded on first run. */
   readonly seedDemoData: boolean;
+  /** Which HL-BOS environment this process belongs to. Decides the auth mode. */
+  readonly hlBosEnv: string | undefined;
+  readonly nodeEnv: string | undefined;
+  /** Supabase, when configured. Publishable key only — never service-role. */
+  readonly supabaseUrl: string | undefined;
+  readonly supabasePublishableKey: string | undefined;
 }
 
 let cached: AppConfig | undefined;
@@ -27,15 +33,20 @@ let cached: AppConfig | undefined;
 export function config(): AppConfig {
   if (cached !== undefined) return cached;
   const env = process.env;
-  const key = env["ANTHROPIC_API_KEY"];
-  cached = {
+  const nonEmpty = (value: string | undefined): string | undefined =>
+    value !== undefined && value.trim().length > 0 ? value.trim() : undefined;
+  const resolved: AppConfig = {
     dataDir: env["ATS_DATA_DIR"] ?? ".data",
-    anthropicApiKey:
-      key !== undefined && key.trim().length > 0 ? key.trim() : undefined,
+    anthropicApiKey: nonEmpty(env["ANTHROPIC_API_KEY"]),
     anthropicModel: env["ATS_AI_MODEL"] ?? "claude-opus-5",
     seedDemoData: env["ATS_SEED_DEMO"] !== "false",
+    hlBosEnv: nonEmpty(env["HL_BOS_ENV"]),
+    nodeEnv: nonEmpty(env["NODE_ENV"]),
+    supabaseUrl: nonEmpty(env["NEXT_PUBLIC_SUPABASE_URL"]),
+    supabasePublishableKey: nonEmpty(env["NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY"]),
   };
-  return cached;
+  cached = resolved;
+  return resolved;
 }
 
 /** What Settings shows about the AI provider. Never includes the key itself. */
