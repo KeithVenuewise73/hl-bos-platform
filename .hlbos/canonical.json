@@ -81,7 +81,7 @@
         "plusHlbosNamedNotInThisRepo": 12,
         "detail": "38 migrations from six foreign lineages, plus 12 hlbos_*-named migrations (barberos, transform audit, proposal, discovery call, shop API, product map, client CRM), are applied to canonical production and exist nowhere in this repository. One is named temp_perftest_page_twin."
       },
-      "remedy": "Run check-lineage-drift.mjs against the live project, decide which lineages are canonical, and bring the ledger and the repository back into agreement. An architectural decision about the platform, not a cleanup task."
+      "remedy": "DECIDED 2026-09-17 by the CEO: separate the product lineage into its own Supabase project. Measurement then showed the out-of-band work is TWO things, not one, and they need opposite treatment -- see docs/architecture-audit/lineage-split/. Group A (jobscout, dma, barberos, transform_audit: 60 tables, 959 rows) is genuinely separate product work and moves. Group B (disco, plus the hlvs_board_*, ingest_* and temp_perftest_* migrations: 5 tables, 136 rows) is HL-BOS's own Venture Studio work applied off-book -- every one of those migrations touches vstudio, which is this repository's own 342 MB schema, so moving it would tear Venture Studio in half. Group B gets ADOPTED into supabase/migrations instead. Execution is blocked on two things, neither of them a decision: create_project timed out three times on 2026-09-17 with nothing created, and the consuming applications (hl-jobscout, homehuddle, and a BarberOS repo not yet located) are outside this session's scope. Nothing has been moved and nothing has been dropped; HL-BOS Core is untouched."
     }
   },
   "resolvedMigrationDrift": {
