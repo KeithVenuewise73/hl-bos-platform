@@ -164,6 +164,18 @@
     {
       "title": "Apply migration 0048 (ats -- ATS Resume Optimizer) to production -- APPLIED to HL-BOS Core on 2026-09-16 with CEO authorization. Verified in place: 17 tables, RLS enabled AND forced on all 17, 68 policies, zero anon grants, and four CHECK constraints that make it impossible to record an unsupported or unconfirmed claim as exported. All four were exercised against a real PostgreSQL 16 with the same migration and forced RLS, using the exact rows the app's write planner produces: each fabrication probe rejected, and a second user saw 0 rows. One honest defect in the process: it was applied before checking the ledger, so it shares ordinal 0048 with hlbos_0048_barberos_capability_catalog. Harmless today; renumbering the repo file and correcting the one ledger row is an outstanding cleanup and needs CEO sign-off because it edits the production ledger.",
       "done": true
+    },
+    {
+      "title": "ATS Resume Optimizer is deployable and backed by PostgreSQL -- merged to main via PR #64 (merge commit 31ef048), CI green on the exact reviewed head 8eba79f AND on main: Validate (format, lint, typecheck, 904 tests), Database tests (pgTAP), Migration checks, Edge function tests (Deno), Secret scan. Four things that had to be true before a public address was safe: a deployment guard that fails closed (deployed with no identity provider, the app serves nothing but a page naming the missing variables); Supabase Auth sign-in, publishable key only; the store writing to the ats schema under the signed-in user's own session, so row-level security rather than application code keeps one person's career data invisible to another; and the Coolify container. The database half was proven rather than asserted -- migration 0048 applied to a fresh PostgreSQL 16, the 153 rows the write planner produces inserted under forced RLS as an ordinary authenticated user, then each anti-fabrication constraint attacked and each one rejected the write, with a second user seeing 0 rows. Worth recording because it was nearly wrong: storing requirements, matrix rows and generated sentences as JSONB on their parents would have passed every test and left the five constraint-bearing tables permanently empty.",
+      "done": true
+    },
+    {
+      "title": "Deploy the ATS Resume Optimizer on Coolify -- the remaining CEO step, and the only real test of two things. The container image has never been built: there is no Docker daemon in the build environment, so the Dockerfile is verified only by running the standalone output under the exact CMD and by mirroring a pattern five other apps already use. And the PostgreSQL path has run against a local PostgreSQL 16 with the same migration and the same forced RLS, never against the production project -- the first signed-in save is what proves it. apps/ats-resume-optimizer/DEPLOYMENT.md has the exact settings, including the two NEXT_PUBLIC_SUPABASE_* values which must be BUILD variables (set at runtime only, sign-in silently cannot work) and HL_BOS_ENV=production at runtime.",
+      "done": false
+    },
+    {
+      "title": "Correct the duplicated migration ordinal 0048 -- needs CEO sign-off because it edits a production ledger row. hlbos_0048_ats_resume_optimizer and hlbos_0048_barberos_capability_catalog share ordinal 0048 in the production ledger, from my applying the migration before running list_migrations. That was my error, not a schema defect: both migrations are applied and correct, and nothing is broken today. Fixing it means renumbering the repo file to 0059, re-locking the lineage manifest, and updating one row in supabase_migrations.schema_migrations.",
+      "done": false
     }
   ],
   "blockers": [
