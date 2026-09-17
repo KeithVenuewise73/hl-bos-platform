@@ -53,11 +53,15 @@
 -- ONE HONESTY RULE IS BUILT INTO THE SHAPE
 --
 -- Everything that returns composite_score returns `coverage` beside it, in the
--- same object. In production every run scores 0 with 0 of 3 dimensions
--- assessed, because nothing has egress and the diagnostic has never fetched a
--- website. A list endpoint that returned the score alone would let a UI render
--- "0/100" as a judgement about the barbershop rather than an admission about
--- us. The two cannot be separated by a caller, because they arrive together.
+-- same object, and a caller cannot separate them.
+--
+-- A bare 0 is ambiguous in a way that matters commercially: it can mean "we
+-- looked and it was bad" or "nothing ever reached this dimension". In
+-- production today it is the latter -- 35 runs read completed at 1 of 1 with a
+-- composite of 0, 5 read partially_completed at 0 of 1 with no score, and NOT
+-- ONE of the 45 findings carries an evidence URL. A list endpoint returning the
+-- score alone would let a UI render "0/100" as a judgement about the barbershop
+-- when it is a statement about how little we have actually established.
 --
 -- rollback:
 --   DROP FUNCTION IF EXISTS
@@ -165,8 +169,9 @@ begin
              'business_name', (select p.business_name from visibility.prospects p
                                 where p.id = r.prospect_id),
              'composite_score', r.composite_score,
-             -- Never the score without its coverage. In production every run
-             -- reads 0 of 3, and that is a fact about us, not the shop.
+             -- Never the score without its coverage. A 0 here can mean "we
+             -- looked and it scored nothing" or "nothing reached this
+             -- dimension"; the caller must not be able to confuse them.
              'coverage', jsonb_build_object('scored', r.dimensions_scored,
                                             'possible', r.dimensions_possible),
              'findings', (select count(*) from transform_audit.findings f where f.run_id = r.id),

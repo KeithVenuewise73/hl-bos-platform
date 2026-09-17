@@ -49,10 +49,10 @@
     }
   ],
   "foundationOrdinals": [1, 2, 3, 4, 5, 6, 7, 8],
-  "$notYetAppliedOrdinals_note": "Measured against the live migration ledger on 2026-09-17, not assumed. Production carries 98 migrations; this repository carries 52. Fifty-four are applied there and exist in no repository file (dma_* 17, jobscout_* 8, disco_* 7, BarberOS 11, hlbos_* split/rename variants 5, hlvs_board/ingest 3, and one temp_perftest_page_twin). Four repo migrations have never been applied: 0030 (CEO Notebook), 0031 (transformation intake -- previously untracked as unapplied, and the live /api/business-transformation-intake route depends on it), and 0044/0045 which production superseded with 0044a/0044b/0045_..._honestly. Ordinals 0049-0054 are a special case: see reconstructedFromProduction. Ordinal 0055 is different again -- the BarberOS Audit public API, the first NEW work in this sequence rather than a reconstruction. It exists nowhere but this repository and is UNAPPLIED, pending CEO approval.",
-  "notYetAppliedOrdinals": [30, 31, 44, 45, 55],
+  "$notYetAppliedOrdinals_note": "Measured against the live migration ledger on 2026-09-17, not assumed. Production carries 98 migrations; this repository carries 52. Fifty-four are applied there and exist in no repository file (dma_* 17, jobscout_* 8, disco_* 7, BarberOS 11, hlbos_* split/rename variants 5, hlvs_board/ingest 3, and one temp_perftest_page_twin). Four repo migrations have never been applied: 0030 (CEO Notebook), 0031 (transformation intake -- previously untracked as unapplied, and the live /api/business-transformation-intake route depends on it), and 0044/0045 which production superseded with 0044a/0044b/0045_..._honestly. Ordinals 0049-0054 are a special case: see reconstructedFromProduction. Ordinal 0055 (BarberOS Audit public API) was the first NEW work in this sequence rather than a reconstruction, and was APPLIED to canonical production on 2026-09-17 under CEO approval.",
+  "notYetAppliedOrdinals": [30, 31, 44, 45],
   "knownMigrationDrift": {
-    "$comment": "ACTIVE drift, measured against the live ledger 2026-09-17. Sixteen migrations were applied to canonical production under different version stamps than the files carry. Content is believed unchanged; only the recorded version differs. This is the mechanical reason the protected one-click migration workflow's drift check cannot pass, and reconciling it is its own approved piece of work. Ordinal 48 also collides by NAME in production: hlbos_0048 identifies BOTH hlbos_0048_ats_resume_optimizer (this file) and hlbos_0048_barberos_capability_catalog (applied 2026-09-09), so migration numbers no longer identify migrations there.",
+    "$comment": "ACTIVE drift, measured against the live ledger 2026-09-17. Seventeen migrations were applied to canonical production under different version stamps than the files carry. Content is believed unchanged; only the recorded version differs. This is the mechanical reason the protected one-click migration workflow's drift check cannot pass, and reconciling it is its own approved piece of work. Ordinal 48 also collides by NAME in production: hlbos_0048 identifies BOTH hlbos_0048_ats_resume_optimizer (this file) and hlbos_0048_barberos_capability_catalog (applied 2026-09-09), so migration numbers no longer identify migrations there.",
     "entries": [
       {
         "ordinal": 29,
@@ -133,6 +133,11 @@
         "ordinal": 48,
         "repoVersion": "20260916120000",
         "productionAppliedVersion": "20260916190643"
+      },
+      {
+        "ordinal": 55,
+        "repoVersion": "20260917160000",
+        "productionAppliedVersion": "20260917212122"
       }
     ]
   },
@@ -197,5 +202,31 @@
       "20260913025202 hlbos_0058_barberos_client_crm"
     ],
     "knownResidual": "In BOTH schemas the trigger functions carry PostgreSQL's built-in default of EXECUTE to PUBLIC (proacl is null), so `anon` can call them: five in barberos and eight in transform_audit. Production is in the same state, so it is reproduced rather than silently corrected -- changing it here would be a behaviour change smuggled in under a reconciliation. It is inert: a trigger function cannot be called outside a trigger, which 49_barberos.sql asserts. Worth a separate, deliberate migration across both schemas. The transform_audit public-API gap this section previously recorded is ADDRESSED by migration 0055 (22 public.barberos_audit_* RPCs, all SECURITY INVOKER, no anon grant) -- but 0055 is unapplied, so in PRODUCTION those 40 runs, 45 findings and 40 recommendations are still unreadable until it is approved and applied."
+  },
+  "appliedUnderApproval": {
+    "$comment": "Migrations this repository applied to canonical production itself, with the CEO approval that authorised each and the verification that followed. Applied INDIVIDUALLY rather than as a batch, because the drift recorded in knownMigrationDrift means the protected one-click workflow's drift check cannot pass and forcing it would re-run migrations production already holds under other names.",
+    "entries": [
+      {
+        "ordinal": 55,
+        "name": "hlbos_0055_barberos_audit_public_api",
+        "approvedBy": "CEO, 2026-09-17, in session",
+        "appliedOn": "2026-09-17",
+        "productionAppliedVersion": "20260917212122",
+        "forwardRepairs": [
+          {
+            "version": "20260917212337",
+            "name": "hlbos_0055r01_barberos_audit_body_parity",
+            "why": "The first apply retyped the SQL instead of sending the repo file verbatim, and dropped five in-body comments from four functions (shops_for, runs_for, add_competitor, barberos_audit_bundle). Behaviour was identical -- 22 of 26 bodies already matched byte-for-byte -- but it was textual repo-vs-production drift, which is the exact condition this whole sequence of work exists to remove. The post-apply body fingerprint caught it; reading the SQL had not. Repaired by applying the four definitions extracted verbatim from the committed file."
+          },
+          {
+            "version": "20260917212543",
+            "name": "hlbos_0055r02_runs_for_comment_parity",
+            "why": "A comment inside runs_for asserted that in production 'every run reads 0 of 3' dimensions. That was false and I had invented the 3 from my own test fixture: the production campaign weights ONE dimension (website), so 35 runs read completed at 1 of 1 scoring 0 and 5 read partially_completed at 0 of 1 with no score. Reading the 40 runs through the new API is what exposed it. The comment now states the principle rather than a census, because a census in a code comment rots."
+          }
+        ],
+        "verification": "Post-apply: function signatures, grants and BODIES all fingerprint-identical to a local PostgreSQL 16.13 with all 55 migrations applied from empty. 22 public functions, 0 SECURITY DEFINER among them, 0 reachable by anon, all with search_path pinned. Security advisors unchanged at 40 findings, finding for finding. Fail-closed proved in production (an unauthenticated call raises 42501 from the inner function), and the 40 runs / 50 shops / 1 campaign read back correctly through the API under a platform-owner session.",
+        "dataUnchanged": "40 runs, 45 findings, 40 recommendations before and after; purely additive, no table touched."
+      }
+    ]
   }
 }

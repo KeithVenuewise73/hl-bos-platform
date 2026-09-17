@@ -492,11 +492,11 @@ A mutation confirms this bites: rewriting one wrapper to read the table itself a
 defect this design exists to prevent — fails the escalation assertion.
 
 **2. The score never travels without its coverage.** Every response carrying `composite_score` carries `coverage` in
-the same object, and a caller cannot separate them. In production every run scores **0 with 0 of 3 dimensions
-assessed**, because nothing has egress and the diagnostic has never fetched a website. A list endpoint returning the
-score alone would let a UI render _"0/100"_ as a judgement about the barbershop when it is an admission about us.
-The run list also counts `findings` and `evidenced_findings` separately, so "45 findings" can never read as "45
-evidenced findings".
+the same object, and a caller cannot separate them. A bare 0 is ambiguous in a way that matters commercially: it can
+mean "we looked and it was bad" or "nothing ever reached this dimension." A list endpoint returning the score alone
+would let a UI render _"0/100"_ as a judgement about the barbershop. The run list also counts `findings` and
+`evidenced_findings` separately, so "45 findings" can never read as "45 evidenced findings" — which turns out to
+matter a great deal (see §7d).
 
 **No anon grant anywhere**, deliberately. Unlike `barberos_published_site`, this API describes other people's
 businesses before they are customers and carries the sales hook we intend to open with. It has no public audience.
@@ -513,11 +513,75 @@ that way.
 55 migrations applied from empty; **1115 pgTAP assertions, 0 failing** (1060 before, +55); 860 unit tests; format,
 lint, typecheck 18/18; migration checks and lineage green at 55.
 
-### Needs a decision
+### Applied
 
-**Migration 0055 is unapplied.** It is purely additive — it creates no table, changes no existing function's
-behaviour, and grants nothing to `anon`. Until it is applied to production, the 40 runs already sitting there stay
-unreadable.
+**0055 was applied to canonical production on 2026-09-17 under CEO approval.** See §7d.
+
+---
+
+## 7d. 0055 applied — and what reading the runs revealed (2026-09-17)
+
+Applied individually rather than as a batch, for the reason in §2c: the drift means the protected one-click
+workflow's check cannot pass, and forcing it would re-run migrations production already holds under other names.
+Same approach as 0046/0047.
+
+Recorded in production as version `20260917212122` — the management-API stamp, not the file's `20260917160000`, the
+same drift pattern as the other seventeen entries, now recorded in `knownMigrationDrift`.
+
+**Verification, post-apply:** function signatures, grants and bodies all fingerprint-identical to a local
+PostgreSQL 16.13 with all 55 migrations applied from empty. 22 public functions, none `SECURITY DEFINER`, none
+reachable by `anon`, every one with `search_path` pinned. **Security advisors unchanged: 40 findings before, 40
+after, finding for finding.** Data untouched: 40 runs, 45 findings, 40 recommendations before and after.
+
+Fail-closed proved _in production_: an unauthenticated call raises `42501 insufficient privilege to read this
+agency's audit runs`, from the inner function, reached through the wrapper.
+
+### Two things I got wrong, and fixed
+
+**1. I introduced drift while removing it.** The first apply retyped the SQL rather than sending the committed file
+verbatim, silently dropping five in-body comments from four functions. 22 of 26 bodies matched byte-for-byte; four
+did not. Behaviour was identical, but it was textual repo↔production divergence — the exact disease this sequence of
+work exists to cure. The body fingerprint caught it; reading the SQL had not. Repaired by applying the four
+definitions extracted verbatim from the file (`0055r01`).
+
+**2. I asserted a number I had invented.** A comment inside `runs_for` — and text in the migration header, two test
+headers, the catalog, the milestone and the previous version of this document — claimed that in production "every
+run scores 0 with 0 of 3 dimensions assessed." False. I extrapolated the _3_ from my own test fixture and never
+checked it. Reading the 40 runs through the new API is what exposed it. Corrected everywhere, and the code comment
+now states the principle rather than a census, because a census in a comment rots (`0055r02`).
+
+### What the 40 runs actually say
+
+Read through the new API under a platform-owner session:
+
+|                                                             |                                                               |
+| ----------------------------------------------------------- | ------------------------------------------------------------: |
+| Campaign                                                    | `wny_barbers_50`, weighting **one** dimension: `website: 100` |
+| Runs                                                        |                                                        **40** |
+| Shops on file                                               |                                   **50** (40 audited, 10 not) |
+| `completed`, coverage 1 of 1, composite **0**               |                                                        **35** |
+| `partially_completed`, coverage 0 of 1, **no score**        |                                                         **5** |
+| Findings                                                    |                                                            45 |
+| **Findings carrying an evidence URL**                       |                                                         **0** |
+| Shops with a Google Place ID / Instagram / Facebook on file |                                                 **0 / 0 / 0** |
+| Discovery calls recorded                                    |                                                         **0** |
+| **Runs carrying an outreach hook**                          |                                                        **40** |
+
+### The finding worth a decision
+
+**There are 40 sales hooks, and not one of them rests on evidence.**
+
+A sample, verbatim from production: _"There is no website behind your name, so every search that finds you ends
+there."_ The finding it cites has `confidence = 'inferred'` and `evidence_url = null`. It was inferred from a blank
+column in an imported spreadsheet — nothing has ever looked at that barbershop.
+
+The schema's guard did exactly what it was written to do: `runs_hook_needs_evidence` and `enforce_hook_provenance`
+require a hook to **cite a finding from its own run**. They do not require that finding to be **evidenced**. Those
+are different claims, and the gap between them is the difference between "we noticed" and "we checked."
+
+This is a design decision with commercial consequences, not a defect to fix unilaterally, so it is untouched.
+Tightening the guard to require `evidence_url is not null` would invalidate all 40 existing hooks — arguably the
+correct outcome, but it is a call about how Herman Legacy opens a conversation with a stranger.
 
 ---
 

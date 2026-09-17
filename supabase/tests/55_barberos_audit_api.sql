@@ -20,11 +20,13 @@
 --    file is really for.
 --
 -- 2. THE SCORE NEVER TRAVELS WITHOUT ITS COVERAGE. Every response carrying
---    composite_score carries `coverage` in the same object. In production every
---    run scores 0 with 0 of 3 dimensions assessed, because nothing has egress
---    and the diagnostic has never fetched a website. A caller must not be able
---    to render "0/100" as a judgement about the barbershop when it is an
---    admission about us.
+--    composite_score carries `coverage` in the same object. A bare 0 is
+--    ambiguous in a way that matters commercially: it can mean "we looked and
+--    it was bad" or "nothing ever reached this dimension". In production today
+--    35 runs read completed at 1 of 1 with a composite of 0, 5 read
+--    partially_completed at 0 of 1 with no score, and not one of the 45
+--    findings carries an evidence URL -- so a caller must not be able to render
+--    "0/100" as a judgement about the barbershop.
 -- ===========================================================================
 begin;
 select plan(55);

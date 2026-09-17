@@ -18,7 +18,7 @@
 --     called 'verified' without a finding that carries an evidence URL
 --   * composite_score is derived and cannot be written by hand
 --   * a run with anything still unknown finishes 'partially_completed', never
---     'completed' -- which is why all 40 real runs in production read that way
+--     'completed' -- which is why 5 of production's 40 runs read that way
 --   * an outreach hook must cite a finding from its own run
 --   * a proposal cannot name a capability the catalog does not have, cannot
 --     mention a deferred one at all, and cannot call a planned one deliverable
