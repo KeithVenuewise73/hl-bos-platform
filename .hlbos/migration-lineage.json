@@ -3,7 +3,7 @@
   "schemaVersion": 1,
   "sourceDir": "supabase/migrations",
   "canonicalRepository": "KeithVenuewise73/hl-bos-platform",
-  "count": 48,
+  "count": 49,
   "migrations": [
     {
       "ordinal": 1,
@@ -383,10 +383,18 @@
     },
     {
       "ordinal": 48,
-      "name": "hlbos_0048_highlightai_football",
-      "filename": "20260916120000_hlbos_0048_highlightai_football.sql",
+      "name": "hlbos_0048_ats_resume_optimizer",
+      "filename": "20260916120000_hlbos_0048_ats_resume_optimizer.sql",
       "version": "20260916120000",
-      "sha256": "8ea6cc7a543234842bfdb65646bb9d27acc424fc88e116b37a51b7086347c637",
+      "sha256": "e5e183d48300e5890d6efd4e15f0317c377ddf62f2954c1ef2153d31ab4af1e7",
+      "foundation": false
+    },
+    {
+      "ordinal": 49,
+      "name": "hlbos_0049_highlightai_football",
+      "filename": "20260917120000_hlbos_0049_highlightai_football.sql",
+      "version": "20260917120000",
+      "sha256": "6977c738f170a0591ea5c7c616bbf4fb999602da789356c4b2c5fdb8e09bd403",
       "foundation": false
     }
   ]

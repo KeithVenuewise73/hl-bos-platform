@@ -68,6 +68,14 @@ export const PORTFOLIO: readonly Product[] = [
     location: "legacy project (not reachable from this console)",
   },
   {
+    name: "ATS Resume Optimizer",
+    stage: "development",
+    status:
+      "Built in this repository and proven by running it: the engine parses a resume and a posting, matches every requirement to real evidence, scores the fit, generates a tailored resume and writes real DOCX and PDF files. An unsupported claim cannot reach an exported file — that was tested by editing a line to an invented $250M P&L and confirming the export dropped it. Storage is a local JSON file; the PostgreSQL schema (migration 0048) is written and verified against a local PostgreSQL 16 but is UNAPPLIED, and nothing is deployed.",
+    version: null,
+    location: "this repository (apps/ats-resume-optimizer, packages/ats-resume)",
+  },
+  {
     name: "SalonAI",
     stage: "not-started",
     status: "Planned as the first HL-BOS vertical. No code yet.",
@@ -102,7 +110,7 @@ export const PORTFOLIO: readonly Product[] = [
       "The football intelligence engine, the `highlight` database schema and the web app are built and tested locally (269 engine tests, 38 app tests, 66 database assertions, 77 worker tests \u2014 green). The app runs and every screen renders, but it runs in DEMO mode over a synthetic game: no real film has been uploaded, no computer-vision model is installed, and nothing has been applied to a live project.",
     version: null,
     location:
-      "this repository (packages/highlight-football, apps/highlightai-football, services/highlight-cv, supabase/migrations 0048)",
+      "this repository (packages/highlight-football, apps/highlightai-football, services/highlight-cv, supabase/migrations 0049)",
   },
   {
     name: "Venuewise",

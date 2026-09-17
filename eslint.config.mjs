@@ -218,6 +218,27 @@ export default tseslint.config(
     },
   },
 
+  // ATS Resume Optimizer env boundary. ONE file reads process.env: the config
+  // module that every other module takes its settings from. Nothing it reads
+  // is browser-visible — the Anthropic key is read on the server, used on the
+  // server, and never returned to a page — so there is no NEXT_PUBLIC_ value
+  // here at all.
+  {
+    files: [
+      "apps/ats-resume-optimizer/src/lib/config.ts",
+      // The browser client and the request gate must read NEXT_PUBLIC_* as
+      // literal dot-access (Next inlines it into the client bundle) and must
+      // run before the config module is available. Publishable key only —
+      // browser-safe by ENV_SPEC, gated by RLS rather than by secrecy.
+      "apps/ats-resume-optimizer/src/lib/browser.ts",
+      "apps/ats-resume-optimizer/src/middleware.ts",
+    ],
+    rules: {
+      "no-restricted-properties": "off",
+      "no-restricted-syntax": "off",
+    },
+  },
+
   {
     files: ["**/*.{mjs,js}"],
     ...tseslint.configs.disableTypeChecked,

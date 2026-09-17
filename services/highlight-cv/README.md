@@ -20,7 +20,7 @@ python3 -m unittest discover -s tests -t .
 77 tests, covering the colour science, the temporal vote, the FFmpeg command
 construction, the pipeline's progress arithmetic, the worker end to end with
 mock adapters, and a cross-language contract check against the TypeScript engine
-and migration 0048.
+and migration 0049.
 
 ## Installing the real models
 

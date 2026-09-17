@@ -1,0 +1,7 @@
+# The local career database.
+#
+# This file holds a real person's employment history, contact details and the
+# record of every job they applied for. It is written by the app at runtime and
+# must never be committed — not to this repository, not to any other.
+.data/
+*.tmp

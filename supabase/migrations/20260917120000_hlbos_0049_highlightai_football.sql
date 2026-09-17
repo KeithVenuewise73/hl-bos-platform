@@ -1,5 +1,5 @@
 -- ===========================================================================
--- 0048_highlightai_football — HighlightAI Football V1
+-- 0049_highlightai_football — HighlightAI Football V1
 --
 -- Upload a game, name an athlete, and get back the plays he was in and a
 -- highlight reel of them. The `highlight` schema stores the football: games,

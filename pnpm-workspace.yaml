@@ -32,6 +32,14 @@ catalog:
   # --- Validation ---------------------------------------------------------
   zod: "4.4.3"
 
+  # --- AI -----------------------------------------------------------------
+  # Anthropic's official TypeScript SDK. Used ONLY behind the provider
+  # abstraction in @hl-bos/ats-resume (src/provider), never called directly
+  # from a page or a route handler, so a second AI vendor is a new file
+  # rather than a rewrite. Server-side only: the API key is never exposed to
+  # a browser bundle.
+  "@anthropic-ai/sdk": "0.126.0"
+
   # --- Supabase -----------------------------------------------------------
   "@supabase/supabase-js": "2.110.6"
   "@supabase/ssr": "0.12.3"

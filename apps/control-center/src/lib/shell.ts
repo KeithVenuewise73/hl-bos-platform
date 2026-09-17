@@ -1,5 +1,5 @@
 import "server-only";
-import { execFile } from "node:child_process";
+import { execFile, spawn } from "node:child_process";
 import { promisify } from "node:util";
 
 const run = promisify(execFile);
@@ -62,5 +62,44 @@ export async function cmd(
     const stdout = err.stdout ?? "";
     const stderr = err.stderr ?? err.message ?? "unknown error";
     return { ok: false, stdout, stderr, output: (stdout + stderr).trim() };
+  }
+}
+
+/**
+ * Start a long-running local app and leave it running.
+ *
+ * `cmd()` above waits for a command to finish, which is right for git and for
+ * a build and wrong for a web server. The operating contract says the CEO
+ * never opens a terminal, so "start the ATS Resume Optimizer" has to be a
+ * button — and a button cannot block for as long as the app is up.
+ *
+ * Detached, with stdio ignored and unref()'d, so the server outlives this
+ * request and this console. Same allow-list as `cmd()`, same rule about
+ * arguments: every one is a constant in this codebase.
+ */
+export function spawnDetached(
+  bin: string,
+  args: readonly string[],
+  opts: { cwd?: string } = {},
+): { ok: boolean; pid?: number; error?: string } {
+  if (!ALLOWED.has(bin)) {
+    return { ok: false, error: `refusing to run "${bin}": not in the allow-list` };
+  }
+  try {
+    const child = spawn(bin, args as string[], {
+      cwd: opts.cwd ?? REPO_ROOT,
+      detached: true,
+      stdio: "ignore",
+      windowsHide: true,
+      // No env override: the child inherits this process's environment and
+      // nothing in this app is allowed to read or rewrite it (see the
+      // no-restricted-properties rule).
+    });
+    child.unref();
+    return child.pid === undefined
+      ? { ok: false, error: "the process did not start" }
+      : { ok: true, pid: child.pid };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : "unknown error" };
   }
 }

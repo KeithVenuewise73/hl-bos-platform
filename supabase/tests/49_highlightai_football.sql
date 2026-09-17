@@ -1,7 +1,7 @@
 \ir _fixtures.sql.inc
 
 -- ===========================================================================
--- HighlightAI Football — migration 0048.
+-- HighlightAI Football — migration 0049.
 --
 -- The claims this suite exists to make structural rather than aspirational:
 --

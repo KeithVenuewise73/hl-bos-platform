@@ -147,6 +147,9 @@ vite.config.ts.timestamp-*
 .vite/
 .hlbos/toolchain/
 
+# ATS Resume Optimizer local store (personal career data, never committed).
+.data/
+
 # --- Python ----------------------------------------------------------------
 # services/highlight-cv is a Python package. Byte-code caches are build output
 # and are machine-specific.

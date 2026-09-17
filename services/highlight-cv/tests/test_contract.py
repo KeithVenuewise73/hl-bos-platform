@@ -6,7 +6,7 @@ the process boundary per detection would cost more than the arithmetic:
 
   * the athletic colour reference table,
   * the pipeline stage list and its cost weights,
-  * the job status vocabulary (which is also a Postgres enum in migration 0048).
+  * the job status vocabulary (which is also a Postgres enum in migration 0049).
 
 Duplication without a guard becomes drift, and drift here is silent: a colour
 renamed on one side produces a team classification that never matches, and a
@@ -73,12 +73,12 @@ class TestPipelineContract(unittest.TestCase):
 
 class TestJobStatusContract(unittest.TestCase):
     """The job statuses exist in THREE places: the engine, this worker's
-    callers, and ``highlight.job_status`` in migration 0048. The migration is
+    callers, and ``highlight.job_status`` in migration 0049. The migration is
     the one that cannot be refactored quietly, so it is compared too."""
 
     MIGRATION = (
         pathlib.Path(__file__).resolve().parents[3]
-        / "supabase" / "migrations" / "20260916120000_hlbos_0048_highlightai_football.sql"
+        / "supabase" / "migrations" / "20260917120000_hlbos_0049_highlightai_football.sql"
     )
 
     def test_the_engine_and_the_database_agree(self):

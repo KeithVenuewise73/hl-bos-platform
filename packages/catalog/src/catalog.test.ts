@@ -99,7 +99,7 @@ describe("registry integrity", () => {
   });
 
   it("registers the 20 application databases and 10 edge functions", () => {
-    // 20th: `highlight` (migration 0048, HighlightAI Football).
+    // 20th: `highlight` (migration 0049, HighlightAI Football).
     expect(assetsByKind(catalog, "database").length).toBe(20);
     expect(assetsByKind(catalog, "edge_function").length).toBe(10);
   });
@@ -136,10 +136,14 @@ describe("repository scan (ground truth)", () => {
     // APPLIED to canonical production on 2026-08-26 under CEO approval, with
     // 0047 (forward-repair pinning search_path on
     // social.deny_attempt_mutation — the post-apply advisor check caught it
-    // and the local suite had not) — plus 0048 (HighlightAI Football: the
-    // `highlight` schema, 23 tables, written and verified locally against
-    // PostgreSQL 16.13 and UNAPPLIED to any Supabase project).
-    expect(inv.migrations.length).toBe(48);
+    // and the local suite had not).
+    // Plus 0048 (ats — ATS Resume Optimizer), written and verified against a
+    // local PostgreSQL 16 (17 tables, RLS enabled and forced, 68 policies, the
+    // anti-fabrication CHECK constraints exercised), UNAPPLIED to any project.
+    // Plus 0049 (highlight — HighlightAI Football), 23 tables, written and
+    // verified from empty against a local PostgreSQL 16.13, UNAPPLIED to any
+    // project.
+    expect(inv.migrations.length).toBe(49);
     expect(inv.edgeFunctions).toContain("ai-gateway");
     expect(inv.edgeFunctions).not.toContain("tests");
     expect(inv.apps).toEqual(

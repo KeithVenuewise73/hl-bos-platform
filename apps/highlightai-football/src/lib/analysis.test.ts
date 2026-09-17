@@ -171,7 +171,7 @@ describe("demo output is labelled", () => {
 });
 
 describe("the database's job statuses match the engine's", () => {
-  it("has not drifted from migration 0048's highlight.job_status enum", () => {
+  it("has not drifted from migration 0049's highlight.job_status enum", () => {
     // Listed here rather than imported: the point is to notice when the two
     // sides diverge, and importing one from the other would hide exactly that.
     expect([...JOB_STATUSES]).toEqual([

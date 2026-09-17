@@ -248,7 +248,10 @@ export const APPLICATIONS: ApplicationRecord[] = [
     deploymentStatus: "not_deployed",
     productionUrl: null,
     stagingUrl: null,
-    localUrl: "http://localhost:4600",
+    // 4601, not 4600: the ATS Resume Optimizer already answers on 4600, and two
+    // local apps that cannot run at the same time is a defect the Control Center
+    // would surface as "not running" with no explanation.
+    localUrl: "http://localhost:4601",
     supabaseProject: CORE,
     version: "0.1.0",
     health: "unknown",
@@ -258,9 +261,38 @@ export const APPLICATIONS: ApplicationRecord[] = [
     softwareFactoryIntegration:
       "None. Built directly on the HL-BOS spine; creates no Factory work.",
     notes:
-      "RUNS IN DEMO MODE. The football intelligence engine (269 tests), the `highlight` schema (migration 0048, 66 pgTAP assertions), the 14 screens plus an AI debug view (38 tests) and the Python CV worker (77 tests) are built and green locally. No computer-vision model is installed or trained, no real game film has been processed, and migration 0048 has not been applied to any Supabase project. Every screen carries a non-dismissible banner saying the football is synthetic; there is deliberately no fallback from live mode to demo mode.",
+      "RUNS IN DEMO MODE. The football intelligence engine (269 tests), the `highlight` schema (migration 0049, 66 pgTAP assertions), the 14 screens plus an AI debug view (38 tests) and the Python CV worker (77 tests) are built and green locally. No computer-vision model is installed or trained, no real game film has been processed, and migration 0049 has not been applied to any Supabase project. Every screen carries a non-dismissible banner saying the football is synthetic; there is deliberately no fallback from live mode to demo mode.",
     evidence:
-      "packages/highlight-football, apps/highlightai-football, services/highlight-cv, supabase/migrations 0048 + supabase/tests/48; local build, lint, typecheck and tests green; not deployed",
+      "packages/highlight-football, apps/highlightai-football, services/highlight-cv, supabase/migrations 0049 + supabase/tests/49; local build, lint, typecheck and tests green; not deployed",
+  },
+  {
+    key: "ats-resume-optimizer",
+    name: "ATS Resume Optimizer",
+    description:
+      "Compares a job posting against a master resume, matches every requirement to real evidence from the candidate's own material, scores the fit on an internal model, and generates a tailored ATS-friendly resume in which every sentence is traceable to a source fact. The product principle is enforced in code, not in a prompt: optimize aggressively, fabricate nothing.",
+    category: "executive_tooling",
+    repository: REPO,
+    owner: "KeithVenuewise73",
+    executiveOwner: "Keith Herman (CEO)",
+    currentBranch: "claude/ats-resume-optimizer-dc3nh3",
+    environment: "local",
+    developmentStatus: "built_undeployed",
+    deploymentStatus: "not_deployed",
+    productionUrl: null,
+    stagingUrl: null,
+    localUrl: "http://localhost:4600",
+    supabaseProject: CORE,
+    version: "0.1.0",
+    health: "unknown",
+    hosting: "none yet",
+    dependencies: ["@hl-bos/ats-resume"],
+    reusableModules: [],
+    softwareFactoryIntegration:
+      "None. The engine (@hl-bos/ats-resume) is a standalone capability package with no platform dependencies, so it can be reused by any future product without pulling in identity or tenancy.",
+    notes:
+      "Storage is a local JSON file; the PostgreSQL schema (migration 0048, ats) is written and verified against a local PostgreSQL 16 but is UNAPPLIED to any project, and the Supabase-backed store is not built. The app says so on its Settings page. Claude is optional: with no API key the built-in rules engine runs every feature. 76 unit tests plus an end-to-end verification against the running app.",
+    evidence:
+      "apps/ats-resume-optimizer + packages/ats-resume; migration 0048 written UNAPPLIED; verified by running the app (generate, edit, validate, export)",
   },
   {
     key: "control-center",

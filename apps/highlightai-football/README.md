@@ -8,7 +8,8 @@ watch HighlightAI find his plays, keep the clips you want, export a reel.
 ## Running it
 
 ```bash
-pnpm --filter @hl-bos/highlightai-football dev     # http://localhost:4600
+pnpm --filter @hl-bos/highlightai-football dev     # http://localhost:4601
+# 4601, not 4600 — the ATS Resume Optimizer already answers on 4600.
 pnpm --filter @hl-bos/highlightai-football build
 pnpm --filter @hl-bos/highlightai-football test
 ```

@@ -39,7 +39,7 @@ storage metadata. HighlightAI adds none of those again.
   services/highlight-cv              The GPU worker. Python, torch, FFmpeg.
             │  writes
             ▼
-  supabase/migrations 0048           The `highlight` schema.
+  supabase/migrations 0049           The `highlight` schema.
 ```
 
 The split between the worker and the engine is the important one. Computer vision
@@ -81,7 +81,7 @@ classifier produced partly synthetic football.
 
 ## What the database refuses to allow
 
-Migration 0048 makes three product claims structural rather than aspirational.
+Migration 0049 makes three product claims structural rather than aspirational.
 
 **1. A tenant cannot fabricate an AI result.** Detections, tracks, jersey
 readings, team classifications, plays, ball tracks, events, involvement scores
@@ -156,7 +156,7 @@ teammate's or opponent's.
   `ModelUnavailableError`. The demo adapters generate synthetic football.
 - **No real game film has been processed.** The end-to-end claim above is against
   generated geometry, not against a camera.
-- **Migration 0048 has not been applied to any Supabase project.**
+- **Migration 0049 has not been applied to any Supabase project.**
 - **Nothing is deployed.** No GPU host, no storage bucket, no queue.
 - **Phase 2 items** — ball tracking beyond detection, possession estimation,
   automatic statistics, season reels across many games, recruiting profiles — are

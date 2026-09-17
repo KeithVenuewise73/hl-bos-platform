@@ -185,6 +185,25 @@ const ASSETS: Asset[] = [
     evidence: "apps/control-center",
   },
   {
+    id: "app.ats-resume-optimizer",
+    kind: "application",
+    name: "ATS Resume Optimizer",
+    summary:
+      "Matches a job posting against a candidate's own evidence, scores the fit, and generates a tailored ATS-friendly resume in which every sentence is traceable to a source fact. Unsupported claims cannot reach an exported file — enforced at the point the bytes are written, not by a UI badge.",
+    maturity: "built_undeployed",
+    reuse: ["commercial", "reusable"],
+    owner: "Herman Legacy Software Ventures",
+    layer: "HL-BOS",
+    key: "ats-resume-optimizer",
+    location: "apps/ats-resume-optimizer",
+    tags: ["career", "ats", "evidence-gated", "local-first"],
+    relationships: [
+      { kind: "uses", to: "pkg.ats-resume" },
+      { kind: "owned_by", to: "repo.hl-bos-platform" },
+    ],
+    evidence: "apps/ats-resume-optimizer",
+  },
+  {
     id: "app.hl-bti",
     kind: "application",
     name: "HL-BTI App",
@@ -308,7 +327,7 @@ const ASSETS: Asset[] = [
     kind: "application",
     name: "HighlightAI Football",
     summary:
-      "Upload the game, pick the player, get the highlights. Player detection, tracking, play segmentation and highlight generation for youth and high-school football film. Assembled on HL-BOS identity/tenancy/permissions/audit/events; adds the `highlight` schema and the @hl-bos/highlight-football engine. Built and tested locally; runs in DEMO mode \u2014 no CV model installed, no real film processed, migration 0048 unapplied.",
+      "Upload the game, pick the player, get the highlights. Player detection, tracking, play segmentation and highlight generation for youth and high-school football film. Assembled on HL-BOS identity/tenancy/permissions/audit/events; adds the `highlight` schema and the @hl-bos/highlight-football engine. Built and tested locally; runs in DEMO mode \u2014 no CV model installed, no real film processed, migration 0049 unapplied.",
     maturity: "built_undeployed",
     reuse: ["commercial"],
     owner: "Herman Legacy Platform",
@@ -365,6 +384,22 @@ const ASSETS: Asset[] = [
   // ======================================================================
   // SHARED PACKAGES
   // ======================================================================
+  {
+    id: "pkg.ats-resume",
+    kind: "package",
+    name: "@hl-bos/ats-resume",
+    summary:
+      "The ATS Resume Optimizer engine: resume and job-posting parsing, the evidence matrix, terminology mapping, keyword analysis, internal scoring, the claim validator, and dependency-free DOCX/PDF generation. Pure and I/O-free — no database, no filesystem, no environment.",
+    maturity: "live",
+    reuse: ["reusable", "commercial"],
+    owner: "Herman Legacy Software Ventures",
+    layer: "HL-BOS",
+    key: "ats-resume",
+    location: "packages/ats-resume",
+    tags: ["package", "domain-logic", "evidence-gated", "document-generation"],
+    relationships: [{ kind: "owned_by", to: "repo.hl-bos-platform" }],
+    evidence: "packages/ats-resume",
+  },
   {
     id: "pkg.config",
     kind: "package",
