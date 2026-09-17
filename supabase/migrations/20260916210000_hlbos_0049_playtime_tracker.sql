@@ -5,10 +5,12 @@
 -- packages/playtime-engine). Purely additive: a new schema, no existing object
 -- is touched.
 --
--- NOT YET APPLIED ANYWHERE. It is committed so the data model is reviewable and
--- versioned, and because the app is designed against it. Until it is applied
--- under CEO approval, the app runs entirely on on-device storage and says so on
--- its own settings screen -- it does not claim a database it does not have.
+-- This file makes no claim about where it has been applied. Deployment state
+-- lives in .hlbos/canonical.json and the deployment log, which are the records
+-- that are updated when it changes. A status comment inside the SQL goes stale
+-- the moment it stops being true, and editing an applied migration to refresh
+-- it is exactly the drift this lineage exists to govern. Migrations 0028 and
+-- 0046 assert their status nowhere either.
 --
 -- WHOSE DATA THIS IS. This is a record of named children: who they are, what
 -- team they are on, which games they attended, and how their coach chose to

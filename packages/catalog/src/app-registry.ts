@@ -258,9 +258,9 @@ export const APPLICATIONS: ApplicationRecord[] = [
     softwareFactoryIntegration:
       "None. The engine (@hl-bos/ats-resume) is a standalone capability package with no platform dependencies, so it can be reused by any future product without pulling in identity or tenancy.",
     notes:
-      "Storage is a local JSON file; the PostgreSQL schema (migration 0048, ats) is written and verified against a local PostgreSQL 16 but is UNAPPLIED to any project, and the Supabase-backed store is not built. The app says so on its Settings page. Claude is optional: with no API key the built-in rules engine runs every feature. 76 unit tests plus an end-to-end verification against the running app.",
+      "Storage is a local JSON file and the Supabase-backed store is not built, so the app says so on its Settings page. CORRECTION (2026-09-17): migration 0048 (ats) is NOT unapplied, as this entry previously stated — the schema has existed in the canonical project since 2026-09-16, applied out of band at version 20260916190643 rather than the repo's 20260916120000, and never reconciled. The schema is therefore applied but unused by the app. The version drift is recorded in knownMigrationDrift and the two SQL bodies have not been diffed. Claude is optional: with no API key the built-in rules engine runs every feature. 76 unit tests plus an end-to-end verification against the running app.",
     evidence:
-      "apps/ats-resume-optimizer + packages/ats-resume; migration 0048 written UNAPPLIED; verified by running the app (generate, edit, validate, export)",
+      "apps/ats-resume-optimizer + packages/ats-resume; migration 0048 APPLIED to the canonical project out of band on 2026-09-16 at an unreconciled version (see knownMigrationDrift); app still on local JSON storage; verified by running the app (generate, edit, validate, export)",
   },
   {
     key: "playtime-tracker",
@@ -291,9 +291,9 @@ export const APPLICATIONS: ApplicationRecord[] = [
     softwareFactoryIntegration:
       "None. The participation engine (@hl-bos/playtime-engine) is a standalone capability package with no platform dependencies, built so AthleteHuddle, CoachesHuddle, OrganizationHuddle, GameTracker and 5-Star Sports Media can reuse it without pulling in identity or tenancy.",
     notes:
-      "Statically exported Next.js app wrapped by Capacitor; both native projects exist and carry the app's own icons and version. NOT SUBMITTED to either store: no iOS archive (needs Xcode on macOS), no Android bundle (needs the SDK), no signing identities and no store records. Migration 0049 (playtime) is written and verified against a local PostgreSQL 16.13 but is UNAPPLIED, so the app stores everything on the device and says so on its own Account screen. 93 engine tests, 10 app tests, 35 pgTAP assertions and 39 browser acceptance assertions, all run and green.",
+      "Statically exported Next.js app wrapped by Capacitor; both native projects exist and carry the app's own icons and version. NOT SUBMITTED to either store: no iOS archive (needs Xcode on macOS), no Android bundle (needs the SDK), no signing identities and no store records. Migration 0049 (playtime) is APPLIED to the canonical project (2026-09-17, under CEO approval) at its exact repo version after ledger reconciliation, and verified there: 11 structural checks, 5 fail-closed isolation checks, and 8 end-to-end checks against a real auth user that the database then deleted along with every row it owned. No build has been pointed at it yet, so the app still runs device-only and says so on its Account screen, and the app-to-PostgREST hop has never been exercised. 93 engine tests, 10 app tests, 35 pgTAP assertions and 39 browser acceptance assertions, all run and green.",
     evidence:
-      "apps/playtime-tracker + packages/playtime-engine; migration 0049 written UNAPPLIED; verified by playing a full game in the production build (qa/acceptance.mjs, 39 assertions)",
+      "apps/playtime-tracker + packages/playtime-engine; migration 0049 APPLIED to the canonical project 2026-09-17 at version 20260916210000 and verified there end to end; verified in the browser by playing a full game in the production build (qa/acceptance.mjs, 39 assertions)",
   },
   {
     key: "control-center",

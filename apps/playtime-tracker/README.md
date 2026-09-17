@@ -89,6 +89,27 @@ See [`store/NATIVE.md`](store/NATIVE.md) for the build steps and an honest list
 of what is not done, and [`store/LISTING.md`](store/LISTING.md) for the listing
 copy, the permission answer (there are none) and both privacy questionnaires.
 
+## Pointing it at the database
+
+Migration 0049 is applied to the canonical project and the `playtime` schema is exposed
+through PostgREST, both verified end to end
+([log](../../docs/architecture-audit/playtime-0049-production-deployment/01-deployment-log.md)).
+A build only talks to it once it has been given the two public values:
+
+```bash
+# apps/playtime-tracker/.env.local  (gitignored, as every .env is here)
+NEXT_PUBLIC_SUPABASE_URL=https://<project-ref>.supabase.co
+NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=sb_publishable_...
+```
+
+Both are browser-safe by the platform's own ENV_SPEC — the URL is in every request and the
+publishable key is public by design, because **Row Level Security is the boundary, not
+secrecy**. The service-role key is never referenced anywhere in this app.
+
+Without them the app runs entirely on the device and says so on its Account screen. That is
+a supported mode, not a broken one — but **the app-to-PostgREST hop has never been
+exercised**, so play one real game against the project before trusting sync.
+
 ## Version
 
 One source: [`store/release.json`](store/release.json).

@@ -387,14 +387,15 @@
       "filename": "20260916120000_hlbos_0048_ats_resume_optimizer.sql",
       "version": "20260916120000",
       "sha256": "017b65a62da7f6308bb8575c8341dbf8722d8e15ff2e00bb469a2d8d049adebc",
-      "foundation": false
+      "foundation": false,
+      "productionAppliedVersion": "20260916190643"
     },
     {
       "ordinal": 49,
       "name": "hlbos_0049_playtime_tracker",
       "filename": "20260916210000_hlbos_0049_playtime_tracker.sql",
       "version": "20260916210000",
-      "sha256": "951f676dee51cd26aa00c6e256a143fd9a8dd3a02b5eecd0dd2f06e2031045d9",
+      "sha256": "58d986b1a9210f6bc5ae717116eb1bf4966d48adc3b969a51f1a27bb3fe59b85",
       "foundation": false
     }
   ]

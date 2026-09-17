@@ -1,5 +1,5 @@
 {
-  "$comment": "CANONICAL REGISTRY — the machine-readable source of truth for HL-BOS lineage & deployment governance. Curated by humans/engineer; verified against live evidence in Phase XI-2F (2026-07-31). Project refs are non-secret (ADR-0001). Consumed by scripts/check-lineage.mjs and the CI drift-check. Update deliberately, in a reviewable commit.",
+  "$comment": "CANONICAL REGISTRY \u2014 the machine-readable source of truth for HL-BOS lineage & deployment governance. Curated by humans/engineer; verified against live evidence in Phase XI-2F (2026-07-31). Project refs are non-secret (ADR-0001). Consumed by scripts/check-lineage.mjs and the CI drift-check. Update deliberately, in a reviewable commit.",
   "schemaVersion": 1,
   "canonicalRepository": "KeithVenuewise73/hl-bos-platform",
   "canonicalProjectRef": "mvvtngiopdrgiedjmhfb",
@@ -15,10 +15,11 @@
       "projectName": "HL-BOS Core",
       "region": "us-west-2",
       "lineage": "platform",
-      "migrationsApplied": 27,
+      "migrationsApplied": 99,
       "dataBearing": "seed-and-vocabulary-only (1 bootstrap owner; no customer data verified 2026-07-31)",
       "authoritative": true,
-      "disposition": "canonical — the one authoritative deployment target"
+      "disposition": "canonical \u2014 the one authoritative deployment target",
+      "$migrationsApplied_note": "Read from supabase_migrations.schema_migrations on 2026-09-17: 99 rows. 61 are named hlbos_*, of which this repository accounts for 49 (0001-0049). The remaining 12 hlbos_* rows and all 38 rows from the disco / dma / hlvs / ingest / jobscout / temp lineages were applied OUT OF BAND from outside this repository. This field said 27 until 2026-09-17; that number had been stale since 2026-08 and is what hid the divergence."
     },
     {
       "name": "hlbos-m1-portfolio",
@@ -44,20 +45,49 @@
       "role": "legacy-unreachable",
       "projectRef": "bkfsjhhclbqrhaolvhmz",
       "authoritative": false,
-      "disposition": "OUT OF SCOPE — unreachable, open security findings; do not touch without an approved plan"
+      "disposition": "OUT OF SCOPE \u2014 unreachable, open security findings; do not touch without an approved plan"
     }
   ],
   "foundationOrdinals": [1, 2, 3, 4, 5, 6, 7, 8],
-  "$notYetAppliedOrdinals_note": "0028 was applied to canonical production on 2026-07-31 (Phase XI-2L), recorded at its exact repo version 20260731090000. Production applied set is now 0001–0028, matching the repo. See docs/architecture-audit/hlvs-phase-11-2l-production-deployment/.",
+  "$notYetAppliedOrdinals_note": "0049 (playtime - PlayTime Tracker) was applied to canonical production on 2026-09-17 under CEO approval, recorded at its exact repo version 20260916210000 after the tool-stamped version (20260917004911) was reconciled, per the XI-2L procedure. 0048 (ats) was applied out of band at 20260916190643 and has NOT been reconciled - see knownMigrationDrift. See docs/architecture-audit/playtime-0049-production-deployment/.",
   "notYetAppliedOrdinals": [],
   "knownMigrationDrift": {
-    "$comment": "No active drift. The 0023–0027 version-identifier drift was reconciled in Phase XI-2I (Option D) — repo files renamed to production's applied versions; SQL content unchanged. History preserved below under resolvedMigrationDrift.",
-    "entries": []
+    "$comment": "ACTIVE DRIFT, discovered 2026-09-17 during the 0049 pre-flight read. The repository and canonical production have forked lineages. Recorded rather than quietly tolerated: check-lineage-drift.mjs exists precisely to fail on this and has evidently not been run against the live project. None of it was caused by the 0049 apply, and none of it touches the playtime schema, which is additive. Only drift on an ordinal THIS repo owns can be expressed in `entries` (the checker validates repoVersion against the file); everything else is under $driftBeyondThisRepo.",
+    "entries": [
+      {
+        "ordinal": 48,
+        "repoVersion": "20260916120000",
+        "productionAppliedVersion": "20260916190643",
+        "severity": "medium",
+        "discovered": "2026-09-17",
+        "detail": "0048 (ats) is APPLIED to canonical production at the tool-stamped version 20260916190643, never reconciled to the repo version. Until 2026-09-17 this repository stated in three places that 0048 was UNAPPLIED; the `ats` schema has existed in production since 2026-09-16. The SQL of the two was not compared.",
+        "remedy": "Reconcile production's ledger row to 20260916120000 (XI-2L procedure) or rename the repo file to production's version (XI-2I Option D), after diffing the SQL. A decision, not a guess."
+      }
+    ],
+    "$driftBeyondThisRepo": {
+      "$comment": "Drift that cannot be an `entries` row because it concerns migrations this repository does not contain. Counts read from supabase_migrations.schema_migrations 2026-09-17.",
+      "productionMigrationsTotal": 99,
+      "accountedForByThisRepo": 49,
+      "appliedOutOfBand": 50,
+      "duplicateOrdinals": {
+        "severity": "high",
+        "detail": "Production holds TWO hlbos_0048_* migrations (barberos_capability_catalog at 20260909203027, ats_resume_optimizer at 20260916190643) and, since 2026-09-17, TWO hlbos_0049_* (transform_audit at 20260909203607, playtime_tracker at 20260916210000). Ordinals 0048-0058 in production belong to a lineage this repository has never seen. The hlbos_ prefix scheme exists specifically to stop two counters sharing one range (see the header of scripts/check-migrations.sh), and that is now exactly what has happened.",
+        "note": "0049 was applied under explicit CEO approval with this collision already present. Its version is unique and monotonic, so the ledger is internally consistent; the ambiguity is in the ordinal label, and it is reported, not hidden."
+      },
+      "foreignLineages": {
+        "severity": "high",
+        "prefixes": ["disco", "dma", "hlvs", "ingest", "jobscout", "temp"],
+        "count": 38,
+        "plusHlbosNamedNotInThisRepo": 12,
+        "detail": "38 migrations from six foreign lineages, plus 12 hlbos_*-named migrations (barberos, transform audit, proposal, discovery call, shop API, product map, client CRM), are applied to canonical production and exist nowhere in this repository. One is named temp_perftest_page_twin."
+      },
+      "remedy": "Run check-lineage-drift.mjs against the live project, decide which lineages are canonical, and bring the ledger and the repository back into agreement. An architectural decision about the platform, not a cleanup task."
+    }
   },
   "resolvedMigrationDrift": {
-    "$comment": "HISTORICAL record of the reconciled drift (Phase XI-2I, 2026-07-31, Option D). Repo migration files 0023–0027 were renamed from their old version identifiers to production's applied versions; content byte-identical (sha256 before==after) and normalized SQL matched production. See docs/architecture-audit/hlvs-phase-11-2i-reconciliation-execution/01-reconciliation-audit.md and ADR-0002 addendum.",
+    "$comment": "HISTORICAL record of the reconciled drift (Phase XI-2I, 2026-07-31, Option D). Repo migration files 0023\u20130027 were renamed from their old version identifiers to production's applied versions; content byte-identical (sha256 before==after) and normalized SQL matched production. See docs/architecture-audit/hlvs-phase-11-2i-reconciliation-execution/01-reconciliation-audit.md and ADR-0002 addendum.",
     "reconciledInPhase": "XI-2I",
-    "mechanism": "Option D — repository filename reconciliation (git mv, content preserved)",
+    "mechanism": "Option D \u2014 repository filename reconciliation (git mv, content preserved)",
     "entries": [
       {
         "ordinal": 23,

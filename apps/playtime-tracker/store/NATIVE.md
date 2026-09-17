@@ -49,12 +49,23 @@ than Capacitor's default logo.
 4. **No App Store Connect or Play Console record exists.** Both need the
    organisation's developer accounts.
 
-5. **No backend is attached.** `NEXT_PUBLIC_SUPABASE_URL` and
-   `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` are unset, migration 0049 is
-   unapplied, and the `playtime` schema is not in the project's exposed
-   schemas. The app says so on its own Account screen rather than implying a
-   backup that is not happening — but a store build must not ship in that
-   state, because the listing describes accounts.
+5. **The database is ready; no build has been pointed at it.** Migration 0049 is
+   applied to the canonical project and the `playtime` schema is in that
+   project's exposed schemas — both done on 2026-09-17 and verified end to end
+   (see `docs/architecture-audit/playtime-0049-production-deployment/`). What is
+   missing is `NEXT_PUBLIC_SUPABASE_URL` and
+   `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` in a `.env.local`, which no build has
+   had yet. Until then the app runs device-only and says so on its Account
+   screen rather than implying a backup that is not happening — and a store
+   build must not ship in that state, because the listing describes accounts.
+
+   **The app-to-PostgREST hop has never been exercised.** Every layer below it
+   is proven — the queue logic by unit tests, the wire format by
+   `src/lib/sync.test.ts` against the real migration, and the schema itself by
+   8/8 end-to-end checks against the live database with a real account. The one
+   untested link is the app actually making those calls over the network, which
+   could not be reached from the build sandbox. Point a local build at the
+   project and play one game before trusting sync.
 
 6. **The policy, terms and support pages are not hosted publicly.** Both stores
    need HTTPS URLs, not just in-app screens. The text exists; it needs a host.
