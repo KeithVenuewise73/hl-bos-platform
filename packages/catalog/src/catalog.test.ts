@@ -98,8 +98,8 @@ describe("registry integrity", () => {
     expect(dangling, `dangling targets: ${dangling.join(", ")}`).toEqual([]);
   });
 
-  it("registers the 19 application databases and 10 edge functions", () => {
-    expect(assetsByKind(catalog, "database").length).toBe(19);
+  it("registers the 20 application databases and 10 edge functions", () => {
+    expect(assetsByKind(catalog, "database").length).toBe(20);
     expect(assetsByKind(catalog, "edge_function").length).toBe(10);
   });
 
@@ -111,7 +111,7 @@ describe("registry integrity", () => {
 describe("repository scan (ground truth)", () => {
   it("discovers the real schemas, functions, apps and packages", async () => {
     const inv = await scanRepository(REPO_ROOT);
-    expect(inv.schemas.length).toBe(19);
+    expect(inv.schemas.length).toBe(20);
     expect(inv.schemas).toContain("hlvs");
     expect(inv.schemas).toContain("social");
     expect(inv.schemas).toContain("bti");
@@ -135,10 +135,23 @@ describe("repository scan (ground truth)", () => {
     // 0047 (forward-repair pinning search_path on
     // social.deny_attempt_mutation — the post-apply advisor check caught it
     // and the local suite had not).
-    // Plus 0048 (ats — ATS Resume Optimizer), written and verified against a
-    // local PostgreSQL 16 (17 tables, RLS enabled and forced, 68 policies, the
-    // anti-fabrication CHECK constraints exercised), UNAPPLIED to any project.
-    expect(inv.migrations.length).toBe(48);
+    // Plus 0048 (ats — ATS Resume Optimizer), 17 tables with RLS enabled and
+    // forced, 68 policies and the anti-fabrication CHECK constraints — APPLIED
+    // to canonical production as version 20260916190643 (this comment used to
+    // say "UNAPPLIED to any project", which the live migration ledger
+    // contradicts).
+    // Plus 0049–0052 (BarberOS: capability catalog, shop + owned website,
+    // client CRM, public API). These are a RECONSTRUCTION of a schema that was
+    // built directly against production between 2026-09-09 and 2026-09-13 and
+    // never committed — production carries it as eleven differently-named
+    // migrations. They are already applied there and must not be re-applied;
+    // they exist so the repository is true, so CI can prove the schema applies
+    // from empty, and so supabase/tests/49_barberos.sql has something to test.
+    // The reconstruction was verified byte-for-byte against production across
+    // twelve structural fingerprint categories. See
+    // docs/products/barberos/02-production-drift-map.md.
+    expect(inv.migrations.length).toBe(52);
+    expect(inv.schemas).toContain("barberos");
     expect(inv.edgeFunctions).toContain("ai-gateway");
     expect(inv.edgeFunctions).not.toContain("tests");
     expect(inv.apps).toEqual(
@@ -172,7 +185,7 @@ describe("executive metrics", () => {
     const catalog = buildCatalog();
     const inv = await scanRepository(REPO_ROOT);
     const m = metrics(catalog, completeness(catalog, inv));
-    expect(m.databases).toBe(19);
+    expect(m.databases).toBe(20);
     expect(m.edgeFunctions).toBe(10);
     expect(m.sharedServices).toBeGreaterThanOrEqual(12);
     expect(m.products).toBeGreaterThanOrEqual(3);

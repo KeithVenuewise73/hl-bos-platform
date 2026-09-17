@@ -287,6 +287,88 @@ in this repository could rebuild it.
 
 ---
 
+## 7a. STATUS — action 1 is done for `barberos` (2026-09-17)
+
+The `barberos` schema is now in source control, as migrations **0049–0052**, with the pgTAP suite it never had.
+
+**What landed**
+
+|                                                             |                                                                                                                          |
+| ----------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| `20260917120000_hlbos_0049_barberos_capability_catalog.sql` | enums, the 5 catalog tables, the 4 guard triggers, enable/disable/apply_bundle, 7 permissions, the 16-capability catalog |
+| `20260917120100_hlbos_0050_barberos_shop_and_site.sql`      | shops, sites, services, hours, links; the publish gate; publish/unpublish; the public read                               |
+| `20260917120200_hlbos_0051_barberos_client_crm.sql`         | clients, visits, tools, visit_tools; `client_rhythm`, `clients_due`, `client_timeline`                                   |
+| `20260917120300_hlbos_0052_barberos_public_api.sql`         | the 17 `public.barberos_*` RPCs and their grants                                                                         |
+| `supabase/tests/49_barberos.sql`                            | **74 assertions**                                                                                                        |
+
+Four migrations, not eleven, and deliberately so: the live database records what exists, not which migration created
+which object. Splitting the reconstruction to mimic production's history would have been invented history. Each file
+says so in its header, and `.hlbos/canonical.json` carries the full mapping under `reconstructedFromProduction`.
+
+**Nothing was applied to production.** These reproduce what is already there.
+
+**How fidelity was proven.** A twelve-category structural fingerprint was computed identically against canonical
+production and against a local PostgreSQL 16.13 with all 52 migrations applied from empty. **All twelve match**:
+
+```
+columns          101  d0e94d019a5a386157b6710a4029ad80
+constraints       70  ca95c4b9253fea0632fc1fc9b074f849
+enums              8  50880b7b58f5024ece272954495de0c4
+function_grants   44  8490846ad3940e5eeba2147e8c82e2c1
+functions         44  cbfcfe6cbb9d91d3514c4245911e967b
+indexes           24  49fd4b80d77ac2df2020cc85e1fd7e46
+permissions       30  9be37341cf2e3cf63b8cecada38a9c1f
+policies          14  4ab0c74dc95d8368585508ca87084c04
+rls_flags         14  98f5d7c90e9af314ec878c873a1a288b
+seed_rows         46  aa2f2b795a140769c9a73bbb30c73666
+table_grants      14  c65bd87806cc58485d660efe43656dc8
+triggers          18  0d6ca4db02fde39efb8539aa47eb6a83
+```
+
+(The `extensions.` schema qualifier renders differently under the two sessions' `search_path`; it is normalised before
+hashing. That normalisation is the only difference tolerated, and it is textual, not structural.)
+
+**One real divergence was found and fixed by this comparison.** The first draft revoked the two inner
+`barberos.published_site` / `published_sitemap` functions from PUBLIC without re-granting `authenticated`, which
+production does grant. The fingerprint caught it; reading the code had not.
+
+**What the 74 assertions actually prove.** RLS enabled _and forced_ on all 14 tables; no write policy anywhere, so
+every write must go through a permission-checked RPC; `anon` reaching exactly the two public-page functions and
+nothing else; a capability that has not shipped being unenableable; the capability trigger refusing writes to a
+shop that has the capability off; prerequisites and dependents enforced; the review-gating config keys refused at
+the schema; one shop unable to see or touch another's clients, or file a visit against another's client;
+`client_rhythm` refusing to claim a rhythm from two visits and returning `null` rather than a reassuring `0`;
+lifetime value disclosing `visits_without_a_price`; and the publish gate refusing a page with no address, no way to
+act and no hours.
+
+Three drafting errors were caught by _running_ the suite rather than reading it:
+
+1. Tests for the capability trigger and the CHECK constraints were written as a signed-in user, where
+   `authenticated` has only SELECT — so every one failed on the GRANT (42501) before reaching the guard under test.
+   The capability trigger also raises 42501, so those assertions would have gone green while proving nothing. They
+   now run as the owner, where the guard is the only thing that can refuse.
+2. The prerequisite test used `local_seo`, whose prerequisite `owned_website` was already enabled. It passed by
+   doing nothing. It now uses `ai_advisor`, whose prerequisite is not met.
+3. A cross-tenant test passed a client id fetched under the _other_ tenant's RLS, so it was `null` and the function
+   failed for the wrong reason. The helper is now `SECURITY DEFINER`, so a real foreign id is passed and the
+   ownership check is what rejects it.
+
+A mutation check confirms the suite bites: dropping `clients_capability` makes exactly the capability assertion fail.
+
+**Verified locally, in full:** 52 migrations applied from empty; **983 pgTAP assertions, 0 failing** across the whole
+suite (909 before, +74); format, lint, typecheck 18/18, and 860 unit tests passing. `check-migrations.sh` and
+`check-lineage.mjs` both pass at 52 migrations.
+
+**One residual, recorded rather than silently corrected.** The five `barberos` trigger functions carry PostgreSQL's
+built-in default of EXECUTE to PUBLIC (`proacl` is null), so `anon` can call them. Production is in the same state,
+so changing it here would be a behaviour change smuggled in under a reconciliation. It is inert — a trigger function
+cannot be called outside a trigger, which the suite asserts — and it deserves its own deliberate migration.
+
+**Still outstanding:** `transform_audit` (10 tables, 27 functions, 40 runs, 50 prospects) is still only in
+production. That is the next piece.
+
+---
+
 ## 8. Recommended next actions, revised
 
 The audit's original list is superseded from action 3 onward.

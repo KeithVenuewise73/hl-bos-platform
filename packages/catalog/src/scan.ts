@@ -51,6 +51,11 @@ const APPLICATION_SCHEMAS = new Set([
   "bti",
   "intake",
   "social",
+  "barberos",
+  // NOTE: `ats`, `vstudio` and `graph` are application schemas that exist in
+  // supabase/migrations and are still missing from this list, so the scanner
+  // does not count their tables. That predates BarberOS and is left alone here
+  // rather than widened into this change.
 ]);
 
 async function safeReaddir(dir: string): Promise<string[]> {

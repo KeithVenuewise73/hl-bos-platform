@@ -15,10 +15,11 @@
       "projectName": "HL-BOS Core",
       "region": "us-west-2",
       "lineage": "platform",
-      "migrationsApplied": 27,
-      "dataBearing": "seed-and-vocabulary-only (1 bootstrap owner; no customer data verified 2026-07-31)",
+      "migrationsApplied": 98,
+      "dataBearing": "seed-and-vocabulary-only for the platform schemas; BarberOS holds one test shop and zero clients/visits; transform_audit holds 50 imported WNY prospect profiles and 40 diagnostic runs (verified 2026-09-17)",
       "authoritative": true,
-      "disposition": "canonical — the one authoritative deployment target"
+      "disposition": "canonical -- the one authoritative deployment target. DRIFTED: it carries 98 migrations against the repository's 52, including product lines that exist in no file here. See docs/products/barberos/02-production-drift-map.md.",
+      "migrationsInRepository": 52
     },
     {
       "name": "hlbos-m1-portfolio",
@@ -48,11 +49,92 @@
     }
   ],
   "foundationOrdinals": [1, 2, 3, 4, 5, 6, 7, 8],
-  "$notYetAppliedOrdinals_note": "0028 was applied to canonical production on 2026-07-31 (Phase XI-2L), recorded at its exact repo version 20260731090000. Production applied set is now 0001–0028, matching the repo. See docs/architecture-audit/hlvs-phase-11-2l-production-deployment/.",
-  "notYetAppliedOrdinals": [],
+  "$notYetAppliedOrdinals_note": "Measured against the live migration ledger on 2026-09-17, not assumed. Production carries 98 migrations; this repository carries 52. Fifty-four are applied there and exist in no repository file (dma_* 17, jobscout_* 8, disco_* 7, BarberOS 11, hlbos_* split/rename variants 5, hlvs_board/ingest 3, and one temp_perftest_page_twin). Four repo migrations have never been applied: 0030 (CEO Notebook), 0031 (transformation intake -- previously untracked as unapplied, and the live /api/business-transformation-intake route depends on it), and 0044/0045 which production superseded with 0044a/0044b/0045_..._honestly. Ordinals 0049-0052 are a special case: see reconstructedFromProduction.",
+  "notYetAppliedOrdinals": [30, 31, 44, 45],
   "knownMigrationDrift": {
-    "$comment": "No active drift. The 0023–0027 version-identifier drift was reconciled in Phase XI-2I (Option D) — repo files renamed to production's applied versions; SQL content unchanged. History preserved below under resolvedMigrationDrift.",
-    "entries": []
+    "$comment": "ACTIVE drift, measured against the live ledger 2026-09-17. Sixteen migrations were applied to canonical production under different version stamps than the files carry. Content is believed unchanged; only the recorded version differs. This is the mechanical reason the protected one-click migration workflow's drift check cannot pass, and reconciling it is its own approved piece of work. Ordinal 48 also collides by NAME in production: hlbos_0048 identifies BOTH hlbos_0048_ats_resume_optimizer (this file) and hlbos_0048_barberos_capability_catalog (applied 2026-09-09), so migration numbers no longer identify migrations there.",
+    "entries": [
+      {
+        "ordinal": 29,
+        "repoVersion": "20260801120000",
+        "productionAppliedVersion": "20260801233354"
+      },
+      {
+        "ordinal": 32,
+        "repoVersion": "20260818210000",
+        "productionAppliedVersion": "20260818203419"
+      },
+      {
+        "ordinal": 33,
+        "repoVersion": "20260820120000",
+        "productionAppliedVersion": "20260820011152"
+      },
+      {
+        "ordinal": 34,
+        "repoVersion": "20260820140000",
+        "productionAppliedVersion": "20260820012431"
+      },
+      {
+        "ordinal": 35,
+        "repoVersion": "20260820160000",
+        "productionAppliedVersion": "20260820012941"
+      },
+      {
+        "ordinal": 36,
+        "repoVersion": "20260820180000",
+        "productionAppliedVersion": "20260820014408"
+      },
+      {
+        "ordinal": 37,
+        "repoVersion": "20260820200000",
+        "productionAppliedVersion": "20260820015400"
+      },
+      {
+        "ordinal": 38,
+        "repoVersion": "20260820220000",
+        "productionAppliedVersion": "20260820022340"
+      },
+      {
+        "ordinal": 39,
+        "repoVersion": "20260820240000",
+        "productionAppliedVersion": "20260820152634"
+      },
+      {
+        "ordinal": 40,
+        "repoVersion": "20260820260000",
+        "productionAppliedVersion": "20260820152914"
+      },
+      {
+        "ordinal": 41,
+        "repoVersion": "20260820280000",
+        "productionAppliedVersion": "20260820171407"
+      },
+      {
+        "ordinal": 42,
+        "repoVersion": "20260820300000",
+        "productionAppliedVersion": "20260820171438"
+      },
+      {
+        "ordinal": 43,
+        "repoVersion": "20260820320000",
+        "productionAppliedVersion": "20260820171552"
+      },
+      {
+        "ordinal": 46,
+        "repoVersion": "20260826120000",
+        "productionAppliedVersion": "20260826160814"
+      },
+      {
+        "ordinal": 47,
+        "repoVersion": "20260826170000",
+        "productionAppliedVersion": "20260826161134"
+      },
+      {
+        "ordinal": 48,
+        "repoVersion": "20260916120000",
+        "productionAppliedVersion": "20260916190643"
+      }
+    ]
   },
   "resolvedMigrationDrift": {
     "$comment": "HISTORICAL record of the reconciled drift (Phase XI-2I, 2026-07-31, Option D). Repo migration files 0023–0027 were renamed from their old version identifiers to production's applied versions; content byte-identical (sha256 before==after) and normalized SQL matched production. See docs/architecture-audit/hlvs-phase-11-2i-reconciliation-execution/01-reconciliation-audit.md and ADR-0002 addendum.",
@@ -95,5 +177,26 @@
         "normalizedMd5": "386591edb1080bbce2a740fc65489735"
       }
     ]
+  },
+  "reconstructedFromProduction": {
+    "$comment": "BarberOS was built directly against canonical production between 2026-09-09 and 2026-09-13 and was never committed. Repo ordinals 0049-0052 reconstruct the END STATE of the `barberos` schema read out of the live catalog; they are NOT a replay of production's history, because the live database records what exists, not which migration created which object, and inventing a plausible split would be fabricated history. The schema they produce was verified byte-for-byte against production: all twelve structural fingerprint categories (columns, constraints, indexes, policies, RLS flags, triggers, functions, function grants, table grants, enums, seeded catalog rows, permissions) match exactly. They are ALREADY APPLIED in production under the names below and MUST NOT be applied there again; their purpose is to make the repository true, to let CI prove the schema applies from empty, and to give supabase/tests/49_barberos.sql something to test. transform_audit (10 tables, 27 functions) is NOT yet reconstructed and remains out of source control.",
+    "verifiedOn": "2026-09-17",
+    "verificationMethod": "12-category structural fingerprint computed identically on canonical production and on a local PostgreSQL 16.13 with all 52 migrations applied from empty; all 12 md5 fingerprints identical after normalising the `extensions.` schema qualifier, which renders differently under the two sessions' search_path.",
+    "repoOrdinals": [49, 50, 51, 52],
+    "productionMigrationsCovered": [
+      "20260909203027 hlbos_0048_barberos_capability_catalog",
+      "20260909203607 hlbos_0049_transform_audit",
+      "20260909203954 hlbos_0050_citext_guard_semantics",
+      "20260909205112 hlbos_0051_unknown_is_not_complete",
+      "20260910215806 hlbos_0052_barberos_owned_website",
+      "20260910223719 hlbos_0053_barberos_public_site_read",
+      "20260911175642 hlbos_0054_discovery_call",
+      "20260911185433 hlbos_0055_proposal",
+      "20260913003755 hlbos_0056_barberos_shop_api",
+      "20260913023845 hlbos_0057_barberos_product_map",
+      "20260913025202 hlbos_0058_barberos_client_crm"
+    ],
+    "notCovered": "The transform_audit schema, created by hlbos_0049_transform_audit and extended by 0054/0055. Ten tables, 27 functions, 40 diagnostic runs and 50 prospect profiles, still only in production.",
+    "knownResidual": "barberos.enforce_locked_config, enforce_no_orphan_dependents, enforce_prerequisites, enforce_publishable and require_capability carry PostgreSQL's built-in default of EXECUTE to PUBLIC (proacl is null), so `anon` can call them. Production is in the same state, so it is reproduced rather than silently corrected -- changing it here would be a behaviour change smuggled in under a reconciliation. It is inert: a trigger function cannot be called outside a trigger, which 49_barberos.sql asserts. Worth a separate, deliberate migration."
   }
 }

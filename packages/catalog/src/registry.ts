@@ -1206,6 +1206,13 @@ const ASSETS: Asset[] = [
     "HL-BOS",
     "Public Business Transformation intake submissions (RLS-forced; anon writes via SECURITY DEFINER RPC only).",
   ),
+  ...db(
+    "barberos",
+    "BarberOS",
+    14,
+    "HL-BOS",
+    "The BarberOS vertical: capability catalog and per-tenant toggles, the shop record and its owned website, and the client book — every client, every visit and the cut itself. RLS enabled AND forced on all 14 tables, no write policy anywhere (every write goes through a permission-checked RPC), and exactly two anon-reachable functions, both the public shop page. Reconstructed into source control on 2026-09-17 from a schema that was built directly against production and never committed; verified byte-for-byte against production across twelve structural fingerprint categories. The transform_audit schema that accompanies it in production is NOT yet in this repository.",
+  ),
 
   // ======================================================================
   // WORKFLOWS
