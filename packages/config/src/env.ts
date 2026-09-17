@@ -32,6 +32,21 @@ export type Environment = z.infer<typeof environmentSchema>;
  * STRIPE_SECRET_KEY before billing exists would be documentation theatre and
  * would force operators to populate variables that do nothing.
  */
+/**
+ * Treat an empty or whitespace-only value as "not set".
+ *
+ * An operator who writes `SUPABASE_URL=` in a .env file means "I have not
+ * configured this", not "here is an invalid URL". Without this, a blank line
+ * in a deployment's environment would crash a page instead of degrading to
+ * the honest not-connected state the consumer already handles.
+ */
+function blankAsUnset<T extends z.ZodTypeAny>(schema: T) {
+  return z.preprocess(
+    (v) => (typeof v === "string" && v.trim() === "" ? undefined : v),
+    schema,
+  );
+}
+
 export const ENV_SPEC = [
   {
     key: "NODE_ENV",
@@ -71,6 +86,34 @@ export const ENV_SPEC = [
     description:
       "Supabase service-role key. BYPASSES ALL ROW LEVEL SECURITY. Server-only, always. Never import into a client component. Never prefix with NEXT_PUBLIC. If this reaches a browser bundle, every tenant's data is readable by every visitor.",
     example: "sb_secret_xxxxxxxxxxxxxxxxxxxxxx",
+  },
+  {
+    key: "SUPABASE_URL",
+    classification: "server-only",
+    schema: blankAsUnset(
+      z
+        .url({ error: "must be a valid URL, e.g. https://<ref>.supabase.co" })
+        // z.url() accepts ANY scheme, so `htps://typo` passes it. A mistyped
+        // scheme would then be handed to fetch as a real endpoint. Found by a
+        // test that expected a typo to be rejected and watched it sail through.
+        .refine((v) => /^https?:\/\//i.test(v), {
+          error: "must start with http:// or https://",
+        })
+        .optional(),
+    ),
+    description:
+      "OPTIONAL. Supabase project URL for a server-side caller that must NOT ship the URL to the browser (the HSCS marketing site posts its assessment intake from its own server, which is what lets it keep connect-src 'self'). Unset means that feature is not connected, which is a valid deployment, not an error.",
+    example: "https://your-project-ref.supabase.co",
+  },
+  {
+    key: "SUPABASE_PUBLISHABLE_KEY",
+    classification: "server-only",
+    schema: blankAsUnset(
+      z.string().min(20, "looks too short to be a Supabase key").optional(),
+    ),
+    description:
+      "OPTIONAL. Supabase publishable (anon) key for a server-side caller. Classified server-only NOT because it is secret -- it is not, RLS is the boundary -- but because the consumer deliberately keeps it off the browser. Unset means the feature is not connected.",
+    example: "sb_publishable_xxxxxxxxxxxxxxxxxxxxxx",
   },
 ] as const satisfies readonly EnvVarSpec[];
 
@@ -187,6 +230,52 @@ export function requireServerEnv(key: EnvKey, options: LoadOptions = {}): unknow
 
   const env = loadEnv(options);
   return env[key];
+}
+
+/**
+ * Read ONE optional server-side variable, without requiring the rest of the
+ * platform's environment to be present.
+ *
+ * `loadEnv` and `requireServerEnv` validate the WHOLE spec and throw if any
+ * required variable is missing. That is right for a platform service, and
+ * wrong for a consumer that legitimately has a partial environment: the HSCS
+ * marketing site needs no service-role key and no browser Supabase URL, and
+ * demanding them would make a correct deployment fail to boot.
+ *
+ * This still goes through the spec — the key must be declared, its
+ * classification is asserted, the browser guard applies, and a present-but-
+ * invalid value throws. What it does not do is judge variables the caller
+ * never claimed to need.
+ *
+ * @returns the parsed value, or `undefined` when the variable is not set.
+ * @throws {ConfigClassificationError} in a browser context, or on a
+ *   self-contradictory spec.
+ * @throws {EnvValidationError} if the key is undeclared or its value invalid.
+ */
+export function readOptionalServerEnv(key: EnvKey, options: LoadOptions = {}): unknown {
+  const spec = ENV_SPEC.find((s) => s.key === key);
+  if (!spec) {
+    throw new EnvValidationError([`${key} is not declared in ENV_SPEC.`]);
+  }
+
+  assertClassification(spec.key, spec.classification);
+
+  if (isServerSide(spec.classification) && inBrowserContext()) {
+    throw new ConfigClassificationError(
+      `"${key}" is "${spec.classification}" and was read in a browser ` +
+        `context. This is a secret-exposure bug. Read it in a server ` +
+        `component, route handler, or Edge Function instead.`,
+    );
+  }
+
+  const source = options.source ?? process.env;
+  const parsed = spec.schema.safeParse(source[spec.key]);
+  if (!parsed.success) {
+    throw new EnvValidationError([
+      `${spec.key} is invalid: ${parsed.error.issues.map((i) => i.message).join("; ")}`,
+    ]);
+  }
+  return parsed.data;
 }
 
 /** Every variable an operator must supply, for docs and .env.example. */

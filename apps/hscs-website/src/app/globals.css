@@ -929,3 +929,210 @@ ul {
 .faq__item .card__title {
   margin-bottom: var(--space-2);
 }
+
+/* ---------------------------------------------------------------------------
+ * Forms — the assessment intake (Page Specifications §4.9).
+ *
+ * The site's only form, and its single primary conversion. Built for the
+ * reading conditions of the people it is for: an operator on a phone, often
+ * outdoors. So: large targets, a visible focus ring that survives a bright
+ * screen, errors in words rather than colour alone, and no placeholder text
+ * standing in for a label.
+ *
+ * Every value below is a token. Nothing here invents its own.
+ * ------------------------------------------------------------------------- */
+
+.form {
+  margin-top: var(--space-6);
+}
+
+.field {
+  margin-bottom: var(--space-5);
+}
+
+.field__label {
+  display: block;
+  font-family: var(--font-body);
+  font-weight: 600;
+  font-size: 15px;
+  color: var(--ink);
+  margin-bottom: var(--space-2);
+}
+
+.field__optional {
+  font-weight: 400;
+  color: var(--slate);
+}
+
+.field__hint {
+  display: block;
+  font-size: 14px;
+  color: var(--slate);
+  margin-top: var(--space-1);
+  margin-bottom: var(--space-2);
+}
+
+.field__control {
+  display: block;
+  width: 100%;
+  min-height: 48px; /* comfortable touch target */
+  padding: var(--space-3) var(--space-4);
+  font-family: var(--font-body);
+  font-size: 16px; /* 16px stops iOS zooming the page on focus */
+  color: var(--ink);
+  background: var(--surface);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-md);
+}
+
+textarea.field__control {
+  min-height: 132px;
+  resize: vertical;
+}
+
+.field__control:focus-visible {
+  outline: 3px solid var(--signal);
+  outline-offset: 1px;
+  border-color: var(--steel);
+}
+
+.field__control[aria-invalid="true"] {
+  border-color: var(--error);
+  border-width: 2px;
+}
+
+.field__error {
+  display: block;
+  margin-top: var(--space-2);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--error);
+}
+
+/* Checkable groups ---------------------------------------------------------*/
+
+.fieldset {
+  border: 0;
+  padding: 0;
+  margin: 0 0 var(--space-5);
+}
+
+.fieldset__legend {
+  padding: 0;
+  font-family: var(--font-body);
+  font-weight: 600;
+  font-size: 15px;
+  color: var(--ink);
+  margin-bottom: var(--space-2);
+}
+
+.choices {
+  display: grid;
+  gap: var(--space-2);
+  grid-template-columns: 1fr;
+}
+
+@media (min-width: 640px) {
+  .choices--two {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.choice {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  font-size: 15px;
+  color: var(--ink);
+  cursor: pointer;
+}
+
+.choice:hover {
+  border-color: var(--line-strong);
+}
+
+.choice__input {
+  width: 20px;
+  height: 20px;
+  margin: 2px 0 0;
+  flex: 0 0 auto;
+  accent-color: var(--steel);
+}
+
+.choice__input:focus-visible {
+  outline: 3px solid var(--signal);
+  outline-offset: 2px;
+}
+
+.choice--consent {
+  align-items: flex-start;
+  background: var(--paper);
+  border-color: var(--line-strong);
+}
+
+/* The honeypot. Hidden from people and from assistive technology; only an
+   automated filler ever reaches it. Not `display:none`, which some fillers
+   deliberately skip. */
+.trap {
+  position: absolute;
+  left: -9999px;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+}
+
+/* Form-level messages ------------------------------------------------------*/
+
+.notice {
+  padding: var(--space-4) var(--space-5);
+  border-radius: var(--radius-md);
+  border-left: 4px solid var(--line-strong);
+  background: var(--mist);
+  margin-bottom: var(--space-5);
+}
+
+.notice--error {
+  border-left-color: var(--error);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-left: 4px solid var(--error);
+}
+
+.notice__title {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 17px;
+  color: var(--ink);
+  margin: 0 0 var(--space-2);
+}
+
+.notice__body {
+  margin: 0;
+  color: var(--graphite);
+  font-size: 15px;
+}
+
+.form__submit {
+  margin-top: var(--space-6);
+}
+
+.form__footnote {
+  margin-top: var(--space-4);
+  font-size: 14px;
+  color: var(--slate);
+}
+
+.reference {
+  font-family: var(--font-mono);
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--ink);
+  background: var(--mist);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-sm);
+  display: inline-block;
+}

@@ -44,7 +44,7 @@ describe("primary conversion (CTA rule)", () => {
     expect(FOOTER.primaryCta.label).toBe(PRIMARY_CTA.label);
   });
 
-  it("points to the honest 'being prepared' page, not a fake form", () => {
+  it("points at the real assessment intake", () => {
     expect(PRIMARY_CTA.href).toBe(ASSESSMENT_HREF);
     expect(ASSESSMENT_HREF).toBe("/request-an-assessment");
   });

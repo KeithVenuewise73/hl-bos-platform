@@ -3,7 +3,7 @@
   "schemaVersion": 1,
   "sourceDir": "supabase/migrations",
   "canonicalRepository": "KeithVenuewise73/hl-bos-platform",
-  "count": 47,
+  "count": 48,
   "migrations": [
     {
       "ordinal": 1,
@@ -382,6 +382,15 @@
       "version": "20260826161134",
       "sha256": "a3e215b362d578a5f476e8fc78037753e5cc47b8c20a6479f614752fb73c0930",
       "foundation": false
+    },
+    {
+      "ordinal": 48,
+      "name": "hlbos_0048_hscs_assessment_intake",
+      "filename": "20260917120000_hlbos_0048_hscs_assessment_intake.sql",
+      "version": "20260917120000",
+      "sha256": "59a19c6a1938842214b7953f349122b331e84de87b49ca56adc30c9c6fe3e132",
+      "foundation": false,
+      "notYetApplied": true
     }
   ]
 }

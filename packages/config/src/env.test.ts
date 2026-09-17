@@ -2,6 +2,7 @@ import { describe, it, expect, afterEach } from "vitest";
 import {
   loadEnv,
   requireServerEnv,
+  readOptionalServerEnv,
   describeEnv,
   ENV_SPEC,
   EnvValidationError,
@@ -191,5 +192,81 @@ describe("describeEnv", () => {
     expect(JSON.stringify(describeEnv())).not.toContain(
       "sb_secret_fake_value_for_tests_only",
     );
+  });
+});
+
+describe("readOptionalServerEnv — for a consumer with a partial environment", () => {
+  it("returns undefined when the variable is simply not set", () => {
+    expect(readOptionalServerEnv("SUPABASE_URL", { source: {} })).toBeUndefined();
+  });
+
+  it("returns the value when it is set and valid", () => {
+    expect(
+      readOptionalServerEnv("SUPABASE_URL", {
+        source: { SUPABASE_URL: "https://ref.supabase.co" },
+      }),
+    ).toBe("https://ref.supabase.co");
+  });
+
+  it("treats a blank value as unset, not as an invalid one", () => {
+    expect(
+      readOptionalServerEnv("SUPABASE_URL", { source: { SUPABASE_URL: "   " } }),
+    ).toBeUndefined();
+    expect(
+      readOptionalServerEnv("SUPABASE_PUBLISHABLE_KEY", {
+        source: { SUPABASE_PUBLISHABLE_KEY: "" },
+      }),
+    ).toBeUndefined();
+  });
+
+  it("still refuses a present-but-invalid value", () => {
+    expect(() =>
+      readOptionalServerEnv("SUPABASE_URL", { source: { SUPABASE_URL: "not-a-url" } }),
+    ).toThrow(EnvValidationError);
+    expect(() =>
+      readOptionalServerEnv("SUPABASE_PUBLISHABLE_KEY", {
+        source: { SUPABASE_PUBLISHABLE_KEY: "short" },
+      }),
+    ).toThrow(EnvValidationError);
+  });
+
+  it("refuses a key that is not declared in the spec", () => {
+    expect(() =>
+      readOptionalServerEnv(
+        "NOT_DECLARED" as unknown as Parameters<typeof readOptionalServerEnv>[0],
+        {
+          source: {},
+        },
+      ),
+    ).toThrow(EnvValidationError);
+  });
+
+  it("does NOT demand the rest of the platform environment, unlike loadEnv", () => {
+    // The whole reason this function exists: the HSCS marketing site has no
+    // service-role key and no browser Supabase URL, and must still boot.
+    const partial = { SUPABASE_URL: "https://ref.supabase.co" };
+    expect(() => loadEnv({ source: partial })).toThrow(EnvValidationError);
+    expect(readOptionalServerEnv("SUPABASE_URL", { source: partial })).toBe(
+      "https://ref.supabase.co",
+    );
+  });
+});
+
+describe("SUPABASE_URL scheme", () => {
+  // z.url() alone accepts any scheme, so a mistyped one would reach fetch as a
+  // real endpoint. Only http/https are accepted.
+  it.each(["htps://typo.supabase.co", "ftp://x.supabase.co", "javascript:alert(1)"])(
+    "refuses %s",
+    (url) => {
+      expect(() =>
+        readOptionalServerEnv("SUPABASE_URL", { source: { SUPABASE_URL: url } }),
+      ).toThrow(EnvValidationError);
+    },
+  );
+
+  it.each(["https://ref.supabase.co", "http://127.0.0.1:5599"])("accepts %s", (url) => {
+    expect(
+      readOptionalServerEnv("SUPABASE_URL", { source: { SUPABASE_URL: url } }),
+    ).toBe(url);
   });
 });

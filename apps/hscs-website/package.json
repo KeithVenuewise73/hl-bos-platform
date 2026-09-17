@@ -2,7 +2,7 @@
   "name": "@hl-bos/hscs-website",
   "version": "0.1.0",
   "private": true,
-  "description": "HSCS marketing website — Herman Supply Chain Solutions, Transportation & Operations Consulting. The public marketing site implementing the approved HSCS Commercial Launch Phase 1 Baseline (Commercial Foundation, Website IA, Homepage Architecture, Homepage Copy, Page Specifications, Design System). Milestone 2A delivers the application foundation, the Design System tokens in code, the shared header/nav/footer, and the homepage only. It has NO backend: no assessment intake, no Supabase, no email, no analytics. The primary CTA links to an honest 'being prepared' page rather than a fake form.",
+  "description": "HSCS marketing website \u2014 Herman Supply Chain Solutions, Transportation & Operations Consulting. The public marketing site implementing the approved HSCS Commercial Launch Phase 1 Baseline (Commercial Foundation, Website IA, Homepage Architecture, Homepage Copy, Page Specifications, Design System). Delivers the Design System tokens in code, the shared header/nav/footer, the homepage, the services and industries pages, and the Operations Assessment intake -- the site's single primary conversion, which writes to the HL-BOS `intake` schema via a server action. Where no intake is configured the page renders no form and says why. No email and no analytics yet.",
   "type": "module",
   "scripts": {
     "dev": "next dev --port 4600",
@@ -14,6 +14,7 @@
     "clean": "rm -rf .next dist *.tsbuildinfo"
   },
   "dependencies": {
+    "@hl-bos/config": "workspace:*",
     "next": "catalog:",
     "react": "catalog:",
     "react-dom": "catalog:"

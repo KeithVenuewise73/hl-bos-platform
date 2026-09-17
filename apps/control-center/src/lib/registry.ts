@@ -46,7 +46,7 @@ export const PORTFOLIO: readonly Product[] = [
     name: "HSCS Consultation Website",
     stage: "development",
     status:
-      "Builds green (17 routes): homepage, services hub, 11 service pages, industries hub, 5 industry pages, plus an honest holding page for the assessment request. NOT deployed anywhere. The public site at www.hermansupplychainsolutions.com is still the older hand-written HTML site in the separate `herman-supply-chain` repository, last changed 2026-06-18. Still to build: /experience, /method, /insights, /guides, /about, /contact, the legal and utility pages, sitemap.xml and robots.txt, and the assessment intake -- the primary call to action currently leads to a page that says the form is not ready, which is true but converts nobody.",
+      "The front door is built. The Operations Assessment request is a real working form that writes to the database, verified end to end -- including with JavaScript disabled -- against a real PostgreSQL: a valid request stored a row and returned its reference, and withheld consent and an automated filler were both refused with nothing stored. Also live: homepage, services hub, 11 service pages, industries hub, 5 industry pages, and /thank-you. NOT deployed anywhere, and its migration (0048) is NOT applied, so on any real deployment today the page shows no form and says the intake is not connected. The public site at www.hermansupplychainsolutions.com is still the older hand-written HTML site in the separate `herman-supply-chain` repository, last changed 2026-06-18. Still to build: /experience, /method, /insights, /guides, /about, /contact, the legal pages, sitemap.xml and robots.txt.",
     version: null,
     location: "this repository (apps/hscs-website)",
   },

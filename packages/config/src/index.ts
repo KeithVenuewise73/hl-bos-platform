@@ -19,6 +19,7 @@
 export {
   loadEnv,
   requireServerEnv,
+  readOptionalServerEnv,
   describeEnv,
   environmentSchema,
   EnvValidationError,

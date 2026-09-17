@@ -11,8 +11,9 @@
  *
  * HONESTY / DOCTRINE (enforced structurally + by tests):
  *  - The single primary conversion is "Request an Operations Assessment".
- *  - The assessment workflow is NOT built yet, so its CTA points to an honest
- *    "being prepared" page (`/request-an-assessment`) — never a fake form.
+ *  - The assessment intake is BUILT (migration 0048 + `/request-an-assessment`).
+ *    Where a deployment has no intake configured, that page renders no form at
+ *    all and says so — never a form that quietly drops a request.
  *  - Toolbox entries carry NO link/CTA: tools support consulting, they are not
  *    products for sale (Foundation §18).
  *  - The credibility strip uses the NAME-FREE operating-record line by default,
@@ -30,7 +31,7 @@ export const COMING_SOON = "/coming-soon";
 /** The Services hub — a real built route (Milestone 2B). */
 export const SERVICES_HREF = "/services";
 export const INDUSTRIES_HREF = "/industries";
-/** Honest temporary destination for the primary conversion (no form yet). */
+/** The primary conversion: the real assessment intake form. */
 export const ASSESSMENT_HREF = "/request-an-assessment";
 
 export interface NavItem {
