@@ -1207,6 +1207,13 @@ const ASSETS: Asset[] = [
     "Public Business Transformation intake submissions (RLS-forced; anon writes via SECURITY DEFINER RPC only).",
   ),
   ...db(
+    "transform_audit",
+    "Business Transformation Audit",
+    10,
+    "HL-BOS",
+    "The pre-sale diagnostic: a campaign weights the dimensions, a run scores one prospect against them, findings are the evidence and recommendations resolve to real BarberOS capabilities. Agency-tenant scoped \u2014 the tenant is Herman Legacy doing the auditing, not the shop being audited. Its honesty guards are structural: findings are append-only, 'unknown' and a null score are the same fact, a dimension cannot be called 'verified' without a finding carrying an evidence URL, composite_score is derived and cannot be written by hand, an outreach hook must cite a finding from its own run, and a proposal cannot name a capability the catalog lacks, mention a deferred one at all, or call a planned one deliverable today. Reconstructed into source control on 2026-09-17 and verified byte-for-byte against production across eleven fingerprint categories. It has NO public API: nothing outside the database can read its 40 recorded runs.",
+  ),
+  ...db(
     "barberos",
     "BarberOS",
     14,

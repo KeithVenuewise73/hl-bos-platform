@@ -63,7 +63,7 @@ Keith clicks Send to GitHub  ->  CI runs  ->  console shows plain-English result
 |                     |                                                                                                                               |
 | ------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
 | Console             | `apps/control-center` — runs locally only; see its README                                                                     |
-| Database            | `supabase/migrations` (0001–0048), `supabase/tests` (44 pgTAP files)                                                          |
+| Database            | `supabase/migrations` (0001–0054), `supabase/tests` (46 pgTAP files)                                                          |
 | Milestone state     | `.hlbos/milestone.json` — the console reads this; keep it true                                                                |
 | Failure translation | `apps/control-center/src/lib/translate.ts` — add a rule whenever a new failure surfaces jargon                                |
 | Portfolio truth     | `apps/control-center/src/lib/registry.ts` — a product moves off `not-started` only when it has code                           |
@@ -72,7 +72,7 @@ Keith clicks Send to GitHub  ->  CI runs  ->  console shows plain-English result
 ## Standing constraints
 
 - **`main` is protected.** Branch, PR, never push to it directly.
-- **Production has drifted from this repository.** 98 migrations are applied there; 48 are in source control. An entire product (BarberOS) and two unknown product lines (`dma_*`, `jobscout_*`) exist only as deployed database objects, and migration number `0048` has been used twice. **Never pick a migration number, and never conclude something is unbuilt, without reading the live migration ledger first.**
+- **Production has drifted from this repository.** 98 migrations are applied there; 54 are in source control. BarberOS was recovered on 2026-09-17 (it had been built straight against production and never committed), but two undocumented product lines (`dma_*` 17 migrations, `jobscout_*` 8) and a leftover `temp_perftest_page_twin` still exist only as deployed database objects, 16 of our own migrations are recorded there under different version stamps, and migration number `0048` names two different migrations. **Never pick a migration number, and never conclude something is unbuilt, without reading the live migration ledger first.**
 - **No migration is applied without explicit approval.** Not to production, not anywhere.
 - **TypeScript is pinned at 6.0.3.** Do not "fix" it — see `docs/architecture/dependency-policy.md`.
 - **The legacy Supabase project is out of scope** and unreachable. It has open security findings; do not touch it without an approved plan.

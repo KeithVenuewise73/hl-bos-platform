@@ -98,8 +98,8 @@ describe("registry integrity", () => {
     expect(dangling, `dangling targets: ${dangling.join(", ")}`).toEqual([]);
   });
 
-  it("registers the 20 application databases and 10 edge functions", () => {
-    expect(assetsByKind(catalog, "database").length).toBe(20);
+  it("registers the 21 application databases and 10 edge functions", () => {
+    expect(assetsByKind(catalog, "database").length).toBe(21);
     expect(assetsByKind(catalog, "edge_function").length).toBe(10);
   });
 
@@ -111,7 +111,7 @@ describe("registry integrity", () => {
 describe("repository scan (ground truth)", () => {
   it("discovers the real schemas, functions, apps and packages", async () => {
     const inv = await scanRepository(REPO_ROOT);
-    expect(inv.schemas.length).toBe(20);
+    expect(inv.schemas.length).toBe(21);
     expect(inv.schemas).toContain("hlvs");
     expect(inv.schemas).toContain("social");
     expect(inv.schemas).toContain("bti");
@@ -150,8 +150,14 @@ describe("repository scan (ground truth)", () => {
     // The reconstruction was verified byte-for-byte against production across
     // twelve structural fingerprint categories. See
     // docs/products/barberos/02-production-drift-map.md.
-    expect(inv.migrations.length).toBe(52);
+    // Plus 0053-0054 (transform_audit: the pre-sale diagnostic engine, and the
+    // discovery call and proposal that follow it) — the second half of the same
+    // reconstruction, applied in production as hlbos_0049_transform_audit,
+    // 0050_citext_guard_semantics, 0051_unknown_is_not_complete,
+    // 0054_discovery_call and 0055_proposal.
+    expect(inv.migrations.length).toBe(54);
     expect(inv.schemas).toContain("barberos");
+    expect(inv.schemas).toContain("transform_audit");
     expect(inv.edgeFunctions).toContain("ai-gateway");
     expect(inv.edgeFunctions).not.toContain("tests");
     expect(inv.apps).toEqual(
@@ -185,7 +191,7 @@ describe("executive metrics", () => {
     const catalog = buildCatalog();
     const inv = await scanRepository(REPO_ROOT);
     const m = metrics(catalog, completeness(catalog, inv));
-    expect(m.databases).toBe(20);
+    expect(m.databases).toBe(21);
     expect(m.edgeFunctions).toBe(10);
     expect(m.sharedServices).toBeGreaterThanOrEqual(12);
     expect(m.products).toBeGreaterThanOrEqual(3);

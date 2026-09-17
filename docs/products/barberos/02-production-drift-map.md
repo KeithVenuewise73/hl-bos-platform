@@ -369,6 +369,84 @@ production. That is the next piece.
 
 ---
 
+## 7b. STATUS — `transform_audit` is in too (2026-09-17)
+
+The diagnostic engine is now in source control as **0053–0054**, and the eleven out-of-repo BarberOS migrations are
+fully covered.
+
+|                                                                        |                                                                                                                              |
+| ---------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| `20260917140000_hlbos_0053_transform_audit_engine.sql`                 | 8 tables, 19 functions: campaigns and weights, shop profiles, runs, findings, dimension scores, recommendations, competitors |
+| `20260917140100_hlbos_0054_transform_audit_discovery_and_proposal.sql` | 2 tables, 8 functions: the discovery call, and the proposal with its three honesty rules                                     |
+| `supabase/tests/53_transform_audit.sql`                                | **77 assertions**                                                                                                            |
+
+**Fidelity proven the same way.** Eleven fingerprint categories (no `seed_rows` — this schema seeds no vocabulary),
+computed against production and against a local PostgreSQL 16.13 with all 54 migrations applied from empty. **All
+eleven match.**
+
+**And again the comparison caught something reading the code had not.** My first draft granted
+`transform_audit.recompute_composite` to `authenticated`. Production deliberately does not: it is reached only
+through `record_dimension()`, which is `SECURITY DEFINER` and runs it as the owner. Granting it directly would hand a
+caller the one function permitted to write the derived columns — precisely what `deny_derived_write()` exists to
+prevent. Production was tighter than my reconstruction, and the fingerprint is what found it.
+
+### What this schema actually is
+
+The pre-sale diagnostic, and it is agency-tenant scoped: the tenant is Herman Legacy doing the auditing, not the shop
+being audited. A shop here is a `visibility.prospects` row, extended by `shop_profiles` — which is why the 50 Western
+New York barbershops live in the existing prospects table rather than a parallel one.
+
+The pipeline is: **campaign** (which dimensions matter and how much) → **run** (one prospect, weights frozen onto it)
+→ **findings** (the evidence) → **dimension scores** → **recommendations** (resolving to real BarberOS capabilities)
+→ **discovery call** → **proposal**.
+
+### The guards, which are the reason this schema is worth having
+
+This is the one place where an overstatement becomes a commercial promise, and the schema is built accordingly:
+
+- **Findings are append-only.** `deny_finding_mutation()` refuses UPDATE and DELETE outright. An observation cannot
+  be softened after a report has been built on it.
+- **`unknown` and a null score are the same fact**, tied by a CHECK. A dimension we could not reach is not a
+  dimension that scored zero.
+- **`verified` requires evidence.** A dimension cannot be scored verified unless some finding on that run carries an
+  `evidence_url`. "Verified" means we looked, and the trigger makes us prove it.
+- **`composite_score` is derived**, not written. Only `recompute_composite()` may set it, and it announces itself
+  with a session GUC to do so.
+- **Unknown is not complete.** A weighted dimension counts as assessed only if it has a row that is not `unknown`, so
+  `finish_run()` returns `partially_completed`. _This is why all 40 real production runs read partially completed and
+  score 0_ — the engine is being honest about never having looked.
+- **The outreach hook must cite a finding from its own run.** There is no way to record a sales line that no
+  observation supports.
+- **The three proposal rules**, enforced by trigger against the BarberOS catalog: a proposal cannot name a capability
+  that does not exist; cannot mention a `deferred` one _in any form_, because deferred is a decision not to build it;
+  and cannot mark a `planned` one `deliverable_today`. Only what has shipped may be sold as ready.
+- **A sent proposal cannot be edited** — not its document, not its prospect, not its audit. The copy the owner is
+  holding cannot be revised, so you draft a new one.
+- **A call that established nothing does not get a timestamp.** `record_discovery()` will not stamp `answered_at`
+  unless the call actually supplied an answer, so "we spoke to them" cannot become true by accident.
+
+### What running the tests found
+
+One real flake in my own suite: every row in a pgTAP test shares a `created_at`, because `now()` is transaction
+time — so `proposals_for()`'s `created_at DESC` ordering is not deterministic there, and an assertion reading index 0
+picked up the wrong proposal. It now looks the proposal up by id.
+
+Mutation checks confirm the suite bites: dropping the append-only trigger fails exactly 2 assertions; dropping the
+proposal-honesty trigger fails 7.
+
+### Verified in full
+
+54 migrations applied from empty; **1060 pgTAP assertions, 0 failing** across the whole suite (983 before, +77);
+860 unit tests; format, lint, typecheck 18/18; migration checks and lineage governance green at 54.
+
+### The gap this does NOT close
+
+**`transform_audit` still has no public API.** 27 functions, zero `public.*` RPCs. Its 40 runs, 45 findings and 40
+recommendations remain unreadable by any application. The test asserts that as the current state rather than papering
+over it. Giving it an API is action 4 below, and it is now the shortest path to making the diagnostic work visible.
+
+---
+
 ## 8. Recommended next actions, revised
 
 The audit's original list is superseded from action 3 onward.
