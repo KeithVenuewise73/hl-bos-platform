@@ -959,6 +959,25 @@ const ASSETS: Asset[] = [
   // APIs
   // ======================================================================
   {
+    id: "api.barberos-audit",
+    kind: "api",
+    name: "BarberOS Audit API",
+    summary:
+      "The 22 public.barberos_audit_* RPCs over the pre-sale diagnostic. Every one is SECURITY INVOKER and delegates to a transform_audit function that checks its own permission, so a wrapper adds reachability and never authority. No anon grant anywhere: this describes other people's businesses before they are customers and carries the sales hook, so it has no public audience. Everything returning composite_score returns coverage in the same object, because in production every run scores 0 with 0 of 3 dimensions assessed and that is a fact about us, not the shop. NEW work, not a reconstruction \u2014 UNAPPLIED to any project, pending CEO approval.",
+    maturity: "built_undeployed",
+    reuse: ["internal_only"],
+    owner: "Herman Legacy Platform",
+    layer: "HL-BOS",
+    tags: ["rpc", "internal", "unapplied"],
+    metrics: { functions: 22 },
+    relationships: [
+      { kind: "uses", to: "db.transform_audit" },
+      { kind: "uses", to: "db.barberos" },
+    ],
+    evidence:
+      "migration 0055; supabase/tests/55_barberos_audit_api.sql (55 assertions)",
+  },
+  {
     id: "api.bti-public",
     kind: "api",
     name: "BTI Public API",

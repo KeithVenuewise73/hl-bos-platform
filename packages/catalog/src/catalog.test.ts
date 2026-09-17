@@ -155,7 +155,12 @@ describe("repository scan (ground truth)", () => {
     // reconstruction, applied in production as hlbos_0049_transform_audit,
     // 0050_citext_guard_semantics, 0051_unknown_is_not_complete,
     // 0054_discovery_call and 0055_proposal.
-    expect(inv.migrations.length).toBe(54);
+    // Plus 0055 (barberos_audit public API) — the first migration in this
+    // sequence that is NEW WORK rather than a reconstruction. It does not exist
+    // in production and is UNAPPLIED anywhere, pending CEO approval. It exists
+    // because transform_audit had 27 functions and zero public RPCs, so the 40
+    // audit runs recorded in production could not be read by any application.
+    expect(inv.migrations.length).toBe(55);
     expect(inv.schemas).toContain("barberos");
     expect(inv.schemas).toContain("transform_audit");
     expect(inv.edgeFunctions).toContain("ai-gateway");

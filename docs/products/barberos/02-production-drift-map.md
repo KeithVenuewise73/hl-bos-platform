@@ -447,6 +447,80 @@ over it. Giving it an API is action 4 below, and it is now the shortest path to 
 
 ---
 
+## 7c. The audit results are readable — migration 0055 (2026-09-17)
+
+**This one is new work, not a reconstruction.** 0049–0054 reproduced what production already had. 0055 does not
+exist in production and is **unapplied**, pending approval.
+
+### Why
+
+`transform_audit` held 27 functions and, in production, 40 recorded runs against 50 real barbershops — 45 findings,
+40 recommendations — and **nothing could read a single one of them**. The schema is not exposed through PostgREST and
+had zero `public.*` RPCs. Work that has been done and cannot be seen is, in this platform's own terms, a control
+that controls nothing.
+
+### What it adds
+
+22 `public.barberos_audit_*` RPCs, plus four functions the schema was genuinely missing:
+
+| New inner function | Why it had to exist                                                                                                                                                                                      |
+| ------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `campaigns_for`    | —                                                                                                                                                                                                        |
+| `shops_for`        | —                                                                                                                                                                                                        |
+| `runs_for`         | The schema could fetch **one run by id** but had no way to _find_ a run. An API you cannot enumerate is not an API.                                                                                      |
+| `add_competitor`   | Recording a competitor previously required a direct table write, which no signed-in caller is permitted to make. The trigger that validates it was already there, waiting for a path that did not exist. |
+
+Those three reads are `SECURITY DEFINER` with explicit permission checks, following the schema's own convention
+rather than putting authority in a wrapper. There is a specific reason: an audit's subject is a
+`visibility.prospects` row, and reading that table needs `visibility.prospect.read` — a **different** permission from
+`transform_audit.audit.read`. A `SECURITY INVOKER` list would have returned rows with null business names to someone
+holding only `audit.read`: a half-empty screen with no explanation. `transform_audit.report()` already resolved this
+the other way, so these match it.
+
+### Two rules, enforced by test rather than trusted
+
+**1. A wrapper adds reachability, never authority.** Every public function is `SECURITY INVOKER` and delegates to a
+`SECURITY DEFINER` function that checks its own permission. The suite drives the entire audit — campaign, import,
+run, finding, dimension, recommendation, hook, finish, report, bundle, discovery, proposal, send, decide — through
+the public surface, then calls it again as three principals who should be refused:
+
+- a **viewer** (`audit.read` only) can list runs but cannot create a campaign, start a run, or record a call
+- a **role with no `transform_audit` permission at all** cannot even list runs, list shops, or read a report
+- **another agency's owner** cannot read the report and sees an empty list for its own tenant
+
+A mutation confirms this bites: rewriting one wrapper to read the table itself as `SECURITY DEFINER` — the exact
+defect this design exists to prevent — fails the escalation assertion.
+
+**2. The score never travels without its coverage.** Every response carrying `composite_score` carries `coverage` in
+the same object, and a caller cannot separate them. In production every run scores **0 with 0 of 3 dimensions
+assessed**, because nothing has egress and the diagnostic has never fetched a website. A list endpoint returning the
+score alone would let a UI render _"0/100"_ as a judgement about the barbershop when it is an admission about us.
+The run list also counts `findings` and `evidenced_findings` separately, so "45 findings" can never read as "45
+evidenced findings".
+
+**No anon grant anywhere**, deliberately. Unlike `barberos_published_site`, this API describes other people's
+businesses before they are customers and carries the sales hook we intend to open with. It has no public audience.
+
+### A stale assertion of my own, caught
+
+`53_transform_audit.sql` asserted that the schema had no public API by counting `public` functions named
+`transform_audit*`, `audit_*` or `ta_*`. The API that shipped is named `barberos_audit_*` — so that assertion would
+have **kept passing vacuously forever**, matching nothing. It now asserts the real surface, which cannot go stale
+that way.
+
+### Verified
+
+55 migrations applied from empty; **1115 pgTAP assertions, 0 failing** (1060 before, +55); 860 unit tests; format,
+lint, typecheck 18/18; migration checks and lineage green at 55.
+
+### Needs a decision
+
+**Migration 0055 is unapplied.** It is purely additive — it creates no table, changes no existing function's
+behaviour, and grants nothing to `anon`. Until it is applied to production, the 40 runs already sitting there stay
+unreadable.
+
+---
+
 ## 8. Recommended next actions, revised
 
 The audit's original list is superseded from action 3 onward.

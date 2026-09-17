@@ -3,7 +3,7 @@
   "schemaVersion": 1,
   "sourceDir": "supabase/migrations",
   "canonicalRepository": "KeithVenuewise73/hl-bos-platform",
-  "count": 54,
+  "count": 55,
   "migrations": [
     {
       "ordinal": 1,
@@ -455,6 +455,14 @@
       "filename": "20260917140100_hlbos_0054_transform_audit_discovery_and_proposal.sql",
       "version": "20260917140100",
       "sha256": "fccce4bd460a590d281fc3b7e5ce4a2a5770dcd508a2ee28b070d0a9085412f5",
+      "foundation": false
+    },
+    {
+      "ordinal": 55,
+      "name": "hlbos_0055_barberos_audit_public_api",
+      "filename": "20260917160000_hlbos_0055_barberos_audit_public_api.sql",
+      "version": "20260917160000",
+      "sha256": "f18ef6d40d5a1df9d12e17ff20c06a25b346c89a326aa30ccdd678cd74d68580",
       "foundation": false
     }
   ]

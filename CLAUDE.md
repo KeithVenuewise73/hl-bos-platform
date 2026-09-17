@@ -63,7 +63,7 @@ Keith clicks Send to GitHub  ->  CI runs  ->  console shows plain-English result
 |                     |                                                                                                                               |
 | ------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
 | Console             | `apps/control-center` — runs locally only; see its README                                                                     |
-| Database            | `supabase/migrations` (0001–0054), `supabase/tests` (46 pgTAP files)                                                          |
+| Database            | `supabase/migrations` (0001–0055), `supabase/tests` (47 pgTAP files)                                                          |
 | Milestone state     | `.hlbos/milestone.json` — the console reads this; keep it true                                                                |
 | Failure translation | `apps/control-center/src/lib/translate.ts` — add a rule whenever a new failure surfaces jargon                                |
 | Portfolio truth     | `apps/control-center/src/lib/registry.ts` — a product moves off `not-started` only when it has code                           |

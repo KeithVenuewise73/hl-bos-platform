@@ -90,15 +90,16 @@ select is(
     where table_schema = 'transform_audit' and grantee = 'anon'),
   0, 't_anon_has_no_table_grant');
 
--- This schema has NO public API. Nothing outside the database can read it,
--- which is a real and deliberate gap recorded in the drift map, not an
--- oversight this test should paper over.
+-- This schema's public API arrived in 0055 (see 55_barberos_audit_api.sql).
+-- Until then it had none, and the assertion here said so. Note what it said:
+-- it counted public functions named transform_audit*/audit_*/ta_*, and the API
+-- that actually shipped is named barberos_audit_*. So the original assertion
+-- would still have PASSED after the API existed -- vacuously, matching nothing.
+-- Replaced with the surface itself, which cannot go stale that way.
 select is(
   (select count(*)::int from pg_proc p join pg_namespace n on n.oid = p.pronamespace
-    where n.nspname = 'public'
-      and (p.proname like 'transform\_audit%' or p.proname like 'audit\_%'
-           or p.proname like 'ta\_%')),
-  0, 't_transform_audit_still_has_no_public_api');
+    where n.nspname = 'public' and p.proname like 'barberos\_audit\_%'),
+  22, 't_the_schema_is_reachable_through_exactly_twenty_two_public_functions');
 
 -- ===========================================================================
 -- B. Campaign, shops, and starting a run
