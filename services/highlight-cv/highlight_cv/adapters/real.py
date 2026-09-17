@@ -19,6 +19,7 @@ from __future__ import annotations
 from typing import Any, Sequence
 
 from ..errors import ModelUnavailableError
+from ..tracker import TrackerConfig, TwoStageTracker
 from ..types import BallDetection, BoundingBox, JerseyReading, PlayerDetection, Track, VideoTimestamp
 from .base import (
     AdapterInfo,
@@ -41,29 +42,90 @@ def _require(module: str, adapter: str, extra: str) -> Any:
         ) from exc
 
 
-class UltralyticsPlayerDetector(PlayerDetector):
-    """YOLO-family person detector, filtered to the football field.
+def _load_weights(loader: Any, weights: str, adapter: str) -> Any:
+    """Load a checkpoint, or fail with the error that says what to do.
 
-    ``weights`` should point at a detector fine-tuned on football film. The COCO
-    'person' class alone also finds the referees, the chain gang, the coaches and
-    the crowd behind the fence — all of whom will otherwise become tracks
-    competing to be somebody's child.
+    "The library is installed but the weights file is not" is a DIFFERENT
+    failure from "the library is not installed", and it is the one that actually
+    happens: the library is baked into the worker image, the weights are fetched
+    or mounted separately, and a bad path or an empty volume is routine.
+
+    Without this the adapter raised a bare `FileNotFoundError: 'football.pt'`.
+    That is worse than it looks. It is not just a poorer message — it is a
+    different exception type, so every caller catching ModelUnavailableError to
+    report a missing model cleanly would miss it and surface a stack trace
+    instead. Both paths now fail the same way, and the message still says
+    HighlightAI will not substitute demo output.
+    """
+    try:
+        return loader(weights)
+    except ModelUnavailableError:
+        raise
+    except (FileNotFoundError, OSError) as exc:
+        raise ModelUnavailableError(
+            adapter, f"the weights file `{weights}` could not be loaded ({exc})"
+        ) from exc
+    except Exception as exc:  # noqa: BLE001 - any load failure is unavailability
+        raise ModelUnavailableError(
+            adapter, f"the weights file `{weights}` could not be loaded ({type(exc).__name__}: {exc})"
+        ) from exc
+
+
+#: COCO's 'person' class. A stock YOLO knows eighty classes and, left
+#: unfiltered, will happily report a necktie as a football player — verified,
+#: not theorised: the first run of this adapter against a photograph of two
+#: athletes returned three detections, and the third was class 27, 'tie'.
+#: On real game film the same gap returns the ball, the bench, the water
+#: cooler and the cars in the car park, and every one of them becomes a track
+#: competing to be somebody's child.
+COCO_PERSON_CLASS = 0
+
+
+class UltralyticsPlayerDetector(PlayerDetector):
+    """YOLO-family person detector.
+
+    ``weights`` may be stock COCO weights or a detector fine-tuned on football
+    film. Either way the output is filtered to the person class, because an
+    unfiltered detector does not fail loudly — it quietly fills the candidate
+    pool with furniture.
+
+    Filtering to 'person' is necessary and NOT sufficient. It still finds the
+    referees, the chain gang, the coaches and the crowd behind the fence. Those
+    are people, and separating them from players is the job of team-colour
+    classification and the field mask, not of this adapter.
     """
 
-    def __init__(self, weights: str, confidence: float = 0.35, device: str = "cuda") -> None:
+    def __init__(
+        self,
+        weights: str,
+        confidence: float = 0.35,
+        device: str = "cuda",
+        classes: tuple[int, ...] = (COCO_PERSON_CLASS,),
+    ) -> None:
         ultralytics = _require("ultralytics", "UltralyticsPlayerDetector", "gpu")
-        self._model = ultralytics.YOLO(weights)
+        self._model = _load_weights(ultralytics.YOLO, weights, "UltralyticsPlayerDetector")
         self._confidence = confidence
         self._device = device
         self._weights = weights
+        self._classes = classes
 
     @property
     def info(self) -> AdapterInfo:
-        return AdapterInfo("ultralytics-player-detector", self._weights, "real")
+        return AdapterInfo(
+            "ultralytics-player-detector", self._weights, "real",
+            f"classes={self._classes}, conf>={self._confidence}",
+        )
 
     def detect(self, frame: Frame) -> list[PlayerDetection]:
+        # Filtering at predict() rather than afterwards: the model does it
+        # inside non-maximum suppression, so a discarded class cannot suppress
+        # a person who overlapped it.
         results = self._model.predict(
-            frame.pixels, conf=self._confidence, device=self._device, verbose=False
+            frame.pixels,
+            conf=self._confidence,
+            device=self._device,
+            classes=list(self._classes),
+            verbose=False,
         )
         out: list[PlayerDetection] = []
         for i, box in enumerate(getattr(results[0], "boxes", [])):
@@ -84,31 +146,43 @@ class UltralyticsPlayerDetector(PlayerDetector):
         return out
 
 
-class ByteTrackPlayerTracker(PlayerTracker):
-    """ByteTrack association over the detector's boxes.
+class TwoStagePlayerTracker(PlayerTracker):
+    """Real tracking, using this package's own two-stage association.
 
-    ByteTrack is the default because its low-confidence second association pass
-    is exactly what football needs: a player emerging from a pile is a weak
-    detection, and a tracker that discards weak detections loses him every time.
+    Replaces an earlier adapter that imported ByteTrack from YOLOX and raised
+    NotImplementedError from `update()` — a class that constructed fine and
+    tracked nothing. The algorithm now lives in ``highlight_cv.tracker``: no
+    dependency, unit-tested on any machine, and honest about which parts of
+    reference ByteTrack it implements (the two-stage association) and which it
+    approximates (constant-velocity coasting instead of a Kalman filter).
+
+    `kind` is "real" because nothing about this output is synthetic: it tracks
+    whatever the detector actually found.
     """
 
-    def __init__(self, frame_rate: float, track_buffer: int = 60) -> None:
-        self._yolox = _require("yolox.tracker.byte_tracker", "ByteTrackPlayerTracker", "gpu")
-        self._tracker = self._yolox.BYTETracker(
-            type("Args", (), {"track_thresh": 0.5, "match_thresh": 0.8, "track_buffer": track_buffer, "mot20": False})(),
-            frame_rate=frame_rate,
-        )
-        self._tracks: dict[str, Track] = {}
+    def __init__(self, config: TrackerConfig | None = None) -> None:
+        self._tracker = TwoStageTracker(config)
 
     @property
     def info(self) -> AdapterInfo:
-        return AdapterInfo("bytetrack", "0.1.0", "real")
+        return AdapterInfo(
+            "two-stage-tracker", "0.1.0", "real",
+            "ByteTrack-style two-stage association; constant-velocity coasting, not a Kalman filter.",
+        )
 
-    def update(self, frame: Frame, detections: Sequence[PlayerDetection]) -> list[Track]:  # pragma: no cover
-        raise ModelUnavailableError("ByteTrackPlayerTracker", "not wired to a live detector in this build")
+    def update(self, frame: Frame, detections: Sequence[PlayerDetection]) -> list[Track]:
+        self._tracker.update(list(detections))
+        # Tracks are returned by flush(): a track is not finished until it has
+        # either been lost for longer than the buffer or the video has ended,
+        # and handing out a half-built one invites a caller to treat it as final.
+        return []
 
-    def flush(self) -> list[Track]:  # pragma: no cover
-        return list(self._tracks.values())
+    def flush(self) -> list[Track]:
+        return self._tracker.finish()
+
+    @property
+    def dropped_as_noise(self) -> int:
+        return self._tracker.dropped_as_noise
 
 
 class PaddleJerseyRecognizer(JerseyNumberRecognizer):
@@ -143,7 +217,7 @@ class YoloBallDetector(BallDetectorAdapter):
 
     def __init__(self, weights: str, confidence: float = 0.15, device: str = "cuda") -> None:
         ultralytics = _require("ultralytics", "YoloBallDetector", "gpu")
-        self._model = ultralytics.YOLO(weights)
+        self._model = _load_weights(ultralytics.YOLO, weights, "YoloBallDetector")
         self._confidence = confidence
         self._device = device
         self._weights = weights

@@ -22,6 +22,11 @@ export default tseslint.config(
       "**/*.tsbuildinfo",
       "supabase/functions/**", // Deno runtime, different lint target
       "scripts/local-test/**", // local pgTAP runners: plain CommonJS, not part of the TS build
+      // Python virtualenvs. Installed dependencies, not our source -- and some
+      // of them (urllib3's emscripten worker) ship browser JS that fails a
+      // Node-targeted lint. Gitignored, but ESLint walks the filesystem, not git.
+      "**/.venv/**",
+      "**/__pycache__/**",
     ],
   },
 

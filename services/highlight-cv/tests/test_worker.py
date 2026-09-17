@@ -113,24 +113,38 @@ class TestRealAdaptersFailLoudly(unittest.TestCase):
     def test_a_missing_model_raises_rather_than_falling_back(self):
         # The whole point: falling back would produce a complete, plausible reel
         # of plays that never happened, attached to a real child's name.
+        #
+        # This must hold in BOTH situations, which is why the assertion is on
+        # the exception TYPE and not just the message: the library missing (a
+        # developer machine) and the weights missing (a worker image with an
+        # empty model volume — the one that actually happens in production).
         from highlight_cv.adapters.real import UltralyticsPlayerDetector
 
         with self.assertRaises(ModelUnavailableError) as ctx:
-            UltralyticsPlayerDetector("football-yolo.pt")
+            UltralyticsPlayerDetector("no-such-weights-file.pt")
         self.assertIn("not available", str(ctx.exception))
         self.assertIn("will not substitute demo output", str(ctx.exception))
 
-    def test_every_real_adapter_fails_the_same_way(self):
+    def test_every_model_backed_adapter_fails_the_same_way(self):
         from highlight_cv.adapters import real
 
         for factory in (
             lambda: real.UltralyticsPlayerDetector("w.pt"),
-            lambda: real.ByteTrackPlayerTracker(30.0),
             lambda: real.PaddleJerseyRecognizer(),
             lambda: real.YoloBallDetector("w.pt"),
         ):
             with self.assertRaises(ModelUnavailableError):
                 factory()
+
+    def test_the_real_tracker_needs_no_model_and_so_does_not_raise(self):
+        # Tracking is arithmetic, not inference. Keeping it dependency-free is
+        # what lets the association logic be tested on any machine — and means
+        # a real tracker is available even before a detector is installed.
+        from highlight_cv.adapters.real import TwoStagePlayerTracker
+
+        tracker = TwoStagePlayerTracker()
+        self.assertEqual(tracker.info.kind, "real")
+        self.assertEqual(tracker.flush(), [])
 
 
 if __name__ == "__main__":

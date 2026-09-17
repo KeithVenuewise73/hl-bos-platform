@@ -20,3 +20,8 @@ packages/database/src/generated/**
 # Generated single-file preview build (inlined, minified engine bundle).
 # It is a build output, like dist -- never hand-formatted. See apps/hl-bti-alpha/preview/README.md.
 apps/hl-bti-alpha/preview/hl-bti-preview.html
+
+# Python virtualenvs -- installed dependencies, not our source. Gitignored, but
+# Prettier walks the filesystem rather than git.
+**/.venv/
+**/__pycache__/

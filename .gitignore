@@ -157,3 +157,12 @@ __pycache__/
 *.py[cod]
 *.egg-info/
 .venv/
+
+# Model weights. Fetched on demand by the library or mounted into the worker
+# image; never committed. `services/highlight-cv` downloads yolo11n.pt (5MB) the
+# first time the real detector runs, and a football-trained checkpoint will be
+# larger still. Binaries in git are how a repository becomes unclonable.
+*.pt
+*.pth
+*.onnx
+*.engine
