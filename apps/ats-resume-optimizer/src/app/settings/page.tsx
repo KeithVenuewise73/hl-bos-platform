@@ -3,7 +3,8 @@ import { Card, Notice, PageHead } from "@/components/ui.tsx";
 import { aiStatus } from "@/lib/config.ts";
 import { currentMode, getViewer, modeDescription } from "@/lib/session.ts";
 import { currentProfile, loadWorkspace, storageDescription } from "@/lib/store.ts";
-import { removeSampleData, restoreSampleData } from "@/lib/actions.ts";
+import { deleteAccount, removeSampleData, restoreSampleData } from "@/lib/actions.ts";
+import Link from "next/link";
 
 export const dynamic = "force-dynamic";
 
@@ -13,7 +14,13 @@ export const dynamic = "force-dynamic";
  * configuration and the live store — there is no hard-coded "connected" badge
  * anywhere on it.
  */
-export default async function SettingsPage() {
+export default async function SettingsPage({
+  searchParams,
+}: {
+  searchParams?: Promise<Record<string, string | string[] | undefined>>;
+}) {
+  const query = (await searchParams) ?? {};
+  const unconfirmed = query["deleted"] === "unconfirmed";
   const workspace = await loadWorkspace();
   const profile = await currentProfile();
   const ai = aiStatus();
@@ -196,6 +203,50 @@ export default async function SettingsPage() {
             it, or the app will be empty.
           </p>
         ) : null}
+      </Card>
+
+      <Card title="Your data">
+        <p className="small">
+          What is stored, who can read it and whether any of it reaches an AI provider
+          is set out in <Link href="/data-handling">Your data</Link> and{" "}
+          <Link href="/privacy">Privacy</Link>.
+        </p>
+      </Card>
+
+      <Card title="Delete my account">
+        <p className="small">
+          This permanently removes your profile, career facts, resumes, job postings,
+          analyses, generated documents, applications and product counters. It cannot be
+          undone by us, because after it runs there is nothing left to undo it from.
+        </p>
+        <p className="hint">
+          Your sign-in record with the identity provider is not removed by this action —
+          deleting it needs an administrative key that this app deliberately does not
+          hold. Email us if you want that removed too and we will do it by hand.
+        </p>
+        {unconfirmed ? (
+          <div className="notice notice-danger" role="alert">
+            Nothing was deleted. Type DELETE exactly, in capitals, to confirm.
+          </div>
+        ) : null}
+        <form action={deleteAccount}>
+          <div className="field">
+            <label htmlFor="confirm">
+              Type <code>DELETE</code> to confirm
+            </label>
+            <input
+              id="confirm"
+              name="confirm"
+              type="text"
+              autoComplete="off"
+              placeholder="DELETE"
+              required
+            />
+          </div>
+          <button className="btn btn-danger" type="submit">
+            Delete my account and all data
+          </button>
+        </form>
       </Card>
     </>
   );

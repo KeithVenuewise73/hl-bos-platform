@@ -19,7 +19,19 @@ import { deploymentMode } from "@/lib/deployment.ts";
  * outer fence, not the only one.
  */
 
-const PUBLIC = ["/login", "/api/health", "/unavailable"];
+const PUBLIC = [
+  "/login",
+  "/signup",
+  "/reset-password",
+  "/api/health",
+  "/unavailable",
+  // The marketing surface. Public by definition: a landing page that requires
+  // a login is a landing page nobody lands on.
+  "/welcome",
+  "/pricing",
+  "/privacy",
+  "/data-handling",
+];
 
 function isPublic(pathname: string): boolean {
   return PUBLIC.some((p) => pathname === p || pathname.startsWith(`${p}/`));
@@ -76,10 +88,18 @@ export async function middleware(req: NextRequest) {
   }
 
   if (!authenticated) {
-    const loginUrl = req.nextUrl.clone();
-    loginUrl.pathname = "/login";
-    loginUrl.searchParams.set("next", pathname);
-    return NextResponse.redirect(loginUrl);
+    const target = req.nextUrl.clone();
+    target.search = "";
+    // A stranger arriving at the root is a visitor, not a locked-out user.
+    // Send them to the page that explains the product; send everyone else to
+    // sign-in with their destination preserved.
+    if (pathname === "/") {
+      target.pathname = "/welcome";
+      return NextResponse.redirect(target);
+    }
+    target.pathname = "/login";
+    target.searchParams.set("next", pathname);
+    return NextResponse.redirect(target);
   }
   return res;
 }

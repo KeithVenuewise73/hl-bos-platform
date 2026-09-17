@@ -1,3 +1,4 @@
+import { ValueFeedback } from "@/components/ValueFeedback.tsx";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
@@ -29,10 +30,13 @@ export const dynamic = "force-dynamic";
  */
 export default async function AnalysisPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams?: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const { id } = await params;
+  const thanks = ((await searchParams) ?? {})["thanks"] === "1";
   const workspace = await loadWorkspace();
   const analysis = workspace.analyses.find((a) => a.id === id);
   if (analysis === undefined) notFound();
@@ -359,6 +363,8 @@ export default async function AnalysisPage({
           </div>
         ) : null}
       </Card>
+
+      <ValueFeedback stage="analysis" back={`/analyses/${id}`} answered={thanks} />
     </>
   );
 }

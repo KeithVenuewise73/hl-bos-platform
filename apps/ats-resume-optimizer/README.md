@@ -18,7 +18,7 @@ pnpm --filter @hl-bos/ats-resume-optimizer dev
 # http://localhost:4600
 ```
 
-No credentials, no database, no AI key. On first start it seeds a sample profile — a fictional transportation executive — so there is something to look at immediately. Every sample record is labelled **Sample data** on screen, and Settings deletes all of it in one click.
+No credentials, no database, no AI key. On first start **locally** it seeds a sample profile — a fictional transportation executive — so there is something to look at immediately. A deployed installation seeds nothing, for the obvious reason. Every sample record is labelled **Sample data** on screen, and Settings deletes all of it in one click.
 
 Production build:
 
@@ -39,12 +39,15 @@ See [DEPLOYMENT.md](./DEPLOYMENT.md) for the Coolify configuration. Note the per
 
 All optional. All server-side; none of them is browser-visible.
 
-| Variable            | Default         | What it does                                                                                                                                   |
-| ------------------- | --------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
-| `ANTHROPIC_API_KEY` | unset           | Enables Claude for two jobs: re-reading a job posting, and proposing bullet phrasing. Without it the built-in rules engine runs every feature. |
-| `ATS_AI_MODEL`      | `claude-opus-5` | Which model, when a key is set.                                                                                                                |
-| `ATS_DATA_DIR`      | `.data`         | Where the JSON store is written, relative to the app directory unless absolute.                                                                |
-| `ATS_SEED_DEMO`     | `true`          | Set to `false` to start with an empty workspace.                                                                                               |
+| Variable                | Default         | What it does                                                                                                                                                                           |
+| ----------------------- | --------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `ANTHROPIC_API_KEY`     | unset           | Enables Claude for two jobs: re-reading a job posting, and proposing bullet phrasing. Without it the built-in rules engine runs every feature.                                         |
+| `ATS_AI_MODEL`          | `claude-opus-5` | Which model, when a key is set.                                                                                                                                                        |
+| `ATS_DATA_DIR`          | `.data`         | Where the JSON store is written, relative to the app directory unless absolute.                                                                                                        |
+| `ATS_SEED_DEMO`         | _derived_       | Sample data: **on locally, off wherever the app is deployed**, so a paying customer never finds a fictional executive's history in their account. `true`/`false` overrides either way. |
+| `PRIVATE_BETA`          | `false`         | `true` closes self-service sign-up. Existing accounts keep working.                                                                                                                    |
+| `CONSUMER_PAYMENT_LINK` | unset           | Stripe-hosted page for the 90-day pass. Must be `https`; anything else hides the button rather than rendering a dead one.                                                              |
+| `COACH_PAYMENT_LINK`    | unset           | Stripe-hosted page for the coach pilot. Same rule.                                                                                                                                     |
 
 `src/lib/config.ts` is the only file in this app that reads `process.env`, and it carries the matching ESLint exemption in the repository config. The API key is read on the server, used on the server, and never returned to a page.
 
@@ -52,17 +55,19 @@ All optional. All server-side; none of them is browser-visible.
 
 ## The screens
 
-| Screen                | What it is for                                                                                                                                                                                     |
-| --------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Dashboard**         | Jobs analyzed, resumes created, active applications, average internal score, recurring strengths, recurring gaps. Every figure counted from stored records; a panel with nothing to count says so. |
-| **Candidate Profile** | The structured career database. Every fact carries its source (Resume / You confirmed). Adding a fact here is the **only** way a new claim can enter the system.                                   |
-| **Master Resume**     | Upload DOCX/PDF or paste text. Shows exactly how it was parsed, and an ATS formatting check on the extracted text. Previous versions are kept.                                                     |
-| **New Job Analysis**  | Paste a posting. Produces the evidence matrix, keyword buckets, terminology opportunities and both scores.                                                                                         |
-| **Analysis results**  | Score and breakdown, the evidence matrix with critical gaps at the top, terminology opportunities, keyword analysis, recommendations.                                                              |
-| **Resume review**     | Split screen: the generated resume (every sentence editable) beside the analysis. Each sentence discloses its source evidence, the requirement it answers, and why it is worded that way.          |
-| **Applications**      | Company, role, URL, dates, resume version, status, recruiter, interview dates, notes. An analysis starts an application automatically.                                                             |
-| **Resume Library**    | Every generated version, with original wording, optimized wording and the reason for each change.                                                                                                  |
-| **Settings**          | What is switched on, stated plainly: AI provider, storage, the scoring model, the ten services, sample data.                                                                                       |
+| Screen                  | What it is for                                                                                                                                                                                     |
+| ----------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Dashboard**           | Jobs analyzed, resumes created, active applications, average internal score, recurring strengths, recurring gaps. Every figure counted from stored records; a panel with nothing to count says so. |
+| **Candidate Profile**   | The structured career database. Every fact carries its source (Resume / You confirmed). Adding a fact here is the **only** way a new claim can enter the system.                                   |
+| **Master Resume**       | Upload DOCX/PDF or paste text. Shows exactly how it was parsed, and an ATS formatting check on the extracted text. Previous versions are kept.                                                     |
+| **New Job Analysis**    | Paste a posting. Produces the evidence matrix, keyword buckets, terminology opportunities and both scores.                                                                                         |
+| **Analysis results**    | Score and breakdown, the evidence matrix with critical gaps at the top, terminology opportunities, keyword analysis, recommendations.                                                              |
+| **Resume review**       | Split screen: the generated resume (every sentence editable) beside the analysis. Each sentence discloses its source evidence, the requirement it answers, and why it is worded that way.          |
+| **Applications**        | Company, role, URL, dates, resume version, status, recruiter, interview dates, notes. An analysis starts an application automatically.                                                             |
+| **Resume Library**      | Every generated version, with original wording, optimized wording and the reason for each change.                                                                                                  |
+| **Welcome / Pricing**   | The public surface: positioning, the evidence guarantee, both offers, the score disclaimer. A signed-out visitor at `/` lands here rather than at a login wall.                                    |
+| **Privacy / Your data** | What is stored, who can read it, whether an AI provider sees any of it, how to delete an account. Items needing legal review are marked as such.                                                   |
+| **Settings**            | What is switched on, stated plainly: AI provider, storage, the scoring model, the ten services, sample data.                                                                                       |
 
 Every form works **without JavaScript**. A career database that stops saving because a bundle failed to load is a career database that loses work.
 
@@ -74,7 +79,7 @@ The promise is _optimize aggressively, fabricate nothing_. It is enforced in thr
 
 1. **`validateClaim()`** — every generated sentence is checked against the evidence it names. A number not in the evidence makes the line `unsupported`. A word not traceable to the evidence or to terminology the analysis licensed makes it `needs_confirmation`.
 2. **`buildExportDocument()`** — runs unconditionally in the download route and drops everything that did not clear the validator. The response carries `X-Claims-Dropped`, so the behaviour is observable rather than silent.
-3. **Migration 0048** — `CHECK` constraints that make it impossible to record an unsupported or unconfirmed claim as exported. (Written and verified; see _Storage_ below.)
+3. **Migration 0048** — `CHECK` constraints that make it impossible to record an unsupported or unconfirmed claim as exported. Applied to production, and each constraint exercised against a real PostgreSQL with the rows the app actually writes.
 
 Editing a sentence re-runs the validator. That is deliberate: the check is on the sentence, not on who typed it, so your own edit can move a line from Verified to Needs confirmation. Confirming a flagged line stores it in your profile as a **user-confirmed career fact** — the claim stops being unsupported because supporting evidence now exists, not because a flag was flipped.
 
@@ -82,20 +87,22 @@ Editing a sentence re-runs the validator. That is deliberate: the check is on th
 
 ## Storage
 
-A single JSON document, written atomically (write-then-rename), at `ATS_DATA_DIR/workspace.json`.
+Two backends, chosen by whether Supabase credentials are present.
 
-That is a real choice, not a placeholder: a career database is one person's data, read and written by one process, and this way the app works with no credentials and no migration. Every record is a plain serialisable object, so moving to PostgreSQL is a different implementation of the same reads and writes.
+**PostgreSQL (`ats` schema)** whenever the app is configured with Supabase. Migration `0048` is **applied to production**: 17 tables, RLS enabled _and forced_ on every one, 68 policies, zero grants to `anon`. Every query runs under the signed-in user's own session, so row-level security — not application code — keeps one account's career database invisible to another.
 
-**PostgreSQL is not connected.** The schema is written and committed at `supabase/migrations/20260916120000_hlbos_0048_ats_resume_optimizer.sql` — 17 tables, RLS enabled _and forced_ on every one, 68 policies, zero grants to `anon`. It was verified against a local PostgreSQL 16 (including the anti-fabrication constraints and cross-user isolation) and it has **not been applied to any project**. The Settings page says this on screen. Applying it is a separate decision.
+Migration `0049` adds `ats.product_events`, a fixed-vocabulary counter table for the private beta. It is written and verified against a local PostgreSQL 16 and is **not yet applied**. The app degrades quietly without it, because analytics is not a control.
 
----
+**A single JSON document** otherwise, written atomically (write-then-rename), at `ATS_DATA_DIR/workspace-<account>.json`. That is what lets the app run on a laptop with no credentials at all. Every record is a plain serialisable object, which is why the same reads and writes serve both backends.
+
+Settings reports which one is live. There is no hard-coded "connected" badge anywhere.
 
 ## Deliberate deviations from the brief
 
 Stated rather than quietly taken:
 
 - **No Tailwind or shadcn/ui.** No app in this repository uses a CSS framework, and the dependency policy (`docs/architecture/dependency-policy.md`) is tight. `src/app/globals.css` is a token-based design system in one file: light and dark, responsive, with one colour per status and a word beside it.
-- **No Supabase Auth yet.** The app is single-operator and local; the schema is written for `auth.uid()` and is ready for it.
+- **Supabase Auth is now built**, and this line used to say it was not. Sign-in, sign-up, password reset, and a `PRIVATE_BETA` switch that closes sign-up without closing the app.
 - **URL ingestion is not built.** Job boards block automated fetches and return a login wall, so a button for it would fail most of the time. The URL field is stored with the application, and the page says exactly why fetching is not offered.
 - **Roles stay in reverse-chronological order.** The optimizer expresses relevance through bullet order and bullet count, not by re-sorting employment history — re-sorting breaks date parsing in every ATS worth optimising for, and reads to a human like something is being hidden.
 

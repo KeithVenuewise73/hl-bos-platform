@@ -21,6 +21,10 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
+import { record, track } from "./analytics/record.ts";
+import { isFeedbackAnswer } from "./analytics/events.ts";
+import { deleteEverything } from "./store.ts";
+
 import {
   analyzeJob,
   buildDemoDataset,
@@ -89,6 +93,7 @@ async function createEmptyProfile(): Promise<string> {
 // ---------------------------------------------------------------------------
 
 export async function saveProfile(form: FormData): Promise<void> {
+  const isFirstProfile = (await currentProfile()) === undefined;
   const profileId = await requireProfileId();
   await updateWorkspace((workspace) => {
     const index = workspace.profiles.findIndex((p) => p.id === profileId);
@@ -119,6 +124,10 @@ export async function saveProfile(form: FormData): Promise<void> {
       updatedAt: now(),
     };
   });
+  // The first profile on an account is the first thing we can observe from the
+  // server. Email-confirmation signups have no session at sign-up time, so
+  // counting here is both simpler and more honest than guessing earlier.
+  if (isFirstProfile) track("account_created");
   revalidatePath("/profile");
   revalidatePath("/");
 }
@@ -240,6 +249,7 @@ export async function saveMasterResume(form: FormData): Promise<void> {
     return resume.id;
   });
 
+  track("resume_uploaded");
   revalidatePath("/master-resume");
   revalidatePath("/profile");
   revalidatePath("/");
@@ -331,6 +341,8 @@ export async function analyzeNewJob(form: FormData): Promise<void> {
     return analysis.id;
   });
 
+  track("job_analyzed");
+  track("analysis_completed");
   revalidatePath("/");
   revalidatePath("/applications");
   redirect(`/analyses/${analysisId}`);
@@ -384,6 +396,7 @@ export async function generateResume(form: FormData): Promise<void> {
     return generated.id;
   });
 
+  track("resume_generated");
   revalidatePath("/library");
   revalidatePath("/applications");
   redirect(`/resumes/${generatedId}`);
@@ -543,6 +556,7 @@ export async function createCoverLetter(form: FormData): Promise<void> {
       };
     }
   });
+  track("cover_letter_generated");
   revalidatePath(`/analyses/${analysisId}/cover-letter`);
 }
 
@@ -565,6 +579,7 @@ export async function createInterviewPrep(form: FormData): Promise<void> {
     if (existing >= 0) ws.interviewPreps[existing] = prep;
     else ws.interviewPreps.push(prep);
   });
+  track("interview_prep_opened");
   revalidatePath(`/analyses/${analysisId}/interview-prep`);
 }
 
@@ -663,4 +678,51 @@ export async function licensedTermsForAnalysis(analysisId: string): Promise<stri
   const workspace = await loadWorkspace();
   const analysis = workspace.analyses.find((a) => a.id === analysisId);
   return analysis === undefined ? [] : usableKeywords(analysis.keywords);
+}
+
+/**
+ * Delete the account and everything in it.
+ *
+ * Guarded by a typed confirmation rather than a second click, because this is
+ * the one action in the product that destroys work irreversibly and a
+ * misclick on a settings page should not be able to reach it.
+ *
+ * What it removes is every record this account owns. What it cannot always
+ * remove is the Supabase Auth login itself — deleting a user requires a
+ * service-role key, and this app deliberately holds none. The settings page
+ * says so rather than implying the login is gone too.
+ */
+export async function deleteAccount(form: FormData): Promise<void> {
+  const typed = text(form, "confirm");
+  if (typed !== "DELETE") {
+    redirect("/settings?deleted=unconfirmed");
+  }
+  await deleteEverything();
+  revalidatePath("/");
+  revalidatePath("/settings");
+  redirect("/logout");
+}
+
+/**
+ * "Did this help?" — three answers, stored as a counter.
+ *
+ * The answer is one of three fixed words, so nothing a user types can end up
+ * in the events table. A free-text box here would be more informative and
+ * would also turn a counter into a place where someone might paste a job
+ * description.
+ */
+export async function recordValueFeedback(form: FormData): Promise<void> {
+  const answer = text(form, "answer");
+  const stage = text(form, "stage");
+  if (isFeedbackAnswer(answer)) {
+    // Awaited, not fire-and-forget: the redirect that follows would otherwise
+    // race the write. `record` swallows its own failures, so awaiting it
+    // cannot turn a failed counter into a failed button.
+    await record("value_feedback", {
+      answer,
+      stage: stage === "export" ? "export" : "analysis",
+    });
+  }
+  const back = text(form, "back") || "/";
+  redirect(back.startsWith("/") ? `${back}?thanks=1` : "/");
 }

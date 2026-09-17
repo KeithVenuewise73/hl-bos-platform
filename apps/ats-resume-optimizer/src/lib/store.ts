@@ -19,7 +19,7 @@ import "server-only";
  * Settings says so on screen rather than implying a database that is not there.
  */
 
-import { mkdir, readFile, rename, stat, writeFile } from "node:fs/promises";
+import { mkdir, readFile, rename, rm, stat, writeFile } from "node:fs/promises";
 import { dirname, isAbsolute, join, resolve } from "node:path";
 import { randomUUID } from "node:crypto";
 
@@ -185,6 +185,65 @@ async function persist(before: Workspace, after: Workspace): Promise<void> {
     throw new Error("Signed-in mode is active but no database client could be built.");
   }
   await saveWorkspaceToSupabase(client, before, after, viewer.userId);
+}
+
+/**
+ * Erase everything this account owns.
+ *
+ * Both backends, because a user who clicks delete does not know or care which
+ * one this installation runs. In SQL the deletes are scoped by RLS to the
+ * signed-in user, so this cannot reach another account's rows even if the
+ * filter were wrong. On the file store the file itself is removed.
+ *
+ * The Supabase Auth login is NOT deleted: that needs a service-role key and
+ * this app holds none by design. Settings says so on screen instead of
+ * implying otherwise.
+ */
+export async function deleteEverything(): Promise<void> {
+  const viewer = await getViewer();
+  if (viewer.userId === null) {
+    throw new Error("No signed-in user, so there is no account to delete.");
+  }
+
+  if (currentMode() === "authenticated") {
+    const client = await serverSupabase();
+    if (client === null) {
+      throw new Error(
+        "Signed-in mode is active but no database client could be built.",
+      );
+    }
+    // Parents only: every child table cascades from these, and the profile
+    // cascade carries the rest. Ordered so nothing is orphaned mid-way if one
+    // statement fails.
+    for (const table of [
+      "product_events",
+      "applications",
+      "interview_preps",
+      "cover_letters",
+      "generated_resumes",
+      "job_analyses",
+      "job_postings",
+      "resumes",
+      "career_facts",
+      "candidate_profiles",
+    ]) {
+      const { error } = await client
+        .schema("ats")
+        .from(table)
+        .delete()
+        .eq("owner_id", viewer.userId);
+      // product_events may not exist yet if migration 0049 is unapplied.
+      // A missing analytics table must not stop an account deletion.
+      if (error !== null && table !== "product_events") {
+        throw new Error(`Could not delete ats.${table}: ${error.message}`);
+      }
+    }
+    return;
+  }
+
+  const path = storePathFor(viewer.userId);
+  memo.delete(path);
+  await rm(path, { force: true });
 }
 
 /** Testing hook: forget every cached workspace. */

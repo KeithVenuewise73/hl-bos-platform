@@ -598,3 +598,181 @@ details.audit > summary {
     position: static;
   }
 }
+
+/* ---------------------------------------------------------------------------
+   Marketing surface
+   ---------------------------------------------------------------------------
+   The public pages sit outside the app shell: there is no sidebar to show
+   somebody who has no records yet. Same tokens as everything else, so the
+   landing page and the product do not look like two different products.
+   --------------------------------------------------------------------------- */
+
+.marketing {
+  max-width: 860px;
+  margin: 0 auto;
+  padding: 0 16px 64px;
+}
+
+.marketing-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  padding: 20px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.marketing-nav {
+  display: flex;
+  gap: 18px;
+  font-size: 0.92rem;
+}
+
+.marketing-main {
+  padding-top: 8px;
+}
+
+.marketing-section {
+  padding: 32px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.marketing-section h2 {
+  margin-bottom: 8px;
+}
+
+.marketing-lede {
+  color: var(--text-dim);
+  margin-bottom: 14px;
+}
+
+.marketing-foot {
+  padding: 28px 0 0;
+}
+
+.hero {
+  padding: 56px 0 36px;
+}
+
+.hero h1 {
+  font-size: clamp(1.8rem, 5vw, 2.6rem);
+  line-height: 1.15;
+  margin-bottom: 14px;
+}
+
+.hero-sub {
+  font-size: 1.08rem;
+  color: var(--text-dim);
+  max-width: 60ch;
+}
+
+.hero-cta {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 22px;
+}
+
+.pipeline {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+  margin: 14px 0;
+}
+
+.pipeline span {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 7px 11px;
+  font-size: 0.88rem;
+}
+
+.pipeline span[aria-hidden="true"] {
+  border: 0;
+  padding: 0 2px;
+  color: var(--text-dim);
+}
+
+.pipeline-out span:not([aria-hidden="true"]) {
+  border-color: var(--accent);
+}
+
+.feature-grid {
+  list-style: none;
+  padding: 0;
+  margin: 8px 0 0;
+  display: grid;
+  gap: 14px;
+  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+}
+
+.feature-grid li {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 13px 14px;
+}
+
+.price-grid {
+  display: grid;
+  gap: 18px;
+  grid-template-columns: repeat(auto-fit, minmax(270px, 1fr));
+  margin-top: 8px;
+}
+
+.price-card ul {
+  margin: 12px 0 18px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.price {
+  font-size: 2rem;
+  font-weight: 600;
+  margin: 6px 0 2px;
+}
+
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 10px;
+  font-size: 0.9rem;
+}
+
+.data-table th,
+.data-table td {
+  border: 1px solid var(--border);
+  padding: 9px 11px;
+  text-align: left;
+  vertical-align: top;
+}
+
+.feedback {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin-top: 18px;
+  padding-top: 14px;
+  border-top: 1px dashed var(--border);
+}
+
+.feedback-row {
+  display: flex;
+  gap: 8px;
+}
+
+@media (max-width: 560px) {
+  .data-table {
+    font-size: 0.82rem;
+  }
+  .data-table th,
+  .data-table td {
+    padding: 7px 8px;
+  }
+}

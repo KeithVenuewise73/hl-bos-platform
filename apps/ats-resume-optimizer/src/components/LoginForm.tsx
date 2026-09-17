@@ -1,9 +1,11 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 
 import { browserSupabase } from "@/lib/browser.ts";
+import { AuthShell } from "@/components/AuthShell.tsx";
 
 /**
  * Sign in.
@@ -55,46 +57,48 @@ export function LoginForm() {
   }
 
   return (
-    <div style={{ maxWidth: 380, margin: "12vh auto" }}>
-      <h1 style={{ marginBottom: 6 }}>ATS Resume Optimizer</h1>
-      <p className="muted small" style={{ marginBottom: 20 }}>
-        Sign in to reach your career database. Each account sees only its own records.
-      </p>
-
-      <div className="card">
-        <form onSubmit={submit}>
-          <div className="field">
-            <label htmlFor="email">Email</label>
-            <input
-              id="email"
-              type="email"
-              value={email}
-              autoComplete="username"
-              required
-              onChange={(e) => setEmail(e.target.value)}
-            />
+    <AuthShell
+      title="ATS Resume Optimizer"
+      intro="Sign in to reach your career database. Each account sees only its own records."
+      footer={
+        <>
+          <Link href="/reset-password">Forgot your password?</Link> · No account yet?{" "}
+          <Link href="/signup">Create one</Link>.
+        </>
+      }
+    >
+      <form onSubmit={submit}>
+        <div className="field">
+          <label htmlFor="email">Email</label>
+          <input
+            id="email"
+            type="email"
+            value={email}
+            autoComplete="username"
+            required
+            onChange={(e) => setEmail(e.target.value)}
+          />
+        </div>
+        <div className="field">
+          <label htmlFor="password">Password</label>
+          <input
+            id="password"
+            type="password"
+            value={password}
+            autoComplete="current-password"
+            required
+            onChange={(e) => setPassword(e.target.value)}
+          />
+        </div>
+        {error === null ? null : (
+          <div className="notice notice-danger" role="alert">
+            {error}
           </div>
-          <div className="field">
-            <label htmlFor="password">Password</label>
-            <input
-              id="password"
-              type="password"
-              value={password}
-              autoComplete="current-password"
-              required
-              onChange={(e) => setPassword(e.target.value)}
-            />
-          </div>
-          {error === null ? null : (
-            <div className="notice notice-danger" role="alert">
-              {error}
-            </div>
-          )}
-          <button className="btn btn-primary" type="submit" disabled={busy}>
-            {busy ? "Signing in…" : "Sign in"}
-          </button>
-        </form>
-      </div>
-    </div>
+        )}
+        <button className="btn btn-primary" type="submit" disabled={busy}>
+          {busy ? "Signing in…" : "Sign in"}
+        </button>
+      </form>
+    </AuthShell>
   );
 }

@@ -9,6 +9,9 @@ import {
   renderPlainText,
 } from "@hl-bos/ats-resume";
 
+import { recheckClaims } from "@/lib/recheck.ts";
+
+import { track } from "@/lib/analytics/record.ts";
 import { loadWorkspace } from "@/lib/store.ts";
 
 /**
@@ -44,10 +47,32 @@ export async function GET(
     return NextResponse.json({ error: "No such resume." }, { status: 404 });
   }
 
-  const { document, dropped } = buildExportDocument(generated);
+  // Re-validate before exporting, rather than trusting the verdict stored on
+  // the line.
+  //
+  // Found by testing this route against a tampered store: a line whose stored
+  // `validation` said "verified" was exported even though it carried no
+  // evidence and quoted figures that appear nowhere in the user's facts.
+  // `buildExportDocument` filters on the stored verdict, which is correct for
+  // what it is, but it makes the export a trust of the database rather than a
+  // check. Since a signed-in user can write their own rows directly through
+  // PostgREST, that trust is the wrong shape for the one guarantee this
+  // product sells.
+  //
+  // So every line is checked again here, against the same evidence and the
+  // same licensed terminology the review screen uses. The claim validator is
+  // the authority; the stored verdict is only a cache of it.
+  const revalidated = recheckClaims(generated, workspace);
+  const { document, dropped } = buildExportDocument(revalidated);
   const safeName = `${generated.fullName || "resume"} — ${generated.company}`
     .replace(/[^\w\- ]+/g, "")
     .replace(/\s+/g, "_");
+
+  // Counted once, whichever format is asked for: the interesting fact is that
+  // a document left the building, not which extension it had.
+  track("resume_exported", {
+    format: format === "pdf" || format === "txt" ? format : "docx",
+  });
 
   const headers = new Headers({
     "X-Claims-Dropped": String(dropped.length),

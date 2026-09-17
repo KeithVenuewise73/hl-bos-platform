@@ -82,3 +82,18 @@ export function describeMode(mode: DeploymentMode): string {
       return "";
   }
 }
+
+/**
+ * Sample data: off wherever someone other than the operator can sign in.
+ *
+ * An explicit `ATS_SEED_DEMO` wins in both directions, so a demo account can
+ * still be seeded on purpose. With nothing set, the answer is "not deployed".
+ */
+export function resolveSeedDemo(
+  raw: string | undefined,
+  inputs: DeploymentInputs,
+): boolean {
+  if (raw === "false") return false;
+  if (raw === "true") return true;
+  return !isDeployedEnvironment(inputs);
+}
