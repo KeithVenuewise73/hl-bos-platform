@@ -51,7 +51,13 @@ function path(
 
 describe("event detection", () => {
   it("says nothing when there is almost nothing to look at", () => {
-    expect(detectEvents(segment(), path(2, () => ({ x: 0, y: 0 })), { frameHeight: FRAME_HEIGHT })).toEqual([]);
+    expect(
+      detectEvents(
+        segment(),
+        path(2, () => ({ x: 0, y: 0 })),
+        { frameHeight: FRAME_HEIGHT },
+      ),
+    ).toEqual([]);
   });
 
   it("finds a sustained sprint across the ice", () => {
@@ -83,9 +89,13 @@ describe("event detection", () => {
       { frameHeight: FRAME_HEIGHT },
     );
     for (const event of events) {
-      expect(["burst", "cut", "sustained_presence", "crease_action", "manual"]).toContain(
-        event.kind,
-      );
+      expect([
+        "burst",
+        "cut",
+        "sustained_presence",
+        "crease_action",
+        "manual",
+      ]).toContain(event.kind);
       expect(event.rationale).not.toMatch(/goal|save|assist|shot|score/i);
       expect(event.rationale.length).toBeGreaterThan(10);
     }

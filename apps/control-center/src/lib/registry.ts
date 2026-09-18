@@ -76,6 +76,23 @@ export const PORTFOLIO: readonly Product[] = [
     location: "this repository (apps/ats-resume-optimizer, packages/ats-resume)",
   },
   {
+    name: "HighlightAI Hockey",
+    stage: "development",
+    status:
+      "Built in this repository and proven by running it end to end: a game video went in through the browser and a real highlight reel came out, verified with ffprobe as 6.9s of H.264 at the source resolution. Real processing code \u2014 ffmpeg, OpenCV, a ByteTrack-style tracker and HSV jersey classification \u2014 which is what the CP8B evidence audit said had to exist before any HighlightAI surface could stop being labelled as having no engine behind it. It runs with a model-free motion detector by default; installing YOLO improves detection and installing an OCR engine is what lets a match reach \u201cconfirmed\u201d instead of \u201clikely\u201d. Storage is a local JSON file; the PostgreSQL schema (migration 0049) is written and passes 62 pgTAP assertions but is UNAPPLIED, and nothing is deployed.",
+    version: null,
+    location:
+      "this repository (apps/highlightai-hockey, packages/hockey-highlights, services/hockey-vision)",
+  },
+  {
+    name: "BroadcastAI",
+    stage: "not-started",
+    status:
+      "Not found anywhere in the accessible estate by the CP8B audit \u2014 no code, no docs. No work has started on it here.",
+    version: null,
+    location: null,
+  },
+  {
     name: "SalonAI",
     stage: "not-started",
     status: "Planned as the first HL-BOS vertical. No code yet.",

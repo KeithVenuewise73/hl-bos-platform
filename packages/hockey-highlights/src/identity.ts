@@ -137,7 +137,6 @@ export function positionPrior(
   frameHeight: number,
 ): number {
   if (observations.length === 0 || frameHeight <= 0) return 1;
-  let spread = 0;
   let minX = Number.POSITIVE_INFINITY;
   let maxX = Number.NEGATIVE_INFINITY;
   for (const o of observations) {
@@ -145,8 +144,7 @@ export function positionPrior(
     minX = Math.min(minX, centre);
     maxX = Math.max(maxX, centre);
   }
-  spread = maxX - minX;
-  const relative = spread / frameHeight;
+  const relative = (maxX - minX) / frameHeight;
   switch (position) {
     case "goalie":
       // Goalies cover a small part of the ice. A track that crosses the whole
@@ -252,7 +250,7 @@ export function scoreTrack(
     totalWeight;
 
   const prior = positionPrior(athlete.position, observations, frameHeight);
-  const confidence = clamp01(raw * prior);
+  const scored = clamp01(raw * prior);
 
   const evidence: IdentityEvidence = {
     colorAgreement: round3(colour.agreement),
@@ -264,6 +262,20 @@ export function scoreTrack(
     photoSimilarity: photo === undefined ? null : round3(photo),
   };
 
+  // The reported number may never exceed what its band allows.
+  //
+  // Without this, a track with perfect colour agreement and no jersey read at
+  // all scored 1.0 and was labelled "likely" — and the running app showed
+  // "LIKELY · 100%" side by side. The band was doing its job and the number
+  // was quietly undoing it: 100% reads as certainty however it is captioned.
+  //
+  // The score is honest about what was measured; it is the completeness of the
+  // evidence that is missing from it. Capping to the band makes the two halves
+  // of the same claim agree, which is the only form in which either is worth
+  // showing.
+  const band = bandFor(scored, evidence);
+  const confidence = Math.min(scored, bandCeiling(band));
+
   const times = observations.map((o) => o.timeSeconds);
   return {
     id: `${track.id}-segment`,
@@ -272,10 +284,31 @@ export function scoreTrack(
     startTime: Math.min(...times),
     endTime: Math.max(...times),
     confidence: round3(confidence),
-    band: bandFor(confidence, evidence),
+    band,
     detectionSource: options.detectionSource,
     evidence,
   };
+}
+
+/**
+ * The highest confidence a band is allowed to report.
+ *
+ * Just below the next band's threshold, so a capped value still sits inside
+ * the band it was given and re-deriving the band from it is stable.
+ */
+export function bandCeiling(band: ConfidenceBand): number {
+  switch (band) {
+    case "confirmed":
+      return 1;
+    case "likely":
+      return BAND_THRESHOLDS.confirmed - 0.01;
+    case "possible":
+      return BAND_THRESHOLDS.likely - 0.01;
+    case "uncertain":
+      return BAND_THRESHOLDS.possible - 0.01;
+    default:
+      return 1;
+  }
 }
 
 /**

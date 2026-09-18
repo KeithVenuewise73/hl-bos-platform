@@ -58,7 +58,8 @@ describe("job state machine", () => {
   it("lets a finished reel go back to review and be rebuilt", () => {
     // Approving three more clips after watching the reel is normal, not an error.
     let j = job();
-    for (const status of PIPELINE_ORDER.slice(1)) j = advanceJob(j, status, { now: NOW });
+    for (const status of PIPELINE_ORDER.slice(1))
+      j = advanceJob(j, status, { now: NOW });
     expect(j.status).toBe("completed");
     j = advanceJob(j, "review_ready", { now: LATER });
     j = advanceJob(j, "rendering", { now: LATER });

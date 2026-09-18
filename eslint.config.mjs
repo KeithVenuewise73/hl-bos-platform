@@ -223,6 +223,22 @@ export default tseslint.config(
     },
   },
 
+  // HighlightAI Hockey env boundary. Same shape as the ATS app above: ONE
+  // server-side config module, plus the two files that must read NEXT_PUBLIC_*
+  // as literal dot-access because Next inlines it into the client bundle and
+  // they run before the config module exists. Publishable key only.
+  {
+    files: [
+      "apps/highlightai-hockey/src/lib/config.ts",
+      "apps/highlightai-hockey/src/lib/browser.ts",
+      "apps/highlightai-hockey/src/middleware.ts",
+    ],
+    rules: {
+      "no-restricted-properties": "off",
+      "no-restricted-syntax": "off",
+    },
+  },
+
   {
     files: ["**/*.{mjs,js}"],
     ...tseslint.configs.disableTypeChecked,
@@ -232,7 +248,7 @@ export default tseslint.config(
   // browser or the TS build. Give them Node globals so no-undef does not fire
   // on process/console. They still get the security lint via the shared rules.
   {
-    files: ["scripts/**/*.{mjs,js}"],
+    files: ["scripts/**/*.{mjs,js}", "apps/*/scripts/**/*.{mjs,js}"],
     languageOptions: {
       globals: {
         process: "readonly",

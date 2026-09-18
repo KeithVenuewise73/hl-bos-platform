@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
 
-import { buildClips, clipDuration, effectiveWindow } from "./clips.ts";
+import {
+  UnknownDurationError,
+  buildClips,
+  clipDuration,
+  effectiveWindow,
+} from "./clips.ts";
 import type { CandidateEvent } from "./types.ts";
 
 function event(overrides: Partial<CandidateEvent> = {}): CandidateEvent {
@@ -24,6 +29,17 @@ const DURATION = 3600;
 describe("clip planning", () => {
   it("produces nothing from nothing", () => {
     expect(buildClips([], { videoDurationSeconds: DURATION })).toEqual([]);
+  });
+
+  // A NaN end time serialises to null and reaches storage looking deliberate.
+  it("refuses to plan against a length nobody measured", () => {
+    for (const duration of [undefined, Number.NaN, 0, -1]) {
+      expect(() =>
+        buildClips([event()], {
+          videoDurationSeconds: duration as unknown as number,
+        }),
+      ).toThrow(UnknownDurationError);
+    }
   });
 
   it("gives the moment a run-up and a hold", () => {
@@ -55,8 +71,10 @@ describe("clip planning", () => {
 
   it("merges two moments of the same play into one clip", () => {
     const clips = buildClips(
-      [event({ id: "a", startTime: 60, endTime: 63, peakTime: 61 }),
-       event({ id: "b", startTime: 64, endTime: 67, peakTime: 65 })],
+      [
+        event({ id: "a", startTime: 60, endTime: 63, peakTime: 61 }),
+        event({ id: "b", startTime: 64, endTime: 67, peakTime: 65 }),
+      ],
       { videoDurationSeconds: DURATION },
     );
     // Ruling on the same play twice wastes the one resource the reviewer has.
@@ -67,8 +85,10 @@ describe("clip planning", () => {
 
   it("keeps two genuinely separate plays separate", () => {
     const clips = buildClips(
-      [event({ id: "a", startTime: 60, endTime: 63, peakTime: 61 }),
-       event({ id: "b", startTime: 600, endTime: 603, peakTime: 601 })],
+      [
+        event({ id: "a", startTime: 60, endTime: 63, peakTime: 61 }),
+        event({ id: "b", startTime: 600, endTime: 603, peakTime: 601 }),
+      ],
       { videoDurationSeconds: DURATION },
     );
     expect(clips).toHaveLength(2);
@@ -78,8 +98,22 @@ describe("clip planning", () => {
     // The reviewer is reliving a game they attended; third period before first
     // makes every clip harder to place.
     const clips = buildClips(
-      [event({ id: "late", startTime: 2000, endTime: 2004, peakTime: 2002, strength: 0.2 }),
-       event({ id: "early", startTime: 100, endTime: 104, peakTime: 102, strength: 0.99 })],
+      [
+        event({
+          id: "late",
+          startTime: 2000,
+          endTime: 2004,
+          peakTime: 2002,
+          strength: 0.2,
+        }),
+        event({
+          id: "early",
+          startTime: 100,
+          endTime: 104,
+          peakTime: 102,
+          strength: 0.99,
+        }),
+      ],
       { videoDurationSeconds: DURATION },
     );
     expect(clips[0]?.startTime).toBeLessThan(clips[1]?.startTime ?? 0);
@@ -88,10 +122,18 @@ describe("clip planning", () => {
 
   it("trims a long merged window around the peak, not off the end", () => {
     const events = Array.from({ length: 12 }, (_, i) =>
-      event({ id: `e-${i}`, startTime: 100 + i * 3, endTime: 102 + i * 3, peakTime: 101 + i * 3,
-              strength: i === 11 ? 1 : 0.1 }),
+      event({
+        id: `e-${i}`,
+        startTime: 100 + i * 3,
+        endTime: 102 + i * 3,
+        peakTime: 101 + i * 3,
+        strength: i === 11 ? 1 : 0.1,
+      }),
     );
-    const [clip] = buildClips(events, { videoDurationSeconds: DURATION, maxSeconds: 20 });
+    const [clip] = buildClips(events, {
+      videoDurationSeconds: DURATION,
+      maxSeconds: 20,
+    });
     expect(clip).toBeDefined();
     expect(clipDuration(clip!)).toBeLessThanOrEqual(20.01);
     // The strongest moment is at 134s; cutting the tail would have removed it.
@@ -119,7 +161,10 @@ describe("clip planning", () => {
 
   it("reports the proposed window until a person trims it", () => {
     const [clip] = buildClips([event()], { videoDurationSeconds: DURATION });
-    expect(effectiveWindow(clip!)).toEqual({ start: clip!.startTime, end: clip!.endTime });
+    expect(effectiveWindow(clip!)).toEqual({
+      start: clip!.startTime,
+      end: clip!.endTime,
+    });
     const trimmed = { ...clip!, trimmedStart: 60, trimmedEnd: 62 };
     expect(effectiveWindow(trimmed)).toEqual({ start: 60, end: 62 });
     expect(clipDuration(trimmed)).toBe(2);

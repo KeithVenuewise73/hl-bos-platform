@@ -263,6 +263,35 @@ export const APPLICATIONS: ApplicationRecord[] = [
       "apps/ats-resume-optimizer + packages/ats-resume; migration 0048 written UNAPPLIED; verified by running the app (generate, edit, validate, export)",
   },
   {
+    key: "highlightai-hockey",
+    name: "HighlightAI Hockey",
+    description:
+      "Turns a full hockey game video into a highlight reel for one named player. The user describes the athlete by jersey colour and number; a computer-vision service detects and tracks every player, classifies their jersey, and proposes candidate moments; the user reviews the clips and only what they approve reaches the reel. The first real video-AI capability in the estate: the CP8B evidence audit found no HighlightAI engine anywhere and ruled that any such surface must be labelled as having none until real processing code is verified.",
+    category: "executive_tooling",
+    repository: REPO,
+    owner: "KeithVenuewise73",
+    executiveOwner: "Keith Herman (CEO)",
+    currentBranch: "claude/highlightai-hockey-mvp-omgy40",
+    environment: "local",
+    developmentStatus: "built_undeployed",
+    deploymentStatus: "not_deployed",
+    productionUrl: null,
+    stagingUrl: null,
+    localUrl: "http://localhost:4650",
+    supabaseProject: CORE,
+    version: "0.1.0",
+    health: "unknown",
+    hosting: "none yet",
+    dependencies: ["@hl-bos/hockey-highlights"],
+    reusableModules: [],
+    softwareFactoryIntegration:
+      "None. The engine (@hl-bos/hockey-highlights) is a standalone capability package with no platform dependencies, and the vision service (services/hockey-vision) is a separate process behind a provider interface, so either can be reused or replaced without touching the other.",
+    notes:
+      "Storage is a local JSON file; the PostgreSQL schema (migration 0049, hockey) is written and verified against a local PostgreSQL 16.13 with pgTAP (62 assertions) but is UNAPPLIED to any project. The app says so on its Settings page. Runs with a model-free motion detector by default and no jersey-number OCR, which caps identification at \u201clikely\u201d rather than \u201cconfirmed\u201d \u2014 stated in the UI rather than hidden. 109 engine tests, 65 vision-service tests, 22 app tests, plus an end-to-end verification driving the real UI in a browser.",
+    evidence:
+      "apps/highlightai-hockey + packages/hockey-highlights + services/hockey-vision; migration 0049 written UNAPPLIED; verified by running the app in a browser end to end and probing the rendered reel with ffprobe (6.9s H.264 at source resolution)",
+  },
+  {
     key: "control-center",
     name: "CEO Development Control Center",
     description:

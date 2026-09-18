@@ -13,6 +13,15 @@
 
 import type { CandidateEvent, Clip } from "./types.ts";
 
+export class UnknownDurationError extends Error {
+  constructor(readonly received: unknown) {
+    super(
+      `Clips cannot be planned against a video whose length is not known (got ${String(received)}).`,
+    );
+    this.name = "UnknownDurationError";
+  }
+}
+
 export interface ClipOptions {
   /** Seconds of lead-in before the event. */
   readonly leadSeconds?: number;
@@ -54,6 +63,18 @@ export function buildClips(
   options: ClipOptions,
 ): readonly Clip[] {
   if (events.length === 0) return [];
+  // A duration that is not a real number produces clips whose end time is NaN,
+  // which serialises to null and reaches storage looking like a deliberate
+  // value. That happened: a probe response was passed through unmapped, the
+  // duration arrived undefined, and a clip was written with no end. Refusing
+  // here is how the next such bug surfaces at its cause instead of three
+  // layers downstream.
+  if (
+    !Number.isFinite(options.videoDurationSeconds) ||
+    options.videoDurationSeconds <= 0
+  ) {
+    throw new UnknownDurationError(options.videoDurationSeconds);
+  }
   const lead = options.leadSeconds ?? DEFAULTS.leadSeconds;
   const tail = options.tailSeconds ?? DEFAULTS.tailSeconds;
   const gap = options.mergeGapSeconds ?? DEFAULTS.mergeGapSeconds;
@@ -93,7 +114,13 @@ export function buildClips(
       (best, event) => (event.strength > best.strength ? event : best),
       lead0,
     );
-    const bounded = fitWindow(window, strongest.peakTime, minSeconds, maxSeconds, duration);
+    const bounded = fitWindow(
+      window,
+      strongest.peakTime,
+      minSeconds,
+      maxSeconds,
+      duration,
+    );
     if (bounded === null) continue;
     clips.push({
       id: `clip-${strongest.id}`,

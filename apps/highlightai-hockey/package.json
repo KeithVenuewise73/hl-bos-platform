@@ -1,0 +1,33 @@
+{
+  "name": "@hl-bos/highlightai-hockey",
+  "version": "0.1.0",
+  "private": true,
+  "description": "HighlightAI Hockey \u2014 upload a game, describe the player by jersey colour and number, let the vision service find them, review the clips it proposes, and build a highlight reel. It never claims a certainty it has not earned.",
+  "type": "module",
+  "scripts": {
+    "dev": "next dev --port 4650",
+    "build": "next build",
+    "start": "node scripts/start-local.mjs",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint .",
+    "test": "vitest run",
+    "clean": "rm -rf .next dist *.tsbuildinfo",
+    "start:server": "next start --port 4650"
+  },
+  "dependencies": {
+    "@hl-bos/hockey-highlights": "workspace:*",
+    "@supabase/ssr": "catalog:",
+    "@supabase/supabase-js": "catalog:",
+    "next": "catalog:",
+    "react": "catalog:",
+    "react-dom": "catalog:",
+    "server-only": "catalog:"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "@types/react": "catalog:",
+    "@types/react-dom": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  }
+}

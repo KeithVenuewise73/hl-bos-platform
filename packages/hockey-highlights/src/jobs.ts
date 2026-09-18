@@ -238,10 +238,7 @@ export function advanceJob(
     startedAt: job.startedAt ?? now,
     finishedAt: isTerminal(to) ? now : null,
     updatedAt: now,
-    history: [
-      ...job.history,
-      { status: to, at: now, note: options.note ?? null },
-    ],
+    history: [...job.history, { status: to, at: now, note: options.note ?? null }],
   };
 }
 

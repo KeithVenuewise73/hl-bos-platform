@@ -1,7 +1,20 @@
 import { describe, expect, it } from "vitest";
 
-import { EmptyReelError, buildReel, reelSubtitle, reelTitle, renderPlan } from "./reel.ts";
-import { InvalidTrimError, acceptedClips, decide, reorder, reviewProgress, trim } from "./review.ts";
+import {
+  EmptyReelError,
+  buildReel,
+  reelSubtitle,
+  reelTitle,
+  renderPlan,
+} from "./reel.ts";
+import {
+  InvalidTrimError,
+  acceptedClips,
+  decide,
+  reorder,
+  reviewProgress,
+  trim,
+} from "./review.ts";
 import type { Clip, HighlightProject } from "./types.ts";
 
 const PROJECT: HighlightProject = {
@@ -93,7 +106,11 @@ describe("review", () => {
 
   it("keeps order dense and stable after a drag", () => {
     const reordered = reorder(
-      [clip({ id: "a", order: 0 }), clip({ id: "b", order: 1 }), clip({ id: "c", order: 2 })],
+      [
+        clip({ id: "a", order: 0 }),
+        clip({ id: "b", order: 1 }),
+        clip({ id: "c", order: 2 }),
+      ],
       "c",
       0,
     );
@@ -110,10 +127,12 @@ describe("review", () => {
 
 describe("reel assembly", () => {
   it("refuses to build a reel from clips nobody approved", () => {
-    expect(() => buildReel(PROJECT, [clip(), clip({ id: "c-2", decision: "rejected" })], {
-      id: "r-1",
-      now: "2026-02-15T11:00:00.000Z",
-    })).toThrow(EmptyReelError);
+    expect(() =>
+      buildReel(PROJECT, [clip(), clip({ id: "c-2", decision: "rejected" })], {
+        id: "r-1",
+        now: "2026-02-15T11:00:00.000Z",
+      }),
+    ).toThrow(EmptyReelError);
   });
 
   // The rule that matters most in this package.

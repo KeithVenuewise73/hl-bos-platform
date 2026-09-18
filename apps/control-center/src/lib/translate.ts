@@ -30,6 +30,44 @@ interface Rule {
 }
 
 const RULES: readonly Rule[] = [
+  // --- HighlightAI Hockey (0049) --------------------------------------
+  // Every one of these was produced by the product while it was being built.
+  {
+    match:
+      /vision_unavailable|video analysis service is not answering|player-detection model is not installed/i,
+    headline: "The video analysis is not running, so games cannot be analysed.",
+    meaning:
+      "Everything else in HighlightAI Hockey still works — a game can be created and a video uploaded, and it will be analysed the moment the service is back. Nothing has been lost. This is ours to fix, not yours.",
+    owner: "ai-engineer",
+  },
+  {
+    match: /unreadable_video|contains no video track|could not be read as a video/i,
+    headline: "That file could not be opened as a video.",
+    meaning:
+      "The upload arrived intact but nothing could read a picture out of it — usually a file that was renamed rather than converted, or one that stopped copying part-way. Trying again with the same file will fail the same way, so the app does not offer to. Uploading the original from the phone or camera usually works.",
+    owner: "ceo",
+  },
+  {
+    match: /Refusing a storage key|does not stay inside the media root/i,
+    headline: "A video file was asked for by a name that is not allowed.",
+    meaning:
+      "The app and the analysis service disagreed about how a file is named, and the service refused rather than reading something it should not. Nothing was lost and nothing was exposed. This is ours.",
+    owner: "ai-engineer",
+  },
+  {
+    match: /ffmpeg is not installed|Video tools are not installed/i,
+    headline: "The tools that read and cut video are missing on this machine.",
+    meaning:
+      "HighlightAI Hockey needs ffmpeg to make its working copy of a game and to cut the final reel. Installing it is a one-off setup step on this machine, and it is ours to do.",
+    owner: "ai-engineer",
+  },
+  {
+    match: /needs at least one approved clip|A reel needs at least one clip/i,
+    headline: "The reel has nothing in it yet, because no clip has been approved.",
+    meaning:
+      "That is the product working as intended: nothing goes into a highlight reel until you have watched it and kept it. Open the review screen and keep the clips you want.",
+    owner: "ceo",
+  },
   // --- Social publishing (module 0046) --------------------------------
   // These are the failure modes the social module can actually produce. Each
   // one names who has to act, because three of the four are settings only

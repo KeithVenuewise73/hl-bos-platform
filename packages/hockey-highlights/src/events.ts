@@ -186,7 +186,8 @@ export function detectEvents(
   const events: CandidateEvent[] = [];
 
   const timeAt = (index: number): number =>
-    samples[Math.min(Math.max(index, 0), samples.length - 1)]?.time ?? segment.startTime;
+    samples[Math.min(Math.max(index, 0), samples.length - 1)]?.time ??
+    segment.startTime;
 
   /**
    * The shortest a given kind of moment is allowed to be.
@@ -250,7 +251,8 @@ export function detectEvents(
     const before = samples[i - 1];
     const after = samples[i + 1];
     const here = samples[i];
-    if (before?.heading == null || after?.heading == null || here === undefined) continue;
+    if (before?.heading == null || after?.heading == null || here === undefined)
+      continue;
     const speedHere = speeds[i] ?? 0;
     if (speedHere < burstSpeed * 0.5) continue;
     const delta = headingDeltaDegrees(before.heading, after.heading);
@@ -281,9 +283,7 @@ export function detectEvents(
       burstSpeed * 0.6,
     )) {
       const seconds = timeAt(window.endIndex) - timeAt(window.startIndex);
-      const xs = samples
-        .slice(window.startIndex, window.endIndex + 1)
-        .map((s) => s.x);
+      const xs = samples.slice(window.startIndex, window.endIndex + 1).map((s) => s.x);
       if (xs.length === 0) continue;
       const spread = Math.max(...xs) - Math.min(...xs);
       // Confined to a small horizontal band: crease work, not a breakout.

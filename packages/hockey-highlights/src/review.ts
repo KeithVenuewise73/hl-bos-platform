@@ -94,7 +94,11 @@ export function reviewProgress(clips: readonly Clip[]): ReviewProgress {
 }
 
 /** Re-order the review queue after a drag, keeping `order` dense and stable. */
-export function reorder(clips: readonly Clip[], clipId: string, toIndex: number): Clip[] {
+export function reorder(
+  clips: readonly Clip[],
+  clipId: string,
+  toIndex: number,
+): Clip[] {
   const ordered = [...clips].sort((a, b) => a.order - b.order);
   const from = ordered.findIndex((c) => c.id === clipId);
   if (from < 0) return ordered;

@@ -25,6 +25,14 @@ export const LOCAL_APPS: readonly LocalApp[] = [
     port: 4600,
     healthPath: "/api/health",
   },
+  {
+    key: "highlightai-hockey",
+    name: "HighlightAI Hockey",
+    what: "Upload a hockey game, say which jersey to look for, and get back clips of that player to approve or discard before they become a highlight reel.",
+    filter: "@hl-bos/highlightai-hockey",
+    port: 4650,
+    healthPath: "/api/health",
+  },
 ];
 
 export function findApp(key: string): LocalApp | undefined {

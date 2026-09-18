@@ -1,0 +1,496 @@
+/* HighlightAI Hockey. Dark, because the footage is the point and a bright
+   chrome around a video player fights it. */
+:root {
+  --bg: #0b0f14;
+  --panel: #141b23;
+  --panel-2: #1b242e;
+  --line: #27323e;
+  --ink: #e8eef5;
+  --muted: #94a3b8;
+  --accent: #38bdf8;
+  --ok: #34d399;
+  --warn: #fbbf24;
+  --bad: #f87171;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font:
+    15px/1.6 ui-sans-serif,
+    system-ui,
+    -apple-system,
+    "Segoe UI",
+    Roboto,
+    sans-serif;
+}
+
+.shell {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 0 20px 80px;
+}
+.main {
+  padding-top: 8px;
+}
+
+.nav {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  padding: 18px 0;
+  border-bottom: 1px solid var(--line);
+  margin-bottom: 26px;
+}
+.brand {
+  font-weight: 700;
+  font-size: 17px;
+  color: var(--ink);
+  text-decoration: none;
+}
+.brand span {
+  color: var(--accent);
+}
+.nav nav {
+  display: flex;
+  gap: 16px;
+}
+.nav a {
+  color: var(--muted);
+  text-decoration: none;
+}
+.nav a:hover {
+  color: var(--ink);
+}
+.nav .who {
+  margin-left: auto;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+h1 {
+  font-size: 26px;
+  margin: 0 0 6px;
+}
+h2 {
+  font-size: 17px;
+  margin: 0 0 12px;
+}
+h3 {
+  font-size: 15px;
+  margin: 22px 0 8px;
+  color: var(--muted);
+}
+.subtitle {
+  color: var(--muted);
+  margin: 0 0 22px;
+}
+.mono {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 13px;
+}
+.footnote {
+  color: var(--muted);
+  font-size: 13px;
+  margin: 10px 0 0;
+}
+
+.card {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 20px;
+  margin-bottom: 18px;
+}
+.card-title {
+  font-size: 16px;
+}
+
+.banner {
+  background: #2a1f14;
+  border: 1px solid #7c5312;
+  border-radius: 12px;
+  padding: 16px 20px;
+  margin-bottom: 18px;
+}
+.banner p {
+  margin: 6px 0 0;
+}
+
+.empty {
+  border: 1px dashed var(--line);
+  border-radius: 10px;
+  padding: 18px;
+  color: var(--muted);
+  background: rgba(0, 0, 0, 0.15);
+}
+.empty-heading {
+  margin: 0 0 8px;
+  color: var(--ink);
+  font-weight: 600;
+}
+.empty-reasons {
+  margin: 0;
+  padding-left: 18px;
+}
+
+/* Forms */
+label {
+  display: block;
+  margin-bottom: 14px;
+  color: var(--muted);
+  font-size: 13px;
+}
+input,
+select,
+textarea {
+  display: block;
+  width: 100%;
+  margin-top: 6px;
+  padding: 9px 11px;
+  background: var(--panel-2);
+  color: var(--ink);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  font: inherit;
+}
+input[type="file"] {
+  padding: 8px;
+}
+.row {
+  display: flex;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+.row > label {
+  flex: 1 1 160px;
+}
+
+button {
+  padding: 9px 16px;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+button.primary {
+  background: var(--accent);
+  color: #06202c;
+}
+button.secondary {
+  background: var(--panel-2);
+  color: var(--ink);
+  border-color: var(--line);
+}
+button.danger {
+  background: #3b1a1a;
+  color: #fca5a5;
+  border-color: #7f1d1d;
+}
+button:disabled {
+  opacity: 0.55;
+  cursor: progress;
+}
+
+.primary-link,
+.secondary-link {
+  display: inline-block;
+  margin-top: 12px;
+  margin-right: 10px;
+  padding: 9px 16px;
+  border-radius: 8px;
+  text-decoration: none;
+  font-weight: 600;
+}
+.primary-link {
+  background: var(--accent);
+  color: #06202c;
+}
+.secondary-link {
+  background: var(--panel-2);
+  color: var(--ink);
+  border: 1px solid var(--line);
+}
+
+.ok {
+  color: var(--ok);
+  margin: 10px 0 0;
+}
+.problem {
+  color: var(--bad);
+  margin: 10px 0 0;
+}
+
+/* Project list */
+.projects {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.projects li {
+  margin-bottom: 10px;
+}
+.project {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 4px 16px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 14px 18px;
+  text-decoration: none;
+  color: var(--ink);
+}
+.project:hover {
+  border-color: var(--accent);
+}
+.project-name {
+  font-weight: 600;
+}
+.project-meta {
+  grid-column: 1;
+  color: var(--muted);
+  font-size: 13px;
+}
+.project-status {
+  grid-row: 1 / span 2;
+  align-self: center;
+  color: var(--muted);
+  font-size: 13px;
+  white-space: nowrap;
+}
+.status-completed {
+  color: var(--ok);
+}
+.status-failed {
+  color: var(--bad);
+}
+.status-review_ready {
+  color: var(--accent);
+}
+
+/* Facts */
+.facts,
+.evidence {
+  display: grid;
+  gap: 10px 20px;
+  margin: 0;
+}
+.facts {
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+}
+.facts dt,
+.evidence dt {
+  color: var(--muted);
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.facts dd,
+.evidence dd {
+  margin: 2px 0 0;
+}
+.evidence {
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  margin-top: 10px;
+}
+.evidence em {
+  color: var(--warn);
+  font-style: normal;
+}
+
+/* Job */
+.job-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+}
+.job-percent {
+  color: var(--muted);
+  font-size: 13px;
+}
+.job-failed .job-head strong {
+  color: var(--bad);
+}
+.stages {
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 14px 0 0;
+  padding: 0;
+}
+.stage {
+  font-size: 12px;
+  padding: 3px 9px;
+  border-radius: 20px;
+  border: 1px solid var(--line);
+  color: var(--muted);
+}
+.stage-done {
+  color: var(--ok);
+  border-color: #14532d;
+}
+.stage-current {
+  color: #06202c;
+  background: var(--accent);
+  border-color: var(--accent);
+  font-weight: 600;
+}
+.failure {
+  margin-top: 14px;
+  padding: 12px 14px;
+  border-radius: 8px;
+  background: #2a1414;
+  border: 1px solid #7f1d1d;
+}
+.failure p {
+  margin: 0 0 6px;
+}
+
+/* Confidence */
+.band {
+  font-size: 12px;
+  font-weight: 700;
+  padding: 3px 10px;
+  border-radius: 20px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+}
+.band-confirmed {
+  background: #064e3b;
+  color: #6ee7b7;
+}
+.band-likely {
+  background: #1e3a5f;
+  color: #93c5fd;
+}
+.band-possible {
+  background: #422006;
+  color: #fcd34d;
+}
+.band-uncertain {
+  background: #3f1d1d;
+  color: #fca5a5;
+}
+
+.segments,
+.notes,
+.reel-entries {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.segments li {
+  border-top: 1px solid var(--line);
+  padding: 14px 0;
+}
+.segments li:first-child {
+  border-top: none;
+  padding-top: 0;
+}
+.segment-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+.notes li {
+  color: var(--muted);
+  padding: 6px 0 6px 16px;
+  position: relative;
+}
+.notes li::before {
+  content: "—";
+  position: absolute;
+  left: 0;
+}
+.reel-entries li {
+  padding: 4px 0;
+  color: var(--muted);
+}
+
+/* Clips */
+.clips {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  counter-reset: clip;
+}
+.clip {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 18px;
+  margin-bottom: 16px;
+}
+.clip-accepted {
+  border-color: #14532d;
+}
+.clip-rejected {
+  opacity: 0.55;
+}
+.clip-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+.clip-video,
+.reel-video {
+  width: 100%;
+  border-radius: 8px;
+  background: #000;
+  margin-bottom: 10px;
+}
+.clip-why {
+  color: var(--muted);
+  font-size: 14px;
+  margin: 0 0 12px;
+}
+.clip-why strong {
+  color: var(--ink);
+  text-transform: capitalize;
+}
+.clip-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.clip-actions form {
+  display: inline;
+}
+.decision {
+  font-size: 13px;
+  color: var(--muted);
+}
+.decision-accepted {
+  color: var(--ok);
+}
+.decision-rejected {
+  color: var(--bad);
+}
+.trim {
+  margin-top: 14px;
+}
+.trim summary {
+  cursor: pointer;
+  color: var(--muted);
+  font-size: 13px;
+}
+.trim form {
+  margin-top: 12px;
+}
+
+.jersey {
+  white-space: nowrap;
+}

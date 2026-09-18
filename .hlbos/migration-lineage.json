@@ -3,7 +3,7 @@
   "schemaVersion": 1,
   "sourceDir": "supabase/migrations",
   "canonicalRepository": "KeithVenuewise73/hl-bos-platform",
-  "count": 48,
+  "count": 49,
   "migrations": [
     {
       "ordinal": 1,
@@ -387,6 +387,14 @@
       "filename": "20260916120000_hlbos_0048_ats_resume_optimizer.sql",
       "version": "20260916120000",
       "sha256": "e5e183d48300e5890d6efd4e15f0317c377ddf62f2954c1ef2153d31ab4af1e7",
+      "foundation": false
+    },
+    {
+      "ordinal": 49,
+      "name": "hlbos_0049_highlightai_hockey",
+      "filename": "20260918120000_hlbos_0049_highlightai_hockey.sql",
+      "version": "20260918120000",
+      "sha256": "74259f4ba08d6eba577e9f790068f592888a84a05b1a67c879e28496582a72de",
       "foundation": false
     }
   ]

@@ -82,7 +82,10 @@ export async function preprocess(
         false,
       );
     }
-    const proxyStorageKey = await provider.makeProxy(originalStorageKey, PROXY_MAX_HEIGHT);
+    const proxyStorageKey = await provider.makeProxy(
+      originalStorageKey,
+      PROXY_MAX_HEIGHT,
+    );
     return { ok: true, probe, proxyStorageKey };
   } catch (error) {
     return toFailure(error, "preprocess_failed");
@@ -168,7 +171,9 @@ export function identifyAndDetectEvents(input: {
     projectId: input.projectId,
     detectionSource: input.detectionSource,
     frameHeight: input.frameHeight,
-    ...(input.minConfidence === undefined ? {} : { minConfidence: input.minConfidence }),
+    ...(input.minConfidence === undefined
+      ? {}
+      : { minConfidence: input.minConfidence }),
   });
 
   if (segments.length === 0) {

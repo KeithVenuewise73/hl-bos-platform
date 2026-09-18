@@ -204,6 +204,25 @@ const ASSETS: Asset[] = [
     evidence: "apps/ats-resume-optimizer",
   },
   {
+    id: "app.highlightai-hockey",
+    kind: "application",
+    name: "HighlightAI Hockey",
+    summary:
+      "Turns a hockey game video into a highlight reel for one named player: describe the jersey, let the vision service find them, review the proposed clips, and only what a human approves reaches the reel. The first real video-AI capability in the estate \u2014 the CP8B audit found no HighlightAI engine anywhere and required that any such surface be labelled as having none until real processing code was verified.",
+    maturity: "built_undeployed",
+    reuse: ["commercial", "reusable"],
+    owner: "Herman Legacy Software Ventures",
+    layer: "HL-BOS",
+    key: "highlightai-hockey",
+    location: "apps/highlightai-hockey",
+    tags: ["video", "computer-vision", "human-in-the-loop", "local-first"],
+    relationships: [
+      { kind: "uses", to: "pkg.hockey-highlights" },
+      { kind: "owned_by", to: "repo.hl-bos-platform" },
+    ],
+    evidence: "apps/highlightai-hockey",
+  },
+  {
     id: "app.hl-bti",
     kind: "application",
     name: "HL-BTI App",
@@ -360,6 +379,22 @@ const ASSETS: Asset[] = [
     tags: ["package", "domain-logic", "evidence-gated", "document-generation"],
     relationships: [{ kind: "owned_by", to: "repo.hl-bos-platform" }],
     evidence: "packages/ats-resume",
+  },
+  {
+    id: "pkg.hockey-highlights",
+    kind: "package",
+    name: "@hl-bos/hockey-highlights",
+    summary:
+      "The HighlightAI Hockey engine: the processing-job state machine, the jersey vocabulary, track-to-athlete identity fusion with its evidence, candidate event detection from motion, clip windowing, human review and reel assembly. Pure and I/O-free \u2014 no model, no media toolchain, no network \u2014 with a VisionProvider interface so the detector can be replaced without touching the product.",
+    maturity: "live",
+    reuse: ["reusable", "commercial"],
+    owner: "Herman Legacy Software Ventures",
+    layer: "HL-BOS",
+    key: "hockey-highlights",
+    location: "packages/hockey-highlights",
+    tags: ["package", "domain-logic", "computer-vision", "confidence-gated"],
+    relationships: [{ kind: "owned_by", to: "repo.hl-bos-platform" }],
+    evidence: "packages/hockey-highlights",
   },
   {
     id: "pkg.config",

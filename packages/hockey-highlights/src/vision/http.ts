@@ -71,7 +71,22 @@ export class HttpVisionProvider implements VisionProvider {
   }
 
   async probe(storageKey: string): Promise<VideoProbe> {
-    return this.#send<VideoProbe>("POST", "/probe", { storage_key: storageKey });
+    // Mapped field by field, NOT passed through. The service speaks
+    // snake_case and this interface is camelCase, and `width`/`height` happen
+    // to be spelled the same in both — which is precisely why passing the
+    // response through looked like it worked. `durationSeconds` arrived
+    // undefined, the clip planner multiplied it out to NaN, and the first
+    // clip built through the real UI was stored with a null end time.
+    const wire = await this.#send<WireProbe>("POST", "/probe", {
+      storage_key: storageKey,
+    });
+    return {
+      durationSeconds: wire.duration_seconds,
+      width: wire.width,
+      height: wire.height,
+      frameRate: wire.frame_rate,
+      sizeBytes: wire.size_bytes,
+    };
   }
 
   async makeProxy(storageKey: string, maxHeight: number): Promise<string> {
@@ -132,8 +147,7 @@ export class HttpVisionProvider implements VisionProvider {
     try {
       const response = await this.#fetch(`${this.#baseUrl}${path}`, {
         method,
-        headers:
-          payload === undefined ? {} : { "content-type": "application/json" },
+        headers: payload === undefined ? {} : { "content-type": "application/json" },
         body: payload === undefined ? null : JSON.stringify(payload),
         signal: controller.signal,
       });
@@ -149,6 +163,14 @@ export class HttpVisionProvider implements VisionProvider {
       clearTimeout(timer);
     }
   }
+}
+
+interface WireProbe {
+  duration_seconds: number;
+  width: number;
+  height: number;
+  frame_rate: number;
+  size_bytes: number;
 }
 
 interface WireObservation {
@@ -175,17 +197,15 @@ interface WireTrackingResult {
 function toTrack(wire: { id: string; observations: WireObservation[] }): PlayerTrack {
   return {
     id: wire.id,
-    observations: wire.observations.map(
-      (o): Observation => ({
-        frame: o.frame,
-        timeSeconds: o.time_seconds,
-        box: o.box,
-        detectionScore: o.detection_score,
-        jerseyColorId: o.jersey_color_id,
-        jerseyColorScore: o.jersey_color_score,
-        jerseyNumber: o.jersey_number,
-        jerseyNumberScore: o.jersey_number_score,
-      }),
-    ),
+    observations: wire.observations.map((o): Observation => ({
+      frame: o.frame,
+      timeSeconds: o.time_seconds,
+      box: o.box,
+      detectionScore: o.detection_score,
+      jerseyColorId: o.jersey_color_id,
+      jerseyColorScore: o.jersey_color_score,
+      jerseyNumber: o.jersey_number,
+      jerseyNumberScore: o.jersey_number_score,
+    })),
   };
 }

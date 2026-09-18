@@ -66,8 +66,18 @@ function formatGameDate(iso: string): string {
   const [, year, month, day] = match;
   if (year === undefined || month === undefined || day === undefined) return iso;
   const months = [
-    "January", "February", "March", "April", "May", "June",
-    "July", "August", "September", "October", "November", "December",
+    "January",
+    "February",
+    "March",
+    "April",
+    "May",
+    "June",
+    "July",
+    "August",
+    "September",
+    "October",
+    "November",
+    "December",
   ];
   const name = months[Number(month) - 1];
   if (name === undefined) return iso;
@@ -125,7 +135,10 @@ export interface RenderPlan {
   readonly subtitle: string;
 }
 
-export function renderPlan(reel: HighlightReel, originalStorageKey: string): RenderPlan {
+export function renderPlan(
+  reel: HighlightReel,
+  originalStorageKey: string,
+): RenderPlan {
   return {
     reelId: reel.id,
     sourceStorageKey: originalStorageKey,

@@ -137,8 +137,14 @@ describe("repository scan (ground truth)", () => {
     // and the local suite had not).
     // Plus 0048 (ats — ATS Resume Optimizer), written and verified against a
     // local PostgreSQL 16 (17 tables, RLS enabled and forced, 68 policies, the
-    // anti-fabrication CHECK constraints exercised), UNAPPLIED to any project.
-    expect(inv.migrations.length).toBe(48);
+    // anti-fabrication CHECK constraints exercised), APPLIED to production on
+    // 2026-09-16.
+    // Plus 0049 (hockey — HighlightAI Hockey), written and verified against a
+    // local PostgreSQL 16.13 with pgTAP (12 tables, RLS enabled and forced, 48
+    // policies, 62 assertions, and the CHECK constraints that make "confirmed"
+    // impossible without a legibly-read jersey number and an unapproved clip
+    // impossible to render), UNAPPLIED to any project.
+    expect(inv.migrations.length).toBe(49);
     expect(inv.edgeFunctions).toContain("ai-gateway");
     expect(inv.edgeFunctions).not.toContain("tests");
     expect(inv.apps).toEqual(

@@ -16,13 +16,13 @@ was that any HighlightAI surface must be labelled as having no engine behind it
 
 ## What is real, and what it costs
 
-| Stage | How it works | Needs |
-| --- | --- | --- |
-| Probe / proxy / clip / reel | ffmpeg | ffmpeg, ffprobe |
-| Player detection | provider interface | see below |
-| Tracking | ByteTrack-style two-pass association, written here | nothing |
-| Jersey colour | HSV analysis of the torso crop | numpy, OpenCV |
-| Jersey number | provider interface | see below |
+| Stage                       | How it works                                       | Needs           |
+| --------------------------- | -------------------------------------------------- | --------------- |
+| Probe / proxy / clip / reel | ffmpeg                                             | ffmpeg, ffprobe |
+| Player detection            | provider interface                                 | see below       |
+| Tracking                    | ByteTrack-style two-pass association, written here | nothing         |
+| Jersey colour               | HSV analysis of the torso crop                     | numpy, OpenCV   |
+| Jersey number               | provider interface                                 | see below       |
 
 **Detection** has two implementations. `yolo` is the real one and needs
 `ultralytics`. `motion` is a model-free fallback using background subtraction —
@@ -62,23 +62,23 @@ python3 -m pytest tests/ -q
 
 Configuration, all optional:
 
-| Variable | Default | What it does |
-| --- | --- | --- |
-| `HOCKEY_MEDIA_ROOT` | `.data/media` | Where media lives. Nothing outside it is readable. |
-| `HOCKEY_DETECTOR` | `motion` | `yolo` or `motion`. There is no "auto" — which detector ran changes what the results mean. |
-| `HOCKEY_NUMBER_READER` | `none` | `tesseract` or `none`. |
-| `HOCKEY_VISION_PORT` | `4700` | |
+| Variable               | Default       | What it does                                                                               |
+| ---------------------- | ------------- | ------------------------------------------------------------------------------------------ |
+| `HOCKEY_MEDIA_ROOT`    | `.data/media` | Where media lives. Nothing outside it is readable.                                         |
+| `HOCKEY_DETECTOR`      | `motion`      | `yolo` or `motion`. There is no "auto" — which detector ran changes what the results mean. |
+| `HOCKEY_NUMBER_READER` | `none`        | `tesseract` or `none`.                                                                     |
+| `HOCKEY_VISION_PORT`   | `4700`        |                                                                                            |
 
 ## Endpoints
 
-| Method | Path | Purpose |
-| --- | --- | --- |
-| GET | `/availability` | Can it run right now, and if not, what would fix it |
-| POST | `/probe` | Duration, dimensions, frame rate, size |
-| POST | `/proxy` | Write the downscaled analysis copy |
-| POST | `/track` | The whole analysis pass |
-| POST | `/clip` | Cut one clip from the original |
-| POST | `/reel` | Cut several and join them |
+| Method | Path            | Purpose                                             |
+| ------ | --------------- | --------------------------------------------------- |
+| GET    | `/availability` | Can it run right now, and if not, what would fix it |
+| POST   | `/probe`        | Duration, dimensions, frame rate, size              |
+| POST   | `/proxy`        | Write the downscaled analysis copy                  |
+| POST   | `/track`        | The whole analysis pass                             |
+| POST   | `/clip`         | Cut one clip from the original                      |
+| POST   | `/reel`         | Cut several and join them                           |
 
 ## Verified
 

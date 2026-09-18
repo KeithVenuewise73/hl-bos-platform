@@ -1,6 +1,12 @@
 import { describe, expect, it } from "vitest";
 
-import { bandFor, describeBand, findPlayerSegments, scoreTrack } from "./identity.ts";
+import {
+  bandCeiling,
+  bandFor,
+  describeBand,
+  findPlayerSegments,
+  scoreTrack,
+} from "./identity.ts";
 import type { Athlete, Observation, PlayerTrack } from "./types.ts";
 
 const ATHLETE: Athlete = {
@@ -83,7 +89,11 @@ describe("identity fusion", () => {
     const right = scoreTrack(
       track(
         Array.from({ length: 20 }, (_, i) =>
-          observation({ timeSeconds: i * 0.2, jerseyNumber: "17", jerseyNumberScore: 0.9 }),
+          observation({
+            timeSeconds: i * 0.2,
+            jerseyNumber: "17",
+            jerseyNumberScore: 0.9,
+          }),
         ),
       ),
       ATHLETE,
@@ -92,7 +102,11 @@ describe("identity fusion", () => {
     const wrong = scoreTrack(
       track(
         Array.from({ length: 20 }, (_, i) =>
-          observation({ timeSeconds: i * 0.2, jerseyNumber: "23", jerseyNumberScore: 0.9 }),
+          observation({
+            timeSeconds: i * 0.2,
+            jerseyNumber: "23",
+            jerseyNumberScore: 0.9,
+          }),
         ),
       ),
       ATHLETE,
@@ -108,7 +122,11 @@ describe("identity fusion", () => {
       scoreTrack(
         track(
           Array.from({ length: 20 }, (_, i) =>
-            observation({ timeSeconds: i * 0.2, jerseyNumber: read, jerseyNumberScore: 0.8 }),
+            observation({
+              timeSeconds: i * 0.2,
+              jerseyNumber: read,
+              jerseyNumberScore: 0.8,
+            }),
           ),
         ),
         ATHLETE,
@@ -170,7 +188,11 @@ describe("identity fusion", () => {
     const wrongColour = scoreTrack(
       track(
         Array.from({ length: 10 }, (_, i) =>
-          observation({ timeSeconds: i, jerseyColorId: "white", jerseyColorScore: 0.9 }),
+          observation({
+            timeSeconds: i,
+            jerseyColorId: "white",
+            jerseyColorScore: 0.9,
+          }),
         ),
       ),
       ATHLETE,
@@ -261,6 +283,43 @@ describe("identity fusion", () => {
         photoSimilarity: null,
       }),
     ).toBe("likely");
+  });
+
+  // The running app showed "LIKELY · 100%". The band was refusing to claim
+  // certainty and the number beside it was claiming certainty anyway.
+  it("never reports a percentage its own band does not support", () => {
+    const colourOnly = Array.from({ length: 200 }, (_, i) =>
+      observation({ timeSeconds: i * 0.2, jerseyColorScore: 1 }),
+    );
+    const segment = scoreTrack(track(colourOnly), ATHLETE, OPTIONS);
+    expect(segment?.band).toBe("likely");
+    expect(segment?.confidence).toBeLessThan(0.85);
+  });
+
+  it("keeps the band stable after capping", () => {
+    // A capped value must still sit inside the band it was given, or the two
+    // would disagree again the next time the band is re-derived.
+    for (const band of ["confirmed", "likely", "possible", "uncertain"] as const) {
+      const ceiling = bandCeiling(band);
+      expect(ceiling).toBeGreaterThan(0);
+      expect(ceiling).toBeLessThanOrEqual(1);
+    }
+    expect(bandCeiling("likely")).toBeLessThan(0.85);
+    expect(bandCeiling("possible")).toBeLessThan(0.65);
+  });
+
+  it("still reports a high number when the evidence actually earns it", () => {
+    const strong = Array.from({ length: 40 }, (_, i) =>
+      observation({
+        timeSeconds: i * 0.2,
+        jerseyColorScore: 0.95,
+        jerseyNumber: "17",
+        jerseyNumberScore: 0.95,
+      }),
+    );
+    const segment = scoreTrack(track(strong), ATHLETE, OPTIONS);
+    expect(segment?.band).toBe("confirmed");
+    expect(segment?.confidence).toBeGreaterThanOrEqual(0.85);
   });
 
   it("has wording for every band that tells the reader what to do", () => {

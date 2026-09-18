@@ -8,7 +8,11 @@ import {
   preprocess,
   strideFor,
 } from "./pipeline.ts";
-import { ReplayVisionProvider, REPLAY_DETECTION_SOURCE, isFixtureSource } from "./vision/replay.ts";
+import {
+  ReplayVisionProvider,
+  REPLAY_DETECTION_SOURCE,
+  isFixtureSource,
+} from "./vision/replay.ts";
 import { UnavailableVisionProvider } from "./vision/unavailable.ts";
 import { HttpVisionProvider } from "./vision/http.ts";
 import { selectProvider } from "./vision/index.ts";
@@ -54,8 +58,10 @@ describe("provider selection", () => {
     expect(availability.remedy).not.toBeNull();
   });
 
-  it("treats blank configuration as no configuration", async () => {
-    expect(selectProvider({ serviceUrl: "   " })).toBeInstanceOf(UnavailableVisionProvider);
+  it("treats blank configuration as no configuration", () => {
+    expect(selectProvider({ serviceUrl: "   " })).toBeInstanceOf(
+      UnavailableVisionProvider,
+    );
   });
 
   it("uses the real service when one is configured", () => {
@@ -100,7 +106,10 @@ describe("provider selection", () => {
 
   it("says a reference photo was not used rather than implying it was", async () => {
     const provider = new ReplayVisionProvider({
-      probe: PROBE, tracks: [], frameWidth: 1920, frameHeight: 1080,
+      probe: PROBE,
+      tracks: [],
+      frameWidth: 1920,
+      frameHeight: 1080,
     });
     const result = await provider.track({
       proxyStorageKey: "x",
@@ -142,7 +151,9 @@ describe("pipeline stages", () => {
   it("reports an unreadable file as not-retryable rather than looping forever", async () => {
     const broken = new ReplayVisionProvider({
       probe: { ...PROBE, durationSeconds: 0 },
-      tracks: [], frameWidth: 0, frameHeight: 0,
+      tracks: [],
+      frameWidth: 0,
+      frameHeight: 0,
     });
     const result = await preprocess(broken, "originals/broken.mp4");
     expect(result.ok).toBe(false);
@@ -152,7 +163,10 @@ describe("pipeline stages", () => {
   });
 
   it("turns an unavailable service into a failure that will not be retried", async () => {
-    const result = await preprocess(new UnavailableVisionProvider(), "originals/game.mp4");
+    const result = await preprocess(
+      new UnavailableVisionProvider(),
+      "originals/game.mp4",
+    );
     expect(result.ok).toBe(false);
     if (result.ok) return;
     expect(result.code).toBe("vision_unavailable");
@@ -162,10 +176,15 @@ describe("pipeline stages", () => {
 
   it("distinguishes 'we saw nobody' from 'we could not look'", async () => {
     const empty = new ReplayVisionProvider({
-      probe: PROBE, tracks: [], frameWidth: 1920, frameHeight: 1080,
+      probe: PROBE,
+      tracks: [],
+      frameWidth: 1920,
+      frameHeight: 1080,
     });
     const result = await detectAndTrack(empty, {
-      proxyStorageKey: "p", athlete: ATHLETE, frameRate: 30,
+      proxyStorageKey: "p",
+      athlete: ATHLETE,
+      frameRate: 30,
     });
     expect(result.ok).toBe(true);
     if (!result.ok) return;
@@ -201,8 +220,11 @@ describe("pipeline stages", () => {
 
   it("says nothing was detected when nothing was detected", () => {
     const output = identifyAndDetectEvents({
-      projectId: "p-1", athlete: ATHLETE, tracks: [],
-      detectionSource: "test", frameHeight: 1080,
+      projectId: "p-1",
+      athlete: ATHLETE,
+      tracks: [],
+      detectionSource: "test",
+      frameHeight: 1080,
     });
     expect(output.notes[0]).toContain("No players were detected");
   });
@@ -239,10 +261,38 @@ describe("http provider", () => {
   it("raises an error on a refusal rather than returning nothing", async () => {
     const provider = new HttpVisionProvider({
       baseUrl: "http://localhost:4700",
-      fetchImpl: () =>
-        Promise.resolve(new Response("model missing", { status: 503 })),
+      fetchImpl: () => Promise.resolve(new Response("model missing", { status: 503 })),
     });
     await expect(provider.probe("x")).rejects.toThrow(/503/);
+  });
+
+  // The bug that produced a stored clip with no end time. `width` and `height`
+  // are spelled the same on both sides, so a passed-through response looked
+  // correct until something read a field that was not.
+  it("maps EVERY probe field, including the ones whose names differ", async () => {
+    const provider = new HttpVisionProvider({
+      baseUrl: "http://localhost:4700",
+      fetchImpl: () =>
+        Promise.resolve(
+          Response.json({
+            duration_seconds: 3600.5,
+            width: 1920,
+            height: 1080,
+            frame_rate: 29.97,
+            size_bytes: 4_200_000_000,
+          }),
+        ),
+    });
+    const probe = await provider.probe("originals/game.mp4");
+    expect(probe.durationSeconds).toBe(3600.5);
+    expect(probe.frameRate).toBe(29.97);
+    expect(probe.sizeBytes).toBe(4_200_000_000);
+    expect(probe.width).toBe(1920);
+    expect(probe.height).toBe(1080);
+    for (const value of Object.values(probe)) {
+      expect(value).toBeTypeOf("number");
+      expect(Number.isFinite(value)).toBe(true);
+    }
   });
 
   it("maps the service's snake_case wire format onto the engine's types", async () => {
@@ -278,7 +328,10 @@ describe("http provider", () => {
         ),
     });
     const result = await provider.track({
-      proxyStorageKey: "p", frameStride: 6, jerseyColorId: "navy", jerseyNumber: "17",
+      proxyStorageKey: "p",
+      frameStride: 6,
+      jerseyColorId: "navy",
+      jerseyNumber: "17",
     });
     expect(result.detectionSource).toBe("yolov8n+bytetrack");
     expect(result.tracks[0]?.observations[0]).toMatchObject({
