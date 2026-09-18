@@ -1,0 +1,23 @@
+{
+  "name": "@hl-bos/hockey-highlights",
+  "version": "0.1.0",
+  "private": true,
+  "description": "HighlightAI Hockey engine. Turns player tracks from a vision service into candidate events, reviewable clips and a finished highlight reel. Pure and deterministic: no network, no model, no media toolchain — every number it reports is derived from evidence it was given.",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "default": "./src/index.ts"
+    }
+  },
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run",
+    "clean": "rm -rf dist *.tsbuildinfo"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  }
+}

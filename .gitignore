@@ -149,3 +149,8 @@ vite.config.ts.timestamp-*
 
 # ATS Resume Optimizer local store (personal career data, never committed).
 .data/
+
+# Python bytecode, from services/hockey-vision.
+__pycache__/
+*.py[cod]
+.pytest_cache/

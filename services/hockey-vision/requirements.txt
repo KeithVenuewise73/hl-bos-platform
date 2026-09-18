@@ -1,0 +1,16 @@
+# Required. Video decode/encode and all image analysis.
+numpy>=1.26
+opencv-python-headless>=4.9
+
+# Optional, and the service works without either.
+#
+# ultralytics gives you real player detection instead of the model-free motion
+# fallback. It pulls in torch, which is a large download.
+#   ultralytics>=8.1
+#
+# pytesseract reads jersey numbers, which is what lets a match reach the
+# "confirmed" confidence band. It also needs the tesseract binary installed.
+#   pytesseract>=0.3.10
+
+# Tests only.
+pytest>=8.0
