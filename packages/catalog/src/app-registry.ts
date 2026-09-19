@@ -234,6 +234,38 @@ export const APPLICATIONS: ApplicationRecord[] = [
       "apps/venture-studio (HLVS V2); migration 0029 applied to production; 0030 (CEO Notebook) written UNAPPLIED; not deployed",
   },
   {
+    key: "highlightai-football",
+    name: "HighlightAI Football",
+    description:
+      "Upload a football game, name an athlete by jersey colour and number, and get back the plays he was in and a highlight reel of them. A player detection, tracking, play-segmentation and highlight-generation platform aimed at youth and high-school film (Hudl exports, Veo, press box, end zone, phone). Assembled on HL-BOS: reuses identity, tenancy, permissions, audit, events and storage metadata; adds the `highlight` schema and the @hl-bos/highlight-football engine.",
+    category: "vertical_product",
+    repository: REPO,
+    owner: "KeithVenuewise73",
+    executiveOwner: "Keith Herman (CEO)",
+    currentBranch: "claude/highlightai-football-build-n1sz9s",
+    environment: "local",
+    developmentStatus: "built_undeployed",
+    deploymentStatus: "not_deployed",
+    productionUrl: null,
+    stagingUrl: null,
+    // 4601, not 4600: the ATS Resume Optimizer already answers on 4600, and two
+    // local apps that cannot run at the same time is a defect the Control Center
+    // would surface as "not running" with no explanation.
+    localUrl: "http://localhost:4601",
+    supabaseProject: CORE,
+    version: "0.1.0",
+    health: "unknown",
+    hosting: "none yet (web on Vercel/Coolify; GPU worker needs a separate CUDA host)",
+    dependencies: ["@hl-bos/highlight-football", "next", "react"],
+    reusableModules: ["identity_core"],
+    softwareFactoryIntegration:
+      "None. Built directly on the HL-BOS spine; creates no Factory work.",
+    notes:
+      "RUNS IN DEMO MODE. The football intelligence engine (269 tests), the `highlight` schema (migration 0049, 66 pgTAP assertions), the 14 screens plus an AI debug view (38 tests) and the Python CV worker (77 tests) are built and green locally. No computer-vision model is installed or trained, no real game film has been processed, and migration 0049 has not been applied to any Supabase project. Every screen carries a non-dismissible banner saying the football is synthetic; there is deliberately no fallback from live mode to demo mode.",
+    evidence:
+      "packages/highlight-football, apps/highlightai-football, services/highlight-cv, supabase/migrations 0049 + supabase/tests/49; local build, lint, typecheck and tests green; not deployed",
+  },
+  {
     key: "ats-resume-optimizer",
     name: "ATS Resume Optimizer",
     description:

@@ -1,0 +1,49 @@
+[project]
+name = "highlight-cv"
+version = "0.1.0"
+description = "HighlightAI Football computer-vision worker. Runs the GPU pipeline that turns game film into detections, tracks, plays and clips, and hands them to the HighlightAI database."
+requires-python = ">=3.11"
+
+# Deliberately EMPTY. Importing highlight_cv must work on a laptop with no GPU
+# stack so the contracts, the pipeline orchestration and the FFmpeg command
+# construction can be unit-tested anywhere. The heavy dependencies are optional
+# extras, imported lazily inside the adapters that need them.
+dependencies = []
+
+[project.optional-dependencies]
+# Decode, colour sampling and FFmpeg-driven export. Small, CPU-only, and enough
+# to run the whole pipeline except inference — which is why it is separate from
+# the models below. Verified working: opencv-python-headless 5.0.0.93, numpy 2.4.6.
+media = [
+  "opencv-python-headless>=4.10",
+  "numpy>=1.26",
+]
+
+# The detection models. Verified working on CPU with torch 2.14.0 and
+# ultralytics 8.4.155.
+#
+# INSTALL TORCH FIRST, FROM ITS OWN INDEX:
+#     pip install --index-url https://download.pytorch.org/whl/cpu torch torchvision
+#     pip install -e '.[models]'
+# Listing torch here and installing in one shot makes pip backtrack between PyPI
+# and the PyTorch index for many minutes and then pull multi-gigabyte CUDA
+# wheels onto a CPU-only box. On a GPU host, drop the /cpu suffix.
+models = [
+  "ultralytics>=8.3",
+]
+
+# Everything, for a GPU worker host.
+gpu = [
+  "torch>=2.4",
+  "torchvision>=0.19",
+  "ultralytics>=8.3",
+  "opencv-python-headless>=4.10",
+  "numpy>=1.26",
+]
+# The durable job queue. Redis + Celery per the brief; the worker module is
+# written so the queue can be swapped without touching the pipeline.
+queue = ["celery>=5.4", "redis>=5.0"]
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"

@@ -1,0 +1,27 @@
+{
+  "name": "@hl-bos/highlight-football",
+  "version": "0.1.0",
+  "private": true,
+  "description": "HighlightAI Football intelligence engine. Given detections, tracks and signals produced by a computer-vision worker, it decides who the athlete is, which plays involve him, and what the highlight reel should contain. Pure and deterministic: no network, no GPU, no media toolchain — so every decision the product makes is testable without a video card.",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "default": "./src/index.ts"
+    },
+    "./mock": {
+      "types": "./src/mock/index.ts",
+      "default": "./src/mock/index.ts"
+    }
+  },
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run",
+    "clean": "rm -rf dist *.tsbuildinfo"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  }
+}

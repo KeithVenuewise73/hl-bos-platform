@@ -104,6 +104,15 @@ export const PORTFOLIO: readonly Product[] = [
     location: null,
   },
   {
+    name: "HighlightAI Football",
+    stage: "development",
+    status:
+      "The football intelligence engine, the `highlight` database schema and the web app are built and tested locally (269 engine tests, 38 app tests, 66 database assertions, 77 worker tests \u2014 green). The app runs and every screen renders, but it runs in DEMO mode over a synthetic game: no real film has been uploaded, no computer-vision model is installed, and nothing has been applied to a live project.",
+    version: null,
+    location:
+      "this repository (packages/highlight-football, apps/highlightai-football, services/highlight-cv, supabase/migrations 0049)",
+  },
+  {
     name: "Venuewise",
     stage: "not-started",
     status: "Planned. No code yet.",

@@ -1,0 +1,30 @@
+{
+  "name": "@hl-bos/highlightai-football",
+  "version": "0.1.0",
+  "private": true,
+  "description": "HighlightAI Football \u2014 upload the game, pick the player, HighlightAI does the rest. Assembled on HL-BOS: reuses HL-BOS identity/tenancy/permissions and the `highlight` schema, and runs @hl-bos/highlight-football for every decision it displays. Ships with demo adapters so the whole workflow is walkable before the GPU models are complete; demo output is labelled as demo everywhere it appears.",
+  "type": "module",
+  "scripts": {
+    "dev": "next dev --port 4601",
+    "build": "next build",
+    "start": "next start --port 4601",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint .",
+    "test": "vitest run",
+    "clean": "rm -rf .next dist *.tsbuildinfo"
+  },
+  "dependencies": {
+    "@hl-bos/highlight-football": "workspace:*",
+    "next": "catalog:",
+    "react": "catalog:",
+    "react-dom": "catalog:",
+    "server-only": "catalog:"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "@types/react": "catalog:",
+    "@types/react-dom": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  }
+}

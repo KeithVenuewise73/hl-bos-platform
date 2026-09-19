@@ -323,6 +323,45 @@ const ASSETS: Asset[] = [
     evidence: "apps/venture-studio (HLVS V2, V2-1); not deployed",
   },
   {
+    id: "app.highlightai-football",
+    kind: "application",
+    name: "HighlightAI Football",
+    summary:
+      "Upload the game, pick the player, get the highlights. Player detection, tracking, play segmentation and highlight generation for youth and high-school football film. Assembled on HL-BOS identity/tenancy/permissions/audit/events; adds the `highlight` schema and the @hl-bos/highlight-football engine. Built and tested locally; runs in DEMO mode \u2014 no CV model installed, no real film processed, migration 0049 unapplied.",
+    maturity: "built_undeployed",
+    reuse: ["commercial"],
+    owner: "Herman Legacy Platform",
+    layer: "HL-BOS",
+    key: "highlightai-football",
+    location: "apps/highlightai-football",
+    tags: ["sports", "video", "computer-vision", "youth", "customer-facing"],
+    relationships: [
+      { kind: "uses", to: "pkg.highlight-football" },
+      { kind: "uses", to: "svc.identity" },
+      { kind: "consumes", to: "db.highlight" },
+      { kind: "owned_by", to: "repo.hl-bos-platform" },
+    ],
+    evidence:
+      "apps/highlightai-football; builds and serves all 14 screens; 38 app tests green; DEMO mode only, not deployed",
+  },
+  {
+    id: "pkg.highlight-football",
+    kind: "package",
+    name: "@hl-bos/highlight-football",
+    summary:
+      "The football intelligence behind HighlightAI: lighting-tolerant uniform colour matching, temporal jersey-number voting, player re-identification, motion-based play segmentation and snap detection, position-aware involvement scoring, clip windowing, smart crop and reel assembly. Pure and deterministic \u2014 no network, no GPU, no media toolchain \u2014 so every product decision is testable without a video card.",
+    maturity: "live",
+    reuse: ["reusable"],
+    owner: "Herman Legacy Platform",
+    layer: "HL-BOS",
+    key: "highlight-football",
+    location: "packages/highlight-football",
+    tags: ["package", "domain-logic", "computer-vision", "sports"],
+    relationships: [{ kind: "owned_by", to: "repo.hl-bos-platform" }],
+    evidence:
+      "packages/highlight-football; 269 tests green; 7 named film-failure fixtures asserted end to end",
+  },
+  {
     id: "pkg.venture-studio",
     kind: "package",
     name: "@hl-bos/venture-studio",
@@ -1205,6 +1244,14 @@ const ASSETS: Asset[] = [
     1,
     "HL-BOS",
     "Public Business Transformation intake submissions (RLS-forced; anon writes via SECURITY DEFINER RPC only).",
+  ),
+
+  ...db(
+    "highlight",
+    "HighlightAI Football",
+    23,
+    "HL-BOS",
+    "Game film, plays, player tracks, detections, jersey readings, events, involvement, highlight candidates, clips, reels and exports \u2014 plus the consent records without which nothing leaves private. Written ONLY by the trusted worker path: no tenant write grant or policy exists on any vision output.",
   ),
 
   // ======================================================================

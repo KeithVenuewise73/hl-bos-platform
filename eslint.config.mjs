@@ -22,6 +22,11 @@ export default tseslint.config(
       "**/*.tsbuildinfo",
       "supabase/functions/**", // Deno runtime, different lint target
       "scripts/local-test/**", // local pgTAP runners: plain CommonJS, not part of the TS build
+      // Python virtualenvs. Installed dependencies, not our source -- and some
+      // of them (urllib3's emscripten worker) ship browser JS that fails a
+      // Node-targeted lint. Gitignored, but ESLint walks the filesystem, not git.
+      "**/.venv/**",
+      "**/__pycache__/**",
     ],
   },
 
@@ -174,6 +179,22 @@ export default tseslint.config(
       "apps/herman-legacy-digital/src/app/api/health/route.ts",
       "apps/herman-legacy-digital/src/app/api/event/route.ts",
     ],
+    rules: {
+      "no-restricted-properties": "off",
+      "no-restricted-syntax": "off",
+    },
+  },
+
+  // HighlightAI Football's env boundary. ONE file, and deliberately the
+  // narrowest of any app here: HighlightAI holds video of minors, so the
+  // surface that reads configuration is kept as small as it can be. It reads
+  // the Supabase URL and publishable key (both browser-safe by ENV_SPEC — the
+  // publishable key is gated by RLS, not by secrecy) plus a demo-mode switch.
+  // No service-role key is read anywhere in this app. NEXT_PUBLIC_* must be
+  // literal dot-access to be inlined at build time, which is why @hl-bos/config's
+  // dynamic loadEnv() cannot be used for these two.
+  {
+    files: ["apps/highlightai-football/src/lib/env.ts"],
     rules: {
       "no-restricted-properties": "off",
       "no-restricted-syntax": "off",
