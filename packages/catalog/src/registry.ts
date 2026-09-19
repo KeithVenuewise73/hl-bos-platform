@@ -362,6 +362,23 @@ const ASSETS: Asset[] = [
       "packages/highlight-football; 269 tests green; 7 named film-failure fixtures asserted end to end",
   },
   {
+    id: "pkg.sceneflow",
+    kind: "package",
+    name: "@hl-bos/sceneflow",
+    summary:
+      "The SceneFlow AI continuation engine: cast understanding and CharacterLock, SceneLock inheritance, the semantic spatial map, the structural interaction graph, reciprocal affection, the story planner, the continuity engine and server-side prompt composition \u2014 plus the deterministic real-person safety boundary that every request passes before a provider is contacted. Pure and deterministic: no network, no model, no secrets, so both the continuity rules and the safety gate are testable without a provider key.",
+    maturity: "built_undeployed",
+    reuse: ["reusable"],
+    owner: "Herman Legacy Platform",
+    layer: "HL-BOS",
+    key: "sceneflow",
+    location: "packages/sceneflow",
+    tags: ["package", "domain-logic", "image-generation", "safety", "consumer"],
+    relationships: [{ kind: "owned_by", to: "repo.hl-bos-platform" }],
+    evidence:
+      "packages/sceneflow; 204 tests green; the policy pre-gate and the intimacy ceiling each verified by mutation (disabling either fails 3 tests); no image or moderation vendor is wired, so nothing generates yet",
+  },
+  {
     id: "pkg.venture-studio",
     kind: "package",
     name: "@hl-bos/venture-studio",

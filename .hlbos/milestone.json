@@ -1,7 +1,7 @@
 {
   "$comment": "Live milestone state. Version-controlled so it is auditable, and updated by the AI engineer as work lands. The Control Center reads this -- it does not guess progress.",
-  "milestone": "Platform Foundation v1.0 — Enterprise Knowledge Graph live in production",
-  "phase": "HighlightAI Football V1: the vertical slice — upload a game, name an athlete, track him, find his plays, cut clips, build a reel — is BUILT and VERIFIED LOCALLY. Three new components: packages/highlight-football (the football intelligence engine, pure and deterministic, 269 tests), apps/highlightai-football (14 screens plus an AI debug view, builds and serves, 38 tests), services/highlight-cv (the Python GPU worker with real and mock adapters, 77 tests including a cross-language contract check against the engine and the migration). Migration 0049 adds the `highlight` schema (23 tables) additively. It was written as 0048 and RENUMBERED to 0049 on merging main, which had meanwhile landed the ATS Resume Optimizer's own 0048 with an identical timestamp — a collision the lineage guard would have caught, caught here first. The full database suite runs 975 pgTAP assertions from empty against PostgreSQL 16.13 with 0 failing (909 pre-existing, 66 new). Note that migration 0048 (ats) ships with no pgTAP file of its own, so the suite total did not move when it landed. HighlightAI is UNAPPLIED to any Supabase project and its pull request (#65) is not merged. THE APP RUNS IN DEMO MODE: no computer-vision model is installed, no real game film has been uploaded or analysed, and every screen says so in a banner. The colour science, temporal voting, re-identification, play segmentation, involvement scoring and clip planning are real and tested; the detector, tracker and OCR that would feed them on real film are adapters that currently raise ModelUnavailableError rather than fall back to synthetic output.",
+  "milestone": "Platform Foundation v1.0 \u2014 Enterprise Knowledge Graph live in production",
+  "phase": "SceneFlow AI Phase 1: the continuation engine (@hl-bos/sceneflow) is BUILT and VERIFIED LOCALLY \u2014 204 tests, no network, no provider key. It is the product described in section 66 of the brief rather than a prompt wrapper: cast understanding and CharacterLock (stable person_a..person_h ids, assigned left to right so re-running detection is reproducible, and NOT recompacted when a subject is removed \u2014 renumbering would repoint stored scenes at a different human being), SceneLock with a stated precedence (identity is absolute and not unlockable; an explicit user change beats a locked environment attribute; a locked attribute is inherited verbatim), a semantic spatial map, a structural interaction graph with reciprocal affection and a real intimacy ceiling, the story planner (7 presets, 1/3/6-scene plans derived by substitution rather than truncation so a 'Warm' user still gets six scenes), the continuity engine, and server-side prompt composition \u2014 the only place a prompt string is produced, and it is produced from structure, so nothing a user types is ever concatenated into it. THE SAFETY BOUNDARY IS ENFORCED CODE, NOT PROMPT TEXT. The interaction vocabulary is a CLOSED set, so an act with no member has nothing to compose into a request. Free text passes a deterministic pre-gate first; minors, non-consent framing and public figures are refused outright with no 'nearest alternative' offered and no recognised fragments handed back. The pipeline FAILS CLOSED: PipelineDeps.moderation is non-optional by type, so there is no moderation-off path to deploy by accident. Every refusal path charges 0 credits. This was verified by mutation, not assumed: disabling the policy pre-gate fails 3 tests, disabling the intimacy ceiling fails 3 tests. Four real defects were found by testing rather than by reading \u2014 leetspeak folding turned '18' into 'i8' so 'under 18' could never match; a bare 'minor' in the age table made 'make minor adjustments to the lighting' a hard refusal; reciprocal affection added a third edge when the user had already staged both directions by hand; and ranking interaction phrases by length made 'Have Person B kiss Person D while the others move closer' resolve to 'move closer', dropping the actual instruction. NOTHING GENERATES AN IMAGE. There is no image provider and no moderation provider in this repository, no database schema, no app, no mobile client and no payments. The mock providers return mock:// paths and are labelled as mock. An owner decision on the client platform (React Native/Expo vs a Next.js app in this monorepo) is outstanding and does not block the engine, which is identical either way.",
   "engineer": "Claude (AI engineer)",
   "startedOn": "2026-07-16",
   "tasks": [
@@ -54,7 +54,7 @@
       "done": true
     },
     {
-      "title": "Herman Legacy Executive Portal — secure, read-only, cloud-deployable app (HL-BOS auth, 5 roles, no command surface); staging-ready, not yet deployed",
+      "title": "Herman Legacy Executive Portal \u2014 secure, read-only, cloud-deployable app (HL-BOS auth, 5 roles, no command surface); staging-ready, not yet deployed",
       "done": true
     },
     {
@@ -62,15 +62,15 @@
       "done": true
     },
     {
-      "title": "Enterprise Application Registry + Executive Portal operationalization (CEO Home, Task Center, Global Search, Platform Status, grouped navigation) — read-only, governed, not yet deployed",
+      "title": "Enterprise Application Registry + Executive Portal operationalization (CEO Home, Task Center, Global Search, Platform Status, grouped navigation) \u2014 read-only, governed, not yet deployed",
       "done": true
     },
     {
-      "title": "Canonical Capability Library (Phase XI-1): one evidence-backed record unifying 6 capability registries, deterministic duplicate/reuse gate, read-only /capabilities view — in-code, no migration, not merged",
+      "title": "Canonical Capability Library (Phase XI-1): one evidence-backed record unifying 6 capability registries, deterministic duplicate/reuse gate, read-only /capabilities view \u2014 in-code, no migration, not merged",
       "done": true
     },
     {
-      "title": "HL-BTI v2 Business Transformation Intelligence engine (@hl-bos/transformation-intelligence) — configurable scoring, evidence-gated impact/ROI, Software Factory reuse, CEO-approval gating, HLVS + government-contracts intelligence; Executive Portal Transformation Intelligence + Government Contracts views over labelled sample input",
+      "title": "HL-BTI v2 Business Transformation Intelligence engine (@hl-bos/transformation-intelligence) \u2014 configurable scoring, evidence-gated impact/ROI, Software Factory reuse, CEO-approval gating, HLVS + government-contracts intelligence; Executive Portal Transformation Intelligence + Government Contracts views over labelled sample input",
       "done": true
     },
     {
@@ -82,15 +82,15 @@
       "done": true
     },
     {
-      "title": "Platform Foundation v1.0 merged to main via PR #18 (CI green: Validate, pgTAP 0001–0028 + graph execution tests, Migration checks, Deno, Secret scan)",
+      "title": "Platform Foundation v1.0 merged to main via PR #18 (CI green: Validate, pgTAP 0001\u20130028 + graph execution tests, Migration checks, Deno, Secret scan)",
       "done": true
     },
     {
-      "title": "Deploy Production — migration 0028 (Knowledge Graph) applied to canonical production (mvvtngiopdrgiedjmhfb) at exact repo version 20260731090000; 17/17 structural checks pass; RLS forced; RPCs fail-closed; lineage reconciled (XI-2L)",
+      "title": "Deploy Production \u2014 migration 0028 (Knowledge Graph) applied to canonical production (mvvtngiopdrgiedjmhfb) at exact repo version 20260731090000; 17/17 structural checks pass; RLS forced; RPCs fail-closed; lineage reconciled (XI-2L)",
       "done": true
     },
     {
-      "title": "Grant graph permissions + publish the first production projection (145 nodes / 427 edges) — a separate CEO authorization; the graph is installed but dormant until then",
+      "title": "Grant graph permissions + publish the first production projection (145 nodes / 427 edges) \u2014 a separate CEO authorization; the graph is installed but dormant until then",
       "done": false
     },
     {
@@ -98,11 +98,11 @@
       "done": true
     },
     {
-      "title": "Deploy Production — migration 0029 (vstudio Venture Studio foundation) applied to canonical production (mvvtngiopdrgiedjmhfb); 6 tables, RLS forced, 5 permissions, 8 SECURITY DEFINER functions; purely additive; applied DDL byte-identical to the committed file (sha256 ee83df9…); recorded name matches, version timestamp differs (management-API stamp) and is reconciled by documentation (Option A)",
+      "title": "Deploy Production \u2014 migration 0029 (vstudio Venture Studio foundation) applied to canonical production (mvvtngiopdrgiedjmhfb); 6 tables, RLS forced, 5 permissions, 8 SECURITY DEFINER functions; purely additive; applied DDL byte-identical to the committed file (sha256 ee83df9\u2026); recorded name matches, version timestamp differs (management-API stamp) and is reconciled by documentation (Option A)",
       "done": true
     },
     {
-      "title": "Deploy Venture Studio app + expose vstudio to the API + choose VSTUDIO_TENANT_ID — a separate CEO authorization; migration is applied but the app is undeployed and the schema is not yet exposed until then",
+      "title": "Deploy Venture Studio app + expose vstudio to the API + choose VSTUDIO_TENANT_ID \u2014 a separate CEO authorization; migration is applied but the app is undeployed and the schema is not yet exposed until then",
       "done": false
     },
     {
@@ -110,11 +110,11 @@
       "done": true
     },
     {
-      "title": "Apply migration 0030 (CEO Notebook) to production — a separate CEO authorization; written and CI-verified but UNAPPLIED",
+      "title": "Apply migration 0030 (CEO Notebook) to production \u2014 a separate CEO authorization; written and CI-verified but UNAPPLIED",
       "done": false
     },
     {
-      "title": "HLVS Phase 2 (Steps 1-2): corpus-preservation baseline recorded and proven — 62,250 opportunities, 62,214 canonical URLs, 0 duplicates, original-36 fingerprint 3679f569f706e8db94d314e7de19bb05; supabase/checks/corpus-preservation.sql returns 14/14 pass against production",
+      "title": "HLVS Phase 2 (Steps 1-2): corpus-preservation baseline recorded and proven \u2014 62,250 opportunities, 62,214 canonical URLs, 0 duplicates, original-36 fingerprint 3679f569f706e8db94d314e7de19bb05; supabase/checks/corpus-preservation.sql returns 14/14 pass against production",
       "done": true
     },
     {
@@ -122,15 +122,15 @@
       "done": true
     },
     {
-      "title": "HLVS Phase 2 (Step 6): Rising Opportunities populated — a second observation pass over 299 of 301 discovery queries produced 1,562 material movements against the 62,214-row baseline; score_rising() ranked all 1,562 over a 0.92-day measured window and the portfolio holds 100",
+      "title": "HLVS Phase 2 (Step 6): Rising Opportunities populated \u2014 a second observation pass over 299 of 301 discovery queries produced 1,562 material movements against the 62,214-row baseline; score_rising() ranked all 1,562 over a 0.92-day measured window and the portfolio holds 100",
       "done": true
     },
     {
-      "title": "HLVS Phase 2 (Steps 7-9): public pain engine (0037) with phrase verification against full issue bodies, deterministic clustering, and the HLVS UI — Executive Overview, five Top-100 routes, Rising, Discovery Universe, Sources & Settings",
+      "title": "HLVS Phase 2 (Steps 7-9): public pain engine (0037) with phrase verification against full issue bodies, deterministic clustering, and the HLVS UI \u2014 Executive Overview, five Top-100 routes, Rising, Discovery Universe, Sources & Settings",
       "done": true
     },
     {
-      "title": "HLVS Phase 2 (CI feedback): the pgTAP suite ran for the first time and found real defects — nine intelligence gates whose refusal path was unreachable under test, and a source_url guard that accepted a tab. Migrations 0039 and 0040 fix both. Written and verified against a local Postgres 16 with all 40 migrations applied from empty: 801 assertions, 0 failures. UNAPPLIED to production pending CEO approval.",
+      "title": "HLVS Phase 2 (CI feedback): the pgTAP suite ran for the first time and found real defects \u2014 nine intelligence gates whose refusal path was unreachable under test, and a source_url guard that accepted a tab. Migrations 0039 and 0040 fix both. Written and verified against a local Postgres 16 with all 40 migrations applied from empty: 801 assertions, 0 failures. UNAPPLIED to production pending CEO approval.",
       "done": false
     },
     {
@@ -188,6 +188,30 @@
     {
       "title": "HighlightAI Football: run the pipeline on one real game file end to end",
       "done": false
+    },
+    {
+      "title": "SceneFlow AI: repository audit \u2014 no image generation, no moderation, no credit ledger, no mobile toolchain in this repo; identity/tenancy/billing/storage/events reused",
+      "done": true
+    },
+    {
+      "title": "SceneFlow AI: continuation engine @hl-bos/sceneflow (204 tests, safety boundary mutation-verified)",
+      "done": true
+    },
+    {
+      "title": "SceneFlow AI: decide the client platform \u2014 React Native/Expo (new toolchain in a Next.js monorepo) or a Next.js app alongside the other products",
+      "done": false
+    },
+    {
+      "title": "SceneFlow AI: choose an image-generation provider that permits romantic imagery of real uploaded people, and a moderation provider \u2014 both are account decisions, and the engine refuses to run without moderation",
+      "done": false
+    },
+    {
+      "title": "SceneFlow AI: `sceneflow` schema (migration 0050), private buckets, RLS forced, credit ledger",
+      "done": false
+    },
+    {
+      "title": "SceneFlow AI: cast detection \u2014 nothing in the engine looks at pixels; detection is an unbuilt adapter",
+      "done": false
     }
   ],
   "blockers": [
@@ -210,6 +234,11 @@
       "title": "Production has drifted from the repository, and the safe apply path is blocked",
       "meaning": "While applying the social migration I checked what the live database actually contains. It holds about forty migrations that are not in this repository at all (three separate naming schemes: dma_*, disco_*, jobscout_*), and around fourteen of our own migrations were applied under different version stamps than the files carry. The registry file that is supposed to track this still says the database is at migration 28; it is far past that. The practical consequence: the protected one-click migration workflow cannot be used safely right now -- its drift check would fail, and if it were forced past that it would try to re-run around twenty migrations the database already has under other names, including two data backfills. That is why 0046 and 0047 were applied individually and verified rather than pushed as a batch. Reconciling this properly is its own piece of work and needs your go-ahead; it is not urgent, but it should not be left indefinitely.",
       "owner": "ai-engineer"
+    },
+    {
+      "title": "SceneFlow AI cannot generate anything until two accounts exist, and one of them is a content-policy decision",
+      "meaning": "The engine is finished and tested, but it has no model to call. Two things are needed, and both are yours because both are about what we are permitted and willing to do. First, an image-generation provider whose own terms allow romantic transformations of real, uploaded photographs of identifiable people \u2014 several major providers forbid exactly this, so the choice is a policy question before it is a technical one. Second, a moderation provider: the engine will not run without one, by design, because the filter we wrote is a keyword gate and a keyword gate alone is not a safeguard. Separately, and this is mine to flag rather than yours to fix: the consent checkbox records what a user states and verifies nothing. Before this product has real users, decide what happens when someone reports an image of themselves that they never agreed to \u2014 a takedown route and someone who answers it. The code cannot supply that.",
+      "owner": "ceo"
     }
   ]
 }

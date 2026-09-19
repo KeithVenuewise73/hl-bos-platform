@@ -113,6 +113,14 @@ export const PORTFOLIO: readonly Product[] = [
       "this repository (packages/highlight-football, apps/highlightai-football, services/highlight-cv, supabase/migrations 0049)",
   },
   {
+    name: "SceneFlow AI",
+    stage: "development",
+    status:
+      "The continuation engine is built and tested (204 tests): cast understanding, CharacterLock, SceneLock inheritance, the spatial map, the interaction graph, reciprocal affection, the story planner, the continuity engine and server-side prompt composition \u2014 plus the real-person safety boundary, which is enforced code and was verified by disabling it and watching tests fail. NOTHING GENERATES IMAGES: there is no image provider and no moderation provider in this repository, and the engine refuses to run without the latter. No database schema, no app, no mobile client, no payments.",
+    version: null,
+    location: "this repository (packages/sceneflow)",
+  },
+  {
     name: "Venuewise",
     stage: "not-started",
     status: "Planned. No code yet.",

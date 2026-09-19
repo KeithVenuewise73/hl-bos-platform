@@ -1,0 +1,27 @@
+{
+  "name": "@hl-bos/sceneflow",
+  "version": "0.1.0",
+  "private": true,
+  "description": "SceneFlow AI continuation engine. Turns one photograph and a set of structured choices into the next believable moment: cast understanding, character lock, scene lock, spatial map, interaction graph, story planner, continuity inheritance and server-side prompt composition. Pure and deterministic — no network, no model, no secrets — so the safety boundary and the continuity rules are testable without a provider key.",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "default": "./src/index.ts"
+    },
+    "./mock": {
+      "types": "./src/mock/index.ts",
+      "default": "./src/mock/index.ts"
+    }
+  },
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run",
+    "clean": "rm -rf dist *.tsbuildinfo"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  }
+}
