@@ -116,7 +116,7 @@ export const PORTFOLIO: readonly Product[] = [
     name: "SceneFlow AI",
     stage: "development",
     status:
-      "The continuation engine is built and tested (204 tests): cast understanding, CharacterLock, SceneLock inheritance, the spatial map, the interaction graph, reciprocal affection, the story planner, the continuity engine and server-side prompt composition \u2014 plus the real-person safety boundary, which is enforced code and was verified by disabling it and watching tests fail. NOTHING GENERATES IMAGES: there is no image provider and no moderation provider in this repository, and the engine refuses to run without the latter. No database schema, no app, no mobile client, no payments.",
+      "The continuation engine is built and tested (204 tests): cast understanding, CharacterLock, SceneLock inheritance, the spatial map, the interaction graph, reciprocal affection, the story planner, the continuity engine and server-side prompt composition \u2014 plus the real-person safety boundary, which is enforced code and was verified by disabling it and watching tests fail. NOTHING GENERATES IMAGES: there is no image provider and no moderation provider in this repository, and the engine refuses to run without the latter. The database schema (migration 0050, 10 tables) is written and verified against a local PostgreSQL 16 — 1056 pgTAP assertions across the whole suite, 0 failing — and is UNAPPLIED to any project. No app, no mobile client, no payments.",
     version: null,
     location: "this repository (packages/sceneflow)",
   },

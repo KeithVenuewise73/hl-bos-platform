@@ -374,7 +374,10 @@ const ASSETS: Asset[] = [
     key: "sceneflow",
     location: "packages/sceneflow",
     tags: ["package", "domain-logic", "image-generation", "safety", "consumer"],
-    relationships: [{ kind: "owned_by", to: "repo.hl-bos-platform" }],
+    relationships: [
+      { kind: "consumes", to: "db.sceneflow" },
+      { kind: "owned_by", to: "repo.hl-bos-platform" },
+    ],
     evidence:
       "packages/sceneflow; 204 tests green; the policy pre-gate and the intimacy ceiling each verified by mutation (disabling either fails 3 tests); no image or moderation vendor is wired, so nothing generates yet",
   },
@@ -1269,6 +1272,14 @@ const ASSETS: Asset[] = [
     23,
     "HL-BOS",
     "Game film, plays, player tracks, detections, jersey readings, events, involvement, highlight candidates, clips, reels and exports \u2014 plus the consent records without which nothing leaves private. Written ONLY by the trusted worker path: no tenant write grant or policy exists on any vision output.",
+  ),
+
+  ...db(
+    "sceneflow",
+    "SceneFlow AI",
+    10,
+    "HL-BOS",
+    "Casts and the adults in them, reference photographs, stories, generated scenes, jobs, moderation events, credits and subscriptions. User-owned rather than tenant-owned (auth.uid()), RLS enabled AND forced on all 10 tables, with no platform-admin read path. Scenes, jobs, credits and subscriptions have NO insert or update grant for `authenticated` \u2014 a user cannot forge a generated image, mint a credit or award themselves an entitlement; UPDATE on scenes is granted at COLUMN level and covers `favorite` alone. The credit ledger and the moderation log are append-only by trigger, which holds against service-role too.",
   ),
 
   // ======================================================================
