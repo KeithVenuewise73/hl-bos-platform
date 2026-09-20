@@ -58,7 +58,11 @@ export default async function SceneFlowPage() {
         </p>
         <p style={{ margin: "10px 0 0", fontSize: 13 }}>
           <a href="/sceneflow/direct" style={{ color: "#58a6ff" }}>
-            Direct a scene anyway
+            Direct a scene
+          </a>{" "}
+          ·{" "}
+          <a href="/sceneflow/story" style={{ color: "#58a6ff" }}>
+            Plan a story
           </a>{" "}
           <span style={{ color: "#8b949e" }}>
             — build the cast and the moment, and see exactly what would be sent when a

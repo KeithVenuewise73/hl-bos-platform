@@ -87,6 +87,35 @@ describe("planStory", () => {
     expect(plan.scenes[4]?.interaction).not.toBe("kiss");
   });
 
+  it("never stages the same action twice in a row after capping", () => {
+    // Found by running the page: capping Luxury Suite at Passionate gave
+    // scene 5 "Kiss" and scene 6 "Goodnight", both staged as a kiss.
+    for (const p of PRESETS) {
+      for (const ceiling of ["warm", "romantic", "passionate"] as const) {
+        const plan = planStory(p.slug, CAST, 6, { ceiling });
+        const acts = plan.scenes.map((s) => s.interaction);
+        for (let i = 1; i < acts.length; i += 1) {
+          expect(
+            acts[i],
+            `${p.slug} at ${ceiling}: scene ${i + 1} repeats scene ${i}`,
+          ).not.toBe(acts[i - 1]);
+        }
+      }
+    }
+  });
+
+  it("keeps a capped beat's own title, so the story still reads as one", () => {
+    // WHICH permitted action stands in is a taste judgement and is deliberately
+    // not frozen here. What must hold is that the beat keeps its name and does
+    // not exceed the ceiling.
+    const plan = planStory("luxury-suite", CAST, 6, { ceiling: "passionate" });
+    const close = plan.scenes[5];
+    expect(close?.title).toBe("Goodnight");
+    expect(intimacyRank(close!.intimacy)).toBeLessThanOrEqual(
+      intimacyRank("passionate"),
+    );
+  });
+
   it("leaves beats alone when they are already under the ceiling", () => {
     const plan = planStory("luxury-suite", CAST, 6, { ceiling: "private-romance" });
     expect(plan.scenes[4]?.interaction).toBe("kiss");

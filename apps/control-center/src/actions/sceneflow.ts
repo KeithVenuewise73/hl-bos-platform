@@ -8,6 +8,11 @@ import {
   type DirectorResult,
 } from "@/lib/sceneflow-direct";
 import { generateLocally, type WorkerOutcome } from "@/lib/sceneflow-worker";
+import {
+  planStoryScenes,
+  type StoryInput,
+  type StoryResult,
+} from "@/lib/sceneflow-story";
 
 /**
  * Thin wrappers. Every decision lives in `sceneflow-direct`, which is pure and
@@ -42,4 +47,9 @@ export async function generateScene(input: DirectorInput): Promise<{
     safetyChecked: true,
   });
   return { refusal: null, outcome };
+}
+
+/** Plan a whole story. Same boundary, same server-side composition. */
+export async function planStory(input: StoryInput): Promise<StoryResult> {
+  return Promise.resolve(planStoryScenes(input));
 }
