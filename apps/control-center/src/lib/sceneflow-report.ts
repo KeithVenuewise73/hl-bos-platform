@@ -12,7 +12,7 @@
  * have.
  */
 
-import { imageModelFits, type ImageModelFit } from "@hl-bos/sceneflow";
+import { chooseModel, imageModelFits, type ImageModelFit } from "@hl-bos/sceneflow";
 
 import type { GpuFinding, GpuVerdict } from "./gpu-report";
 
@@ -87,8 +87,8 @@ function standingBlockers(): Blocker[] {
 export function readinessFrom(gpu: GpuFinding): SceneFlowReadiness {
   const vram = gpu.nvidia?.vramMB ?? null;
   const models = imageModelFits(vram);
-  const usable = models.filter((m) => m.fits);
-  const best = usable.length > 0 ? (usable[usable.length - 1] ?? null) : null;
+  // The engine picks. Nobody reads a number off this screen and relays it.
+  const best = chooseModel(vram);
   const blockers = standingBlockers();
 
   if (gpu.nvidia && best) {
@@ -96,8 +96,10 @@ export function readinessFrom(gpu: GpuFinding): SceneFlowReadiness {
       verdict: "yes",
       headline: `Yes — an ${gpu.nvidia.name} with ${GB(gpu.nvidia.vramMB)} of video memory.`,
       detail:
-        `This machine can hold ${best.model}. Nothing would be metered, and no photograph ` +
-        "would leave it. It still cannot generate anything today — see what is left, below.",
+        `This machine can hold ${best.model}, and that is what SceneFlow would load here ` +
+        "— it decides that itself, from the card it just found. Nothing would be metered, " +
+        "and no photograph would leave this machine. It still cannot generate anything " +
+        "today: the piece that loads the model is not written yet.",
       models,
       best,
       blockers,

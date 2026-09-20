@@ -221,6 +221,23 @@ export function imageModelFits(vramMB: number | null): ImageModelFit[] {
   }));
 }
 
+/**
+ * The model this machine would actually load, given its video memory.
+ *
+ * The largest that fits, because quality here IS the product: a model that
+ * cannot hold a face across two scenes does not make a story, it makes a
+ * slideshow of strangers. Returns null when nothing fits, rather than falling
+ * back to something that would disappoint.
+ *
+ * This exists so nobody has to read a number off a screen and relay it. The
+ * software runs on the machine that has the card; it can answer its own
+ * question.
+ */
+export function chooseModel(vramMB: number | null): ImageModelFit | null {
+  const fitting = imageModelFits(vramMB).filter((m) => m.fits);
+  return fitting.length > 0 ? (fitting[fitting.length - 1] ?? null) : null;
+}
+
 /** Entries whose policy text was read second-hand and needs confirming. */
 export function needsPrimarySourceCheck(): readonly ImageRoute[] {
   return IMAGE_ROUTES.filter((r) => r.secondHand);

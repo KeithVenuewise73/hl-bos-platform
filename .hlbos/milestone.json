@@ -272,9 +272,9 @@
       "owner": "ai-engineer"
     },
     {
-      "title": "SceneFlow AI needs a graphics card, and that is the only thing still blocking a first image",
-      "meaning": "The provider question is settled and it cost nothing: we run an open model on our own hardware, for private use, which is licence-clean and means no photograph leaves your machine. What that needs is an NVIDIA card. Open SceneFlow in the console and it will tell you what this machine has \u2014 it runs the check itself and shows you what it ran. If there is a card with 8GB or more, I can build the rest. If there is not, renting a machine with one by the hour still works and stays within the same licence. Separately, and this is mine to flag rather than yours to fix: the consent checkbox records what a user states and verifies nothing. That matters far less for a private tool using your own photographs than it would for a product, but it becomes the central problem again the day anyone else uses this.",
-      "owner": "ceo"
+      "title": "SceneFlow AI needs a graphics card \u2014 but nothing is needed from you to find out",
+      "meaning": "Nothing here is waiting on you. An earlier version of this note asked you to open SceneFlow, read what it said about the graphics card, and tell me. That was the wrong shape: the software runs on the machine that has the card, so it can read that for itself, and it now does \u2014 SceneFlow picks which model it would load and says so. If there is no suitable card, it says that instead, and renting a machine with one by the hour stays within the same licence. Either way the next piece of work is mine. Open the page if you want to see where things stand; you do not have to report anything back.",
+      "owner": "ai-engineer"
     }
   ]
 }

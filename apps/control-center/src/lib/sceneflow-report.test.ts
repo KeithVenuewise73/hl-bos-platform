@@ -37,7 +37,11 @@ describe("a card that can hold a model", () => {
 
   it("says nothing would be metered and no photograph would leave the machine", () => {
     expect(readiness.detail).toContain("Nothing would be metered");
-    expect(readiness.detail).toContain("leave it");
+    expect(readiness.detail).toContain("leave this machine");
+  });
+
+  it("states that it chooses the model itself, so nobody has to relay a number", () => {
+    expect(readiness.detail).toContain("it decides that itself");
   });
 });
 

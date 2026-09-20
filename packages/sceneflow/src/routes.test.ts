@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   IMAGE_ROUTES,
+  chooseModel,
   imageModelFits,
   needsPrimarySourceCheck,
   routesUnder,
@@ -103,5 +104,19 @@ describe("imageModelFits", () => {
   it("is honest that plain SDXL is weak at the thing the product sells", () => {
     const sdxl = imageModelFits(8_000)[0];
     expect(sdxl?.note).toContain("Weak at keeping the same face");
+  });
+});
+
+describe("chooseModel", () => {
+  it("picks the largest model that fits, because quality is the product", () => {
+    expect(chooseModel(24_564)?.model).toContain("Kontext");
+    expect(chooseModel(16_384)?.model).toBe("FLUX.1 [dev]");
+    expect(chooseModel(12_288)?.model).toBe("SDXL + identity adapter");
+  });
+
+  it("returns null rather than something that would disappoint", () => {
+    // A model that cannot hold a face across two scenes does not make a story.
+    expect(chooseModel(6_144)).toBeNull();
+    expect(chooseModel(null)).toBeNull();
   });
 });
