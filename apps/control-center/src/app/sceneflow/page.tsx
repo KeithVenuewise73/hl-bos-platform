@@ -56,6 +56,15 @@ export default async function SceneFlowPage() {
           part that actually loads a model and returns an image is not written. This
           page tells you whether this machine could run one, and what is left to do.
         </p>
+        <p style={{ margin: "10px 0 0", fontSize: 13 }}>
+          <a href="/sceneflow/direct" style={{ color: "#58a6ff" }}>
+            Direct a scene anyway
+          </a>{" "}
+          <span style={{ color: "#8b949e" }}>
+            — build the cast and the moment, and see exactly what would be sent when a
+            model is connected.
+          </span>
+        </p>
       </section>
 
       <section style={{ ...CARD, marginBottom: 14 }}>

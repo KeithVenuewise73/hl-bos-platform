@@ -68,7 +68,11 @@ export function buildCast(
       label: labelFor(id),
       appearance: subject.appearance ?? {},
       sortOrder: index,
-      referencePaths: [subject.referencePath],
+      // An empty path is NOT a reference. Recorded as one it would make
+      // describeForPrompt claim "1 reference image supplied" when none was,
+      // and hand the provider an empty string where an image belongs.
+      referencePaths:
+        subject.referencePath.trim() === "" ? [] : [subject.referencePath],
     };
   });
 
@@ -150,6 +154,7 @@ export function addReference(
 ): Cast {
   const members = cast.members.map((m) => {
     if (m.id !== id) return m;
+    if (path.trim() === "") throw new CastError("empty_reference_path");
     if (m.referencePaths.includes(path)) return m;
     if (m.referencePaths.length >= maxPerMember)
       throw new CastError("too_many_references");

@@ -104,6 +104,42 @@ describe("describeForPrompt", () => {
   });
 });
 
+describe("an empty reference path is not a reference", () => {
+  it("records no reference rather than an empty one", () => {
+    // Recorded as a reference it would make the prompt claim an image that
+    // does not exist, and hand a provider an empty string where one belongs.
+    const cast = buildCast(
+      "c1",
+      [
+        { referencePath: "", sortOrder: 0 },
+        { referencePath: "   ", sortOrder: 1 },
+      ],
+      attestation,
+    );
+    expect(cast.members[0]?.referencePaths).toEqual([]);
+    expect(cast.members[1]?.referencePaths).toEqual([]);
+  });
+
+  it("says so in the prompt instead of claiming one", () => {
+    const cast = buildCast(
+      "c1",
+      [
+        { referencePath: "", sortOrder: 0 },
+        { referencePath: "", sortOrder: 1 },
+      ],
+      attestation,
+    );
+    expect(describeForPrompt(cast.members[0]!)).toContain(
+      "no reference image supplied",
+    );
+  });
+
+  it("refuses to add an empty path later", () => {
+    const cast = buildCast("c1", detected(2), attestation);
+    expect(() => addReference(cast, "person_a", "  ")).toThrow(CastError);
+  });
+});
+
 describe("references", () => {
   it("adds a reference without duplicating it", () => {
     let cast = buildCast("c1", detected(2), attestation);
