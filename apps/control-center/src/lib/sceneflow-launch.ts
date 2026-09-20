@@ -6,6 +6,7 @@ import { networkInterfaces } from "node:os";
 import { dirname, join } from "node:path";
 
 import {
+  awayAddresses,
   codeFromBytes,
   phoneAddresses,
   phoneUrl,
@@ -34,6 +35,13 @@ export interface SceneFlowStatus {
   readonly running: boolean;
   /** Addresses a phone on the same Wi-Fi can open. Empty when there is none. */
   readonly phoneUrls: readonly string[];
+  /**
+   * Addresses that work from anywhere, over the private Tailscale network.
+   * Empty when Tailscale is not installed, not signed in, or not running --
+   * from here those three are indistinguishable, and all three mean the same
+   * thing to the person reading the panel.
+   */
+  readonly awayUrls: readonly string[];
   /** The current access code, or "" when none is set. */
   readonly code: string;
   /** Plain English. Never a stack trace. */
@@ -71,16 +79,15 @@ async function healthy(): Promise<boolean> {
   }
 }
 
-function urls(): string[] {
-  return phoneAddresses(networkInterfaces()).map((address) => phoneUrl(address));
-}
-
 export async function sceneflowStatus(): Promise<SceneFlowStatus> {
   const [running, code] = await Promise.all([healthy(), readCode()]);
-  const phone = urls();
+  const interfaces = networkInterfaces();
+  const phone = phoneAddresses(interfaces).map((a) => phoneUrl(a));
+  const away = awayAddresses(interfaces).map((a) => phoneUrl(a));
   return {
     running,
     phoneUrls: phone,
+    awayUrls: away,
     code,
     detail: describe(running, phone.length > 0),
   };

@@ -50,6 +50,11 @@ export interface NetworkAddress {
  * Link-local (169.254.x.x) is excluded too: Windows hands that out when DHCP
  * failed, so it means "this machine is not really on the network" and a URL
  * built from it would never load.
+ *
+ * The Tailscale range is not here either, and must not be: it is not the home
+ * network, it works from anywhere, and conflating the two would offer an
+ * address that only some of the household's devices can reach. See
+ * awayAddresses below.
  */
 export function phoneAddresses(
   interfaces: Readonly<Record<string, readonly NetworkAddress[] | undefined>>,
@@ -99,4 +104,58 @@ function rank(address: string): number {
 
 export function phoneUrl(address: string, port = SCENEFLOW_PORT): string {
   return `http://${address}:${port}`;
+}
+
+/**
+ * Away from home.
+ *
+ * The home-Wi-Fi address above only works in the house. Reaching SceneFlow from
+ * a hotel or a phone on cellular needs something that crosses the internet, and
+ * there are two shapes of that. One gives SceneFlow a public web address; the
+ * other puts the phone and the PC on a private network of their own and exposes
+ * nothing. This is the second.
+ *
+ * Tailscale builds that private network, and every machine on it gets an
+ * address in 100.64.0.0/10. So detection is simply: does this PC have one?
+ * If it does, Tailscale is installed AND signed in AND running -- an address
+ * only exists once all three are true, which is exactly the question worth
+ * asking, and it is answered without running anything.
+ *
+ * Deliberately NOT by shelling out to `tailscale status`. That would need a new
+ * name on the console's command allow-list, and on Windows the binary is not
+ * reliably on the PATH, so the check would report "not set up" on a machine
+ * where it is. Reading an address the operating system already knows about has
+ * neither problem.
+ *
+ * 100.64.0.0/10 is the carrier-grade NAT range. An internet provider may use it
+ * on the far side of a router, but a local adapter holding one is a virtual
+ * network on this machine -- which, on a machine running Tailscale, is
+ * Tailscale.
+ */
+export function awayAddresses(
+  interfaces: Readonly<Record<string, readonly NetworkAddress[] | undefined>>,
+): string[] {
+  const found: string[] = [];
+  for (const list of Object.values(interfaces)) {
+    for (const entry of list ?? []) {
+      if (entry.internal) continue;
+      if (entry.family !== "IPv4" && entry.family !== "4") continue;
+      if (!isTailnetIPv4(entry.address)) continue;
+      if (!found.includes(entry.address)) found.push(entry.address);
+    }
+  }
+  return found.sort();
+}
+
+function isTailnetIPv4(address: string): boolean {
+  const parts = address.split(".").map((p) => Number(p));
+  if (
+    parts.length !== 4 ||
+    parts.some((p) => !Number.isInteger(p) || p < 0 || p > 255)
+  ) {
+    return false;
+  }
+  const [a, b] = parts as [number, number, number, number];
+  // 100.64.0.0/10 is 100.64.x.x through 100.127.x.x.
+  return a === 100 && b >= 64 && b <= 127;
 }

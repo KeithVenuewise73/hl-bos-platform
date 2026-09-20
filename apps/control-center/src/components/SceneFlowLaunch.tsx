@@ -116,6 +116,80 @@ export function SceneFlowLaunch({ initial }: { initial: SceneFlowStatus }) {
         </div>
       ) : null}
 
+      {status.running ? (
+        <div
+          style={{
+            background: "#0d1117",
+            border: "1px solid #262c36",
+            borderRadius: 10,
+            padding: "14px 16px",
+            marginBottom: 12,
+          }}
+        >
+          <strong style={{ fontSize: 13 }}>Away from home</strong>
+          {status.awayUrls.length > 0 ? (
+            <>
+              <p
+                style={{
+                  margin: "6px 0 4px",
+                  color: "#8b949e",
+                  fontSize: 12.5,
+                  lineHeight: 1.6,
+                }}
+              >
+                Your private network is up. This address works from anywhere — hotel
+                Wi-Fi, a coffee shop, cellular — on any device signed into your
+                Tailscale account. Same code.
+              </p>
+              {status.awayUrls.map((url) => (
+                <p key={url} style={{ margin: "0 0 4px", fontSize: 16 }}>
+                  <code>{url}</code>
+                </p>
+              ))}
+            </>
+          ) : (
+            <>
+              <p
+                style={{
+                  margin: "6px 0 0",
+                  color: "#8b949e",
+                  fontSize: 12.5,
+                  lineHeight: 1.6,
+                }}
+              >
+                Not set up yet. The address above only works inside the house. To use
+                SceneFlow anywhere, install{" "}
+                <a
+                  href="https://tailscale.com/download"
+                  style={{ color: "#58a6ff" }}
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  Tailscale
+                </a>{" "}
+                on this PC and on your phone, and sign into the same account on both. It
+                is free for personal use, and it is two ordinary app installs — no
+                settings to change on your router.
+              </p>
+              <p
+                style={{
+                  margin: "8px 0 0",
+                  color: "#6e7681",
+                  fontSize: 12.5,
+                  lineHeight: 1.6,
+                }}
+              >
+                This puts your phone and this PC on a private network of their own.
+                SceneFlow gets no public web address and nothing on the internet can
+                reach it — which is why it is this rather than a public link. Creating
+                the account is yours to decide; once both are signed in, the address
+                appears here by itself.
+              </p>
+            </>
+          )}
+        </div>
+      ) : null}
+
       {note === "" ? null : (
         <p style={{ margin: "0 0 12px", fontSize: 13, color: "#c9d1d9" }}>{note}</p>
       )}
