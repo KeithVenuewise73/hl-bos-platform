@@ -116,6 +116,18 @@ export type InteractionType =
   | "cheek-kiss"
   | "forehead-kiss"
   | "kiss"
+  | "neck-kiss"
+  | "forehead-to-forehead"
+  | "embrace-from-behind"
+  | "head-on-chest"
+  | "hand-in-hair"
+  | "hand-on-chest"
+  | "share-blanket"
+  | "lift"
+  | "pull-close"
+  | "loosen-tie"
+  | "remove-jacket"
+  | "wake-together"
   | "goodnight";
 
 /** A structural interaction edge (section 15). Never natural language alone. */
