@@ -38,6 +38,17 @@ class TestJobContract:
         assert parsed.seed == 7
         assert parsed.safety_checked is True
 
+    def test_carries_the_source_photograph_through(self):
+        # The console stores the photo and passes its path; the worker must
+        # keep it, or every scene would be generated from nothing and the
+        # product's whole premise ("continue THIS image") would be silently
+        # absent.
+        parsed = GenerationJob.from_dict(job(source_image=".sceneflow/uploads/abc.png"))
+        assert parsed.source_image == ".sceneflow/uploads/abc.png"
+
+    def test_no_photograph_is_an_empty_string_not_a_crash(self):
+        assert GenerationJob.from_dict(job()).source_image == ""
+
     def test_safety_checked_defaults_to_false(self):
         # Fail closed: a caller that forgets the stamp does not generate.
         raw = job()

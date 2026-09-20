@@ -2,7 +2,8 @@
 
 import { useState, useTransition } from "react";
 
-import { directScene, generateScene } from "@/actions/sceneflow";
+import { directScene, generateScene, uploadPhoto } from "@/actions/sceneflow";
+import type { StoredPhoto } from "@/lib/sceneflow-photos";
 import type { DirectorResult } from "@/lib/sceneflow-direct";
 import type { WorkerOutcome } from "@/lib/sceneflow-worker";
 
@@ -70,6 +71,8 @@ export function SceneDirector() {
   const [direction, setDirection] = useState("");
   const [result, setResult] = useState<DirectorResult | null>(null);
   const [outcome, setOutcome] = useState<WorkerOutcome | null>(null);
+  const [photo, setPhoto] = useState<StoredPhoto | null>(null);
+  const [photoError, setPhotoError] = useState<string>("");
   const [pending, start] = useTransition();
 
   const ids = KEYS.slice(0, castSize).map((k) => `person_${k}`);
@@ -97,9 +100,23 @@ export function SceneDirector() {
     });
   }
 
+  function choose(file: File | undefined) {
+    if (!file) return;
+    setPhotoError("");
+    start(async () => {
+      const res = await uploadPhoto(await file.arrayBuffer());
+      if (res.ok) {
+        setPhoto(res.photo);
+      } else {
+        setPhoto(null);
+        setPhotoError(res.message);
+      }
+    });
+  }
+
   function make() {
     start(async () => {
-      const res = await generateScene(currentInput());
+      const res = await generateScene(currentInput(), photo ? photo.relativePath : "");
       if (res.refusal) {
         setResult(res.refusal);
         setOutcome(null);
@@ -122,6 +139,62 @@ export function SceneDirector() {
         }}
       >
         <h2 style={{ margin: "0 0 12px", fontSize: 15 }}>Direct the scene</h2>
+
+        <div
+          style={{
+            marginBottom: 14,
+            paddingBottom: 14,
+            borderBottom: "1px solid #262c36",
+          }}
+        >
+          <label style={label} htmlFor="photo">
+            The photograph
+          </label>
+          <input
+            id="photo"
+            type="file"
+            accept="image/jpeg,image/png,image/webp,image/heic,.jpg,.jpeg,.png,.webp,.heic"
+            onChange={(e) => choose(e.target.files?.[0])}
+            style={{ ...field, padding: "6px 8px" }}
+          />
+          {photo !== null && (
+            <div
+              style={{ marginTop: 10, display: "flex", gap: 12, alignItems: "center" }}
+            >
+              {/* A plain img, not next/image: this file is served from a private
+                  API route on the operator's own machine, not from a public
+                  path, and the optimizer would have to be told about it. */}
+              <img
+                src={`/api/sceneflow/photo/${photo.id}?ext=${photo.relativePath.split(".").pop() ?? ""}`}
+                alt="The photograph this scene continues from"
+                style={{
+                  width: 96,
+                  height: 96,
+                  objectFit: "cover",
+                  borderRadius: 8,
+                  border: "1px solid #262c36",
+                }}
+              />
+              <div style={{ fontSize: 12.5, color: "#8b949e", lineHeight: 1.6 }}>
+                {photo.format.toUpperCase()}
+                {photo.width !== null && ` · ${photo.width}×${photo.height}`}
+                <br />
+                Stored on this machine only. Nothing was uploaded anywhere.
+              </div>
+            </div>
+          )}
+          {photoError !== "" && (
+            <p style={{ margin: "8px 0 0", fontSize: 12.5, color: "#f85149" }}>
+              {photoError}
+            </p>
+          )}
+          {photo === null && photoError === "" && (
+            <p style={{ margin: "6px 0 0", fontSize: 12, color: "#6e7681" }}>
+              Optional for now — without one, the scene is composed but has no
+              photograph to continue from.
+            </p>
+          )}
+        </div>
 
         <div style={{ display: "grid", gap: 12, gridTemplateColumns: "1fr 1fr" }}>
           <div>

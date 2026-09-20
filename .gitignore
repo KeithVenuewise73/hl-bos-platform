@@ -166,3 +166,9 @@ __pycache__/
 *.pth
 *.onnx
 *.engine
+
+# Photographs uploaded to SceneFlow, and the pictures made from them.
+# These live only on the machine that made them. A photograph of somebody's
+# partner must not be committable by accident, and "remember not to add it" is
+# not a control — being outside what git tracks is.
+.sceneflow/

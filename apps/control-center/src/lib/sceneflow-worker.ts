@@ -33,6 +33,8 @@ export interface WorkerJob {
   readonly jobId: string;
   readonly prompt: string;
   readonly outputPath: string;
+  /** The photograph the scene continues from. Empty for a fresh generation. */
+  readonly sourceImage?: string;
   readonly width?: number;
   readonly height?: number;
   /** Set only by a caller that has run the safety boundary. */
@@ -73,6 +75,7 @@ export async function generateLocally(job: WorkerJob): Promise<WorkerOutcome> {
       job_id: job.jobId,
       prompt: job.prompt,
       output_path: job.outputPath,
+      source_image: job.sourceImage ?? "",
       width: job.width ?? 832,
       height: job.height ?? 1040,
       safety_checked: true,
