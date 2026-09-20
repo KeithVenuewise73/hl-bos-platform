@@ -1,0 +1,43 @@
+[project]
+name = "sceneflow-local"
+version = "0.1.0"
+description = "SceneFlow AI local image worker. Loads an openly licensed image model on the operator's own machine and returns a picture. Runs nowhere else: no photograph leaves the machine and nothing is metered."
+requires-python = ">=3.11"
+
+# Deliberately EMPTY, for the same reason highlight-cv's is: importing
+# sceneflow_local must work on a laptop with no model stack, so the job
+# contract, the model choice and the failure paths can be unit-tested anywhere.
+# The heavy dependencies are optional extras, imported lazily inside the
+# adapter that needs them.
+dependencies = []
+
+[project.optional-dependencies]
+# The image models.
+#
+# INSTALL TORCH FIRST, FROM ITS OWN INDEX:
+#     pip install --index-url https://download.pytorch.org/whl/cu124 torch
+#     pip install -e '.[models]'
+# Listing torch here and installing in one shot makes pip backtrack between
+# PyPI and the PyTorch index for many minutes. On a CPU-only box, use the /cpu
+# suffix — generation will be slow but the failure paths are the same.
+models = [
+  "diffusers>=0.31",
+  "transformers>=4.44",
+  "accelerate>=0.34",
+  "safetensors>=0.4",
+  "pillow>=10.0",
+]
+
+gpu = [
+  "torch>=2.4",
+  "diffusers>=0.31",
+  "transformers>=4.44",
+  "accelerate>=0.34",
+  "safetensors>=0.4",
+  "pillow>=10.0",
+]
+
+dev = ["pytest>=8.0"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

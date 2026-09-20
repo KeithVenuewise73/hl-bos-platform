@@ -1,7 +1,7 @@
 {
   "$comment": "Live milestone state. Version-controlled so it is auditable, and updated by the AI engineer as work lands. The Control Center reads this -- it does not guess progress.",
-  "milestone": "Platform Foundation v1.0 — Enterprise Knowledge Graph live in production",
-  "phase": "HighlightAI Football V1: the vertical slice — upload a game, name an athlete, track him, find his plays, cut clips, build a reel — is BUILT and VERIFIED LOCALLY. Three new components: packages/highlight-football (the football intelligence engine, pure and deterministic, 269 tests), apps/highlightai-football (14 screens plus an AI debug view, builds and serves, 38 tests), services/highlight-cv (the Python GPU worker with real and mock adapters, 77 tests including a cross-language contract check against the engine and the migration). Migration 0049 adds the `highlight` schema (23 tables) additively. It was written as 0048 and RENUMBERED to 0049 on merging main, which had meanwhile landed the ATS Resume Optimizer's own 0048 with an identical timestamp — a collision the lineage guard would have caught, caught here first. The full database suite runs 975 pgTAP assertions from empty against PostgreSQL 16.13 with 0 failing (909 pre-existing, 66 new). Note that migration 0048 (ats) ships with no pgTAP file of its own, so the suite total did not move when it landed. HighlightAI is UNAPPLIED to any Supabase project and its pull request (#65) is not merged. THE APP RUNS IN DEMO MODE: no computer-vision model is installed, no real game film has been uploaded or analysed, and every screen says so in a banner. The colour science, temporal voting, re-identification, play segmentation, involvement scoring and clip planning are real and tested; the detector, tracker and OCR that would feed them on real film are adapters that currently raise ModelUnavailableError rather than fall back to synthetic output.",
+  "milestone": "Platform Foundation v1.0 \u2014 Enterprise Knowledge Graph live in production",
+  "phase": "SceneFlow AI \u2014 PULL REQUEST #66 IS OPEN. That matters more than anything else in this note: six commits of finished work existed on a branch the CEO's console cannot see, because the console fast-forwards its own branch and `main` is protected. He said 'you haven't given me a page yet' and he was right \u2014 the page existed and had never reached him. The PR is how it does.\n\nBUILT THIS PASS: services/sceneflow-local, the local image worker, following services/highlight-cv exactly \u2014 empty base dependencies so it imports on a laptop with no model stack, heavy deps as optional extras imported lazily, adapters split real/mock, and a ModelUnavailableError that says in its own message that SceneFlow will not substitute a placeholder for a real model. There is no 'except ImportError: use the mock' anywhere in it. 27 Python tests, including a CROSS-LANGUAGE CONTRACT test that reads packages/sceneflow/src/routes.ts and asserts the worker would load exactly the model the console told the operator it would \u2014 mutation-checked by changing a threshold in the TypeScript and watching the Python test fail.\n\nThe console now has a 'Make the picture' button. It composes the prompt server-side from the structured choices and NEVER accepts a prompt from the browser, because a client that could post its own prompt string would be a way around the safety boundary. Nothing the user typed reaches a command line: the job travels as a JSON file and the worker is given its path. The console's command allow-list gained python/python3/py, documented at the allow-list itself with why that is safe.\n\nVERIFIED IN A REAL BROWSER against the console started the way the CEO starts it (next start, not the standalone output): 15/15 checks, now including the generate path \u2014 pressing the button reports the real reason it could not generate and states that nothing was substituted. Two defects were found by running it: a nested value in the worker's JSON would have been shown to the operator as '[object Object]' as the reason their picture failed, and a result line asserted 'No image model is connected to this machine' as fact, which would be FALSE on a machine that has one.\n\nNOT VERIFIED, AND SAID SO IN THE CODE: no checkpoint has ever been loaded. This container has no NVIDIA card and the weights host is unreachable from it, so adapters/real.py carries a header saying the generation path itself is untested and what IS tested is every way it can fail. The first run on a machine with a card will either work or say precisely what is missing.",
   "engineer": "Claude (AI engineer)",
   "startedOn": "2026-07-16",
   "tasks": [
@@ -54,7 +54,7 @@
       "done": true
     },
     {
-      "title": "Herman Legacy Executive Portal — secure, read-only, cloud-deployable app (HL-BOS auth, 5 roles, no command surface); staging-ready, not yet deployed",
+      "title": "Herman Legacy Executive Portal \u2014 secure, read-only, cloud-deployable app (HL-BOS auth, 5 roles, no command surface); staging-ready, not yet deployed",
       "done": true
     },
     {
@@ -62,15 +62,15 @@
       "done": true
     },
     {
-      "title": "Enterprise Application Registry + Executive Portal operationalization (CEO Home, Task Center, Global Search, Platform Status, grouped navigation) — read-only, governed, not yet deployed",
+      "title": "Enterprise Application Registry + Executive Portal operationalization (CEO Home, Task Center, Global Search, Platform Status, grouped navigation) \u2014 read-only, governed, not yet deployed",
       "done": true
     },
     {
-      "title": "Canonical Capability Library (Phase XI-1): one evidence-backed record unifying 6 capability registries, deterministic duplicate/reuse gate, read-only /capabilities view — in-code, no migration, not merged",
+      "title": "Canonical Capability Library (Phase XI-1): one evidence-backed record unifying 6 capability registries, deterministic duplicate/reuse gate, read-only /capabilities view \u2014 in-code, no migration, not merged",
       "done": true
     },
     {
-      "title": "HL-BTI v2 Business Transformation Intelligence engine (@hl-bos/transformation-intelligence) — configurable scoring, evidence-gated impact/ROI, Software Factory reuse, CEO-approval gating, HLVS + government-contracts intelligence; Executive Portal Transformation Intelligence + Government Contracts views over labelled sample input",
+      "title": "HL-BTI v2 Business Transformation Intelligence engine (@hl-bos/transformation-intelligence) \u2014 configurable scoring, evidence-gated impact/ROI, Software Factory reuse, CEO-approval gating, HLVS + government-contracts intelligence; Executive Portal Transformation Intelligence + Government Contracts views over labelled sample input",
       "done": true
     },
     {
@@ -82,15 +82,15 @@
       "done": true
     },
     {
-      "title": "Platform Foundation v1.0 merged to main via PR #18 (CI green: Validate, pgTAP 0001–0028 + graph execution tests, Migration checks, Deno, Secret scan)",
+      "title": "Platform Foundation v1.0 merged to main via PR #18 (CI green: Validate, pgTAP 0001\u20130028 + graph execution tests, Migration checks, Deno, Secret scan)",
       "done": true
     },
     {
-      "title": "Deploy Production — migration 0028 (Knowledge Graph) applied to canonical production (mvvtngiopdrgiedjmhfb) at exact repo version 20260731090000; 17/17 structural checks pass; RLS forced; RPCs fail-closed; lineage reconciled (XI-2L)",
+      "title": "Deploy Production \u2014 migration 0028 (Knowledge Graph) applied to canonical production (mvvtngiopdrgiedjmhfb) at exact repo version 20260731090000; 17/17 structural checks pass; RLS forced; RPCs fail-closed; lineage reconciled (XI-2L)",
       "done": true
     },
     {
-      "title": "Grant graph permissions + publish the first production projection (145 nodes / 427 edges) — a separate CEO authorization; the graph is installed but dormant until then",
+      "title": "Grant graph permissions + publish the first production projection (145 nodes / 427 edges) \u2014 a separate CEO authorization; the graph is installed but dormant until then",
       "done": false
     },
     {
@@ -98,11 +98,11 @@
       "done": true
     },
     {
-      "title": "Deploy Production — migration 0029 (vstudio Venture Studio foundation) applied to canonical production (mvvtngiopdrgiedjmhfb); 6 tables, RLS forced, 5 permissions, 8 SECURITY DEFINER functions; purely additive; applied DDL byte-identical to the committed file (sha256 ee83df9…); recorded name matches, version timestamp differs (management-API stamp) and is reconciled by documentation (Option A)",
+      "title": "Deploy Production \u2014 migration 0029 (vstudio Venture Studio foundation) applied to canonical production (mvvtngiopdrgiedjmhfb); 6 tables, RLS forced, 5 permissions, 8 SECURITY DEFINER functions; purely additive; applied DDL byte-identical to the committed file (sha256 ee83df9\u2026); recorded name matches, version timestamp differs (management-API stamp) and is reconciled by documentation (Option A)",
       "done": true
     },
     {
-      "title": "Deploy Venture Studio app + expose vstudio to the API + choose VSTUDIO_TENANT_ID — a separate CEO authorization; migration is applied but the app is undeployed and the schema is not yet exposed until then",
+      "title": "Deploy Venture Studio app + expose vstudio to the API + choose VSTUDIO_TENANT_ID \u2014 a separate CEO authorization; migration is applied but the app is undeployed and the schema is not yet exposed until then",
       "done": false
     },
     {
@@ -110,11 +110,11 @@
       "done": true
     },
     {
-      "title": "Apply migration 0030 (CEO Notebook) to production — a separate CEO authorization; written and CI-verified but UNAPPLIED",
+      "title": "Apply migration 0030 (CEO Notebook) to production \u2014 a separate CEO authorization; written and CI-verified but UNAPPLIED",
       "done": false
     },
     {
-      "title": "HLVS Phase 2 (Steps 1-2): corpus-preservation baseline recorded and proven — 62,250 opportunities, 62,214 canonical URLs, 0 duplicates, original-36 fingerprint 3679f569f706e8db94d314e7de19bb05; supabase/checks/corpus-preservation.sql returns 14/14 pass against production",
+      "title": "HLVS Phase 2 (Steps 1-2): corpus-preservation baseline recorded and proven \u2014 62,250 opportunities, 62,214 canonical URLs, 0 duplicates, original-36 fingerprint 3679f569f706e8db94d314e7de19bb05; supabase/checks/corpus-preservation.sql returns 14/14 pass against production",
       "done": true
     },
     {
@@ -122,15 +122,15 @@
       "done": true
     },
     {
-      "title": "HLVS Phase 2 (Step 6): Rising Opportunities populated — a second observation pass over 299 of 301 discovery queries produced 1,562 material movements against the 62,214-row baseline; score_rising() ranked all 1,562 over a 0.92-day measured window and the portfolio holds 100",
+      "title": "HLVS Phase 2 (Step 6): Rising Opportunities populated \u2014 a second observation pass over 299 of 301 discovery queries produced 1,562 material movements against the 62,214-row baseline; score_rising() ranked all 1,562 over a 0.92-day measured window and the portfolio holds 100",
       "done": true
     },
     {
-      "title": "HLVS Phase 2 (Steps 7-9): public pain engine (0037) with phrase verification against full issue bodies, deterministic clustering, and the HLVS UI — Executive Overview, five Top-100 routes, Rising, Discovery Universe, Sources & Settings",
+      "title": "HLVS Phase 2 (Steps 7-9): public pain engine (0037) with phrase verification against full issue bodies, deterministic clustering, and the HLVS UI \u2014 Executive Overview, five Top-100 routes, Rising, Discovery Universe, Sources & Settings",
       "done": true
     },
     {
-      "title": "HLVS Phase 2 (CI feedback): the pgTAP suite ran for the first time and found real defects — nine intelligence gates whose refusal path was unreachable under test, and a source_url guard that accepted a tab. Migrations 0039 and 0040 fix both. Written and verified against a local Postgres 16 with all 40 migrations applied from empty: 801 assertions, 0 failures. UNAPPLIED to production pending CEO approval.",
+      "title": "HLVS Phase 2 (CI feedback): the pgTAP suite ran for the first time and found real defects \u2014 nine intelligence gates whose refusal path was unreachable under test, and a source_url guard that accepted a tab. Migrations 0039 and 0040 fix both. Written and verified against a local Postgres 16 with all 40 migrations applied from empty: 801 assertions, 0 failures. UNAPPLIED to production pending CEO approval.",
       "done": false
     },
     {
@@ -188,6 +188,82 @@
     {
       "title": "HighlightAI Football: run the pipeline on one real game file end to end",
       "done": false
+    },
+    {
+      "title": "SceneFlow AI: repository audit \u2014 no image generation, no moderation, no credit ledger, no mobile toolchain in this repo; identity/tenancy/billing/storage/events reused",
+      "done": true
+    },
+    {
+      "title": "SceneFlow AI: continuation engine @hl-bos/sceneflow (204 tests, safety boundary mutation-verified)",
+      "done": true
+    },
+    {
+      "title": "SceneFlow AI: client platform \u2014 deferred. Under private-use scope the Control Center is the interface; a separate app (React Native or Next.js) is only needed if this ever becomes a product",
+      "done": false
+    },
+    {
+      "title": "SceneFlow AI: provider decision \u2014 RESOLVED as self-hosted open weights under a private-use licence; no third-party account needed, and no hosted route is open to us without documented consent",
+      "done": true
+    },
+    {
+      "title": "SceneFlow AI: `sceneflow` schema \u2014 migration 0050 (10 tables, RLS forced, append-only ledger + moderation log, column-level favourite grant); 81 pgTAP assertions green against a local PostgreSQL 16 with all 50 migrations applied from empty; UNAPPLIED to any Supabase project",
+      "done": true
+    },
+    {
+      "title": "SceneFlow AI: cast detection \u2014 nothing in the engine looks at pixels; detection is an unbuilt adapter",
+      "done": false
+    },
+    {
+      "title": "Apply migration 0050 (sceneflow) to production \u2014 a separate CEO authorization; written and locally verified but UNAPPLIED, and there is no reason to apply it until a provider decision is made",
+      "done": false
+    },
+    {
+      "title": "SceneFlow AI: image-route decision table with the consent bar as data (packages/sceneflow/src/routes.ts), incl. the FLUX non-commercial 'direct interactions with end users' clause asserted by test",
+      "done": true
+    },
+    {
+      "title": "SceneFlow AI: /sceneflow page in the Control Center \u2014 can this machine run it, what is left, what was actually run; reuses the Video Studio GPU probe; verified against the served HTML",
+      "done": true
+    },
+    {
+      "title": "SceneFlow AI: confirm on the CEO's own Windows machine what GPU is present \u2014 the page answers this; it could not be answered from the Linux build container",
+      "done": false
+    },
+    {
+      "title": "SceneFlow AI: local image-model runtime (the piece that loads a model and returns a picture) \u2014 not written; needs a machine with a card to be verifiable rather than asserted",
+      "done": false
+    },
+    {
+      "title": "SceneFlow AI: local output checker, so the pipeline's fail-closed moderation requirement is met without a paid service",
+      "done": false
+    },
+    {
+      "title": "SceneFlow AI: the director's chair (/sceneflow/direct) \u2014 cast, focus pair, interaction, intimacy ceiling, reciprocal affection, setting/wardrobe/mood, free-text direction; prompt composed server-side",
+      "done": true
+    },
+    {
+      "title": "SceneFlow AI: safety boundary verified in a real browser against the running console \u2014 12/12 checks (scripts/local-test/verify-sceneflow-director.cjs)",
+      "done": true
+    },
+    {
+      "title": "SceneFlow AI: under strictly-private scope, the cloud surface (Supabase project, edge functions, mobile app, RevenueCat, Stripe) is NOT needed \u2014 migration 0050 remains useful against a local PostgreSQL and stays unapplied anywhere",
+      "done": true
+    },
+    {
+      "title": "SceneFlow AI: pull request #66 opened to main \u2014 the work reaches the CEO's console only once this merges",
+      "done": true
+    },
+    {
+      "title": "SceneFlow AI: services/sceneflow-local, the local image worker (27 Python tests, cross-language contract against routes.ts, no silent fallback)",
+      "done": true
+    },
+    {
+      "title": "SceneFlow AI: 'Make the picture' wired end to end \u2014 browser to server action to worker to honest failure; 15/15 browser checks",
+      "done": true
+    },
+    {
+      "title": "SceneFlow AI: load a real checkpoint and produce a real picture \u2014 UNVERIFIED; needs a machine with an NVIDIA card and a reachable weights host",
+      "done": false
     }
   ],
   "blockers": [
@@ -209,6 +285,11 @@
     {
       "title": "Production has drifted from the repository, and the safe apply path is blocked",
       "meaning": "While applying the social migration I checked what the live database actually contains. It holds about forty migrations that are not in this repository at all (three separate naming schemes: dma_*, disco_*, jobscout_*), and around fourteen of our own migrations were applied under different version stamps than the files carry. The registry file that is supposed to track this still says the database is at migration 28; it is far past that. The practical consequence: the protected one-click migration workflow cannot be used safely right now -- its drift check would fail, and if it were forced past that it would try to re-run around twenty migrations the database already has under other names, including two data backfills. That is why 0046 and 0047 were applied individually and verified rather than pushed as a batch. Reconciling this properly is its own piece of work and needs your go-ahead; it is not urgent, but it should not be left indefinitely.",
+      "owner": "ai-engineer"
+    },
+    {
+      "title": "SceneFlow AI needs a graphics card \u2014 but nothing is needed from you to find out",
+      "meaning": "Nothing here is waiting on you. An earlier version of this note asked you to open SceneFlow, read what it said about the graphics card, and tell me. That was the wrong shape: the software runs on the machine that has the card, so it can read that for itself, and it now does \u2014 SceneFlow picks which model it would load and says so. If there is no suitable card, it says that instead, and renting a machine with one by the hour stays within the same licence. Either way the next piece of work is mine. Open the page if you want to see where things stand; you do not have to report anything back.",
       "owner": "ai-engineer"
     }
   ]

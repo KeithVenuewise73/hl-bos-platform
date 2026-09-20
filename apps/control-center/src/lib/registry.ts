@@ -113,6 +113,14 @@ export const PORTFOLIO: readonly Product[] = [
       "this repository (packages/highlight-football, apps/highlightai-football, services/highlight-cv, supabase/migrations 0049)",
   },
   {
+    name: "SceneFlow AI",
+    stage: "development",
+    status:
+      "The continuation engine is built and tested (204 tests): cast understanding, CharacterLock, SceneLock inheritance, the spatial map, the interaction graph, reciprocal affection, the story planner, the continuity engine and server-side prompt composition \u2014 plus the real-person safety boundary, which is enforced code and was verified by disabling it and watching tests fail. NOTHING GENERATES IMAGES: there is no image provider and no moderation provider in this repository, and the engine refuses to run without the latter. The database schema (migration 0050, 10 tables) is written and verified against a local PostgreSQL 16 — 1056 pgTAP assertions across the whole suite, 0 failing — and is UNAPPLIED to any project. Scoped as a PRIVATE TOOL, not a product for sale, which is what makes the free model licences usable; the credit and subscription code is built but dormant. The director's chair works today: open SceneFlow in this console to build a cast, direct a moment and watch the safety boundary refuse what it should — verified in a real browser, 12/12 checks. It composes the instruction but produces NO IMAGE: no model is connected, and the only thing still unknown is what graphics card this machine has, which that page answers.",
+    version: null,
+    location: "this repository (packages/sceneflow)",
+  },
+  {
     name: "Venuewise",
     stage: "not-started",
     status: "Planned. No code yet.",

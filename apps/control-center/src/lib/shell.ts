@@ -25,8 +25,25 @@ export interface CmdResult {
  * machine run a video model?" itself, instead of telling the operator to open a
  * terminal, which the operating contract forbids. Both are used for read-only
  * queries with fixed argument arrays; see lib/gpu.ts.
+ *
+ * `python`, `python3` and `py` run the local image worker
+ * (services/sceneflow-local). Worth being explicit about why this is safe: the
+ * worker is invoked as `-m sceneflow_local.worker generate <path>` where the
+ * path is a temporary file this console just wrote. NOTHING the user typed
+ * appears on the command line — the prompt, the cast and every other field
+ * travel inside that JSON file. See lib/sceneflow-worker.ts.
  */
-const ALLOWED = new Set(["git", "pnpm", "npm", "node", "nvidia-smi", "powershell"]);
+const ALLOWED = new Set([
+  "git",
+  "pnpm",
+  "npm",
+  "node",
+  "nvidia-smi",
+  "powershell",
+  "python",
+  "python3",
+  "py",
+]);
 
 /**
  * Run an allow-listed command in the repo.

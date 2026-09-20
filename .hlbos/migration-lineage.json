@@ -3,7 +3,7 @@
   "schemaVersion": 1,
   "sourceDir": "supabase/migrations",
   "canonicalRepository": "KeithVenuewise73/hl-bos-platform",
-  "count": 49,
+  "count": 50,
   "migrations": [
     {
       "ordinal": 1,
@@ -395,6 +395,14 @@
       "filename": "20260917120000_hlbos_0049_highlightai_football.sql",
       "version": "20260917120000",
       "sha256": "6977c738f170a0591ea5c7c616bbf4fb999602da789356c4b2c5fdb8e09bd403",
+      "foundation": false
+    },
+    {
+      "ordinal": 50,
+      "name": "hlbos_0050_sceneflow",
+      "filename": "20260919120000_hlbos_0050_sceneflow.sql",
+      "version": "20260919120000",
+      "sha256": "3852af28caf45309c74863506fb95d4d4ff8437f3651394d949c1a756713c808",
       "foundation": false
     }
   ]

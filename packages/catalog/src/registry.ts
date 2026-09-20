@@ -362,6 +362,46 @@ const ASSETS: Asset[] = [
       "packages/highlight-football; 269 tests green; 7 named film-failure fixtures asserted end to end",
   },
   {
+    id: "pkg.sceneflow",
+    kind: "package",
+    name: "@hl-bos/sceneflow",
+    summary:
+      "The SceneFlow AI continuation engine: cast understanding and CharacterLock, SceneLock inheritance, the semantic spatial map, the structural interaction graph, reciprocal affection, the story planner, the continuity engine and server-side prompt composition \u2014 plus the deterministic real-person safety boundary that every request passes before a provider is contacted. Pure and deterministic: no network, no model, no secrets, so both the continuity rules and the safety gate are testable without a provider key.",
+    maturity: "built_undeployed",
+    reuse: ["reusable"],
+    owner: "Herman Legacy Platform",
+    layer: "HL-BOS",
+    key: "sceneflow",
+    location: "packages/sceneflow",
+    tags: ["package", "domain-logic", "image-generation", "safety", "consumer"],
+    relationships: [
+      { kind: "consumes", to: "db.sceneflow" },
+      { kind: "owned_by", to: "repo.hl-bos-platform" },
+    ],
+    evidence:
+      "packages/sceneflow; 204 tests green; the policy pre-gate and the intimacy ceiling each verified by mutation (disabling either fails 3 tests); no image or moderation vendor is wired, so nothing generates yet",
+  },
+  {
+    id: "mod.sceneflow-local",
+    kind: "module",
+    name: "sceneflow-local (image worker)",
+    summary:
+      "The local image worker for SceneFlow: loads an openly licensed image model on the operator's own machine and returns a picture. No photograph leaves the machine and nothing is metered. Imports with no model stack installed, so its job contract, model choice and every failure path are testable on a laptop with no GPU. There is NO silent fallback \u2014 a missing model raises ModelUnavailableError rather than producing a placeholder. 27 tests, including a cross-language contract asserting it loads the same model the console says it will. The generation path itself is UNVERIFIED: no checkpoint has been loaded.",
+    maturity: "built_undeployed",
+    reuse: ["internal_only"],
+    owner: "Herman Legacy Platform",
+    layer: "HL-BOS",
+    key: "sceneflow-local",
+    location: "services/sceneflow-local",
+    tags: ["module", "python", "image-generation", "local", "consumer"],
+    relationships: [
+      { kind: "uses", to: "pkg.sceneflow" },
+      { kind: "owned_by", to: "repo.hl-bos-platform" },
+    ],
+    evidence:
+      "services/sceneflow-local; 27 pytest tests green; cross-language contract mutation-checked against packages/sceneflow/src/routes.ts; no model checkpoint has ever been loaded",
+  },
+  {
     id: "pkg.venture-studio",
     kind: "package",
     name: "@hl-bos/venture-studio",
@@ -1252,6 +1292,14 @@ const ASSETS: Asset[] = [
     23,
     "HL-BOS",
     "Game film, plays, player tracks, detections, jersey readings, events, involvement, highlight candidates, clips, reels and exports \u2014 plus the consent records without which nothing leaves private. Written ONLY by the trusted worker path: no tenant write grant or policy exists on any vision output.",
+  ),
+
+  ...db(
+    "sceneflow",
+    "SceneFlow AI",
+    10,
+    "HL-BOS",
+    "Casts and the adults in them, reference photographs, stories, generated scenes, jobs, moderation events, credits and subscriptions. User-owned rather than tenant-owned (auth.uid()), RLS enabled AND forced on all 10 tables, with no platform-admin read path. Scenes, jobs, credits and subscriptions have NO insert or update grant for `authenticated` \u2014 a user cannot forge a generated image, mint a credit or award themselves an entitlement; UPDATE on scenes is granted at COLUMN level and covers `favorite` alone. The credit ledger and the moderation log are append-only by trigger, which holds against service-role too.",
   ),
 
   // ======================================================================
