@@ -75,7 +75,10 @@ async function direct(page, opts) {
 
   const ok = await direct(page, {});
   check("a permitted scene is composed", ok.includes("The scene, as directed"));
-  check("it never claims an image was made", ok.includes("No image was produced"));
+  check(
+    "it never claims a picture exists before one is made",
+    ok.includes("No picture yet"),
+  );
   check(
     "the whole cast stays in the frame",
     (ok.match(/watching the others/g) || []).length === 2,
@@ -110,6 +113,34 @@ async function direct(page, opts) {
     reciprocal: true,
   });
   check("reciprocal affection returns a touch", recip.includes("(returned)"));
+
+  // The generate path. On a machine with no model this MUST report the real
+  // reason and substitute nothing — that is the whole contract of the worker,
+  // and it is worth asserting from the outside as well as in its own tests.
+  await direct(page, {});
+  await page.getByRole("button", { name: /Make the picture/ }).click();
+  await page.waitForTimeout(10000);
+  const made = await page.locator("main").innerText();
+  const produced = made.includes("Picture made");
+  if (produced) {
+    check(
+      "a real picture is labelled with the model that made it",
+      !made.includes("PLACEHOLDER"),
+    );
+  } else {
+    check(
+      "a failure to generate says so plainly",
+      made.includes("No picture was made"),
+    );
+    check(
+      "and states that nothing was substituted",
+      made.includes("Nothing was substituted"),
+    );
+    check(
+      "and gives a reason rather than a blank",
+      /not available|could not be found|not installed/.test(made),
+    );
+  }
 
   await browser.close();
   console.log("-".repeat(63));

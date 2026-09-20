@@ -382,6 +382,26 @@ const ASSETS: Asset[] = [
       "packages/sceneflow; 204 tests green; the policy pre-gate and the intimacy ceiling each verified by mutation (disabling either fails 3 tests); no image or moderation vendor is wired, so nothing generates yet",
   },
   {
+    id: "mod.sceneflow-local",
+    kind: "module",
+    name: "sceneflow-local (image worker)",
+    summary:
+      "The local image worker for SceneFlow: loads an openly licensed image model on the operator's own machine and returns a picture. No photograph leaves the machine and nothing is metered. Imports with no model stack installed, so its job contract, model choice and every failure path are testable on a laptop with no GPU. There is NO silent fallback \u2014 a missing model raises ModelUnavailableError rather than producing a placeholder. 27 tests, including a cross-language contract asserting it loads the same model the console says it will. The generation path itself is UNVERIFIED: no checkpoint has been loaded.",
+    maturity: "built_undeployed",
+    reuse: ["internal_only"],
+    owner: "Herman Legacy Platform",
+    layer: "HL-BOS",
+    key: "sceneflow-local",
+    location: "services/sceneflow-local",
+    tags: ["module", "python", "image-generation", "local", "consumer"],
+    relationships: [
+      { kind: "uses", to: "pkg.sceneflow" },
+      { kind: "owned_by", to: "repo.hl-bos-platform" },
+    ],
+    evidence:
+      "services/sceneflow-local; 27 pytest tests green; cross-language contract mutation-checked against packages/sceneflow/src/routes.ts; no model checkpoint has ever been loaded",
+  },
+  {
     id: "pkg.venture-studio",
     kind: "package",
     name: "@hl-bos/venture-studio",

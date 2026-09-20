@@ -2,8 +2,9 @@
 
 import { useState, useTransition } from "react";
 
-import { directScene } from "@/actions/sceneflow";
+import { directScene, generateScene } from "@/actions/sceneflow";
 import type { DirectorResult } from "@/lib/sceneflow-direct";
+import type { WorkerOutcome } from "@/lib/sceneflow-worker";
 
 const INTERACTIONS: ReadonlyArray<{ value: string; label: string; level: string }> = [
   { value: "talk", label: "Talk", level: "warm" },
@@ -68,26 +69,43 @@ export function SceneDirector() {
   const [mood, setMood] = useState("romantic");
   const [direction, setDirection] = useState("");
   const [result, setResult] = useState<DirectorResult | null>(null);
+  const [outcome, setOutcome] = useState<WorkerOutcome | null>(null);
   const [pending, start] = useTransition();
 
   const ids = KEYS.slice(0, castSize).map((k) => `person_${k}`);
 
+  function currentInput() {
+    return {
+      castSize,
+      adultConfirmed: adult,
+      permissionConfirmed: permission,
+      actors: [actorA, actorB] as never,
+      interaction,
+      intimacy: intimacy as never,
+      reciprocal,
+      setting,
+      wardrobe,
+      mood,
+      customDirection: direction,
+    };
+  }
+
   function run() {
     start(async () => {
-      const out = await directScene({
-        castSize,
-        adultConfirmed: adult,
-        permissionConfirmed: permission,
-        actors: [actorA, actorB] as never,
-        interaction,
-        intimacy: intimacy as never,
-        reciprocal,
-        setting,
-        wardrobe,
-        mood,
-        customDirection: direction,
-      });
-      setResult(out);
+      setOutcome(null);
+      setResult(await directScene(currentInput()));
+    });
+  }
+
+  function make() {
+    start(async () => {
+      const res = await generateScene(currentInput());
+      if (res.refusal) {
+        setResult(res.refusal);
+        setOutcome(null);
+        return;
+      }
+      setOutcome(res.outcome);
     });
   }
 
@@ -322,12 +340,24 @@ export function SceneDirector() {
         </button>
       </section>
 
-      {result !== null && <Result result={result} />}
+      {result !== null && (
+        <Result result={result} onMake={make} pending={pending} outcome={outcome} />
+      )}
     </div>
   );
 }
 
-function Result({ result }: { result: DirectorResult }) {
+function Result({
+  result,
+  onMake,
+  pending,
+  outcome,
+}: {
+  result: DirectorResult;
+  onMake: () => void;
+  pending: boolean;
+  outcome: WorkerOutcome | null;
+}) {
   if (result.kind === "refused") {
     return (
       <section
@@ -374,8 +404,8 @@ function Result({ result }: { result: DirectorResult }) {
     >
       <h2 style={{ margin: "0 0 4px", fontSize: 15 }}>The scene, as directed</h2>
       <p style={{ margin: "0 0 14px", fontSize: 12.5, color: "#d29922" }}>
-        No image was produced. No image model is connected to this machine yet — this is
-        the scene the engine built and the instruction it would send.
+        No picture yet. This is the scene the engine built and the exact instruction it
+        would send — press "Make the picture" to try it on this machine.
       </p>
 
       <h3 style={{ margin: "0 0 6px", fontSize: 13, color: "#8b949e" }}>
@@ -410,6 +440,26 @@ function Result({ result }: { result: DirectorResult }) {
         ))}
       </ul>
 
+      <button
+        type="button"
+        onClick={onMake}
+        disabled={pending}
+        style={{
+          margin: "0 0 14px",
+          background: "#1f6feb",
+          border: "1px solid #388bfd",
+          borderRadius: 8,
+          color: "#fff",
+          padding: "9px 16px",
+          fontSize: 13,
+          cursor: pending ? "not-allowed" : "pointer",
+        }}
+      >
+        {pending ? "Trying…" : "Make the picture"}
+      </button>
+
+      {outcome !== null && <Outcome outcome={outcome} />}
+
       <details>
         <summary style={{ fontSize: 13, color: "#58a6ff", cursor: "pointer" }}>
           The exact instruction that would be sent
@@ -431,5 +481,55 @@ function Result({ result }: { result: DirectorResult }) {
         </pre>
       </details>
     </section>
+  );
+}
+
+function Outcome({ outcome }: { outcome: WorkerOutcome }) {
+  if (outcome.ok) {
+    return (
+      <div
+        style={{
+          background: "#0d1a12",
+          border: "1px solid #1f6f3f",
+          borderRadius: 8,
+          padding: "12px 14px",
+          marginBottom: 14,
+          fontSize: 13,
+          lineHeight: 1.6,
+          color: "#c9d1d9",
+        }}
+      >
+        <strong>Picture made.</strong> {outcome.model}
+        {outcome.adapterKind === "mock" && (
+          <span style={{ color: "#d29922" }}>
+            {" "}
+            — this is a PLACEHOLDER, not a generated photograph.
+          </span>
+        )}
+        <div style={{ marginTop: 6, color: "#8b949e", fontSize: 12 }}>
+          {outcome.imagePath}
+        </div>
+      </div>
+    );
+  }
+  return (
+    <div
+      style={{
+        background: "#1a1009",
+        border: "1px solid #5a2e11",
+        borderRadius: 8,
+        padding: "12px 14px",
+        marginBottom: 14,
+        fontSize: 13,
+        lineHeight: 1.6,
+        color: "#c9d1d9",
+      }}
+    >
+      <strong>No picture was made.</strong>
+      <p style={{ margin: "6px 0 0" }}>{outcome.errorMessage}</p>
+      <p style={{ margin: "6px 0 0", fontSize: 12, color: "#6e7681" }}>
+        Nothing was substituted in its place.
+      </p>
+    </div>
   );
 }
