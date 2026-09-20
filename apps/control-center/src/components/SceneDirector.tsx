@@ -3,6 +3,8 @@
 import { useState, useTransition } from "react";
 
 import { directScene, generateScene } from "@/actions/sceneflow";
+import { PhotoPicker } from "@/components/PhotoPicker";
+import type { StoredPhoto } from "@/lib/sceneflow-photos";
 import type { DirectorResult } from "@/lib/sceneflow-direct";
 import type { WorkerOutcome } from "@/lib/sceneflow-worker";
 
@@ -18,15 +20,65 @@ const INTERACTIONS: ReadonlyArray<{ value: string; label: string; level: string 
   { value: "move-closer", label: "Move Closer", level: "warm" },
   { value: "whisper", label: "Whisper", level: "romantic" },
   { value: "embrace", label: "Embrace", level: "romantic" },
+  { value: "embrace-from-behind", label: "Embrace From Behind", level: "romantic" },
   { value: "cuddle", label: "Cuddle", level: "romantic" },
+  { value: "share-blanket", label: "Share a Blanket", level: "romantic" },
+  { value: "head-on-chest", label: "Head on Chest", level: "romantic" },
+  { value: "forehead-to-forehead", label: "Foreheads Together", level: "romantic" },
   { value: "slow-dance", label: "Slow Dance", level: "romantic" },
+  { value: "lift", label: "Lifted", level: "romantic" },
   { value: "forehead-kiss", label: "Forehead Kiss", level: "romantic" },
   { value: "touch-clothed-knee", label: "Touch Clothed Knee", level: "romantic" },
   { value: "kiss", label: "Kiss", level: "passionate" },
+  { value: "neck-kiss", label: "Kiss the Neck", level: "passionate" },
+  { value: "hand-in-hair", label: "Hand in Hair", level: "passionate" },
+  {
+    value: "hand-on-chest",
+    label: "Hand on Chest (over clothing)",
+    level: "passionate",
+  },
+  { value: "pull-close", label: "Pull Close by the Shirt", level: "passionate" },
+  { value: "loosen-tie", label: "Loosen a Tie", level: "passionate" },
+  { value: "remove-jacket", label: "Take a Jacket Off", level: "passionate" },
   { value: "touch-waist", label: "Touch Waist", level: "passionate" },
   { value: "face-touch", label: "Touch Face", level: "passionate" },
-  { value: "goodnight", label: "Goodnight", level: "private-romance" },
+  { value: "touch-clothed-thigh", label: "Touch Clothed Thigh", level: "passionate" },
   { value: "recline-together", label: "Recline Together", level: "private-romance" },
+  { value: "wake-together", label: "Wake Together", level: "private-romance" },
+  { value: "goodnight", label: "Goodnight", level: "private-romance" },
+];
+
+const WARDROBE: readonly string[] = [
+  "as photographed",
+  "evening wear",
+  "elegant casual",
+  "formal",
+  "vacation and swimwear",
+  "sleepwear",
+  "a robe",
+  "stockings and evening wear",
+];
+
+const SETTINGS: readonly string[] = [
+  "as photographed",
+  "luxury suite",
+  "a bedroom, warmly lit",
+  "a hotel room at night",
+  "a couch by a fireplace",
+  "a balcony over a city",
+  "a beach at sunset",
+  "a Tuscan terrace",
+  "a modern home",
+];
+
+const SHOTS: ReadonlyArray<{ value: string; label: string }> = [
+  { value: "same", label: "Same as the photo" },
+  { value: "closer", label: "Closer" },
+  { value: "wider", label: "Wider" },
+  { value: "side-angle", label: "From the side" },
+  { value: "over-shoulder", label: "Over the shoulder" },
+  { value: "portrait", label: "Portrait" },
+  { value: "full-body", label: "Full body" },
 ];
 
 const LEVELS = [
@@ -66,10 +118,12 @@ export function SceneDirector() {
   const [reciprocal, setReciprocal] = useState(false);
   const [setting, setSetting] = useState("luxury suite");
   const [wardrobe, setWardrobe] = useState("evening wear");
+  const [shot, setShot] = useState("same");
   const [mood, setMood] = useState("romantic");
   const [direction, setDirection] = useState("");
   const [result, setResult] = useState<DirectorResult | null>(null);
   const [outcome, setOutcome] = useState<WorkerOutcome | null>(null);
+  const [photos, setPhotos] = useState<readonly StoredPhoto[]>([]);
   const [pending, start] = useTransition();
 
   const ids = KEYS.slice(0, castSize).map((k) => `person_${k}`);
@@ -87,6 +141,7 @@ export function SceneDirector() {
       wardrobe,
       mood,
       customDirection: direction,
+      shot,
     };
   }
 
@@ -99,7 +154,7 @@ export function SceneDirector() {
 
   function make() {
     start(async () => {
-      const res = await generateScene(currentInput());
+      const res = await generateScene(currentInput(), photos[0]?.relativePath ?? "");
       if (res.refusal) {
         setResult(res.refusal);
         setOutcome(null);
@@ -122,6 +177,16 @@ export function SceneDirector() {
         }}
       >
         <h2 style={{ margin: "0 0 12px", fontSize: 15 }}>Direct the scene</h2>
+
+        <div
+          style={{
+            marginBottom: 14,
+            paddingBottom: 14,
+            borderBottom: "1px solid #262c36",
+          }}
+        >
+          <PhotoPicker photos={photos} onChange={setPhotos} />
+        </div>
 
         <div style={{ display: "grid", gap: 12, gridTemplateColumns: "1fr 1fr" }}>
           <div>
@@ -229,10 +294,16 @@ export function SceneDirector() {
             </label>
             <input
               id="setting"
+              list="settingOptions"
               style={field}
               value={setting}
               onChange={(e) => setSetting(e.target.value)}
             />
+            <datalist id="settingOptions">
+              {SETTINGS.map((v) => (
+                <option key={v} value={v} />
+              ))}
+            </datalist>
           </div>
 
           <div>
@@ -241,10 +312,34 @@ export function SceneDirector() {
             </label>
             <input
               id="wardrobe"
+              list="wardrobeOptions"
               style={field}
               value={wardrobe}
               onChange={(e) => setWardrobe(e.target.value)}
             />
+            <datalist id="wardrobeOptions">
+              {WARDROBE.map((v) => (
+                <option key={v} value={v} />
+              ))}
+            </datalist>
+          </div>
+
+          <div>
+            <label style={label} htmlFor="shot">
+              Camera
+            </label>
+            <select
+              id="shot"
+              style={field}
+              value={shot}
+              onChange={(e) => setShot(e.target.value)}
+            >
+              {SHOTS.map((sh) => (
+                <option key={sh.value} value={sh.value}>
+                  {sh.label}
+                </option>
+              ))}
+            </select>
           </div>
 
           <div>

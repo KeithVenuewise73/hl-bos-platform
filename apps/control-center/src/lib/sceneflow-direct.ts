@@ -34,6 +34,7 @@ import {
   isInteractionType,
   labelFor,
   validateGraph,
+  type CameraShot,
   type CastMemberId,
   type IntimacyLevel,
   type InteractionType,
@@ -57,6 +58,8 @@ export interface DirectorInput {
   readonly mood: string;
   /** Free text the user typed. Evaluated, never concatenated. */
   readonly customDirection: string;
+  /** How the moment is framed. One of CameraShot; anything else is ignored. */
+  readonly shot?: string;
 }
 
 export type DirectorResult =
@@ -81,6 +84,22 @@ export type DirectorResult =
 
 const CONSENT_TEXT_VERSION = "v1.0";
 
+const SHOTS: readonly CameraShot[] = [
+  "same",
+  "closer",
+  "wider",
+  "side-angle",
+  "over-shoulder",
+  "portrait",
+  "full-body",
+  "group-portrait",
+];
+
+/** A known shot, or "same". An unknown string is ignored rather than passed on. */
+function cameraShot(value: string | undefined): CameraShot {
+  return SHOTS.includes((value ?? "") as CameraShot) ? (value as CameraShot) : "same";
+}
+
 /** A neutral starting scene. Stands in for what scene analysis would read. */
 function blankScene(cast: readonly CastMemberId[], input: DirectorInput): SceneState {
   const map = defaultSpatialMap(cast);
@@ -97,7 +116,11 @@ function blankScene(cast: readonly CastMemberId[], input: DirectorInput): SceneS
       timeOfDay: "evening",
       features: [],
     },
-    camera: { shot: "same", orientation: "portrait", height: "eye-level" },
+    camera: {
+      shot: cameraShot(input.shot),
+      orientation: "portrait",
+      height: "eye-level",
+    },
     interactions: [],
     mood: input.mood,
     photoStyle: "photorealistic available-light photography",

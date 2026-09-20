@@ -18,11 +18,18 @@ class ModelUnavailableError(RuntimeError):
     To run without a model, ask for the mock adapter explicitly.
     """
 
-    def __init__(self, adapter: str, detail: str) -> None:
+    #: What to do about it, when the missing piece is the image model. A
+    #: CHECKER gets a different sentence: "request the mock adapter" is advice
+    #: that makes no sense for a missing content check, because there is no
+    #: mock checker and there must never be one.
+    DEFAULT_REMEDY = (
+        "SceneFlow will not substitute a placeholder for a real model — "
+        "request the mock adapter explicitly if that is what you want."
+    )
+
+    def __init__(self, adapter: str, detail: str, remedy: str | None = None) -> None:
         super().__init__(
-            f"{adapter} is not available: {detail}. SceneFlow will not "
-            "substitute a placeholder for a real model — request the mock "
-            "adapter explicitly if that is what you want."
+            f"{adapter} is not available: {detail}. {remedy or self.DEFAULT_REMEDY}"
         )
         self.adapter = adapter
         self.detail = detail

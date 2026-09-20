@@ -152,8 +152,21 @@ export interface PlanOptions {
  * Build the plan for a story.
  *
  * The intimacy ceiling is applied by SUBSTITUTION, not truncation: a beat above
- * the ceiling is replaced with the nearest beat at or below it, so a user who
- * chose "Warm" still gets six scenes with a shape, not four scenes and a gap.
+ * the ceiling is replaced with the strongest beat at or below it, so a user who
+ * chose "Warm" still gets six scenes with a shape rather than four and a gap,
+ * and a capped story stays as close to its intended level as it is allowed to.
+ *
+ * Then a second pass removes consecutive repeats. Both passes were put here by
+ * running the page and reading the result:
+ *
+ *   - Capping "Luxury Suite" at Passionate gave scene 5 "Kiss" and scene 6
+ *     "Goodnight" BOTH staged as a conventional kiss.
+ *   - Fixing that by looking only backwards then let a capped beat collide with
+ *     the beat AFTER it: "Date Night" at Romantic repeated relax-together
+ *     across scenes 5 and 6.
+ *
+ * Two consecutive panels doing the identical thing is not a story, in either
+ * direction, so the de-duplication pass considers both neighbours.
  */
 export function planStory(
   presetSlug: string,
@@ -167,17 +180,37 @@ export function planStory(
   const indices = SHORT_PLAN_INDICES[scenes];
   const ceiling = options.ceiling;
 
+  // Pass 1 — cap anything above the ceiling.
   const chosen: StoryBeat[] = [];
   indices.forEach((sourceIndex, position) => {
     const source = found.beats[sourceIndex];
     /* c8 ignore next -- indices are fixed and in range for every preset */
     if (!source) return;
-    const capped =
-      ceiling !== undefined && intimacyRank(source.intimacy) > intimacyRank(ceiling)
-        ? substitute(found, sourceIndex, ceiling)
-        : source;
-    chosen.push({ ...capped, number: position + 1 });
+    const needsCap =
+      ceiling !== undefined && intimacyRank(source.intimacy) > intimacyRank(ceiling);
+    const replacement = needsCap ? pickSubstitute(found, ceiling, new Set()) : null;
+    chosen.push({
+      ...source,
+      ...(replacement ?? {}),
+      ...(needsCap && replacement === null
+        ? { interaction: "stand-together", intimacy: "warm" }
+        : {}),
+      number: position + 1,
+    });
   });
+
+  // Pass 2 — no panel repeats the one before it.
+  const cap = ceiling ?? "private-romance";
+  for (let i = 1; i < chosen.length; i += 1) {
+    const current = chosen[i];
+    const previous = chosen[i - 1];
+    if (!current || !previous || current.interaction !== previous.interaction) continue;
+    const exclude = new Set<string>([previous.interaction]);
+    const after = chosen[i + 1]?.interaction;
+    if (after !== undefined) exclude.add(after);
+    const alternative = pickSubstitute(found, cap, exclude);
+    if (alternative) chosen[i] = { ...current, ...alternative };
+  }
 
   return {
     title: options.title ?? found.title,
@@ -187,27 +220,32 @@ export function planStory(
   };
 }
 
-/** The nearest earlier beat at or below the ceiling, keeping the beat's title. */
-function substitute(
+/**
+ * The strongest beat in the preset at or below the ceiling, skipping `exclude`.
+ *
+ * Ties go to the EARLIEST such beat, which is the calmer reading of two equal
+ * options — a "Goodnight" capped out of a kiss becomes a cuddle rather than a
+ * whisper. Returns null when the preset has nothing permitted to offer.
+ */
+function pickSubstitute(
   from: StoryPreset,
-  index: number,
   ceiling: IntimacyLevel,
-): StoryBeat {
-  const original = from.beats[index];
-  /* c8 ignore next -- callers only pass in-range indices */
-  if (!original) throw new Error("beat_out_of_range");
-
-  for (let i = index - 1; i >= 0; i -= 1) {
-    const candidate = from.beats[i];
-    if (candidate && intimacyRank(candidate.intimacy) <= intimacyRank(ceiling)) {
-      return {
-        ...original,
-        interaction: candidate.interaction,
-        intimacy: candidate.intimacy,
-      };
+  exclude: ReadonlySet<string>,
+): { interaction: string; intimacy: IntimacyLevel } | null {
+  let best: StoryBeat | null = null;
+  for (const candidate of from.beats) {
+    if (exclude.has(candidate.interaction)) continue;
+    if (intimacyRank(candidate.intimacy) > intimacyRank(ceiling)) continue;
+    if (
+      best === null ||
+      intimacyRank(candidate.intimacy) > intimacyRank(best.intimacy)
+    ) {
+      best = candidate;
     }
   }
-  return { ...original, interaction: "stand-together", intimacy: "warm" };
+  return best === null
+    ? null
+    : { interaction: best.interaction, intimacy: best.intimacy };
 }
 
 /** A plan with no preset, for a single ad-hoc continuation. */

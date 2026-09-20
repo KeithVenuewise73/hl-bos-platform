@@ -14,12 +14,14 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import shutil
 import subprocess
 import sys
 from typing import Any
 
 from .adapters import LocalImageAdapter, MockImageAdapter
+from .checker import CheckVerdict, ContentClassifier, SkinFractionScreen
 from .errors import ModelUnavailableError, UnsafeJobError
 from .models import choose_model
 from .types import GenerationJob, GenerationOutcome
@@ -95,11 +97,80 @@ def _why_not(vram: int | None, tier: Any, torch_ok: bool, diffusers_ok: bool) ->
     return ""
 
 
-def run_job(raw: dict[str, Any], use_mock: bool = False) -> GenerationOutcome:
+def check_output(image_path: str, checkers: Any = None) -> CheckVerdict:
+    """Decide whether a generated image may be shown.
+
+    FAILS CLOSED, and the shape of this function is why. Every checker runs;
+    ANY rejection wins; and the result is only `passed` if a checker that is
+    ALLOWED TO APPROVE said so. With no classifier installed the best possible
+    outcome is `unverified`, which the caller treats as a refusal.
+
+    Written this way rather than as "if the classifier is missing, skip it"
+    because that sentence is how an unchecked image ends up on screen.
+    """
+    pool = checkers if checkers is not None else (SkinFractionScreen(), ContentClassifier())
+    approved = False
+    # Two slots, because WHICH failure gets reported decides whether the
+    # message names something actionable. A screen saying "could not decode"
+    # is true but useless; the classifier's absence is what actually blocks
+    # every image, and its message says how to fix it. So a verdict from a
+    # checker that CAN approve is preferred when reporting.
+    blocking: CheckVerdict | None = None
+    other: CheckVerdict | None = None
+
+    for checker in pool:
+        can_approve = bool(getattr(checker, "can_approve", False))
+        try:
+            verdict = checker.check(image_path)
+        except ModelUnavailableError as exc:
+            unavailable = CheckVerdict(
+                status="unverified",
+                checker=getattr(checker, "name", "checker"),
+                reasons=("checker_unavailable",),
+                detail=str(exc),
+            )
+            if can_approve and blocking is None:
+                blocking = unavailable
+            elif other is None:
+                other = unavailable
+            continue
+        if verdict.status == "rejected":
+            return verdict
+        if verdict.status == "passed" and can_approve:
+            approved = True
+        # Only a NON-passing verdict is remembered as the thing to report. A
+        # `passed` from a checker that is not allowed to approve must not be
+        # returned verbatim — that would let a screen approve an image by
+        # saying the word, which is the hole `can_approve` exists to close.
+        if verdict.status != "passed":
+            if can_approve and blocking is None:
+                blocking = verdict
+            elif other is None:
+                other = verdict
+
+    if approved:
+        return CheckVerdict(status="passed", checker="output checks", reasons=())
+    if blocking is not None:
+        return blocking
+    if other is not None:
+        return other
+    return CheckVerdict(
+        status="unverified",
+        checker="output checks",
+        reasons=("nothing_checked_it",),
+        detail="Nothing was able to check the generated image, so it was not shown.",
+    )
+
+
+def run_job(
+    raw: dict[str, Any],
+    use_mock: bool = False,
+    checkers: Any = None,
+) -> GenerationOutcome:
     job = GenerationJob.from_dict(raw)
     try:
         adapter = MockImageAdapter() if use_mock else LocalImageAdapter(detect_vram_mb())
-        return adapter.generate(job)
+        outcome = adapter.generate(job)
     except ModelUnavailableError as exc:
         return GenerationOutcome(
             ok=False,
@@ -114,6 +185,33 @@ def run_job(raw: dict[str, Any], use_mock: bool = False) -> GenerationOutcome:
             error_code="unsafe_job",
             error_message=str(exc),
         )
+
+    if not outcome.ok or not outcome.image_path:
+        return outcome
+
+    verdict = check_output(outcome.image_path, checkers)
+    if verdict.safe_to_show:
+        return outcome
+
+    # The image exists and may not be shown, so it does not get to exist. An
+    # unshowable picture left on disk is the thing this whole check is for.
+    _discard(outcome.image_path)
+    return GenerationOutcome(
+        ok=False,
+        job_id=job.job_id,
+        error_code=(
+            "output_rejected" if verdict.status == "rejected" else "output_unverified"
+        ),
+        error_message=verdict.detail
+        or "The generated image could not be shown, and was deleted.",
+    )
+
+
+def _discard(path: str) -> None:
+    try:
+        os.unlink(path)
+    except OSError:  # pragma: no cover - already gone is the same outcome
+        pass
 
 
 def main(argv: list[str] | None = None) -> int:
