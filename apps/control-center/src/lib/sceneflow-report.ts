@@ -64,7 +64,7 @@ function standingBlockers(): Blocker[] {
     },
     {
       id: "moderation",
-      what: "SceneFlow refuses to run without something checking its output, by design. On our own machine that can be a local checker rather than a paid service, but it has to exist.",
+      what: "The output check is built and it runs on our own machine, no paid service needed \u2014 but its classifier is not installed yet, so nothing can be shown. That is deliberate: an image nothing has looked at is not displayed, and one that fails is deleted rather than kept.",
       owner: "ai-engineer",
       hard: true,
     },

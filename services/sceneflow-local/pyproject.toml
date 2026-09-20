@@ -37,6 +37,15 @@ gpu = [
   "pillow>=10.0",
 ]
 
+# The output classifier. CPU-only and small; it is what decides whether a
+# generated image may be shown at all, so it is NOT optional in practice —
+# without it SceneFlow refuses to show anything, by design.
+checker = [
+  "nudenet>=3.4",
+  "onnxruntime>=1.18",
+  "pillow>=10.0",
+]
+
 dev = ["pytest>=8.0"]
 
 [tool.pytest.ini_options]

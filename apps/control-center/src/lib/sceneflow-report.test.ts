@@ -144,10 +144,13 @@ describe("what is still in the way", () => {
     expect(hard).toContain("moderation");
   });
 
-  it("keeps moderation as a requirement even on our own machine", () => {
+  it("keeps the output check as a hard requirement even on our own machine", () => {
     const moderation = readiness.blockers.find((b) => b.id === "moderation");
     expect(moderation?.hard).toBe(true);
-    expect(moderation?.what).toContain("has to exist");
+    // The property, not the wording: an unchecked image is not shown, and a
+    // failed one is destroyed rather than kept.
+    expect(moderation?.what).toContain("is not displayed");
+    expect(moderation?.what).toContain("deleted");
   });
 
   it("writes down the private-use licence decision so it is not re-litigated", () => {
