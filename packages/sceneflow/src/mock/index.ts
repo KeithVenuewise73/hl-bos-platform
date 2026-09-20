@@ -3,5 +3,5 @@ export {
   MockModerationProvider,
   type MockImageOptions,
   type MockModerationOptions,
-} from "./providers.js";
-export { sampleCast, sampleScene, sampleSceneRequest } from "./fixtures.js";
+} from "./providers";
+export { sampleCast, sampleScene, sampleSceneRequest } from "./fixtures";

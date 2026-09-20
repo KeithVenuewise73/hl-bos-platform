@@ -5,7 +5,7 @@ import {
   evaluateText,
   normalizeText,
   type PolicyReasonCode,
-} from "./policy.js";
+} from "./policy";
 
 /** Convenience: the worst reason code, or null when allowed. */
 function codeOf(text: string): PolicyReasonCode | null {

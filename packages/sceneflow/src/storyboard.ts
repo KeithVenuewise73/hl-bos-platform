@@ -12,11 +12,11 @@ import {
   type PipelineDeps,
   type SceneOutcome,
   type SceneRequest,
-} from "./pipeline.js";
-import { nextSceneState } from "./continuity.js";
-import { buildContinuityContext } from "./continuity.js";
-import { settle, type Settlement } from "./credits.js";
-import type { SceneState, StoryPlan } from "./types.js";
+} from "./pipeline";
+import { nextSceneState } from "./continuity";
+import { buildContinuityContext } from "./continuity";
+import { settle, type Settlement } from "./credits";
+import type { SceneState, StoryPlan } from "./types";
 
 export type PanelStage =
   | "waiting"

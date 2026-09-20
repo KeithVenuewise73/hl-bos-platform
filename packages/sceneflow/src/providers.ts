@@ -9,7 +9,7 @@
 // ai.providers.credential_ref already works here. No secret reaches this
 // package, and none reaches a mobile client.
 
-import type { AspectRatio } from "./types.js";
+import type { AspectRatio } from "./types";
 
 export interface ImageGenerationRequest {
   /** Private storage path of the source photograph. */

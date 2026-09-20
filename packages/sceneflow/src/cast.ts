@@ -16,7 +16,7 @@ import {
   type CastMember,
   type CastMemberId,
   type CharacterDescriptor,
-} from "./types.js";
+} from "./types";
 
 export class CastError extends Error {
   readonly code: string;

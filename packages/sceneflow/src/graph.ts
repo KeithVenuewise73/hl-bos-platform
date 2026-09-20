@@ -5,14 +5,14 @@
 // can be validated, reciprocated, diffed against the previous scene and capped
 // at an intimacy ceiling. A sentence can only be hoped about.
 
-import { interactionSpec, isInteractionType, reciprocalEdge } from "./vocabulary.js";
-import { intimacyRank } from "./vocabulary.js";
+import { interactionSpec, isInteractionType, reciprocalEdge } from "./vocabulary";
+import { intimacyRank } from "./vocabulary";
 import type {
   CastMemberId,
   IntimacyLevel,
   SceneInteraction,
   SceneInteractionGraph,
-} from "./types.js";
+} from "./types";
 
 export interface GraphIssue {
   readonly code:

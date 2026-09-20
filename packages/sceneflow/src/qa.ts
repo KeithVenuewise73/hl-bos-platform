@@ -4,8 +4,8 @@
 // provider is a way to spend money at machine speed, and a way to keep a user
 // staring at a spinner while it happens.
 
-import type { CastMemberId } from "./types.js";
-import type { GenerationResult } from "./providers.js";
+import type { CastMemberId } from "./types";
+import type { GenerationResult } from "./providers";
 
 export interface QualityExpectation {
   readonly expectedCharacterCount: number;

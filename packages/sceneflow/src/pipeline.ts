@@ -17,7 +17,7 @@
 //  * A BLOCK COSTS NOTHING. Every refusal path returns the hold, so a user is
 //    never charged for a request we declined to make.
 
-import { attestationSatisfied, evaluateFields, type PolicyVerdict } from "./policy.js";
+import { attestationSatisfied, evaluateFields, type PolicyVerdict } from "./policy";
 import {
   canAfford,
   entitlementAllows,
@@ -25,22 +25,22 @@ import {
   type CreditEntry,
   type Entitlement,
   type Settlement,
-} from "./credits.js";
-import { applyReciprocal, includeBystanders, validateGraph } from "./graph.js";
-import { buildContinuityContext, castDescriptions } from "./continuity.js";
-import { composePrompt, composeVariationPrompt } from "./prompt.js";
+} from "./credits";
+import { applyReciprocal, includeBystanders, validateGraph } from "./graph";
+import { buildContinuityContext, castDescriptions } from "./continuity";
+import { composePrompt, composeVariationPrompt } from "./prompt";
 import {
   checkGeneration,
   isTransientFailure,
   shouldRetry,
   type QualityCheck,
-} from "./qa.js";
+} from "./qa";
 import type {
   ImageGenerationProvider,
   ImageGenerationRequest,
   ModerationProvider,
   GenerationResult,
-} from "./providers.js";
+} from "./providers";
 import type {
   AspectRatio,
   Cast,
@@ -50,7 +50,7 @@ import type {
   SceneInteractionGraph,
   SceneLock,
   SceneState,
-} from "./types.js";
+} from "./types";
 
 export interface SceneRequest {
   readonly jobId: string;

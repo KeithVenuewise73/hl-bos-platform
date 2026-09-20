@@ -14,7 +14,7 @@ import type {
   SceneState,
   SpatialMap,
   WardrobeMap,
-} from "./types.js";
+} from "./types";
 
 /** Everything locked. The state a new story starts in. */
 export const DEFAULT_SCENE_LOCK: SceneLock = {

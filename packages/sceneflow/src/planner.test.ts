@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { PRESETS, planSingle, planStory, preset } from "./planner.js";
-import { intimacyRank } from "./vocabulary.js";
-import { isInteractionType } from "./vocabulary.js";
-import type { CastMemberId } from "./types.js";
+import { PRESETS, planSingle, planStory, preset } from "./planner";
+import { intimacyRank } from "./vocabulary";
+import { isInteractionType } from "./vocabulary";
+import type { CastMemberId } from "./types";
 
 const CAST: readonly CastMemberId[] = ["person_a", "person_b"];
 

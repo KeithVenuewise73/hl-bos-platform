@@ -9,14 +9,14 @@
 //   3. What the user asked for can be shown back to them as choices they can
 //      edit, instead of a paragraph they have to re-type.
 
-import { evaluateText, normalizeText, type PolicyVerdict } from "./policy.js";
-import { intimacyRank, interactionSpec, matchInteractionPhrase } from "./vocabulary.js";
+import { evaluateText, normalizeText, type PolicyVerdict } from "./policy";
+import { intimacyRank, interactionSpec, matchInteractionPhrase } from "./vocabulary";
 import type {
   CastMemberId,
   IntimacyLevel,
   InteractionType,
   SceneInteraction,
-} from "./types.js";
+} from "./types";
 
 /** What the rest of the cast does while the named actors interact. */
 export type BystanderDirection = "unchanged" | "move-closer" | "observing" | "laugh";

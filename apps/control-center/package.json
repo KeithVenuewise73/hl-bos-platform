@@ -14,6 +14,7 @@
   },
   "dependencies": {
     "@hl-bos/catalog": "workspace:*",
+    "@hl-bos/sceneflow": "workspace:*",
     "@hl-bos/video-studio": "workspace:*",
     "next": "catalog:",
     "react": "catalog:",

@@ -6,8 +6,8 @@
 // is generated, so the user can see what is about to be made, and so a failed
 // panel can be retried against the same plan rather than a re-rolled story.
 
-import type { CastMemberId, IntimacyLevel, StoryBeat, StoryPlan } from "./types.js";
-import { intimacyRank } from "./vocabulary.js";
+import type { CastMemberId, IntimacyLevel, StoryBeat, StoryPlan } from "./types";
+import { intimacyRank } from "./vocabulary";
 
 export interface StoryPreset {
   readonly slug: string;

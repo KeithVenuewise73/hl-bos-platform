@@ -1,12 +1,8 @@
 import { describe, expect, it } from "vitest";
-import {
-  buildContinuityContext,
-  describeChanges,
-  nextSceneState,
-} from "./continuity.js";
-import { DEFAULT_SCENE_LOCK, resolveAttributes, unlock } from "./sceneLock.js";
-import { sampleCast, sampleScene } from "./mock/fixtures.js";
-import type { SceneChangeRequest, SceneLock } from "./types.js";
+import { buildContinuityContext, describeChanges, nextSceneState } from "./continuity";
+import { DEFAULT_SCENE_LOCK, resolveAttributes, unlock } from "./sceneLock";
+import { sampleCast, sampleScene } from "./mock/fixtures";
+import type { SceneChangeRequest, SceneLock } from "./types";
 
 const cast = sampleCast(4);
 const parent = sampleScene(cast);

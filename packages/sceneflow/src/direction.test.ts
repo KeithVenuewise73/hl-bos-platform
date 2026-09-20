@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { normalizeCustomDirection } from "./direction.js";
-import type { CastMemberId } from "./types.js";
+import { normalizeCustomDirection } from "./direction";
+import type { CastMemberId } from "./types";
 
 const CAST: readonly CastMemberId[] = [
   "person_a",

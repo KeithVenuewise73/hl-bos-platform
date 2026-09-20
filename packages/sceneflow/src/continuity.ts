@@ -13,8 +13,8 @@
 // Rule 1 is what separates a continuation from a new image. Rules 2-4 are what
 // make the room and the clothes stay the same when nobody asked them to change.
 
-import { describeForPrompt, referenceMap } from "./cast.js";
-import { resolveAttributes, type ResolvedAttributes } from "./sceneLock.js";
+import { describeForPrompt, referenceMap } from "./cast";
+import { resolveAttributes, type ResolvedAttributes } from "./sceneLock";
 import type {
   Cast,
   CastMemberId,
@@ -24,7 +24,7 @@ import type {
   SceneInteractionGraph,
   SceneLock,
   SceneState,
-} from "./types.js";
+} from "./types";
 
 export interface ContinuityInput {
   readonly storyId: string;

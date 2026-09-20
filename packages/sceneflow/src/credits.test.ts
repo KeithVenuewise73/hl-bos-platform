@@ -6,7 +6,7 @@ import {
   entitlementAllows,
   settle,
   type CreditEntry,
-} from "./credits.js";
+} from "./credits";
 
 const grant: CreditEntry = {
   amount: 10,

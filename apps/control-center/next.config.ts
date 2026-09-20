@@ -7,7 +7,7 @@ const config: NextConfig = {
   output: "standalone",
   // Workspace packages ship TypeScript source rather than a build artefact, so
   // Next compiles them itself. video-studio runs in the browser bundle.
-  transpilePackages: ["@hl-bos/video-studio"],
+  transpilePackages: ["@hl-bos/video-studio", "@hl-bos/sceneflow"],
   experimental: {
     // Server Actions call child_process. Keep the surface local.
     serverActions: { allowedOrigins: ["localhost:4000", "127.0.0.1:4000"] },

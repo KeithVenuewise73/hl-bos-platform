@@ -54,6 +54,10 @@ export default async function Page() {
           ·{" "}
           <a href="/video" style={{ color: "#58a6ff" }}>
             Video Studio
+          </a>{" "}
+          ·{" "}
+          <a href="/sceneflow" style={{ color: "#58a6ff" }}>
+            SceneFlow
           </a>
         </p>
       </header>

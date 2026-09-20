@@ -8,7 +8,7 @@ import {
   labelFor,
   memberIds,
   referenceMap,
-} from "./cast.js";
+} from "./cast";
 
 const attestation = { adultConfirmed: true, permissionConfirmed: true };
 

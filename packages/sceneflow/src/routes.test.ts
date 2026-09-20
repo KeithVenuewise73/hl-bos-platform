@@ -4,7 +4,7 @@ import {
   imageModelFits,
   needsPrimarySourceCheck,
   routesUnder,
-} from "./routes.js";
+} from "./routes";
 
 describe("the route table is honest about what is built", () => {
   it("claims nothing is ready, because nothing is wired", () => {

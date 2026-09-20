@@ -10,7 +10,7 @@ import type {
   ImageGenerationRequest,
   ModerationProvider,
   ModerationVerdict,
-} from "../providers.js";
+} from "../providers";
 
 export interface MockImageOptions {
   /** Force an outcome for the nth call (1-based), for failure-path tests. */

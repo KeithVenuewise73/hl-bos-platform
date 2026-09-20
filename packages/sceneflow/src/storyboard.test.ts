@@ -1,9 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { collageLabels, collageLayout, generateStoryboard } from "./storyboard.js";
-import { planStory } from "./planner.js";
-import { MockImageProvider, MockModerationProvider } from "./mock/providers.js";
-import { sampleSceneRequest } from "./mock/fixtures.js";
-import type { PanelProgress } from "./storyboard.js";
+import { collageLabels, collageLayout, generateStoryboard } from "./storyboard";
+import { planStory } from "./planner";
+import { MockImageProvider, MockModerationProvider } from "./mock/providers";
+import { sampleSceneRequest } from "./mock/fixtures";
+import type { PanelProgress } from "./storyboard";
 
 function request(scenes: 3 | 6 = 6) {
   const base = sampleSceneRequest({

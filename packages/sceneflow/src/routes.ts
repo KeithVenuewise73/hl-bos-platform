@@ -205,12 +205,12 @@ const MODEL_TIERS: readonly Omit<ImageModelFit, "fits">[] = [
   {
     model: "FLUX.1 [dev]",
     needsMB: 16_000,
-    note: "Strong image quality. NON-COMMERCIAL licence — see the licence line on the self-hosted route.",
+    note: "Strong image quality. NON-COMMERCIAL licence: fine for private use, not for an app with users, paid or free.",
   },
   {
     model: "FLUX.1 Kontext [dev]",
     needsMB: 24_000,
-    note: "Image-to-image editing that holds identity across scenes. The best technical fit for this product, and NON-COMMERCIAL under the same licence as FLUX.1 [dev].",
+    note: "Image-to-image editing that holds identity across scenes — the best technical fit for this product. Same NON-COMMERCIAL licence: private use only.",
   },
 ];
 

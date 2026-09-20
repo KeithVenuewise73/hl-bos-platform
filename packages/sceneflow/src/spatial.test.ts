@@ -6,9 +6,9 @@ import {
   place,
   renderSpatialMap,
   validateSpatialMap,
-} from "./spatial.js";
-import { labelFor } from "./cast.js";
-import type { CastMemberId } from "./types.js";
+} from "./spatial";
+import { labelFor } from "./cast";
+import type { CastMemberId } from "./types";
 
 describe("defaultSpatialMap", () => {
   it("puts a couple side by side, not at opposite edges", () => {

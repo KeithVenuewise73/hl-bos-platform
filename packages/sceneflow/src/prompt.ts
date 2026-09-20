@@ -10,15 +10,10 @@
 // instructions" to travel down, and the safety clause below cannot be displaced
 // by anything a user writes.
 
-import { renderGraph } from "./graph.js";
-import { renderSpatialMap } from "./spatial.js";
-import { labelFor } from "./cast.js";
-import type {
-  AspectRatio,
-  CastMemberId,
-  ContinuityContext,
-  SceneLock,
-} from "./types.js";
+import { renderGraph } from "./graph";
+import { renderSpatialMap } from "./spatial";
+import { labelFor } from "./cast";
+import type { AspectRatio, CastMemberId, ContinuityContext, SceneLock } from "./types";
 
 export interface PromptInput {
   readonly context: ContinuityContext;

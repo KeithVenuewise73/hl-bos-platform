@@ -1,7 +1,7 @@
 {
   "$comment": "Live milestone state. Version-controlled so it is auditable, and updated by the AI engineer as work lands. The Control Center reads this -- it does not guess progress.",
   "milestone": "Platform Foundation v1.0 \u2014 Enterprise Knowledge Graph live in production",
-  "phase": "SceneFlow AI Phase 1: the continuation engine (@hl-bos/sceneflow) is BUILT and VERIFIED LOCALLY \u2014 204 tests, no network, no provider key. It is the product described in section 66 of the brief rather than a prompt wrapper: cast understanding and CharacterLock (stable person_a..person_h ids, assigned left to right so re-running detection is reproducible, and NOT recompacted when a subject is removed \u2014 renumbering would repoint stored scenes at a different human being), SceneLock with a stated precedence (identity is absolute and not unlockable; an explicit user change beats a locked environment attribute; a locked attribute is inherited verbatim), a semantic spatial map, a structural interaction graph with reciprocal affection and a real intimacy ceiling, the story planner (7 presets, 1/3/6-scene plans derived by substitution rather than truncation so a 'Warm' user still gets six scenes), the continuity engine, and server-side prompt composition \u2014 the only place a prompt string is produced, and it is produced from structure, so nothing a user types is ever concatenated into it. THE SAFETY BOUNDARY IS ENFORCED CODE, NOT PROMPT TEXT. The interaction vocabulary is a CLOSED set, so an act with no member has nothing to compose into a request. Free text passes a deterministic pre-gate first; minors, non-consent framing and public figures are refused outright with no 'nearest alternative' offered and no recognised fragments handed back. The pipeline FAILS CLOSED: PipelineDeps.moderation is non-optional by type, so there is no moderation-off path to deploy by accident. Every refusal path charges 0 credits. This was verified by mutation, not assumed: disabling the policy pre-gate fails 3 tests, disabling the intimacy ceiling fails 3 tests. Four real defects were found by testing rather than by reading \u2014 leetspeak folding turned '18' into 'i8' so 'under 18' could never match; a bare 'minor' in the age table made 'make minor adjustments to the lighting' a hard refusal; reciprocal affection added a third edge when the user had already staged both directions by hand; and ranking interaction phrases by length made 'Have Person B kiss Person D while the others move closer' resolve to 'move closer', dropping the actual instruction. Phase 2 adds the DATABASE. Migration 0050 creates the `sceneflow` schema (10 tables), additively, and is UNAPPLIED to any Supabase project. It is user-owned via auth.uid() rather than tenant-owned, RLS is enabled AND forced on all 10, and there is no platform-admin read path \u2014 nobody operating this platform has a reason to look at a user's photographs. Five refusals are structural rather than conventional: a cast cannot become generatable without both attestations, a recorded consent wording and two adults; a user cannot forge a generated scene, mint a credit or award themselves an entitlement (no insert or update grant on scenes, jobs, credits or subscriptions \u2014 UPDATE on scenes is granted at COLUMN level and covers `favorite` alone); a scene cannot say READY with no image; a blocked request cannot cost a credit; and the credit ledger and moderation log are append-only by trigger, which holds against service-role too. Verified against a real PostgreSQL 16.13 by applying all 50 migrations from empty: 1056 pgTAP assertions, 0 failing (975 pre-existing, 81 new). The column-level grant was mutation-checked \u2014 widening it to a table-level UPDATE fails 4 tests. A cross-file test asserts the migration's enums against the engine's vocabulary so the two cannot drift silently. NOTHING GENERATES AN IMAGE. There is no image provider and no moderation provider in this repository, no app, no mobile client and no payments. The mock providers return mock:// paths and are labelled as mock. An owner decision on the client platform (React Native/Expo vs a Next.js app in this monorepo) is outstanding and does not block the engine, which is identical either way.",
+  "phase": "SceneFlow AI \u2014 SCOPE DECIDED: a PRIVATE TOOL, not a product for sale. That decision is what makes the free model licences usable, and it is recorded in the code (apps/control-center/src/lib/sceneflow-report.ts) rather than only in a chat log. The research behind it: every third-party image route requires consent from the people in a photograph, and the two most relevant require it DOCUMENTED \u2014 Black Forest Labs demands 'informed, documented consent' for input and output and separately forbids depicting a real person in a 'sexual, intimate...' manner without 'verified, documented, and informed consent'. Their word is 'intimate'; SceneFlow's Private Romance level sits inside it. So the brief's tick-box is below the bar our own supplier sets: routesUnder('self-attestation') returns exactly one route, our own hardware. A second trap is recorded as data and asserted by test: FLUX.1 [dev]'s non-commercial licence excludes BOTH 'revenue-generating activity' AND 'direct interactions with end users', so an app with users falls outside it even when free, and renting the same weights from a marketplace does not make them commercial. BUILT THIS PASS: packages/sceneflow/src/routes.ts (the image-route decision table, consent bar as data, self-honest about sourcing \u2014 bfl.ai and openai.com were egress-blocked so those entries carry secondHand: true and a test asserts they are flagged; per-image prices were NOT gathered and the cost lines say so rather than carrying an unchecked number), and a /sceneflow page in the Control Center that answers 'can this machine run it' by REUSING the Video Studio GPU probe rather than rebuilding it, plus what is left and who owns each item. Verified by running it, not by reading it: the console builds, serves, and the page was read back out of the served HTML. That found two real defects \u2014 a model note referring to 'the licence line on the self-hosted route', which does not exist on that page, and a requirement shown as '23.4GB' for a card sold as 24GB (the thresholds sit deliberately below the marketing size, because an RTX 4090 reports 24,564 MiB, not 24,576). A third was found by the build: packages/sceneflow used '.js' relative imports, which tsc and vitest accept and Next's bundler does not \u2014 the repo's convention is extensionless, and the package now follows it. STILL TRUE: nothing generates an image. No local runtime, no output checker. The page says so in its first sentence and canGenerateToday is typed as the literal false so it cannot drift to a hopeful boolean. Credits, entitlements and the RevenueCat surface remain built and tested but are DORMANT under private-use scope \u2014 kept, not deleted, because a later commercial decision would want them.",
   "engineer": "Claude (AI engineer)",
   "startedOn": "2026-07-16",
   "tasks": [
@@ -198,12 +198,12 @@
       "done": true
     },
     {
-      "title": "SceneFlow AI: decide the client platform \u2014 React Native/Expo (new toolchain in a Next.js monorepo) or a Next.js app alongside the other products",
+      "title": "SceneFlow AI: client platform \u2014 deferred. Under private-use scope the Control Center is the interface; a separate app (React Native or Next.js) is only needed if this ever becomes a product",
       "done": false
     },
     {
-      "title": "SceneFlow AI: choose an image-generation provider that permits romantic imagery of real uploaded people, and a moderation provider \u2014 both are account decisions, and the engine refuses to run without moderation",
-      "done": false
+      "title": "SceneFlow AI: provider decision \u2014 RESOLVED as self-hosted open weights under a private-use licence; no third-party account needed, and no hosted route is open to us without documented consent",
+      "done": true
     },
     {
       "title": "SceneFlow AI: `sceneflow` schema \u2014 migration 0050 (10 tables, RLS forced, append-only ledger + moderation log, column-level favourite grant); 81 pgTAP assertions green against a local PostgreSQL 16 with all 50 migrations applied from empty; UNAPPLIED to any Supabase project",
@@ -215,6 +215,26 @@
     },
     {
       "title": "Apply migration 0050 (sceneflow) to production \u2014 a separate CEO authorization; written and locally verified but UNAPPLIED, and there is no reason to apply it until a provider decision is made",
+      "done": false
+    },
+    {
+      "title": "SceneFlow AI: image-route decision table with the consent bar as data (packages/sceneflow/src/routes.ts), incl. the FLUX non-commercial 'direct interactions with end users' clause asserted by test",
+      "done": true
+    },
+    {
+      "title": "SceneFlow AI: /sceneflow page in the Control Center \u2014 can this machine run it, what is left, what was actually run; reuses the Video Studio GPU probe; verified against the served HTML",
+      "done": true
+    },
+    {
+      "title": "SceneFlow AI: confirm on the CEO's own Windows machine what GPU is present \u2014 the page answers this; it could not be answered from the Linux build container",
+      "done": false
+    },
+    {
+      "title": "SceneFlow AI: local image-model runtime (the piece that loads a model and returns a picture) \u2014 not written; needs a machine with a card to be verifiable rather than asserted",
+      "done": false
+    },
+    {
+      "title": "SceneFlow AI: local output checker, so the pipeline's fail-closed moderation requirement is met without a paid service",
       "done": false
     }
   ],
@@ -240,8 +260,8 @@
       "owner": "ai-engineer"
     },
     {
-      "title": "SceneFlow AI cannot generate anything until two accounts exist, and one of them is a content-policy decision",
-      "meaning": "The engine is finished and tested, but it has no model to call. Two things are needed, and both are yours because both are about what we are permitted and willing to do. First, an image-generation provider whose own terms allow romantic transformations of real, uploaded photographs of identifiable people \u2014 several major providers forbid exactly this, so the choice is a policy question before it is a technical one. Second, a moderation provider: the engine will not run without one, by design, because the filter we wrote is a keyword gate and a keyword gate alone is not a safeguard. Separately, and this is mine to flag rather than yours to fix: the consent checkbox records what a user states and verifies nothing. Before this product has real users, decide what happens when someone reports an image of themselves that they never agreed to \u2014 a takedown route and someone who answers it. The code cannot supply that.",
+      "title": "SceneFlow AI needs a graphics card, and that is the only thing still blocking a first image",
+      "meaning": "The provider question is settled and it cost nothing: we run an open model on our own hardware, for private use, which is licence-clean and means no photograph leaves your machine. What that needs is an NVIDIA card. Open SceneFlow in the console and it will tell you what this machine has \u2014 it runs the check itself and shows you what it ran. If there is a card with 8GB or more, I can build the rest. If there is not, renting a machine with one by the hour still works and stays within the same licence. Separately, and this is mine to flag rather than yours to fix: the consent checkbox records what a user states and verifies nothing. That matters far less for a private tool using your own photographs than it would for a product, but it becomes the central problem again the day anyone else uses this.",
       "owner": "ceo"
     }
   ]

@@ -2,8 +2,8 @@ import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { CAST_MEMBER_IDS, INTIMACY_LEVELS } from "./types.js";
-import { CREDIT_COSTS } from "./credits.js";
+import { CAST_MEMBER_IDS, INTIMACY_LEVELS } from "./types";
+import { CREDIT_COSTS } from "./credits";
 
 // Migration 0050 carries the engine's vocabulary as Postgres enums. A
 // translation layer between the two would be a place for drift to hide, and

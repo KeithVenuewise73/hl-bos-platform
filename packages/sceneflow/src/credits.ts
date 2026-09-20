@@ -8,7 +8,7 @@
 // The ledger is append-only. A refund is a second entry, never an edit of the
 // first — so "what did this cost me" always has an auditable answer.
 
-import type { GenerationType } from "./types.js";
+import type { GenerationType } from "./types";
 
 export type CreditEventType =
   "grant" | "debit" | "refund" | "subscription-renewal" | "introductory-grant";

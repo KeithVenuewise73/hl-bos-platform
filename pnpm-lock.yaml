@@ -129,6 +129,9 @@ importers:
       '@hl-bos/catalog':
         specifier: workspace:*
         version: link:../../packages/catalog
+      '@hl-bos/sceneflow':
+        specifier: workspace:*
+        version: link:../../packages/sceneflow
       '@hl-bos/video-studio':
         specifier: workspace:*
         version: link:../../packages/video-studio

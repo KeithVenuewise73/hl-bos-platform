@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { generateScene, type PipelineDeps } from "./pipeline.js";
-import { MockImageProvider, MockModerationProvider } from "./mock/providers.js";
-import { sampleCast, sampleSceneRequest } from "./mock/fixtures.js";
+import { generateScene, type PipelineDeps } from "./pipeline";
+import { MockImageProvider, MockModerationProvider } from "./mock/providers";
+import { sampleCast, sampleSceneRequest } from "./mock/fixtures";
 
 function deps(overrides: Partial<PipelineDeps> = {}): PipelineDeps {
   return {

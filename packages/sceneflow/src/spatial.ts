@@ -10,7 +10,7 @@ import {
   type CastMemberId,
   type SpatialMap,
   type SpatialSlot,
-} from "./types.js";
+} from "./types";
 
 const FOREGROUND_ORDER: Readonly<Record<SpatialSlot, number>> = {
   "far-left": 0,

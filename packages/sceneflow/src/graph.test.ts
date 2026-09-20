@@ -8,9 +8,9 @@ import {
   isValidGraph,
   renderGraph,
   validateGraph,
-} from "./graph.js";
-import { labelFor } from "./cast.js";
-import type { CastMemberId, SceneInteractionGraph } from "./types.js";
+} from "./graph";
+import { labelFor } from "./cast";
+import type { CastMemberId, SceneInteractionGraph } from "./types";
 
 const CAST: readonly CastMemberId[] = ["person_a", "person_b", "person_c", "person_d"];
 

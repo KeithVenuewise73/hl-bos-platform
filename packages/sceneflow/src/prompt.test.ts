@@ -1,9 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { composePrompt, composeVariationPrompt } from "./prompt.js";
-import { buildContinuityContext, castDescriptions } from "./continuity.js";
-import { DEFAULT_SCENE_LOCK, unlock } from "./sceneLock.js";
-import { sampleCast, sampleScene } from "./mock/fixtures.js";
-import type { SceneLock } from "./types.js";
+import { composePrompt, composeVariationPrompt } from "./prompt";
+import { buildContinuityContext, castDescriptions } from "./continuity";
+import { DEFAULT_SCENE_LOCK, unlock } from "./sceneLock";
+import { sampleCast, sampleScene } from "./mock/fixtures";
+import type { SceneLock } from "./types";
 
 const cast = sampleCast(4);
 const parent = sampleScene(cast);

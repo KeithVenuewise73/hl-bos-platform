@@ -5,7 +5,7 @@
 // even if it survives every text filter. That ordering matters: the filter is a
 // second line, not the first.
 
-import type { CastMemberId, IntimacyLevel, InteractionType } from "./types.js";
+import type { CastMemberId, IntimacyLevel, InteractionType } from "./types";
 
 export interface InteractionSpec {
   readonly type: InteractionType;

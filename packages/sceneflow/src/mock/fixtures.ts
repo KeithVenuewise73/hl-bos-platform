@@ -2,11 +2,11 @@
 // behaviour, focus branching and bystander handling are actually exercised,
 // rather than a two-person case that hides every group bug.
 
-import { buildCast } from "../cast.js";
-import { DEFAULT_SCENE_LOCK } from "../sceneLock.js";
-import { DEFAULT_ASPECT_RATIO } from "../types.js";
-import type { Cast, SceneState } from "../types.js";
-import type { SceneRequest } from "../pipeline.js";
+import { buildCast } from "../cast";
+import { DEFAULT_SCENE_LOCK } from "../sceneLock";
+import { DEFAULT_ASPECT_RATIO } from "../types";
+import type { Cast, SceneState } from "../types";
+import type { SceneRequest } from "../pipeline";
 
 export function sampleCast(size = 4): Cast {
   const detected = Array.from({ length: size }, (_, i) => ({
