@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { direct, type DirectorInput } from "./sceneflow-direct";
+import { direct, type DirectorInput } from "./direct";
 
 function input(overrides: Partial<DirectorInput> = {}): DirectorInput {
   return {

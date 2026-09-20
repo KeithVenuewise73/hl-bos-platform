@@ -4,7 +4,7 @@ import { randomBytes } from "node:crypto";
 import { mkdir, readFile, unlink, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 
-import { acceptPhoto, photoPath, type PhotoVerdict } from "@/lib/sceneflow-upload";
+import { acceptPhoto, photoPath, type PhotoVerdict } from "@/lib/upload";
 import { REPO_ROOT } from "@/lib/shell";
 
 /**

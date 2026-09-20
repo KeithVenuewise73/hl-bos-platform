@@ -1,6 +1,8 @@
+import { SceneFlowLaunch } from "@/components/SceneFlowLaunch";
 import { detectGpu } from "@/lib/gpu";
 import type { GpuVerdict } from "@/lib/gpu-report";
 import { readinessFrom } from "@/lib/sceneflow-report";
+import { sceneflowStatus } from "@/lib/sceneflow-launch";
 
 export const dynamic = "force-dynamic";
 
@@ -25,7 +27,10 @@ export default async function SceneFlowPage() {
   // The machine is asked once. No credential is read: no image provider is
   // wired to anything, so no environment variable could change this answer,
   // and reading one would imply it could.
-  const readiness = readinessFrom(await detectGpu());
+  const [readiness, sceneflow] = await Promise.all([
+    detectGpu().then(readinessFrom),
+    sceneflowStatus(),
+  ]);
 
   return (
     <main style={{ maxWidth: 1100, margin: "0 auto", padding: "28px 24px 64px" }}>
@@ -56,19 +61,18 @@ export default async function SceneFlowPage() {
           part that actually loads a model and returns an image is not written. This
           page tells you whether this machine could run one, and what is left to do.
         </p>
-        <p style={{ margin: "10px 0 0", fontSize: 13 }}>
-          <a href="/sceneflow/direct" style={{ color: "#58a6ff" }}>
-            Direct a scene
-          </a>{" "}
-          ·{" "}
-          <a href="/sceneflow/story" style={{ color: "#58a6ff" }}>
-            Plan a story
-          </a>{" "}
-          <span style={{ color: "#8b949e" }}>
-            — build the cast and the moment, and see exactly what would be sent when a
-            model is connected.
-          </span>
+        <p style={{ margin: "10px 0 0", color: "#8b949e", fontSize: 13 }}>
+          Directing a scene and planning a story both work now: you build the cast and
+          the moment and see exactly what would be sent when a model is connected. They
+          live in SceneFlow itself — start it below.
         </p>
+      </section>
+
+      <section style={{ ...CARD, marginBottom: 14 }}>
+        <h2 style={{ margin: "0 0 10px", fontSize: 15 }}>
+          Open it, including on your phone
+        </h2>
+        <SceneFlowLaunch initial={sceneflow} />
       </section>
 
       <section style={{ ...CARD, marginBottom: 14 }}>

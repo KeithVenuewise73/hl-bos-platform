@@ -4,9 +4,9 @@ import { useState, useTransition } from "react";
 
 import { directScene, generateScene } from "@/actions/sceneflow";
 import { PhotoPicker } from "@/components/PhotoPicker";
-import type { StoredPhoto } from "@/lib/sceneflow-photos";
-import type { DirectorResult } from "@/lib/sceneflow-direct";
-import type { WorkerOutcome } from "@/lib/sceneflow-worker";
+import type { StoredPhoto } from "@/lib/photos";
+import type { DirectorResult } from "@/lib/direct";
+import type { WorkerOutcome } from "@/lib/worker";
 
 const INTERACTIONS: ReadonlyArray<{ value: string; label: string; level: string }> = [
   { value: "talk", label: "Talk", level: "warm" },

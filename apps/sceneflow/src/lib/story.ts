@@ -6,7 +6,7 @@
  * product's actual promise — turn one moment into an entire story — was
  * invisible. This is the bridge.
  *
- * Pure, like sceneflow-direct: no I/O, no model. The server action is a thin
+ * Pure, like lib/direct: no I/O, no model. The server action is a thin
  * wrapper so each panel's composition is testable without a browser.
  */
 

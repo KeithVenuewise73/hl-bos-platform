@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { STORY_PRESETS, planStoryScenes, type StoryInput } from "./sceneflow-story";
+import { STORY_PRESETS, planStoryScenes, type StoryInput } from "./story";
 
 function input(overrides: Partial<StoryInput> = {}): StoryInput {
   return {

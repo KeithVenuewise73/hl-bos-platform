@@ -295,6 +295,37 @@ export const APPLICATIONS: ApplicationRecord[] = [
       "apps/ats-resume-optimizer + packages/ats-resume; migration 0048 written UNAPPLIED; verified by running the app (generate, edit, validate, export)",
   },
   {
+    key: "sceneflow",
+    name: "SceneFlow",
+    description:
+      "Direct a scene, or plan a story, from your own photographs: cast, focus pair, interaction, intimacy ceiling, reciprocal affection, setting, wardrobe and mood, with the prompt composed on the server from the structured choices and never accepted from the browser. Deliberately a SEPARATE APP from the Development Control Center: the console can run git, pnpm and PowerShell and therefore may only ever listen on localhost, while this carries no command surface beyond the local image worker and can be opened from a phone on the home network behind an access code.",
+    category: "executive_tooling",
+    repository: REPO,
+    owner: "KeithVenuewise73",
+    executiveOwner: "Keith Herman (CEO)",
+    currentBranch: "claude/sceneflow-ai-mvp-rcshk4",
+    environment: "local",
+    developmentStatus: "built_undeployed",
+    deploymentStatus: "not_deployed",
+    productionUrl: null,
+    stagingUrl: null,
+    localUrl: "http://localhost:4100",
+    // Deliberately null: migration 0050 is written and unapplied, and this app
+    // stores nothing outside the machine it runs on.
+    supabaseProject: null,
+    version: "0.1.0",
+    health: "unknown",
+    hosting: "none yet",
+    dependencies: ["@hl-bos/sceneflow"],
+    reusableModules: [],
+    softwareFactoryIntegration:
+      "None. The engine (@hl-bos/sceneflow) is a standalone capability package with no platform dependencies; this app is its interface and stores nothing outside the operator's own machine.",
+    notes:
+      "PRIVATE TOOL, not a product for sale — that scope is what makes the open-weight model licences usable. It composes the instruction and produces NO IMAGE: no image model is connected. Access is guarded by a code in .sceneflow/access-code.txt, enforced in Node middleware so a locked request is never rendered at all; the first version of that gate lived in the layout and leaked the page in the response payload, which is why there is a verification script that reads the served bytes. Photographs stay under .sceneflow/, which is gitignored.",
+    evidence:
+      "apps/sceneflow + packages/sceneflow; 16/16 access checks and 16/16 director checks against the running app (scripts/local-test/verify-sceneflow-access.cjs, verify-sceneflow-director.cjs); no model checkpoint has ever been loaded",
+  },
+  {
     key: "control-center",
     name: "CEO Development Control Center",
     description:

@@ -2,6 +2,27 @@
 
 Run Herman Legacy Software Ventures without a terminal.
 
+## Getting it onto a computer the first time
+
+Download **one file** and double-click it:
+
+<https://raw.githubusercontent.com/KeithVenuewise73/hl-bos-platform/main/scripts/install-hl-bos.bat>
+
+(Right-click the link, **Save link as…**, then double-click what lands in
+Downloads.)
+
+It puts HL-BOS in your home folder, connects it to GitHub so it keeps itself up
+to date, and starts it. From then on you only ever use the launcher below —
+this file is needed exactly once.
+
+It needs Node and nothing else. If Node is missing it says so and opens the one
+installer you need. It **never** writes into a folder that already has
+something in it: if there is already an `HL-BOS` folder that is not this, it
+stops and says so rather than overwriting.
+
+Without Git it still works, by downloading a snapshot — and says plainly that
+the copy cannot update itself until Git is installed.
+
 ## Start it
 
 Double-click **`scripts\control-center.bat`**. It opens at http://localhost:4000.

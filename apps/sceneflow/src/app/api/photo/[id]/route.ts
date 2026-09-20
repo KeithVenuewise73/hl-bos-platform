@@ -1,5 +1,6 @@
-import { readPhoto } from "@/lib/sceneflow-photos";
-import { detectFormat } from "@/lib/sceneflow-upload";
+import { allowed } from "@/lib/gate";
+import { readPhoto } from "@/lib/photos";
+import { detectFormat } from "@/lib/upload";
 
 /**
  * Serves an uploaded photograph back to the page that uploaded it.
@@ -12,6 +13,11 @@ import { detectFormat } from "@/lib/sceneflow-upload";
  * The content type is taken from the BYTES, not from the request. Echoing a
  * caller-supplied type back as a Content-Type header is how a stored file gets
  * served as something it is not.
+ *
+ * It checks the access code itself. This route has a URL of its own and never
+ * renders a layout, so the unlock screen in front of the pages does not cover
+ * it -- and an id that leaked into a phone's history would otherwise be a
+ * photograph anyone on the network could fetch.
  */
 
 const TYPES: Readonly<Record<string, string>> = {
@@ -25,6 +31,8 @@ export async function GET(
   request: Request,
   context: { params: Promise<{ id: string }> },
 ): Promise<Response> {
+  if (!(await allowed())) return new Response("Not found", { status: 404 });
+
   const { id } = await context.params;
   const extension = new URL(request.url).searchParams.get("ext") ?? "";
   const bytes = await readPhoto(id, extension);

@@ -4,8 +4,8 @@ import { useState, useTransition } from "react";
 
 import { planStory } from "@/actions/sceneflow";
 import { PhotoPicker } from "@/components/PhotoPicker";
-import { STORY_PRESETS, type StoryResult } from "@/lib/sceneflow-story";
-import type { StoredPhoto } from "@/lib/sceneflow-photos";
+import { STORY_PRESETS, type StoryResult } from "@/lib/story";
+import type { StoredPhoto } from "@/lib/photos";
 
 const LEVELS = [
   { value: "warm", label: "Warm" },
