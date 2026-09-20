@@ -45,6 +45,12 @@ export interface StoryInput {
   readonly setting: string;
   readonly wardrobe: string;
   readonly customDirection: string;
+  /**
+   * The photographs, first one being the scene continued from and the rest
+   * extra views of the same people (brief section 34). Paths relative to the
+   * repo root, as the worker will be given them.
+   */
+  readonly photoPaths?: readonly string[];
 }
 
 export interface StoryPanel {
@@ -55,6 +61,10 @@ export interface StoryPanel {
   readonly placements: readonly string[];
   readonly intimacy: IntimacyLevel;
   readonly prompt: string;
+  /** The photograph this panel continues from. Empty when none was supplied. */
+  readonly sourceImage: string;
+  /** Extra views of the same people, for identity. */
+  readonly referenceImages: readonly string[];
 }
 
 export type StoryResult =
@@ -69,6 +79,8 @@ export type StoryResult =
       readonly kind: "planned";
       readonly title: string;
       readonly panels: readonly StoryPanel[];
+      /** How many photographs the whole story was built from. */
+      readonly photoCount: number;
       /** Literal false: no image model is connected to this repository. */
       readonly modelConnected: false;
     };
@@ -163,6 +175,10 @@ export function planStoryScenes(input: StoryInput): StoryResult {
     ceiling: input.intimacy,
   });
 
+  const photos = input.photoPaths ?? [];
+  const source = photos[0] ?? "";
+  const references = photos.slice(1);
+
   const pair = castIds.slice(0, 2);
   const panels: StoryPanel[] = [];
   let parent = openingScene(castIds, input);
@@ -240,6 +256,12 @@ export function planStoryScenes(input: StoryInput): StoryResult {
         (id) => `${labelFor(id)} — ${context.currentSpatialMap[id] ?? "center"}`,
       ),
       prompt: prompt.text,
+      // EVERY panel carries the photographs, not just the first. Panel six is
+      // still meant to be these people; handing the source only to panel one
+      // and letting the rest chain off each other is how a cast drifts into
+      // strangers by the end of a story.
+      sourceImage: source,
+      referenceImages: references,
     });
 
     parent = nextSceneState(context, parent);
@@ -250,6 +272,7 @@ export function planStoryScenes(input: StoryInput): StoryResult {
     kind: "planned",
     title: plan.title,
     panels,
+    photoCount: photos.length,
     modelConnected: false,
   };
 }

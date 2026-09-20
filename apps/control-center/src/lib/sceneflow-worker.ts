@@ -35,6 +35,8 @@ export interface WorkerJob {
   readonly outputPath: string;
   /** The photograph the scene continues from. Empty for a fresh generation. */
   readonly sourceImage?: string;
+  /** Extra views of the same people, for identity conditioning. */
+  readonly referenceImages?: readonly string[];
   readonly width?: number;
   readonly height?: number;
   /** Set only by a caller that has run the safety boundary. */
@@ -76,6 +78,7 @@ export async function generateLocally(job: WorkerJob): Promise<WorkerOutcome> {
       prompt: job.prompt,
       output_path: job.outputPath,
       source_image: job.sourceImage ?? "",
+      reference_images: job.referenceImages ?? [],
       width: job.width ?? 832,
       height: job.height ?? 1040,
       safety_checked: true,

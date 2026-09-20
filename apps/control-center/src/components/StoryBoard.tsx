@@ -3,7 +3,9 @@
 import { useState, useTransition } from "react";
 
 import { planStory } from "@/actions/sceneflow";
+import { PhotoPicker } from "@/components/PhotoPicker";
 import { STORY_PRESETS, type StoryResult } from "@/lib/sceneflow-story";
+import type { StoredPhoto } from "@/lib/sceneflow-photos";
 
 const LEVELS = [
   { value: "warm", label: "Warm" },
@@ -47,6 +49,7 @@ export function StoryBoard() {
   const [direction, setDirection] = useState("");
   const [adult, setAdult] = useState(false);
   const [permission, setPermission] = useState(false);
+  const [photos, setPhotos] = useState<readonly StoredPhoto[]>([]);
   const [result, setResult] = useState<StoryResult | null>(null);
   const [pending, start] = useTransition();
 
@@ -66,6 +69,7 @@ export function StoryBoard() {
           setting,
           wardrobe,
           customDirection: direction,
+          photoPaths: photos.map((p) => p.relativePath),
         }),
       );
     });
@@ -75,6 +79,16 @@ export function StoryBoard() {
     <div style={{ display: "grid", gap: 14 }}>
       <section style={CARD}>
         <h2 style={{ margin: "0 0 12px", fontSize: 15 }}>Plan a story</h2>
+
+        <div
+          style={{
+            marginBottom: 14,
+            paddingBottom: 14,
+            borderBottom: "1px solid #262c36",
+          }}
+        >
+          <PhotoPicker photos={photos} onChange={setPhotos} />
+        </div>
 
         <div style={{ display: "grid", gap: 12, gridTemplateColumns: "1fr 1fr" }}>
           <div>
@@ -281,10 +295,18 @@ function StoryResultView({ result }: { result: StoryResult }) {
     <section style={CARD}>
       <h2 style={{ margin: "0 0 4px", fontSize: 15 }}>{result.title}</h2>
       <p style={{ margin: "0 0 16px", fontSize: 12.5, color: "#d29922" }}>
-        {result.panels.length} scene{result.panels.length === 1 ? "" : "s"} planned. No
-        pictures were made — this is the story the engine built, and each scene
+        {result.panels.length} scene{result.panels.length === 1 ? "" : "s"} planned from{" "}
+        {result.photoCount === 0
+          ? "no photograph"
+          : `${result.photoCount} photograph${result.photoCount === 1 ? "" : "s"}`}
+        . No pictures were made — this is the story the engine built, and each scene
         continues from the one before it.
       </p>
+      {result.photoCount === 0 && (
+        <p style={{ margin: "-8px 0 16px", fontSize: 12.5, color: "#8b949e" }}>
+          Add a photograph above and every scene will be built to continue it.
+        </p>
+      )}
 
       <div style={{ display: "grid", gap: 12 }}>
         {result.panels.map((panel) => (

@@ -151,3 +151,52 @@ describe("reciprocal affection across a story", () => {
     expect(offText).not.toContain("(returned)");
   });
 });
+
+describe("the photographs reach every panel", () => {
+  const photos = [
+    ".sceneflow/uploads/aaa.png",
+    ".sceneflow/uploads/bbb.png",
+    ".sceneflow/uploads/ccc.png",
+  ];
+
+  it("treats the first photo as the scene and the rest as extra views", () => {
+    const out = planStoryScenes(input({ photoPaths: photos }));
+    if (out.kind !== "planned") throw new Error("expected a plan");
+    for (const panel of out.panels) {
+      expect(panel.sourceImage).toBe(".sceneflow/uploads/aaa.png");
+      expect(panel.referenceImages).toEqual(photos.slice(1));
+    }
+  });
+
+  it("gives the photographs to panel six, not only panel one", () => {
+    // Handing the source to the first panel and letting the rest chain off each
+    // other is how a cast drifts into strangers by the end of a story.
+    const out = planStoryScenes(input({ scenes: 6, photoPaths: photos }));
+    if (out.kind !== "planned") throw new Error("expected a plan");
+    expect(out.panels[5]?.sourceImage).toBe(".sceneflow/uploads/aaa.png");
+    expect(out.panels[5]?.referenceImages).toHaveLength(2);
+  });
+
+  it("reports how many photographs the story was built from", () => {
+    const out = planStoryScenes(input({ photoPaths: photos }));
+    if (out.kind !== "planned") throw new Error("expected a plan");
+    expect(out.photoCount).toBe(3);
+  });
+
+  it("still plans a story with no photograph, and says there was none", () => {
+    const out = planStoryScenes(input());
+    if (out.kind !== "planned") throw new Error("expected a plan");
+    expect(out.photoCount).toBe(0);
+    for (const panel of out.panels) {
+      expect(panel.sourceImage).toBe("");
+      expect(panel.referenceImages).toEqual([]);
+    }
+  });
+
+  it("works with a single photograph and no extra views", () => {
+    const out = planStoryScenes(input({ photoPaths: [photos[0]!] }));
+    if (out.kind !== "planned") throw new Error("expected a plan");
+    expect(out.panels[0]?.sourceImage).toBe(photos[0]);
+    expect(out.panels[0]?.referenceImages).toEqual([]);
+  });
+});
