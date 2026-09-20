@@ -1,11 +1,5 @@
 import { describe, expect, it } from "vitest";
-import {
-  MAX_BYTES,
-  MIN_EDGE,
-  acceptPhoto,
-  detectFormat,
-  photoPath,
-} from "./sceneflow-upload";
+import { MAX_BYTES, MIN_EDGE, acceptPhoto, detectFormat, photoPath } from "./upload";
 
 /** A PNG header with a real IHDR, which is all the validator reads. */
 function png(width: number, height: number): Uint8Array {

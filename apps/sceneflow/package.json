@@ -1,0 +1,31 @@
+{
+  "name": "@hl-bos/sceneflow-app",
+  "version": "0.1.0",
+  "private": true,
+  "description": "SceneFlow — direct a scene or plan a story from your own photographs, on your own machine. Separate from the Development Control Center on purpose: the console can run git and package managers and so may only ever listen on localhost, while this app runs nothing but the local image worker and can therefore be opened from a phone on the home network.",
+  "type": "module",
+  "scripts": {
+    "dev": "next dev --port 4100",
+    "build": "next build",
+    "start": "next start --port 4100",
+    "start:network": "next start --port 4100 --hostname 0.0.0.0",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint .",
+    "test": "vitest run",
+    "clean": "rm -rf .next dist *.tsbuildinfo"
+  },
+  "dependencies": {
+    "@hl-bos/sceneflow": "workspace:*",
+    "next": "catalog:",
+    "react": "catalog:",
+    "react-dom": "catalog:",
+    "server-only": "catalog:"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "@types/react": "catalog:",
+    "@types/react-dom": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  }
+}

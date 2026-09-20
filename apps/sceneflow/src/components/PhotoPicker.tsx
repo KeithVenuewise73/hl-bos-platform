@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 
 import { uploadPhoto } from "@/actions/sceneflow";
-import type { StoredPhoto } from "@/lib/sceneflow-photos";
+import type { StoredPhoto } from "@/lib/photos";
 
 /**
  * Choosing the photographs a story is built from.
@@ -84,7 +84,7 @@ export function PhotoPicker({
               {/* A plain img, not next/image: served from a private API route on
                   this machine, not from a public path. */}
               <img
-                src={`/api/sceneflow/photo/${photo.id}?ext=${photo.relativePath.split(".").pop() ?? ""}`}
+                src={`/api/photo/${photo.id}?ext=${photo.relativePath.split(".").pop() ?? ""}`}
                 alt={
                   index === 0
                     ? "The scene being continued"

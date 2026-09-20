@@ -185,6 +185,27 @@ const ASSETS: Asset[] = [
     evidence: "apps/control-center",
   },
   {
+    id: "app.sceneflow",
+    kind: "application",
+    name: "SceneFlow",
+    summary:
+      "Builds the cast and the moment from the operator's own photographs and composes the instruction on the server from the structured choices — never from a prompt string the browser sent, which would be a way round the safety boundary. A separate app from the Development Control Center on purpose: the console can run git and package managers and so may only listen on localhost, while this runs nothing but the local image worker and can be opened from a phone behind an access code.",
+    maturity: "built_undeployed",
+    reuse: ["internal_only"],
+    owner: "Herman Legacy Software Ventures",
+    layer: "HL-BOS",
+    key: "sceneflow",
+    location: "apps/sceneflow",
+    tags: ["sceneflow", "local-first", "private", "safety-gated"],
+    relationships: [
+      { kind: "uses", to: "pkg.sceneflow" },
+      { kind: "uses", to: "mod.sceneflow-local" },
+      { kind: "owned_by", to: "repo.hl-bos-platform" },
+    ],
+    evidence:
+      "apps/sceneflow; 16 access checks and 16 director checks against the running app; composes instructions only — no image model is connected",
+  },
+  {
     id: "app.ats-resume-optimizer",
     kind: "application",
     name: "ATS Resume Optimizer",
@@ -327,7 +348,7 @@ const ASSETS: Asset[] = [
     kind: "application",
     name: "HighlightAI Football",
     summary:
-      "Upload the game, pick the player, get the highlights. Player detection, tracking, play segmentation and highlight generation for youth and high-school football film. Assembled on HL-BOS identity/tenancy/permissions/audit/events; adds the `highlight` schema and the @hl-bos/highlight-football engine. Built and tested locally; runs in DEMO mode \u2014 no CV model installed, no real film processed, migration 0049 unapplied.",
+      "Upload the game, pick the player, get the highlights. Player detection, tracking, play segmentation and highlight generation for youth and high-school football film. Assembled on HL-BOS identity/tenancy/permissions/audit/events; adds the `highlight` schema and the @hl-bos/highlight-football engine. Built and tested locally; runs in DEMO mode — no CV model installed, no real film processed, migration 0049 unapplied.",
     maturity: "built_undeployed",
     reuse: ["commercial"],
     owner: "Herman Legacy Platform",
@@ -349,7 +370,7 @@ const ASSETS: Asset[] = [
     kind: "package",
     name: "@hl-bos/highlight-football",
     summary:
-      "The football intelligence behind HighlightAI: lighting-tolerant uniform colour matching, temporal jersey-number voting, player re-identification, motion-based play segmentation and snap detection, position-aware involvement scoring, clip windowing, smart crop and reel assembly. Pure and deterministic \u2014 no network, no GPU, no media toolchain \u2014 so every product decision is testable without a video card.",
+      "The football intelligence behind HighlightAI: lighting-tolerant uniform colour matching, temporal jersey-number voting, player re-identification, motion-based play segmentation and snap detection, position-aware involvement scoring, clip windowing, smart crop and reel assembly. Pure and deterministic — no network, no GPU, no media toolchain — so every product decision is testable without a video card.",
     maturity: "live",
     reuse: ["reusable"],
     owner: "Herman Legacy Platform",
@@ -366,7 +387,7 @@ const ASSETS: Asset[] = [
     kind: "package",
     name: "@hl-bos/sceneflow",
     summary:
-      "The SceneFlow AI continuation engine: cast understanding and CharacterLock, SceneLock inheritance, the semantic spatial map, the structural interaction graph, reciprocal affection, the story planner, the continuity engine and server-side prompt composition \u2014 plus the deterministic real-person safety boundary that every request passes before a provider is contacted. Pure and deterministic: no network, no model, no secrets, so both the continuity rules and the safety gate are testable without a provider key.",
+      "The SceneFlow AI continuation engine: cast understanding and CharacterLock, SceneLock inheritance, the semantic spatial map, the structural interaction graph, reciprocal affection, the story planner, the continuity engine and server-side prompt composition — plus the deterministic real-person safety boundary that every request passes before a provider is contacted. Pure and deterministic: no network, no model, no secrets, so both the continuity rules and the safety gate are testable without a provider key.",
     maturity: "built_undeployed",
     reuse: ["reusable"],
     owner: "Herman Legacy Platform",
@@ -386,7 +407,7 @@ const ASSETS: Asset[] = [
     kind: "module",
     name: "sceneflow-local (image worker)",
     summary:
-      "The local image worker for SceneFlow: loads an openly licensed image model on the operator's own machine and returns a picture. No photograph leaves the machine and nothing is metered. Imports with no model stack installed, so its job contract, model choice and every failure path are testable on a laptop with no GPU. There is NO silent fallback \u2014 a missing model raises ModelUnavailableError rather than producing a placeholder. 27 tests, including a cross-language contract asserting it loads the same model the console says it will. The generation path itself is UNVERIFIED: no checkpoint has been loaded.",
+      "The local image worker for SceneFlow: loads an openly licensed image model on the operator's own machine and returns a picture. No photograph leaves the machine and nothing is metered. Imports with no model stack installed, so its job contract, model choice and every failure path are testable on a laptop with no GPU. There is NO silent fallback — a missing model raises ModelUnavailableError rather than producing a placeholder. 27 tests, including a cross-language contract asserting it loads the same model the console says it will. The generation path itself is UNVERIFIED: no checkpoint has been loaded.",
     maturity: "built_undeployed",
     reuse: ["internal_only"],
     owner: "Herman Legacy Platform",
@@ -1291,7 +1312,7 @@ const ASSETS: Asset[] = [
     "HighlightAI Football",
     23,
     "HL-BOS",
-    "Game film, plays, player tracks, detections, jersey readings, events, involvement, highlight candidates, clips, reels and exports \u2014 plus the consent records without which nothing leaves private. Written ONLY by the trusted worker path: no tenant write grant or policy exists on any vision output.",
+    "Game film, plays, player tracks, detections, jersey readings, events, involvement, highlight candidates, clips, reels and exports — plus the consent records without which nothing leaves private. Written ONLY by the trusted worker path: no tenant write grant or policy exists on any vision output.",
   ),
 
   ...db(
@@ -1299,7 +1320,7 @@ const ASSETS: Asset[] = [
     "SceneFlow AI",
     10,
     "HL-BOS",
-    "Casts and the adults in them, reference photographs, stories, generated scenes, jobs, moderation events, credits and subscriptions. User-owned rather than tenant-owned (auth.uid()), RLS enabled AND forced on all 10 tables, with no platform-admin read path. Scenes, jobs, credits and subscriptions have NO insert or update grant for `authenticated` \u2014 a user cannot forge a generated image, mint a credit or award themselves an entitlement; UPDATE on scenes is granted at COLUMN level and covers `favorite` alone. The credit ledger and the moderation log are append-only by trigger, which holds against service-role too.",
+    "Casts and the adults in them, reference photographs, stories, generated scenes, jobs, moderation events, credits and subscriptions. User-owned rather than tenant-owned (auth.uid()), RLS enabled AND forced on all 10 tables, with no platform-admin read path. Scenes, jobs, credits and subscriptions have NO insert or update grant for `authenticated` — a user cannot forge a generated image, mint a credit or award themselves an entitlement; UPDATE on scenes is granted at COLUMN level and covers `favorite` alone. The credit ledger and the moderation log are append-only by trigger, which holds against service-role too.",
   ),
 
   // ======================================================================
