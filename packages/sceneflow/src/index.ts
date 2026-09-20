@@ -19,5 +19,6 @@ export * from "./prompt.js";
 export * from "./credits.js";
 export * from "./qa.js";
 export * from "./providers.js";
+export * from "./routes.js";
 export * from "./pipeline.js";
 export * from "./storyboard.js";
