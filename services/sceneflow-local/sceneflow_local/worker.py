@@ -146,12 +146,22 @@ DETECT = _Detect()
 def doctor(
     vram_mb: int | None | _Detect = DETECT,
     ram_mb: int | None | _Detect = DETECT,
+    has_module: Any = None,
 ) -> dict[str, Any]:
+    """What this machine would do, and what is stopping it.
+
+    `has_module` is injectable for the same reason the card and memory probes
+    are: without it, a test asserting "the libraries are missing" passes on a
+    bare machine and FAILS on a machine where they are installed -- which is
+    the machine that matters. Three tests here did exactly that until the
+    libraries were installed and run against for the first time.
+    """
     vram = detect_vram_mb() if isinstance(vram_mb, _Detect) else vram_mb
     ram = detect_ram_mb() if isinstance(ram_mb, _Detect) else ram_mb
     plan = plan_generation(vram, ram)
-    torch_present = _has("torch")
-    diffusers_present = _has("diffusers")
+    present = has_module if has_module is not None else _has
+    torch_present = present("torch")
+    diffusers_present = present("diffusers")
     tier = plan.tier if plan else None
     return {
         "vram_mb": vram,

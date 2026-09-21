@@ -150,7 +150,7 @@ class TestVramDetection:
 
 class TestDoctor:
     def test_says_plainly_why_it_cannot_generate(self):
-        report = doctor(vram_mb=0)
+        report = doctor(vram_mb=0, ram_mb=0)
         assert report["can_generate"] is False
         assert report["why_not"]
 
@@ -160,9 +160,17 @@ class TestDoctor:
         assert report["non_commercial"] is True
 
     def test_reports_the_libraries_as_missing_when_they_are(self):
-        report = doctor(vram_mb=24_564)
+        # Injected, not inherited from whatever this machine happens to have.
+        # Read from the host, this passed on a bare box and failed on a
+        # properly equipped one -- the wrong way round.
+        report = doctor(vram_mb=24_564, has_module=lambda _: False)
         assert report["can_generate"] is False
         assert "libraries are not installed" in report["why_not"]
+
+    def test_reports_it_can_generate_when_the_libraries_are_there(self):
+        report = doctor(vram_mb=24_564, has_module=lambda _: True)
+        assert report["can_generate"] is True
+        assert report["why_not"] == ""
 
     def test_is_json_serialisable_because_the_console_parses_it(self):
         json.dumps(doctor(vram_mb=16_384))
@@ -299,9 +307,16 @@ class TestDoctorOnAMachineWithNoCard:
         assert doctor(vram_mb=None, ram_mb=16_000)["holds_a_face"] == "weak"
 
     def test_the_only_thing_missing_is_the_libraries(self):
-        report = doctor(vram_mb=None, ram_mb=16_000)
+        report = doctor(vram_mb=None, ram_mb=16_000, has_module=lambda _: False)
         assert report["can_generate"] is False
         assert "libraries are not installed" in report["why_not"]
+
+    def test_with_the_libraries_installed_it_can_generate_on_the_processor(self):
+        # Verified for real: torch 2.14 and diffusers 0.40 were installed and
+        # doctor() reported exactly this.
+        report = doctor(vram_mb=None, ram_mb=16_000, has_module=lambda _: True)
+        assert report["can_generate"] is True
+        assert report["device"] == "cpu"
 
     def test_a_card_is_still_preferred_when_present(self):
         report = doctor(vram_mb=24_000, ram_mb=64_000)
@@ -312,3 +327,110 @@ class TestDoctorOnAMachineWithNoCard:
         assert "processor model needs" in doctor(vram_mb=None, ram_mb=2_048)["why_not"]
         assert "video memory" in doctor(vram_mb=4_096, ram_mb=1_024)["why_not"]
         assert "no readable system memory" in doctor(vram_mb=None, ram_mb=None)["why_not"]
+
+
+class _RecordingPipe:
+    """Stands in for a diffusers pipeline and remembers how it was called.
+
+    The generation call is the one place where a wrong argument is invisible:
+    a turbo model given thirty steps still returns a picture, just a slow one,
+    and given guidance 7.5 it returns mush. Neither raises. So the arguments
+    are asserted rather than trusted.
+    """
+
+    def __init__(self) -> None:
+        self.calls: list[dict] = []
+
+    def __call__(self, **kwargs):
+        self.calls.append(kwargs)
+
+        class _Image:
+            @staticmethod
+            def save(path: str) -> None:
+                import pathlib
+
+                pathlib.Path(path).parent.mkdir(parents=True, exist_ok=True)
+                pathlib.Path(path).write_bytes(b"\x89PNG\r\n\x1a\n")
+
+        class _Result:
+            images = [_Image()]
+
+        return _Result()
+
+
+class TestWhatIsActuallyAskedOfTheModel:
+    def _generated(self, ram_mb: int, **job_overrides):
+        adapter = LocalImageAdapter(vram_mb=None, ram_mb=ram_mb)
+        pipe = _RecordingPipe()
+        adapter._pipe = pipe  # the loader is what needs a checkpoint; this does not
+        outcome = adapter.generate(
+            GenerationJob.from_dict(job(output_path="/tmp/sceneflow-test/rec.png", **job_overrides))
+        )
+        return outcome, pipe.calls[0]
+
+    def test_it_asks_for_four_steps_not_thirty(self):
+        _, call = self._generated(16_000)
+        assert call["num_inference_steps"] == 4
+
+    def test_it_asks_for_no_guidance(self):
+        # Turbo models are trained for 0.0. At 7.5 they produce mush, and mush
+        # does not raise -- which is exactly why this is asserted.
+        _, call = self._generated(16_000)
+        assert call["guidance_scale"] == 0.0
+
+    def test_it_never_asks_a_512_model_for_more_than_512(self):
+        _, call = self._generated(16_000)
+        assert max(call["width"], call["height"]) <= 512
+
+    def test_it_passes_the_composed_prompt_untouched(self):
+        # The prompt is composed server-side by the engine and must arrive as
+        # written: the safety boundary lives in how it was built.
+        _, call = self._generated(16_000)
+        assert call["prompt"] == job()["prompt"]
+
+    def test_the_outcome_says_it_ran_on_the_processor(self):
+        outcome, _ = self._generated(16_000)
+        assert outcome.ok is True
+        assert outcome.device == "cpu"
+        assert outcome.adapter_kind == "real"
+        assert outcome.model == "SDXL-Turbo (processor)"
+
+    def test_the_outcome_carries_a_measured_time(self):
+        outcome, _ = self._generated(16_000)
+        assert outcome.seconds >= 0.0
+        assert isinstance(outcome.seconds, float)
+
+    def test_a_seed_produces_a_generator(self):
+        pytest.importorskip("torch")
+        _, call = self._generated(16_000, seed=7)
+        assert call["generator"] is not None
+
+    def test_no_seed_produces_none(self):
+        _, call = self._generated(16_000)
+        assert call["generator"] is None
+
+
+class TestTheLibraryActuallyAcceptsTheseArguments:
+    """Against the real diffusers, when it is installed.
+
+    Skipped where it is not, which is most machines and all of CI. It exists
+    because every other test here asserts what WE pass; this one asserts the
+    library still takes it. A renamed keyword in a diffusers upgrade would
+    otherwise surface as a crash on the operator's machine.
+    """
+
+    def test_the_pipeline_takes_every_argument_we_send(self):
+        diffusers = pytest.importorskip("diffusers")
+        import inspect
+
+        pipeline = diffusers.StableDiffusionXLPipeline
+        params = inspect.signature(pipeline.__call__).parameters
+        for name in (
+            "prompt",
+            "width",
+            "height",
+            "num_inference_steps",
+            "guidance_scale",
+            "generator",
+        ):
+            assert name in params, f"diffusers no longer accepts `{name}`"

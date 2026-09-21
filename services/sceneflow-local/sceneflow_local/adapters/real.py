@@ -12,14 +12,24 @@ reason SceneFlow is self-hosted is that they do not. The processor costs
 minutes per picture instead of seconds, and it costs facial continuity between
 panels. Both are stated rather than discovered.
 
-NOT YET VERIFIED END TO END. This code has never loaded a real checkpoint. The
-machine it was written on has no card, and both the PyTorch download index and
-the model host are unreachable from it -- `pip download torch` and a request to
-huggingface.co were tried and refused by the network. What IS verified is every
-path that does not need a checkpoint: the job contract, the device and model
-choice, the per-model settings, and each way this can fail. The first run on a
-real machine will either work or say precisely what is missing; it will not
-quietly produce something else.
+NO PICTURE HAS EVER COME OUT OF THIS. What has now been done, and what has not:
+
+  RUN FOR REAL, against torch 2.14 and diffusers 0.40 installed from PyPI on a
+  machine with no card -- the same shape as the operator's. doctor() reported
+  `can_generate: true` on the processor route. A generation was then attempted
+  and failed at the weights, exactly as designed: ModelUnavailableError naming
+  the model and the cause, no image written, nothing substituted.
+
+  NOT RUN, because the model host is unreachable from this container: the
+  generation itself. huggingface.co is refused by the network here, so no
+  checkpoint has ever been loaded and no pixels have ever been produced.
+
+What IS covered is every path that does not need a checkpoint, including the
+arguments handed to the pipeline -- asserted rather than trusted, because a
+turbo model given thirty steps still returns a picture, just a slow one, and
+given guidance 7.5 returns mush. Neither raises. The first run on a real
+machine will either work or say precisely what is missing; it will not quietly
+produce something else.
 """
 
 from __future__ import annotations
@@ -133,11 +143,14 @@ class LocalImageAdapter:
                 "this job is not stamped as having passed the safety boundary"
             )
         pipe = self._load()
-        torch = _require("torch", "cpu")
 
+        # torch is imported here only to build a seeded generator, so it is
+        # imported only when there is a seed. Loading the pipeline already
+        # required it; asking again unconditionally added a dependency to a
+        # line that does not have one.
         generator = None
         if job.seed is not None:
-            generator = torch.Generator().manual_seed(job.seed)
+            generator = _require("torch", "cpu").Generator().manual_seed(job.seed)
 
         width, height = self.output_size(job)
         started = time.monotonic()
