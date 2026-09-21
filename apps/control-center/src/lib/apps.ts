@@ -1,6 +1,6 @@
 import "server-only";
 
-import { REPO_ROOT, cmd, spawnDetached } from "./shell";
+import { REPO_ROOT, pnpm, spawnPnpm } from "./shell";
 import {
   LOCAL_APPS,
   appUrl,
@@ -81,7 +81,7 @@ export async function startApp(key: string): Promise<StartResult> {
     return { ok: true, url: already.url, message: "It was already running." };
   }
 
-  const build = await cmd("pnpm", ["--filter", app.filter, "build"], {
+  const build = await pnpm(["--filter", app.filter, "build"], {
     timeoutMs: 600_000,
   });
   if (!build.ok) {
@@ -92,7 +92,7 @@ export async function startApp(key: string): Promise<StartResult> {
     };
   }
 
-  const spawned = spawnDetached("pnpm", ["--filter", app.filter, "start"], {
+  const spawned = spawnPnpm(["--filter", app.filter, "start"], {
     cwd: REPO_ROOT,
   });
   if (!spawned.ok) {

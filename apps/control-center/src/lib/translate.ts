@@ -150,6 +150,34 @@ const RULES: readonly Rule[] = [
       "Someone (or an automated update) changed things on GitHub. The newer work needs pulling in first.",
     owner: "ai-engineer",
   },
+  // --- Starting a local app ------------------------------------------
+  // He pressed Start SceneFlow and nothing happened. The console was calling
+  // the build tool by name, and the launcher deliberately does not put it on
+  // the PATH -- it installs it inside the repository, because the usual way
+  // needs administrator rights. Fixed in lib/pnpm.ts; these rules exist so the
+  // NEXT variant of it arrives as a sentence rather than a stack trace.
+  {
+    match:
+      /ENOENT|spawn \w+ ENOENT|is not recognized as an internal or external command/i,
+    headline: "A tool the console needs could not be found on this computer.",
+    meaning:
+      "Nothing is broken and none of your work is affected. The console tried to run something that is not where it expected. Closing the console window and opening it again fixes most of these, because startup reinstalls its own tools. If it happens twice, send Claude these lines.",
+    owner: "ai-engineer",
+  },
+  {
+    match: /EINVAL|\.cmd|\.bat.*spawn/i,
+    headline: "The console could not start one of its own tools on Windows.",
+    meaning:
+      "A Windows-specific way of running programs that this console has to work around. It is an engineering fault, not something you did, and not something you can fix from here. Send Claude these lines.",
+    owner: "ai-engineer",
+  },
+  {
+    match: /ERR_PNPM|frozen-lockfile|Cannot find module/i,
+    headline: "The console could not assemble the app before starting it.",
+    meaning:
+      "The build stopped partway. Your work is safe. Close the console window and open it again -- startup checks the libraries and usually repairs this by itself. If it happens twice, send Claude these lines.",
+    owner: "ai-engineer",
+  },
   {
     match: /ECONNREFUSED|ETIMEDOUT|ENOTFOUND|network/i,
     headline: "Could not reach an outside service.",

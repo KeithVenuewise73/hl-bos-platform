@@ -23,6 +23,33 @@ stops and says so rather than overwriting.
 Without Git it still works, by downloading a snapshot — and says plainly that
 the copy cannot update itself until Git is installed.
 
+## If Windows blocks it
+
+Windows marks anything that came from the internet and refuses to run it until
+you say so once. Two different blocks look similar:
+
+**"Windows protected your PC"** (a blue box) — click **More info**, then
+**Run anyway**. The Run anyway button only appears after More info; that is
+deliberate on Microsoft's part, not a fault here.
+
+**Nothing happens at all, or it says the file is blocked** — right-click the
+file, choose **Properties**, tick **Unblock** at the bottom of the General tab,
+click **OK**. Then double-click it again.
+
+### Use the installer, not Download ZIP
+
+Both routes work, but they age differently, and it is worth knowing why.
+
+`git clone` — which the installer uses whenever Git is present — produces files
+with no internet mark at all, so `control-center.bat` inside that folder runs
+without argument, now and every time after.
+
+Windows' own **Extract All** does the opposite: it copies the mark onto **every
+file inside the zip**, so the block comes back on each one. If you have already
+extracted a zip and are fighting this, right-click the **zip file itself** ->
+Properties -> **Unblock** -> OK, then extract it again. Unblocking the zip
+before extraction clears every file inside in one go.
+
 ## Start it
 
 Double-click **`scripts\control-center.bat`**. It opens at http://localhost:4000.

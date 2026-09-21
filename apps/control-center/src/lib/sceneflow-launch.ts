@@ -12,7 +12,8 @@ import {
   phoneUrl,
   SCENEFLOW_PORT,
 } from "./sceneflow-access";
-import { cmd, REPO_ROOT, spawnDetached } from "./shell";
+import { pnpm, REPO_ROOT, spawnPnpm } from "./shell";
+import { explain } from "./translate";
 
 /**
  * Starting SceneFlow so a phone can reach it.
@@ -105,7 +106,10 @@ function describe(running: boolean, reachable: boolean): string {
 
 export interface LaunchResult {
   readonly ok: boolean;
+  /** Plain English, always. Never a stack trace. */
   readonly message: string;
+  /** The raw output, for whoever debugs it. Shown collapsed, never as the headline. */
+  readonly detail?: string;
 }
 
 /**
@@ -116,29 +120,48 @@ export interface LaunchResult {
  * says so honestly if one never arrives.
  */
 export async function startSceneFlow(): Promise<LaunchResult> {
-  if ((await readCode()) === "") await writeCode(codeFromBytes(draw));
+  try {
+    if ((await readCode()) === "") await writeCode(codeFromBytes(draw));
+  } catch (error) {
+    // Writing the code is the first thing that touches the disk, so it is the
+    // first thing that can fail on a machine with an unusual profile path or a
+    // read-only folder. Say so rather than dying before the panel hears back.
+    return {
+      ok: false,
+      message: `Could not save the access code, so SceneFlow was not started. ${
+        error instanceof Error ? error.message : String(error)
+      }`,
+    };
+  }
 
   if (await healthy()) {
     return { ok: true, message: "SceneFlow was already running." };
   }
 
-  const build = await cmd("pnpm", ["--filter", FILTER, "build"], {
+  const build = await pnpm(["--filter", FILTER, "build"], {
     timeoutMs: 600_000,
   });
   if (!build.ok) {
+    // Through the translator, not raw. The first version of this handed the
+    // operator the tail of a Node stack trace as the reason his button did
+    // nothing, which is the exact failure translate.ts exists to prevent.
+    const why = explain(build.output);
     return {
       ok: false,
-      message: `SceneFlow could not be built, so it was not started. ${build.output.slice(-400)}`,
+      message: `${why.headline} ${why.meaning}`,
+      detail: build.output.slice(-1200),
     };
   }
 
-  const spawned = spawnDetached("pnpm", ["--filter", FILTER, "start:network"], {
+  const spawned = spawnPnpm(["--filter", FILTER, "start:network"], {
     cwd: REPO_ROOT,
   });
   if (!spawned.ok) {
+    const why = explain(spawned.error ?? "");
     return {
       ok: false,
-      message: `SceneFlow would not start. ${spawned.error ?? ""}`.trim(),
+      message: `${why.headline} ${why.meaning}`,
+      detail: spawned.error ?? "",
     };
   }
 

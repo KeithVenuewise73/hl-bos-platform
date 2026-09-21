@@ -119,3 +119,36 @@ describe("explain", () => {
     expect(RULE_COUNT).toBeGreaterThanOrEqual(10);
   });
 });
+
+describe("starting a local app", () => {
+  it("explains a missing tool without showing a stack trace", () => {
+    // He pressed Start SceneFlow and nothing happened, because the console
+    // called the build tool by a name the launcher deliberately never puts on
+    // the PATH. The fix is in lib/pnpm.ts; this is here so the next variant
+    // arrives as a sentence.
+    const e = explain("Error: spawn pnpm ENOENT\n    at ChildProcess._handle");
+    expect(e.headline).not.toMatch(/ENOENT|spawn|ChildProcess/);
+    expect(e.headline).toMatch(/could not be found/i);
+    expect(e.owner).toBe("ai-engineer");
+    expect(e.detail).toContain("ENOENT");
+  });
+
+  it("explains the Windows .cmd spawn refusal", () => {
+    const e = explain("Error: spawn EINVAL");
+    expect(e.headline).not.toMatch(/EINVAL/);
+    expect(e.owner).toBe("ai-engineer");
+  });
+
+  it("explains a build that stopped partway", () => {
+    const e = explain("ERR_PNPM_RECURSIVE_RUN_FIRST_FAIL @hl-bos/sceneflow-app build");
+    expect(e.headline).not.toMatch(/ERR_PNPM/);
+    expect(e.headline).toMatch(/could not assemble/i);
+    expect(e.owner).toBe("ai-engineer");
+  });
+
+  it("never makes any of these the CEO's problem", () => {
+    for (const raw of ["spawn pnpm ENOENT", "spawn EINVAL", "Cannot find module 'x'"]) {
+      expect(needsCeo(explain(raw))).toBe(false);
+    }
+  });
+});

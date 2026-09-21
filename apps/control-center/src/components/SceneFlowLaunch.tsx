@@ -19,14 +19,40 @@ import type { SceneFlowStatus } from "@/lib/sceneflow-launch";
 export function SceneFlowLaunch({ initial }: { initial: SceneFlowStatus }) {
   const [status, setStatus] = useState(initial);
   const [note, setNote] = useState("");
+  const [detail, setDetail] = useState("");
   const [pending, start] = useTransition();
 
-  function act(run: () => Promise<{ ok: boolean; message: string }>) {
+  /**
+   * Run one of the buttons, and say something whatever happens.
+   *
+   * The try/catch is the point. Without it, anything thrown on the server --
+   * including the server action failing to reach the server at all -- rejected
+   * quietly, the button went back to idle, and the operator saw NOTHING. That
+   * is what he reported: "I pressed Start SceneFlow and nothing happened." A
+   * button that fails in silence is worse than one that is missing, because it
+   * looks like it worked.
+   */
+  function act(run: () => Promise<{ ok: boolean; message: string; detail?: string }>) {
     start(async () => {
       setNote("");
-      const result = await run();
-      setNote(result.message);
-      setStatus(await readSceneFlowStatus());
+      setDetail("");
+      try {
+        const result = await run();
+        setNote(result.message);
+        setDetail(result.detail ?? "");
+      } catch (error) {
+        setNote(
+          `Something went wrong before SceneFlow could start, and it was not caught where it happened. Send Claude this: ${
+            error instanceof Error ? error.message : String(error)
+          }`,
+        );
+      }
+      try {
+        setStatus(await readSceneFlowStatus());
+      } catch {
+        // Reading the status back is a nicety; failing to do so must not erase
+        // the message above, which is the part that explains anything.
+      }
     });
   }
 
@@ -191,7 +217,35 @@ export function SceneFlowLaunch({ initial }: { initial: SceneFlowStatus }) {
       ) : null}
 
       {note === "" ? null : (
-        <p style={{ margin: "0 0 12px", fontSize: 13, color: "#c9d1d9" }}>{note}</p>
+        <div style={{ margin: "0 0 12px" }}>
+          <p style={{ margin: 0, fontSize: 13, color: "#c9d1d9", lineHeight: 1.6 }}>
+            {note}
+          </p>
+          {detail === "" ? null : (
+            // Collapsed, and never the headline. The raw output is for whoever
+            // debugs it; it is not an answer to somebody who pressed a button.
+            <details style={{ marginTop: 8 }}>
+              <summary style={{ color: "#6e7681", fontSize: 12, cursor: "pointer" }}>
+                Technical detail, for Claude
+              </summary>
+              <pre
+                style={{
+                  margin: "8px 0 0",
+                  padding: "10px 12px",
+                  background: "#0d1117",
+                  border: "1px solid #262c36",
+                  borderRadius: 8,
+                  color: "#8b949e",
+                  fontSize: 11.5,
+                  whiteSpace: "pre-wrap",
+                  wordBreak: "break-word",
+                }}
+              >
+                {detail}
+              </pre>
+            </details>
+          )}
+        </div>
       )}
 
       <p style={{ margin: 0, color: "#8b949e", fontSize: 12.5, lineHeight: 1.6 }}>
