@@ -2,24 +2,34 @@
 
 Dependencies are imported LAZILY, inside the call, and their absence raises
 ``ModelUnavailableError``. There is no ``except ImportError: use the mock``
-anywhere in this file and adding one would be a regression — see errors.py for
+anywhere in this file and adding one would be a regression -- see errors.py for
 why that matters more here than it looks.
 
-NOT YET VERIFIED END TO END. This code has never loaded a real checkpoint: the
-machine it was written on has no NVIDIA card, and the weights host is
-unreachable from it. What IS verified is every path that does not need a
-checkpoint — the job contract, the model choice, and each way this can fail.
-The first run on a machine with a card will either work or say precisely what
-is missing; it will not quietly produce something else.
+TWO DEVICES, ONE PATH. A card is used when there is one. Otherwise this runs on
+the processor, which is the route the operator chose: renting a machine with a
+card means his photographs travel to somebody else's computer, and the whole
+reason SceneFlow is self-hosted is that they do not. The processor costs
+minutes per picture instead of seconds, and it costs facial continuity between
+panels. Both are stated rather than discovered.
+
+NOT YET VERIFIED END TO END. This code has never loaded a real checkpoint. The
+machine it was written on has no card, and both the PyTorch download index and
+the model host are unreachable from it -- `pip download torch` and a request to
+huggingface.co were tried and refused by the network. What IS verified is every
+path that does not need a checkpoint: the job contract, the device and model
+choice, the per-model settings, and each way this can fail. The first run on a
+real machine will either work or say precisely what is missing; it will not
+quietly produce something else.
 """
 
 from __future__ import annotations
 
 import importlib
+import time
 from typing import Any
 
 from ..errors import ModelUnavailableError, UnsafeJobError
-from ..models import ModelTier, choose_model
+from ..models import ModelTier, Plan, plan_generation
 from ..types import GenerationJob, GenerationOutcome
 
 ADAPTER = "local image model"
@@ -37,16 +47,17 @@ def _require(module: str, extra: str) -> Any:
 class LocalImageAdapter:
     """Loads a diffusion model and generates. Real output or a loud failure."""
 
-    def __init__(self, vram_mb: int | None, tier: ModelTier | None = None) -> None:
-        chosen = tier if tier is not None else choose_model(vram_mb)
-        if chosen is None:
-            raise ModelUnavailableError(
-                ADAPTER,
-                "no model fits this machine's video memory"
-                if vram_mb
-                else "no NVIDIA card with usable video memory was found",
-            )
-        self._tier = chosen
+    def __init__(
+        self,
+        vram_mb: int | None = None,
+        tier: ModelTier | None = None,
+        ram_mb: int | None = None,
+    ) -> None:
+        plan = Plan(tier) if tier is not None else plan_generation(vram_mb, ram_mb)
+        if plan is None:
+            raise ModelUnavailableError(ADAPTER, _nothing_fits(vram_mb, ram_mb))
+        self._plan = plan
+        self._tier = plan.tier
         self._pipe: Any = None
 
     @property
@@ -57,27 +68,41 @@ class LocalImageAdapter:
     def tier(self) -> ModelTier:
         return self._tier
 
+    @property
+    def plan(self) -> Plan:
+        return self._plan
+
     def describe(self) -> str:
         licence = " (non-commercial licence — private use only)" if self._tier.non_commercial else ""
-        return f"{self._tier.name}{licence}"
+        where = " on the processor" if self._plan.on_processor else ""
+        return f"{self._tier.name}{licence}{where}"
 
     def _load(self) -> Any:
         if self._pipe is not None:
             return self._pipe
-        torch = _require("torch", "gpu")
+        torch = _require("torch", "cpu")
         diffusers = _require("diffusers", "models")
 
-        if not torch.cuda.is_available():
-            # Not fatal: CPU generation works and is merely slow. Said out loud
-            # so a twenty-minute wait is understood rather than mistaken for a
-            # hang, which is how people kill a process that was working.
-            device = "cpu"
-        else:
-            device = "cuda"
+        device = self._plan.device
+        if device == "cuda" and not torch.cuda.is_available():
+            # The plan was made from what nvidia-smi reported; torch is the
+            # thing that will actually run it. Disagreement is not something to
+            # paper over by silently using the processor -- the operator was
+            # told a card would be used, and a twenty-minute wait he did not
+            # agree to is worse than a refusal he can act on.
+            raise ModelUnavailableError(
+                ADAPTER,
+                "a card was detected but this PyTorch cannot use it "
+                "(a CPU-only build is installed, or the driver is not visible)",
+                remedy="Reinstall PyTorch with CUDA support, or run on the processor instead.",
+            )
 
         try:
             pipe = diffusers.AutoPipelineForText2Image.from_pretrained(
                 self._tier.repo,
+                # Half precision is a GPU optimisation. On a processor it is
+                # slower than full precision, not faster, and on many CPUs it
+                # is not implemented at all.
                 torch_dtype=torch.float16 if device == "cuda" else torch.float32,
             )
         except Exception as exc:  # noqa: BLE001 - re-raised as our own type
@@ -91,7 +116,15 @@ class LocalImageAdapter:
                 "They download once, on first use, and need disk space and a reachable model host",
             ) from exc
 
-        self._pipe = pipe.to(device)
+        pipe = pipe.to(device)
+        if device == "cpu":
+            # Trades a little speed for a much lower peak, which is what decides
+            # whether a laptop finishes or is killed by the memory manager.
+            for enable in ("enable_attention_slicing", "enable_vae_slicing"):
+                method = getattr(pipe, enable, None)
+                if callable(method):
+                    method()
+        self._pipe = pipe
         return self._pipe
 
     def generate(self, job: GenerationJob) -> GenerationOutcome:
@@ -100,19 +133,26 @@ class LocalImageAdapter:
                 "this job is not stamped as having passed the safety boundary"
             )
         pipe = self._load()
-        torch = _require("torch", "gpu")
+        torch = _require("torch", "cpu")
 
         generator = None
         if job.seed is not None:
             generator = torch.Generator().manual_seed(job.seed)
 
+        width, height = self.output_size(job)
+        started = time.monotonic()
         result = pipe(
             prompt=job.prompt,
-            width=job.width,
-            height=job.height,
-            num_inference_steps=job.steps,
+            width=width,
+            height=height,
+            # From the TIER, not the job. A turbo model given 30 steps wastes
+            # twenty-six of them; given guidance 7.5 it produces mush. These
+            # are properties of the model, so they travel with it.
+            num_inference_steps=self._tier.steps,
+            guidance_scale=self._tier.guidance,
             generator=generator,
         )
+        seconds = time.monotonic() - started
         image = result.images[0]
         image.save(job.output_path)
         return GenerationOutcome(
@@ -121,4 +161,43 @@ class LocalImageAdapter:
             image_path=job.output_path,
             adapter_kind="real",
             model=self._tier.name,
+            device=self._plan.device,
+            # Measured. Nobody here knows how fast his processor is, and an
+            # invented number would be an invented operational metric.
+            seconds=seconds,
         )
+
+    def output_size(self, job: GenerationJob) -> tuple[int, int]:
+        """The size actually asked of the model.
+
+        Clamped to what the model was trained for, keeping the job's shape. A
+        512-trained model asked for 1040 pixels does not give a bigger picture;
+        it gives a worse one, slowly, with duplicated limbs.
+        """
+        longest = max(job.width, job.height)
+        if longest <= self._tier.native_px:
+            return _multiple_of_eight(job.width), _multiple_of_eight(job.height)
+        scale = self._tier.native_px / longest
+        return (
+            _multiple_of_eight(round(job.width * scale)),
+            _multiple_of_eight(round(job.height * scale)),
+        )
+
+
+def _multiple_of_eight(value: int) -> int:
+    """Diffusion models need dimensions divisible by eight. Never below 8."""
+    return max(8, (int(value) // 8) * 8)
+
+
+def _nothing_fits(vram_mb: int | None, ram_mb: int | None) -> str:
+    if vram_mb:
+        return (
+            f"this card has {vram_mb} MiB of video memory, below what the smallest "
+            "model needs, and no usable amount of system memory was reported either"
+        )
+    if ram_mb:
+        return (
+            f"there is no usable card, and {ram_mb} MiB of system memory is below "
+            "what the smallest processor model needs"
+        )
+    return "no card with usable video memory was found, and system memory could not be read"

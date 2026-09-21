@@ -139,9 +139,20 @@ describe("what is still in the way", () => {
   );
 
   it("names the missing runtime as a hard blocker, whatever the hardware says", () => {
+    // The ids changed when the processor route landed: what used to be one
+    // "the runtime is not written" blocker is now two truer ones — the
+    // libraries are not installed, and nothing has ever actually run. The
+    // property being guarded is the same: hardware alone never clears the way.
     const hard = hardBlockers(readiness).map((b) => b.id);
-    expect(hard).toContain("runtime");
+    expect(hard).toContain("libraries");
+    expect(hard).toContain("never-run");
     expect(hard).toContain("moderation");
+  });
+
+  it("never claims a picture has been produced", () => {
+    const neverRun = readiness.blockers.find((b) => b.id === "never-run");
+    expect(neverRun?.hard).toBe(true);
+    expect(neverRun?.what).toContain("No picture has ever come out of this");
   });
 
   it("keeps the output check as a hard requirement even on our own machine", () => {
@@ -162,5 +173,77 @@ describe("what is still in the way", () => {
 
   it("carries the probe's evidence through, so nothing is a black box", () => {
     expect(readiness.evidence).toContain("ran: nvidia-smi");
+  });
+});
+
+describe("a machine with no card but enough memory", () => {
+  // His actual machine: an HP laptop, AMD graphics built into the processor,
+  // 16GB of memory. Before the processor route this page told him it could do
+  // nothing at all, which was true of the code and not of the machine.
+  const noCard: GpuFinding = {
+    verdict: "no",
+    headline: "No NVIDIA card — the graphics here are built into the processor.",
+    detail: "The only display hardware found is AMD Radeon(TM) Graphics.",
+    nvidia: null,
+    adapters: ["AMD Radeon(TM) Graphics"],
+    canRun: [],
+    evidence: ["nvidia-smi: not available", "Windows display adapter list: read"],
+  };
+  const readiness = readinessFrom(noCard, 16_384);
+
+  it("says yes, and says it is the processor", () => {
+    expect(readiness.verdict).toBe("yes");
+    expect(readiness.headline).toContain("on the processor");
+  });
+
+  it("names the model it would actually load", () => {
+    expect(readiness.plan?.onProcessor).toBe(true);
+    expect(readiness.plan?.model.model).toBe("SDXL-Turbo (processor)");
+  });
+
+  it("warns that faces will drift, because that is the product", () => {
+    expect(readiness.detail).toContain("faces will drift");
+  });
+
+  it("says what the slowness buys", () => {
+    expect(readiness.detail).toContain("minutes per picture");
+    expect(readiness.detail).toContain("nothing leaves this machine");
+  });
+
+  it("still refuses to claim it can generate today", () => {
+    expect(readiness.canGenerateToday).toBe(false);
+    expect(readiness.detail).toContain("cannot generate anything today");
+  });
+
+  it("offers no card model as the best, because there is no card", () => {
+    expect(readiness.best).toBeNull();
+  });
+
+  it("a card still wins when there is one", () => {
+    const withCard: GpuFinding = {
+      verdict: "yes",
+      headline: "Yes",
+      detail: "",
+      nvidia: { name: "RTX 4090", vramMB: 24_564 },
+      adapters: ["RTX 4090"],
+      canRun: [],
+      evidence: [],
+    };
+    const plan = readinessFrom(withCard, 65_536).plan;
+    expect(plan?.onProcessor).toBe(false);
+    expect(plan?.model.model).toBe("FLUX.1 Kontext [dev]");
+  });
+
+  it("too little memory and no card is still an honest no", () => {
+    const poor = readinessFrom(noCard, 4_096);
+    expect(poor.verdict).not.toBe("yes");
+    expect(poor.plan).toBeNull();
+    expect(poor.detail).toContain("below what the smallest processor model needs");
+  });
+
+  it("unknown memory is not reported as too little", () => {
+    const unknown = readinessFrom(noCard, null);
+    expect(unknown.plan).toBeNull();
+    expect(unknown.detail).toContain("could not be read");
   });
 });

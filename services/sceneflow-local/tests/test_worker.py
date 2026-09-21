@@ -13,8 +13,8 @@ import pytest
 
 from sceneflow_local import ModelUnavailableError, UnsafeJobError, choose_model
 from sceneflow_local.adapters import LocalImageAdapter, MockImageAdapter
-from sceneflow_local.types import GenerationJob
-from sceneflow_local.worker import detect_vram_mb, doctor, run_job
+from sceneflow_local.types import GenerationJob, GenerationOutcome
+from sceneflow_local.worker import detect_ram_mb, detect_vram_mb, doctor, run_job
 
 
 def job(**overrides):
@@ -76,15 +76,25 @@ class TestSafetyBackstop:
 
 
 class TestNoSilentFallback:
-    def test_a_machine_with_no_card_fails_loudly(self):
+    def test_a_machine_with_no_card_and_no_memory_fails_loudly(self):
+        # "No card" on its own no longer means "cannot generate" -- the
+        # processor route exists now. What still fails is a machine with
+        # neither, and it has to say which of the two it could not find.
         with pytest.raises(ModelUnavailableError) as exc:
-            LocalImageAdapter(vram_mb=None)
-        assert "no NVIDIA card" in str(exc.value)
+            LocalImageAdapter(vram_mb=None, ram_mb=None)
+        message = str(exc.value)
+        assert "card" in message
+        assert "system memory" in message
 
     def test_a_card_too_small_fails_loudly(self):
         with pytest.raises(ModelUnavailableError) as exc:
             LocalImageAdapter(vram_mb=4_096)
         assert "video memory" in str(exc.value)
+
+    def test_a_machine_with_too_little_of_both_names_the_memory(self):
+        with pytest.raises(ModelUnavailableError) as exc:
+            LocalImageAdapter(vram_mb=None, ram_mb=2_048)
+        assert "2048" in str(exc.value).replace("_", "")
 
     def test_the_failure_says_it_will_not_substitute(self):
         # The sentence that stops the next person adding a convenient fallback.
@@ -172,3 +182,133 @@ class TestModelChoice:
     def test_flags_the_non_commercial_tiers(self):
         assert choose_model(24_564).non_commercial is True
         assert choose_model(8_192).non_commercial is False
+
+
+class TestTheProcessorRoute:
+    """He has no NVIDIA card. He chose the processor over renting a machine,
+    because renting means his photographs travel to somebody else's computer."""
+
+    def test_a_machine_with_no_card_but_enough_memory_runs_on_the_processor(self):
+        adapter = LocalImageAdapter(vram_mb=None, ram_mb=16_000)
+        assert adapter.plan.on_processor is True
+        assert adapter.plan.device == "cpu"
+        assert "processor" in adapter.describe()
+
+    def test_a_smaller_machine_gets_the_smaller_model(self):
+        assert LocalImageAdapter(vram_mb=None, ram_mb=8_000).tier.name == "SD-Turbo (processor)"
+        assert LocalImageAdapter(vram_mb=None, ram_mb=16_000).tier.name == "SDXL-Turbo (processor)"
+
+    def test_a_card_still_wins_when_there_is_one(self):
+        # The processor is the fallback, not the preference: a card is minutes
+        # faster per picture and its tiers are the ones that hold a face.
+        adapter = LocalImageAdapter(vram_mb=24_000, ram_mb=64_000)
+        assert adapter.plan.on_processor is False
+        assert adapter.tier.name == "FLUX.1 Kontext [dev]"
+
+    def test_the_processor_models_are_turbo_models(self):
+        # Four denoising passes instead of thirty. On a card that is seconds;
+        # on a processor it is the difference between a tool and an abandoned
+        # tab. Guidance 0.0 because that is what they are trained for.
+        for ram in (8_000, 16_000):
+            tier = LocalImageAdapter(vram_mb=None, ram_mb=ram).tier
+            assert tier.steps == 4
+            assert tier.guidance == 0.0
+
+    def test_the_processor_models_admit_they_cannot_hold_a_face(self):
+        # SceneFlow's premise is the same people across several scenes, and
+        # neither of these does that well. Recorded, so the page can say it
+        # rather than the operator finding out on panel four.
+        for ram in (8_000, 16_000):
+            assert LocalImageAdapter(vram_mb=None, ram_mb=ram).tier.identity == "weak"
+
+    def test_it_never_asks_a_512_model_for_a_1040_pixel_picture(self):
+        # Not a bigger picture -- a worse one, slowly, with duplicated limbs.
+        adapter = LocalImageAdapter(vram_mb=None, ram_mb=16_000)
+        width, height = adapter.output_size(GenerationJob.from_dict(job()))
+        assert max(width, height) <= 512
+        assert width % 8 == 0 and height % 8 == 0
+
+    def test_it_keeps_the_shape_of_the_frame(self):
+        adapter = LocalImageAdapter(vram_mb=None, ram_mb=16_000)
+        asked = GenerationJob.from_dict(job())
+        width, height = adapter.output_size(asked)
+        assert abs((width / height) - (asked.width / asked.height)) < 0.02
+
+    def test_a_small_request_is_left_alone(self):
+        adapter = LocalImageAdapter(vram_mb=None, ram_mb=16_000)
+        small = GenerationJob(
+            job_id="j", prompt="p", output_path="/tmp/x.png",
+            width=384, height=512, safety_checked=True,
+        )
+        assert adapter.output_size(small) == (384, 512)
+
+
+class TestTheOutcomeCarriesWhatHappened:
+    def test_it_reports_the_device_and_the_measured_time(self):
+        outcome = GenerationOutcome(
+            ok=True, job_id="j", image_path="/tmp/x.png",
+            adapter_kind="real", model="SD-Turbo (processor)",
+            device="cpu", seconds=91.37,
+        )
+        as_json = outcome.to_dict()
+        assert as_json["device"] == "cpu"
+        # Measured, never estimated: nobody here knows how fast his processor
+        # is, and an invented number would be an invented operational metric.
+        assert as_json["seconds"] == 91.4
+
+    def test_a_failure_carries_no_invented_timing(self):
+        outcome = GenerationOutcome(ok=False, job_id="j", error_code="model_unavailable")
+        assert outcome.to_dict()["seconds"] == 0.0
+        assert outcome.to_dict()["device"] == ""
+
+
+class TestReadingSystemMemory:
+    def test_reads_bytes_and_reports_mebibytes(self):
+        assert detect_ram_mb(read=lambda: 16 * 1024 * 1024 * 1024) == 16_384
+
+    def test_could_not_tell_is_none_not_zero(self):
+        # Kept apart deliberately: "could not read it" sends someone to check
+        # their machine, "not enough" sends them to buy memory.
+        assert detect_ram_mb(read=lambda: 0) is None
+        assert detect_ram_mb(read=lambda: None) is None
+
+    def test_a_platform_that_throws_does_not_take_the_worker_with_it(self):
+        def explode() -> int:
+            raise OSError("no such sysconf on this platform")
+
+        assert detect_ram_mb(read=explode) is None
+
+    def test_it_reads_this_actual_machine(self):
+        # Not a fixture. If this returns nothing on a real computer the
+        # detection is wrong, and that is the whole point of the function.
+        assert (detect_ram_mb() or 0) > 0
+
+
+class TestDoctorOnAMachineWithNoCard:
+    """His machine: AMD graphics built into the processor, no NVIDIA card."""
+
+    def test_it_plans_the_processor_instead_of_giving_up(self):
+        report = doctor(vram_mb=None, ram_mb=16_000)
+        assert report["device"] == "cpu"
+        assert report["on_processor"] is True
+        assert report["would_load"] == "SDXL-Turbo (processor)"
+
+    def test_it_says_the_faces_will_drift(self):
+        # The product is the same people across several scenes. This route does
+        # not do that well, and the page has to be able to say so.
+        assert doctor(vram_mb=None, ram_mb=16_000)["holds_a_face"] == "weak"
+
+    def test_the_only_thing_missing_is_the_libraries(self):
+        report = doctor(vram_mb=None, ram_mb=16_000)
+        assert report["can_generate"] is False
+        assert "libraries are not installed" in report["why_not"]
+
+    def test_a_card_is_still_preferred_when_present(self):
+        report = doctor(vram_mb=24_000, ram_mb=64_000)
+        assert report["device"] == "cuda"
+        assert report["on_processor"] is False
+
+    def test_too_little_of_everything_says_which(self):
+        assert "processor model needs" in doctor(vram_mb=None, ram_mb=2_048)["why_not"]
+        assert "video memory" in doctor(vram_mb=4_096, ram_mb=1_024)["why_not"]
+        assert "no readable system memory" in doctor(vram_mb=None, ram_mb=None)["why_not"]
