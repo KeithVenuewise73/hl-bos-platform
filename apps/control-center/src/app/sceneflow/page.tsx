@@ -1,4 +1,5 @@
 import { SceneFlowLaunch } from "@/components/SceneFlowLaunch";
+import { repoStatus } from "@/lib/git";
 import { detectGpu } from "@/lib/gpu";
 import type { GpuVerdict } from "@/lib/gpu-report";
 import { readinessFrom } from "@/lib/sceneflow-report";
@@ -27,10 +28,12 @@ export default async function SceneFlowPage() {
   // The machine is asked once. No credential is read: no image provider is
   // wired to anything, so no environment variable could change this answer,
   // and reading one would imply it could.
-  const [readiness, sceneflow] = await Promise.all([
+  const [readiness, sceneflow, repo] = await Promise.all([
     detectGpu().then(readinessFrom),
     sceneflowStatus(),
+    repoStatus(),
   ]);
+  const fresh = repo.freshness;
 
   return (
     <main style={{ maxWidth: 1100, margin: "0 auto", padding: "28px 24px 64px" }}>
@@ -65,6 +68,31 @@ export default async function SceneFlowPage() {
           Directing a scene and planning a story both work now: you build the cast and
           the moment and see exactly what would be sent when a model is connected. They
           live in SceneFlow itself — start it below.
+        </p>
+      </section>
+
+      {/* Which code is actually running. This is here because a fix was merged,
+          the console was restarted, the same old failure came back, and nothing
+          on the screen said the copy was stale. */}
+      <section
+        style={{
+          ...CARD,
+          marginBottom: 14,
+          padding: "12px 16px",
+          background: fresh.stale ? "#1a1509" : "#12151a",
+          borderColor: fresh.stale ? "#3d2f12" : "#262c36",
+        }}
+      >
+        <strong style={{ fontSize: 13 }}>{fresh.headline}</strong>
+        <p
+          style={{
+            margin: "4px 0 0",
+            color: "#8b949e",
+            fontSize: 12.5,
+            lineHeight: 1.6,
+          }}
+        >
+          {fresh.meaning}
         </p>
       </section>
 
