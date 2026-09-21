@@ -1,6 +1,10 @@
 import "server-only";
 import { execFile, spawn } from "node:child_process";
+import { existsSync } from "node:fs";
+import { join } from "node:path";
 import { promisify } from "node:util";
+
+import { BUNDLED_PNPM, pnpmInvocation } from "./pnpm";
 
 const run = promisify(execFile);
 
@@ -107,4 +111,32 @@ export function spawnDetached(
   } catch (e) {
     return { ok: false, error: e instanceof Error ? e.message : "unknown error" };
   }
+}
+
+/**
+ * Run pnpm, resolved properly.
+ *
+ * Never `cmd("pnpm", ...)` directly -- see pnpm.ts for why the bare name
+ * cannot work on the machine this console is actually used on.
+ */
+export async function pnpm(
+  args: readonly string[],
+  opts: { cwd?: string; timeoutMs?: number } = {},
+): Promise<CmdResult> {
+  const invocation = pnpmInvocation(args, bundledPnpm());
+  return cmd(invocation.bin, invocation.args, opts);
+}
+
+/** Same resolution, for a server that has to outlive the request. */
+export function spawnPnpm(
+  args: readonly string[],
+  opts: { cwd?: string } = {},
+): { ok: boolean; pid?: number; error?: string } {
+  const invocation = pnpmInvocation(args, bundledPnpm());
+  return spawnDetached(invocation.bin, invocation.args, opts);
+}
+
+function bundledPnpm(): { path: string; exists: boolean } {
+  const path = join(REPO_ROOT, ...BUNDLED_PNPM);
+  return { path, exists: existsSync(path) };
 }
