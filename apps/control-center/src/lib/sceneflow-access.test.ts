@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  awayAddresses,
   codeFromBytes,
   phoneAddresses,
   phoneUrl,
@@ -108,5 +109,91 @@ describe("phoneAddresses", () => {
 describe("phoneUrl", () => {
   it("is plain http on SceneFlow's port", () => {
     expect(phoneUrl("192.168.1.42")).toBe(`http://192.168.1.42:${SCENEFLOW_PORT}`);
+  });
+});
+
+describe("awayAddresses", () => {
+  const ip = (
+    address: string,
+    extra: Partial<NetworkAddress> = {},
+  ): NetworkAddress => ({
+    address,
+    family: "IPv4",
+    internal: false,
+    ...extra,
+  });
+
+  it("finds the address Tailscale gives this machine", () => {
+    expect(awayAddresses({ Tailscale: [ip("100.101.102.103")] })).toEqual([
+      "100.101.102.103",
+    ]);
+  });
+
+  it("covers the whole 100.64.0.0/10 range and nothing either side of it", () => {
+    expect(awayAddresses({ t: [ip("100.64.0.0")] })).toEqual(["100.64.0.0"]);
+    expect(awayAddresses({ t: [ip("100.127.255.255")] })).toEqual(["100.127.255.255"]);
+    expect(awayAddresses({ t: [ip("100.63.255.255")] })).toEqual([]);
+    expect(awayAddresses({ t: [ip("100.128.0.0")] })).toEqual([]);
+    expect(awayAddresses({ t: [ip("99.64.0.1")] })).toEqual([]);
+    expect(awayAddresses({ t: [ip("101.64.0.1")] })).toEqual([]);
+  });
+
+  it("is empty when Tailscale is not installed, signed out, or stopped", () => {
+    // All three look identical from here, and that is the point: an address
+    // exists only when all three are true, which is the question being asked.
+    expect(awayAddresses({ "Wi-Fi": [ip("192.168.1.42")], lo: [] })).toEqual([]);
+  });
+
+  it("never returns a home address, which does not work away from home", () => {
+    expect(
+      awayAddresses({
+        "Wi-Fi": [ip("192.168.1.42")],
+        Docker: [ip("172.17.0.1")],
+        Tailscale: [ip("100.88.1.2")],
+      }),
+    ).toEqual(["100.88.1.2"]);
+  });
+
+  it("ignores loopback and IPv6", () => {
+    expect(awayAddresses({ lo: [ip("100.100.100.100", { internal: true })] })).toEqual(
+      [],
+    );
+    expect(awayAddresses({ t: [ip("fd7a:115c::1", { family: "IPv6" })] })).toEqual([]);
+  });
+
+  it("does not repeat an address reported twice", () => {
+    expect(awayAddresses({ a: [ip("100.70.0.1")], b: [ip("100.70.0.1")] })).toEqual([
+      "100.70.0.1",
+    ]);
+  });
+
+  it("rejects malformed addresses rather than building a broken URL", () => {
+    expect(awayAddresses({ t: [ip("100.64.0")] })).toEqual([]);
+    expect(awayAddresses({ t: [ip("100.64.0.999")] })).toEqual([]);
+  });
+});
+
+describe("home and away never overlap", () => {
+  const ip = (address: string): NetworkAddress => ({
+    address,
+    family: "IPv4",
+    internal: false,
+  });
+
+  it("no address is offered as both", () => {
+    // The two lists mean different things to the person reading them -- "on
+    // your Wi-Fi" and "anywhere" -- so an address appearing in both would be a
+    // promise one of them cannot keep.
+    const interfaces = {
+      "Wi-Fi": [ip("192.168.1.42")],
+      Tailscale: [ip("100.88.1.2")],
+      Docker: [ip("172.17.0.1")],
+      WSL: [ip("10.1.2.3")],
+    };
+    const home = phoneAddresses(interfaces);
+    const away = awayAddresses(interfaces);
+    expect(home.filter((a) => away.includes(a))).toEqual([]);
+    expect(home).toContain("192.168.1.42");
+    expect(away).toEqual(["100.88.1.2"]);
   });
 });
