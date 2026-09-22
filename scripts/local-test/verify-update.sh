@@ -27,10 +27,18 @@ git init -q --bare --initial-branch=main "$WORK/origin.git"
 git clone -q "$WORK/origin.git" "$WORK/clone" 2>/dev/null
 cd "$WORK/clone"
 git checkout -q -b main 2>/dev/null || true
-echo one > file.txt && git add -A && git commit -qm one && git push -q -u origin main
+# The first commit stands in for an OLDER copy of the folder: it has the
+# launcher but not the update helper, exactly like a machine that has not been
+# updated in a while.
+mkdir -p "$WORK/clone/scripts"
+echo one > file.txt
+printf 'OLD LAUNCHER\n' > scripts/control-center.bat
+git add -A && git commit -qm one && git push -q -u origin main
+FIRST="$(git rev-parse HEAD)"
 
-# The script lives in <root>/scripts, so give it a matching shape.
-mkdir -p "$WORK/clone/scripts" && cp "$SCRIPT" "$WORK/clone/scripts/update.mjs"
+# Then the helper lands, and the launcher changes alongside it.
+cp "$SCRIPT" "$WORK/clone/scripts/update.mjs"
+printf 'NEW LAUNCHER\n' > scripts/control-center.bat
 git add -A && git commit -qm scripts && git push -q origin main >/dev/null 2>&1
 RUN="$WORK/clone/scripts/update.mjs"
 
@@ -102,37 +110,65 @@ echo
 echo "launcher bootstrap (mirrors control-center.bat's git fallback)"
 echo "---------------------------------------------------------------"
 
-bootstrap() { # runs in $PWD, mirrors the .bat's else-branch
+# Mirrors the .bat's else-branch exactly, including both guards.
+#
+# It is NOT `git merge`. Replacing the launcher by hand makes git see a locally
+# modified file and refuse to merge -- even when the content is byte-for-byte
+# what it was about to install. That is what the first version did, and it
+# failed at exactly that point. Reset behind two guards is what works.
+bootstrap() { # runs in $PWD
   git fetch origin --quiet 2>/dev/null
-  git merge --ff-only >/dev/null 2>&1
+  # Guard 1: the launcher must already match GitHub's copy. Windows reads a
+  # running .bat incrementally, so rewriting it mid-run with different bytes
+  # makes cmd resume at a stale offset. Identical bytes are safe.
+  if ! git diff --quiet "@{u}" -- "$LAUNCHER" 2>/dev/null; then echo "stale-launcher"; return; fi
+  # Guard 2: nothing else may be modified, or a reset would discard real work.
+  if ! git diff --quiet HEAD -- . ":(exclude)$LAUNCHER" 2>/dev/null; then echo "other-changes"; return; fi
+  git reset -q --hard "@{u}" 2>/dev/null
   [ -f scripts/update.mjs ] && echo collected || echo nothing
 }
 
-# An older copy of the folder: it predates scripts/update.mjs entirely.
-git clone -q "$WORK/origin.git" "$WORK/old"
-cd "$WORK/old"
-git checkout -q "$(git rev-list --max-parents=0 HEAD)" 2>/dev/null
-git checkout -q -B main HEAD
-git branch -q --set-upstream-to=origin/main main 2>/dev/null
+LAUNCHER="scripts/control-center.bat"
 
-step "8. old folder without the helper -> collects it"
-rm -rf scripts
-if [ ! -f scripts/update.mjs ]; then
+# An older copy of the folder, with the new launcher dropped in BY HAND -- the
+# exact situation on the CEO's machine, and the one the first version broke on.
+setup_old() { # $1 = destination
+  rm -rf "$1"
+  git clone -q "$WORK/origin.git" "$1"
+  cd "$1"
+  git checkout -q -B main "$FIRST" 2>/dev/null
+  git branch -q --set-upstream-to=origin/main main 2>/dev/null
+  mkdir -p scripts
+  git show "origin/main:$LAUNCHER" > "$LAUNCHER" 2>/dev/null
+}
+
+step "8. hand-placed launcher, older folder -> collects the rest"
+setup_old "$WORK/old"
+if [ -f scripts/update.mjs ]; then bad "test setup: helper was already present"; else
   result="$(bootstrap)"
-  if [ "$result" = "collected" ]; then ok "helper arrived"; else bad "helper did not arrive"; fi
-else
-  bad "test setup: helper was already present"
+  if [ "$result" = "collected" ]; then ok "helper arrived"; else bad "got '$result'"; fi
 fi
 
-step "9. bootstrap leaves unsaved work alone"
-git clone -q "$WORK/origin.git" "$WORK/old2"
-cd "$WORK/old2"
-git checkout -q -B main origin/main~1 2>/dev/null || git checkout -q -B main origin/main
-git branch -q --set-upstream-to=origin/main main 2>/dev/null
+step "9. plain merge would have FAILED here"
+# Proves the bug this replaced is real, not imagined.
+setup_old "$WORK/oldm"
+git fetch origin --quiet 2>/dev/null
+if git merge --ff-only >/dev/null 2>&1; then bad "merge unexpectedly succeeded"; else ok "git refused, as it did on the real machine"; fi
+
+step "10. a real edit elsewhere -> refuses, keeps the edit"
+setup_old "$WORK/old2"
 echo "my unsaved edit" >> file.txt
 before="$(cat file.txt)"
-bootstrap >/dev/null
-if [ "$(cat file.txt)" = "$before" ]; then ok "edit intact"; else bad "edit was lost"; fi
+result="$(bootstrap)"
+if [ "$result" = "other-changes" ] && [ "$(cat file.txt)" = "$before" ]; then ok "edit intact"
+else bad "got '$result'"; fi
+
+step "11. stale launcher -> refuses rather than rewrite it mid-run"
+setup_old "$WORK/old3"
+printf 'AN OLDER LAUNCHER\n' > "$LAUNCHER"
+result="$(bootstrap)"
+if [ "$result" = "stale-launcher" ] && grep -q "AN OLDER LAUNCHER" "$LAUNCHER"; then ok "left untouched"
+else bad "got '$result'"; fi
 
 # ---------------------------------------------------------------------------
 # The launcher's own decision, mirrored.
@@ -161,10 +197,10 @@ check() { # name, next_exists, fresh, expected
   if [ "${got:-no}" = "$want" ]; then ok "${got:-no build}"; else bad "got '${got:-no}', wanted '$want'"; fi
 }
 
-check "10. fresh clone, nothing built -> builds"        0 0 1
-check "11. fresh clone AND new code -> builds"          0 1 1
-check "12. built already, new code arrived -> rebuilds" 1 1 1
-check "13. built already, nothing new -> starts fast"   1 0 no
+check "12. fresh clone, nothing built -> builds"        0 0 1
+check "13. fresh clone AND new code -> builds"          0 1 1
+check "14. built already, new code arrived -> rebuilds" 1 1 1
+check "15. built already, nothing new -> starts fast"   1 0 no
 
 echo "---------------------------------------------------------------"
 [ "$fail" -eq 0 ] && echo "All checks passed." || echo "SOMETHING FAILED."
