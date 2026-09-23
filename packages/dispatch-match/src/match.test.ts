@@ -4,13 +4,21 @@ import {
   buildEquipmentRegistry,
   computeScore,
   describeScoreFormula,
+  formatLocalTime,
   matchFleet,
   type DistanceProvider,
   type Load,
   type MatchConfig,
   type Truck,
 } from "./index";
-import { DEMO_LOADS, DEMO_TENANT_ID, DEMO_TRUCKS } from "./demo";
+import {
+  DEMO_LOADS,
+  DEMO_TENANT_ID,
+  DEMO_TRUCKS,
+  TX_LOADS,
+  TX_TENANT_ID,
+  TX_TRUCKS,
+} from "./demo";
 
 // A synthetic distance table so economics can be checked by hand.
 // Places are named; distances are looked up symmetrically.
@@ -433,5 +441,69 @@ describe("demo fleet", () => {
     const all = r.trucks.flatMap((t) => t.matches);
     expect(all.length).toBeGreaterThan(0);
     expect(all.every((m) => !m.returnLoadProbability.available)).toBe(true);
+  });
+});
+
+describe("national: not tied to any region", () => {
+  it("ranks the Dallas sample fleet with the same engine and no regional settings", () => {
+    const r = matchFleet({
+      tenantId: TX_TENANT_ID,
+      trucks: TX_TRUCKS,
+      loads: TX_LOADS,
+    });
+    expect(r.trucks).toHaveLength(4);
+    expect(r.trucks.every((t) => t.matches.length > 0)).toBe(true);
+    // A new equipment mix: reefer, step deck and dry van all matched.
+    const types = new Set(
+      r.trucks.filter((t) => t.matches.length).map((t) => t.truck.equipmentType),
+    );
+    for (const t of ["flatbed", "step-deck", "reefer", "dry-van"])
+      expect(types).toContain(t);
+    expect(r.unmatchedLoads.find((u) => u.loadId === "T-210")?.summary).toMatch(
+      /No truck in the fleet runs liquid-tanker/,
+    );
+  });
+
+  it("times a trip across time zones correctly and labels the zones", () => {
+    const r = matchFleet({
+      tenantId: TX_TENANT_ID,
+      trucks: TX_TRUCKS,
+      loads: TX_LOADS,
+    });
+    const reefer = r.trucks.find((t) => t.truck.id === "TX-08")!;
+    // Empty in Albuquerque 06:00 MDT (12:00Z); the Amarillo window closes 13:00 CDT (18:00Z).
+    // The est. deadhead takes ~6.5 h, arriving ~18:31Z = 13:31 CDT: too late, and
+    // both times are shown in the pickup's zone, labelled, because the trip crosses zones.
+    const rej = reefer.rejections.find((x) => x.loadId === "T-205")!;
+    expect(rej.code).toBe("misses-pickup-window");
+    expect(rej.reason).toMatch(/UTC−5.*UTC−5/);
+    // Same-zone trips stay uncluttered.
+    const dump = matchFleet({
+      tenantId: DEMO_TENANT_ID,
+      trucks: DEMO_TRUCKS,
+      loads: DEMO_LOADS,
+    });
+    const wny = dump.trucks
+      .flatMap((t) => t.rejections)
+      .find((x) => x.code === "misses-pickup-window")!;
+    expect(wny.reason).not.toMatch(/UTC/);
+  });
+
+  it("formats a time in the zone it was written in", () => {
+    const ms = Date.parse("2026-09-29T18:00:00Z");
+    expect(formatLocalTime(ms, "2026-09-29T00:00:00-05:00")).toBe("Tue 29 Sep 13:00");
+    expect(formatLocalTime(ms, "2026-09-29T00:00:00-06:00", { showZone: true })).toBe(
+      "Tue 29 Sep 12:00 UTC−6",
+    );
+    expect(formatLocalTime(ms, "2026-09-29T00:00:00+05:30", { showZone: true })).toBe(
+      "Tue 29 Sep 23:30 UTC+5:30",
+    );
+    expect(formatLocalTime(ms, "2026-09-29T00:00:00Z")).toBe("Tue 29 Sep 18:00 UTC");
+  });
+
+  it("uses the same fleet-agnostic defaults everywhere — nothing regional in config", () => {
+    const text = JSON.stringify(DEFAULT_MATCH_CONFIG).toLowerCase();
+    for (const word of ["buffalo", "rochester", "new york", "ny"])
+      expect(text).not.toContain(`"${word}`);
   });
 });

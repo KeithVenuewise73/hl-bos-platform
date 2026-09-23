@@ -210,7 +210,7 @@ const ASSETS: Asset[] = [
     kind: "application",
     name: "DispatchOS Match",
     summary:
-      "Finds backhaul freight worth taking on the way home and ranks it by projected contribution and revenue per mile, with a visible, adjustable score and a plain-English reason for every load a truck cannot take. Runs on sample data.",
+      "Finds backhaul freight worth taking on the way home, anywhere in the US, and ranks it by projected contribution and revenue per mile, with a visible, adjustable score and a plain-English reason for every load a truck cannot take. Two sample fleets plus an own-fleet mode fed by CSV.",
     maturity: "prototype",
     reuse: ["commercial"],
     owner: "Herman Legacy Software Ventures",
@@ -223,7 +223,7 @@ const ASSETS: Asset[] = [
       { kind: "owned_by", to: "repo.hl-bos-platform" },
     ],
     evidence:
-      "apps/dispatchos-match; 12/12 checks against the running app; sample data only — no routing API, no load board, nothing saved",
+      "apps/dispatchos-match; 22/22 checks against the running app across two sample fleets and an imported fleet; no routing API, no load board, nothing saved",
   },
   {
     id: "app.ats-resume-optimizer",
@@ -407,7 +407,7 @@ const ASSETS: Asset[] = [
     kind: "package",
     name: "@hl-bos/dispatch-match",
     summary:
-      "The DispatchOS Match engine: tenant-scoped, equipment-agnostic backhaul matching. Hard filters (equipment vs commodity, weight/volume, deadhead, service radius, time windows with hours-of-service rests), full-trip and vs-empty-return economics, a fixed-anchor 0–100 score, and a return-load probability produced only from recorded lane history. Equipment types are registry data, distance and load boards are seams. Pure and deterministic.",
+      "The DispatchOS Match engine: tenant-scoped, equipment-agnostic backhaul matching. Hard filters (equipment vs commodity, weight/volume, deadhead, service radius, time windows with hours-of-service rests), full-trip and vs-empty-return economics, a fixed-anchor 0–100 score, and a return-load probability produced only from recorded lane history. Equipment types are registry data, distance and load boards are seams. Locations anywhere in the US via a server-side ZIP/city resolver (the ./places entry point). Pure and deterministic.",
     maturity: "prototype",
     reuse: ["reusable", "commercial"],
     owner: "Herman Legacy Platform",
@@ -417,7 +417,7 @@ const ASSETS: Asset[] = [
     tags: ["package", "domain-logic", "logistics", "multi-tenant"],
     relationships: [{ kind: "owned_by", to: "repo.hl-bos-platform" }],
     evidence:
-      "packages/dispatch-match; 39 tests green; removing the tenant filter fails the cross-tenant test",
+      "packages/dispatch-match; 53 tests green, including national place resolution and cross-time-zone timing; removing the tenant filter fails the cross-tenant test",
   },
   {
     id: "pkg.sceneflow",

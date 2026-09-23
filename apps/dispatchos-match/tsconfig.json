@@ -11,9 +11,21 @@
     "resolveJsonModule": true,
     "isolatedModules": true,
     "types": ["node"],
-    "plugins": [{ "name": "next" }],
-    "paths": { "@/*": ["./src/*"] }
+    "plugins": [
+      {
+        "name": "next"
+      }
+    ],
+    "paths": {
+      "@/*": ["./src/*"]
+    }
   },
-  "include": ["next-env.d.ts", "src/**/*.ts", "src/**/*.tsx", ".next/types/**/*.ts"],
+  "include": [
+    "next-env.d.ts",
+    "src/**/*.ts",
+    "src/**/*.tsx",
+    ".next/types/**/*.ts",
+    "../../packages/dispatch-match/src/zipcodes.d.ts"
+  ],
   "exclude": ["node_modules", ".next"]
 }

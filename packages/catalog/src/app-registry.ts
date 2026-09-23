@@ -329,7 +329,7 @@ export const APPLICATIONS: ApplicationRecord[] = [
     key: "dispatchos-match",
     name: "DispatchOS Match",
     description:
-      "Backhaul load matching for small carriers: filters every truck/load pair on hard constraints (equipment vs commodity, weight and cubic yards, deadhead, service radius, pickup and delivery windows) and ranks what survives by projected contribution and revenue per mile, with an adjustable, visible formula and a plain reason for every load it turns down. Dedicated-lane equipment is reported, never ranked.",
+      "Backhaul load matching for small carriers anywhere in the US: filters every truck/load pair on hard constraints (equipment vs commodity, weight and cubic yards, deadhead, service radius, pickup and delivery windows) and ranks what survives by projected contribution and revenue per mile, with an adjustable, visible formula and a plain reason for every load it turns down. Dedicated-lane equipment is reported, never ranked.",
     category: "vertical_product",
     repository: REPO,
     owner: "KeithVenuewise73",
@@ -351,9 +351,9 @@ export const APPLICATIONS: ApplicationRecord[] = [
     softwareFactoryIntegration:
       "None. The engine (@hl-bos/dispatch-match) is a standalone, tenant-scoped, equipment-agnostic capability package with no platform dependencies, so another fleet is new data, not new code.",
     notes:
-      "Runs on SAMPLE data only (an illustrative Western NY bulk fleet with invented loads and rates). Road miles are estimated (great-circle x 1.2) because no routing API is connected; no load board is connected; nothing is saved (CSV-imported loads last for the browser tab). No return-load probability is shown anywhere, because there is no recorded lane history to base one on.",
+      "Location-independent: trucks and loads are located by City, ST, ZIP or coordinates, resolved server-side from the zipcodes dataset (42,249 US ZIPs); an unresolvable place is refused, never guessed, and times must carry a UTC offset. Ships two SAMPLE fleets (Western NY bulk; Dallas regional) with invented loads and rates, plus an own-fleet mode that holds only what is imported by CSV. Road miles are estimated (great-circle x 1.2) because no routing API is connected; no load board is connected; nothing is saved. No return-load probability is shown anywhere, because there is no recorded lane history to base one on.",
     evidence:
-      "apps/dispatchos-match + packages/dispatch-match; 39 engine tests + 3 app tests; tenant guard verified by removal (its test fails); 12/12 checks in a real browser; started from the Control Center's Start button and answered /api/health",
+      "apps/dispatchos-match + packages/dispatch-match; 53 engine tests + 6 app tests; tenant guard verified by removal (its test fails); 22/22 checks in a real browser across both sample fleets and an imported GA/AL/CO fleet; ZIP data confirmed absent from the browser bundle; started from the Control Center's Start button and answered /api/health",
   },
   {
     key: "control-center",

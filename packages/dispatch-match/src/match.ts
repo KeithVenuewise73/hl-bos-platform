@@ -63,20 +63,51 @@ const MONTHS = [
   "Dec",
 ];
 
+/** Minutes east of UTC written on an ISO time, or null if it carries none (or "Z"). */
+export function offsetMinutes(iso: string): number | null {
+  const m = /([+-])(\d{2}):?(\d{2})$/.exec(iso);
+  if (!m) return null;
+  return (m[1] === "-" ? -1 : 1) * (Number(m[2]) * 60 + Number(m[3]));
+}
+
 /**
- * Human time in the offset the fleet wrote its own times in (taken from a
- * reference ISO string such as the truck's availability), e.g. "Tue 29 Sep 07:27".
+ * Human time in the zone a time was written in (taken from a reference ISO
+ * string — the pickup window for a pickup, the truck's availability for the
+ * truck), e.g. "Tue 29 Sep 07:27". With `showZone`, the UTC offset is added
+ * ("Tue 29 Sep 07:27 UTC−5") — used whenever a trip crosses time zones, so
+ * two clock times on one line are never silently in different zones.
  * Rejection reasons are read by dispatchers, not parsed by machines.
  */
-export function formatLocalTime(ms: number, referenceIso: string): string {
-  const m = /([+-])(\d{2}):?(\d{2})$/.exec(referenceIso);
-  const offsetMin = m
-    ? (m[1] === "-" ? -1 : 1) * (Number(m[2]) * 60 + Number(m[3]))
-    : 0;
-  const d = new Date(ms + offsetMin * 60_000);
+export function formatLocalTime(
+  ms: number,
+  referenceIso: string,
+  opts: { showZone?: boolean } = {},
+): string {
+  const off = offsetMinutes(referenceIso);
+  const d = new Date(ms + (off ?? 0) * 60_000);
   const hh = String(d.getUTCHours()).padStart(2, "0");
   const mm = String(d.getUTCMinutes()).padStart(2, "0");
-  return `${DAYS[d.getUTCDay()]} ${d.getUTCDate()} ${MONTHS[d.getUTCMonth()]} ${hh}:${mm}${m ? "" : " UTC"}`;
+  const base = `${DAYS[d.getUTCDay()]} ${d.getUTCDate()} ${MONTHS[d.getUTCMonth()]} ${hh}:${mm}`;
+  if (off === null) return `${base} UTC`;
+  if (!opts.showZone) return base;
+  const h = Math.trunc(Math.abs(off) / 60);
+  const min = Math.abs(off) % 60;
+  return `${base} UTC${off < 0 ? "−" : "+"}${h}${min ? `:${String(min).padStart(2, "0")}` : ""}`;
+}
+
+/** True when the truck's times and the load's windows are not all written in one offset. */
+export function tripSpansTimeZones(truck: Truck, load: Load): boolean {
+  const offsets = new Set(
+    [
+      truck.availability.earliest,
+      truck.availability.latest,
+      load.pickup.earliest,
+      load.pickup.latest,
+      load.delivery.earliest,
+      load.delivery.latest,
+    ].map(offsetMinutes),
+  );
+  return offsets.size > 1;
 }
 
 function parseTime(s: string, what: string): number {
@@ -253,15 +284,21 @@ function evaluate(
   );
   const delLatest = parseTime(load.delivery.latest, `delivery window for ${load.id}`);
 
-  const ref = truck.availability.earliest;
-  const when = (ms: number) => formatLocalTime(ms, ref);
+  // Each time is shown in the zone of the place it happens: pickup times in the
+  // pickup window's offset, delivery in the delivery window's, the truck's
+  // release in the truck's. The offset is printed when the trip crosses zones.
+  const showZone = tripSpansTimeZones(truck, load);
+  const at = (ref: string) => (ms: number) => formatLocalTime(ms, ref, { showZone });
+  const atPickup = at(load.pickup.latest);
+  const atDelivery = at(load.delivery.latest);
+  const atTruck = at(truck.availability.latest);
   const clock = new Clock(availFrom, cfg);
   clock.drive(deadheadMiles / cfg.averageMph);
   const arriveAtPickup = clock.now;
   if (arriveAtPickup > puLatest) {
     return fail(
       "misses-pickup-window",
-      `Earliest arrival at pickup is ${when(arriveAtPickup)}; the window closes ${when(puLatest)}.`,
+      `Earliest arrival at pickup is ${atPickup(arriveAtPickup)}; the window closes ${atPickup(puLatest)}.`,
     );
   }
   const waitAtPickup = clock.waitUntil(puEarliest);
@@ -277,7 +314,7 @@ function evaluate(
   if (arriveAtDelivery > delLatest) {
     return fail(
       "misses-delivery-window",
-      `Earliest delivery is ${when(arriveAtDelivery)}; the window closes ${when(delLatest)}.`,
+      `Earliest delivery is ${atDelivery(arriveAtDelivery)}; the window closes ${atDelivery(delLatest)}.`,
     );
   }
   clock.waitUntil(delEarliest);
@@ -286,7 +323,7 @@ function evaluate(
   if (finished > availUntil) {
     return fail(
       "exceeds-availability",
-      `Finishes ${when(finished)}, after the truck must be released (${when(availUntil)}).`,
+      `Finishes ${atTruck(finished)}, after the truck must be released (${atTruck(availUntil)}).`,
     );
   }
 

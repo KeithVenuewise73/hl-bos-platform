@@ -286,7 +286,11 @@
       "done": false
     },
     {
-      "title": "DispatchOS Match: backhaul matching engine + app on sample data, ranked by contribution and $/mile, every rejection explained; 42 tests, 12/12 browser checks, starts from the console",
+      "title": "DispatchOS Match: backhaul matching engine + app, ranked by contribution and $/mile, every rejection explained; 42 tests, 12/12 browser checks, starts from the console",
+      "done": true
+    },
+    {
+      "title": "DispatchOS Match works anywhere in the US: city/ZIP/coordinate lookup (42,249 ZIPs), time-zone-safe times, own-fleet CSV import, second sample fleet in TX/NM; 59 tests, 22/22 browser checks",
       "done": true
     },
     {

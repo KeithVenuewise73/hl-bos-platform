@@ -2,7 +2,7 @@
   "name": "@hl-bos/dispatch-match",
   "version": "0.1.0",
   "private": true,
-  "description": "DispatchOS Match — the backhaul load-matching engine. Filters every (truck, load) pair on hard constraints (equipment vs commodity, weight and volume, timing, radius), then ranks what survives by projected contribution and revenue per mile with a visible, adjustable formula. Equipment-agnostic and tenant-scoped so the same engine serves any fleet. Pure and deterministic — no network, no map API, no secrets.",
+  "description": "DispatchOS Match \u2014 the backhaul load-matching engine. Filters every (truck, load) pair on hard constraints (equipment vs commodity, weight and volume, timing, radius), then ranks what survives by projected contribution and revenue per mile with a visible, adjustable formula. Equipment-agnostic and tenant-scoped so the same engine serves any fleet. Location-independent: any US city, ZIP or coordinate resolves (server-side, from a bundled ZIP dataset). Pure and deterministic \u2014 no network, no map API, no secrets.",
   "type": "module",
   "exports": {
     ".": {
@@ -12,6 +12,10 @@
     "./demo": {
       "types": "./src/demo.ts",
       "default": "./src/demo.ts"
+    },
+    "./places": {
+      "types": "./src/places.ts",
+      "default": "./src/places.ts"
     }
   },
   "scripts": {
@@ -23,5 +27,8 @@
     "@types/node": "catalog:",
     "typescript": "catalog:",
     "vitest": "catalog:"
+  },
+  "dependencies": {
+    "zipcodes": "catalog:"
   }
 }

@@ -50,6 +50,14 @@ catalog:
   # reachable from a browser bundle.
   server-only: "0.0.1"
 
+  # --- Geography ----------------------------------------------------------
+  # US ZIP code -> city, state, latitude, longitude (42,555 US ZIPs; BSD).
+  # DispatchOS Match resolves "City, ST", ZIPs and coordinates nationally
+  # with it, SERVER-SIDE ONLY (5 MB of data must never reach a browser
+  # bundle). Pinned exact: the data is the dependency, and a bump changes
+  # where places resolve.
+  zipcodes: "8.0.0"
+
   # --- Test ---------------------------------------------------------------
   vitest: "4.1.10"
   "@vitest/coverage-v8": "4.1.10"

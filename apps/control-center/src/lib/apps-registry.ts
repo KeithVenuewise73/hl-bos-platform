@@ -28,7 +28,7 @@ export const LOCAL_APPS: readonly LocalApp[] = [
   {
     key: "dispatchos-match",
     name: "DispatchOS Match",
-    what: "Find backhaul freight worth taking on the way home, ranked by what each load actually earns, with a plain reason for every load it turns down. Runs on sample data.",
+    what: "Find backhaul freight worth taking on the way home, anywhere in the US, ranked by what each load actually earns, with a plain reason for every load it turns down. Two sample fleets, or import your own.",
     filter: "@hl-bos/dispatchos-match",
     port: 4700,
     healthPath: "/api/health",

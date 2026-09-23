@@ -6,6 +6,38 @@ actually earns, not just by whether it fits.
 Pure TypeScript. No network, no map API, no secrets. The same engine runs in
 the browser (the app) or on a server.
 
+**Location-independent.** Nothing in the engine knows about any region: a
+truck or load is a latitude/longitude, and every limit (deadhead, service
+radius, time windows) is per truck. Two sample fleets ship to prove it — a
+Western NY bulk carrier and a Dallas regional carrier with a truck that starts
+in Mountain time.
+
+## Locations, anywhere in the US
+
+`@hl-bos/dispatch-match/places` resolves what people actually write:
+
+| Written as           | Example                                           |
+| -------------------- | ------------------------------------------------- |
+| City, state          | `Dallas, TX`, `Buffalo NY`, `St. Louis, Missouri` |
+| ZIP (ZIP+4 accepted) | `14510`, `75201-1234`                             |
+| City + ZIP           | `Dallas, TX 75201` (the ZIP wins)                 |
+| Coordinates          | `42.886, -78.878`                                 |
+
+Data: the `zipcodes` package (BSD) — 42,249 US ZIPs with coordinates across
+all 50 states, DC and territories; a city's point is the median of its ZIPs.
+Military APO/FPO codes have no location and are dropped. **Anything that does
+not resolve is refused with a reason — never guessed.** This entry point loads
+~5 MB of data, so it is server-side only (the app's import route uses it); the
+browser bundle was checked and contains none of it.
+
+## Time zones
+
+Every timestamp must carry its UTC offset (`2026-09-29T08:00:00-05:00`); CSV
+import refuses one without, rather than assuming the server's zone. Times are
+shown in the zone they were written in — pickup times in the pickup's zone,
+delivery in the delivery's — and the offset is printed whenever a trip crosses
+zones (`Tue 29 Sep 06:00 UTC−6`).
+
 ## How a match is decided
 
 1. **Tenant scope.** Only this fleet's trucks and loads are considered. Another
@@ -79,10 +111,16 @@ reason and **no number**. The sample data has no history, so it is never shown.
   "est." everywhere.
 - **Load boards:** implement `LoadBoardAdapter` in `sources.ts`. None exists
   yet, and the app does not pretend otherwise.
+- **A fleet's own trucks and loads:** `importTrucksCsv` / `importLoadsCsv`,
+  with any `PlaceResolver` — the national one, or `placeListResolver` over a
+  fleet's own yards. Row coordinates always win.
+- **Outside the US:** the engine already works on coordinates; it needs a
+  resolver for that country's places, and HOS settings for its driving rules.
 
 ## Simplifications (stated, not hidden)
 
 - Road miles are estimated, not routed.
+- Hours of service follow US federal rules (configurable numbers).
 - Hours of service: the 11 h driving limit and 10 h rest are modelled; the
   14 h on-duty window and 30-minute break are not.
 - Per-day driver pay is pro-rated by on-duty hours.
@@ -91,7 +129,12 @@ reason and **no number**. The sample data has no history, so it is never shown.
 
 ## Sample data
 
-`@hl-bos/dispatch-match/demo` — a Western NY bulk fleet (2 dump trailers,
-2 flatbeds, 1 pneumatic tanker) and 12 regional loads. Invented for
-demonstration; not any carrier's real trucks, rates or freight. It is a
-separate entry point so production code cannot import it by accident.
+`@hl-bos/dispatch-match/demo` — two illustrative fleets, each its own tenant:
+
+- a Western NY bulk fleet (2 dump trailers, 2 flatbeds, 1 pneumatic tanker)
+  and 12 regional loads;
+- a Dallas regional carrier (flatbed, step deck, reefer, dry van — the reefer
+  empty in Albuquerque, Mountain time) and 11 loads across TX, OK, LA and NM.
+
+Invented for demonstration; not any carrier's real trucks, rates or freight.
+It is a separate entry point so production code cannot import it by accident.

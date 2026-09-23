@@ -287,3 +287,276 @@ export const DEMO_LOADS: readonly Load[] = [
     source: demo,
   },
 ];
+
+// ===========================================================================
+// SECOND SAMPLE FLEET — a Dallas-based regional carrier (illustrative).
+//
+// Exists to prove the engine is not tied to one region: different home base,
+// different equipment (step deck, reefer, dry van), and a truck that starts in
+// Mountain time (Albuquerque) while its loads are in Central time. Coordinates
+// are the median of each city's ZIP codes in the `zipcodes` dataset — the same
+// source the national place resolver uses. Loads, rates and shippers are
+// invented.
+// ===========================================================================
+
+export const TX_TENANT_ID = "demo-tx-regional";
+export const TX_TENANT_LABEL = "Sample fleet — Dallas regional carrier (illustrative)";
+
+export const TX_PLACES = {
+  dallas: P("Dallas, TX", 32.7673, -96.7776),
+  fortWorth: P("Fort Worth, TX", 32.7714, -97.2915),
+  houston: P("Houston, TX", 29.834, -95.4342),
+  sanAntonio: P("San Antonio, TX", 29.4375, -98.4691),
+  austin: P("Austin, TX", 30.3264, -97.7499),
+  waco: P("Waco, TX", 31.5527, -97.1615),
+  beaumont: P("Beaumont, TX", 30.0865, -94.1327),
+  amarillo: P("Amarillo, TX", 35.2297, -101.8755),
+  laredo: P("Laredo, TX", 27.5434, -99.481),
+  oklahomaCity: P("Oklahoma City, OK", 35.5042, -97.5017),
+  tulsa: P("Tulsa, OK", 36.1398, -95.9928),
+  shreveport: P("Shreveport, LA", 32.6076, -93.7526),
+  albuquerque: P("Albuquerque, NM", 35.0512, -106.6729),
+} satisfies Record<string, Place>;
+
+/** Central Daylight Time (−05:00) — the default for this fleet. */
+const C = (day: number, hhmm: string) =>
+  `2026-09-${String(day).padStart(2, "0")}T${hhmm}:00-05:00`;
+/** Mountain Daylight Time (−06:00) — Albuquerque. */
+const M = (day: number, hhmm: string) =>
+  `2026-09-${String(day).padStart(2, "0")}T${hhmm}:00-06:00`;
+const dallas = TX_PLACES.dallas;
+
+export const TX_TRUCKS: readonly Truck[] = [
+  {
+    id: "TX-41",
+    tenantId: TX_TENANT_ID,
+    name: "Flatbed 41",
+    equipmentType: "flatbed",
+    capacity: { weightLbs: 48_000 },
+    home: dallas,
+    currentLocation: TX_PLACES.houston,
+    availability: { earliest: C(29, "07:00"), latest: C(30, "19:00") },
+    maxDeadheadMiles: 200,
+    serviceRadiusMiles: 200,
+    driverCost: { basis: "per-mile", amount: 0.6 },
+  },
+  {
+    id: "TX-17",
+    tenantId: TX_TENANT_ID,
+    name: "Step Deck 17",
+    equipmentType: "step-deck",
+    capacity: { weightLbs: 46_000 },
+    home: dallas,
+    currentLocation: TX_PLACES.sanAntonio,
+    availability: { earliest: C(29, "08:00"), latest: C(30, "18:00") },
+    maxDeadheadMiles: 200,
+    serviceRadiusMiles: 200,
+    driverCost: { basis: "per-day", amount: 310 },
+  },
+  {
+    id: "TX-08",
+    tenantId: TX_TENANT_ID,
+    name: "Reefer 8",
+    equipmentType: "reefer",
+    capacity: { weightLbs: 44_000 },
+    home: dallas,
+    currentLocation: TX_PLACES.albuquerque,
+    availability: { earliest: M(29, "06:00"), latest: "2026-10-01T18:00:00-06:00" },
+    maxDeadheadMiles: 350,
+    serviceRadiusMiles: 250,
+    driverCost: { basis: "per-mile", amount: 0.64 },
+  },
+  {
+    id: "TX-22",
+    tenantId: TX_TENANT_ID,
+    name: "Van 22",
+    equipmentType: "dry-van",
+    capacity: { weightLbs: 45_000 },
+    home: dallas,
+    currentLocation: TX_PLACES.oklahomaCity,
+    availability: { earliest: C(29, "07:00"), latest: C(30, "20:00") },
+    maxDeadheadMiles: 200,
+    serviceRadiusMiles: 250,
+    driverCost: { basis: "per-mile", amount: 0.58 },
+  },
+];
+
+const L = (
+  id: string,
+  from: Place,
+  to: Place,
+  commodity: Load["commodity"],
+  weightLbs: number,
+  pay: Load["pay"],
+  pickup: Load["pickup"],
+  delivery: Load["delivery"],
+  equipmentTypes: string[],
+  notes?: string,
+): Load => ({
+  id,
+  tenantId: TX_TENANT_ID,
+  origin: from,
+  destination: to,
+  commodity,
+  weightLbs,
+  pay,
+  pickup,
+  delivery,
+  equipmentTypes,
+  source: demo,
+  ...(notes ? { notes } : {}),
+});
+
+export const TX_LOADS: readonly Load[] = [
+  L(
+    "T-201",
+    TX_PLACES.houston,
+    TX_PLACES.fortWorth,
+    { name: "Line pipe", class: "steel" },
+    44_000,
+    { basis: "flat", amount: 1150 },
+    { earliest: C(29, "08:00"), latest: C(29, "14:00") },
+    { earliest: C(29, "14:00"), latest: C(30, "12:00") },
+    ["flatbed", "step-deck"],
+  ),
+  L(
+    "T-202",
+    TX_PLACES.beaumont,
+    dallas,
+    { name: "Southern yellow pine", class: "lumber" },
+    42_000,
+    { basis: "per-mile", rate: 2.5 },
+    { earliest: C(29, "10:00"), latest: C(29, "16:00") },
+    { earliest: C(30, "07:00"), latest: C(30, "15:00") },
+    ["flatbed"],
+  ),
+  L(
+    "T-203",
+    TX_PLACES.sanAntonio,
+    TX_PLACES.waco,
+    { name: "Compressor skid", class: "machinery" },
+    38_000,
+    { basis: "flat", amount: 900 },
+    { earliest: C(29, "09:00"), latest: C(29, "15:00") },
+    { earliest: C(29, "15:00"), latest: C(30, "12:00") },
+    ["step-deck", "flatbed"],
+  ),
+  L(
+    "T-204",
+    TX_PLACES.albuquerque,
+    dallas,
+    { name: "Green chile, cased", class: "refrigerated" },
+    40_000,
+    { basis: "flat", amount: 2300 },
+    { earliest: M(29, "08:00"), latest: M(29, "12:00") },
+    { earliest: C(30, "06:00"), latest: C(30, "14:00") },
+    ["reefer"],
+    "Picks up in Mountain time, delivers in Central.",
+  ),
+  L(
+    "T-205",
+    TX_PLACES.amarillo,
+    TX_PLACES.fortWorth,
+    { name: "Boxed beef", class: "refrigerated" },
+    42_000,
+    { basis: "flat", amount: 1500 },
+    { earliest: C(29, "09:00"), latest: C(29, "13:00") },
+    { earliest: C(29, "18:00"), latest: C(30, "08:00") },
+    ["reefer"],
+  ),
+  L(
+    "T-206",
+    TX_PLACES.oklahomaCity,
+    dallas,
+    { name: "Palletized beverages", class: "palletized-general" },
+    44_000,
+    { basis: "per-mile", rate: 2.3 },
+    { earliest: C(29, "08:00"), latest: C(29, "12:00") },
+    { earliest: C(29, "13:00"), latest: C(30, "10:00") },
+    ["dry-van"],
+  ),
+  L(
+    "T-207",
+    TX_PLACES.tulsa,
+    TX_PLACES.waco,
+    { name: "Paper rolls on pallets", class: "palletized-general" },
+    40_000,
+    { basis: "flat", amount: 1050 },
+    { earliest: C(29, "11:00"), latest: C(29, "17:00") },
+    { earliest: C(30, "07:00"), latest: C(30, "15:00") },
+    ["dry-van"],
+  ),
+  L(
+    "T-208",
+    TX_PLACES.shreveport,
+    TX_PLACES.austin,
+    { name: "Bagged cement", class: "building-materials" },
+    43_000,
+    { basis: "flat", amount: 1250 },
+    { earliest: C(29, "09:00"), latest: C(29, "15:00") },
+    { earliest: C(30, "07:00"), latest: C(30, "15:00") },
+    ["flatbed", "dry-van"],
+  ),
+  L(
+    "T-209",
+    TX_PLACES.houston,
+    dallas,
+    { name: "Hot-rolled coil", class: "steel" },
+    50_000,
+    { basis: "flat", amount: 1300 },
+    { earliest: C(29, "08:00"), latest: C(29, "16:00") },
+    { earliest: C(29, "16:00"), latest: C(30, "16:00") },
+    ["flatbed"],
+  ),
+  L(
+    "T-210",
+    TX_PLACES.beaumont,
+    dallas,
+    { name: "Liquid resin (bulk)", class: "liquid-bulk" },
+    46_000,
+    { basis: "flat", amount: 1600 },
+    { earliest: C(29, "07:00"), latest: C(29, "15:00") },
+    { earliest: C(29, "15:00"), latest: C(30, "12:00") },
+    ["liquid-tanker"],
+  ),
+  L(
+    "T-211",
+    TX_PLACES.laredo,
+    dallas,
+    { name: "Auto parts (cross-border)", class: "palletized-general" },
+    38_000,
+    { basis: "flat", amount: 1400 },
+    { earliest: C(29, "06:00"), latest: C(29, "10:00") },
+    { earliest: C(29, "16:00"), latest: C(30, "12:00") },
+    ["dry-van"],
+  ),
+];
+
+// ===========================================================================
+// Every sample fleet, for pickers. Each is its own tenant.
+// ===========================================================================
+
+export interface SampleFleet {
+  id: string;
+  label: string;
+  tenantId: string;
+  trucks: readonly Truck[];
+  loads: readonly Load[];
+}
+
+export const SAMPLE_FLEETS: readonly SampleFleet[] = [
+  {
+    id: "wny-bulk",
+    label: DEMO_TENANT_LABEL,
+    tenantId: DEMO_TENANT_ID,
+    trucks: DEMO_TRUCKS,
+    loads: DEMO_LOADS,
+  },
+  {
+    id: "tx-regional",
+    label: TX_TENANT_LABEL,
+    tenantId: TX_TENANT_ID,
+    trucks: TX_TRUCKS,
+    loads: TX_LOADS,
+  },
+];

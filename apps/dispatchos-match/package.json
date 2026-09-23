@@ -2,7 +2,7 @@
   "name": "@hl-bos/dispatchos-match",
   "version": "0.1.0",
   "private": true,
-  "description": "DispatchOS Match — find backhaul freight worth taking on the way home, ranked by projected contribution and revenue per mile, with every hard-filter rejection explained. Runs on sample data; loads can be added by CSV for the session.",
+  "description": "DispatchOS Match \u2014 find backhaul freight worth taking on the way home, ranked by projected contribution and revenue per mile, with every hard-filter rejection explained. Works anywhere in the US: trucks and loads are located by city, ZIP or coordinates. Ships two sample fleets; a dispatcher's own fleet and loads can be added by CSV for the session.",
   "type": "module",
   "scripts": {
     "dev": "next dev --port 4700",

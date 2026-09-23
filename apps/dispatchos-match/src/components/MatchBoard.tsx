@@ -6,8 +6,8 @@ import {
   buildEquipmentRegistry,
   describeScoreFormula,
   formatLocalTime,
-  importLoadsCsv,
   matchFleet,
+  tripSpansTimeZones,
   type Load,
   type Match,
   type MatchConfig,
@@ -15,21 +15,17 @@ import {
   type Truck,
   type TruckResult,
 } from "@hl-bos/dispatch-match";
-import {
-  DEMO_LOADS,
-  DEMO_PLACE_LIST,
-  DEMO_TENANT_ID,
-  DEMO_TENANT_LABEL,
-  DEMO_TRUCKS,
-} from "@hl-bos/dispatch-match/demo";
+import { SAMPLE_FLEETS } from "@hl-bos/dispatch-match/demo";
 import { lbs, miles, parseNumberInput, perMile, usd } from "@/lib/format";
+import {
+  LOAD_CSV_TEMPLATE,
+  OWN_FLEET_ID,
+  OWN_FLEET_TENANT,
+  TRUCK_CSV_TEMPLATE,
+} from "@/lib/fleets";
 
 const equipment = buildEquipmentRegistry();
 const typeLabel = (id: string) => equipment.get(id)?.label ?? id;
-
-const CSV_TEMPLATE = `id,origin,destination,commodity,commodity_class,weight_lbs,volume_cu_yd,pay_basis,pay,pickup_earliest,pickup_latest,delivery_earliest,delivery_latest,equipment,origin_lat,origin_lon,destination_lat,destination_lon,notes
-C-1,"Erie, PA","Rochester, NY",Screened topsoil,soil,42000,30,flat,1100,2026-09-29T09:00:00-04:00,2026-09-29T16:00:00-04:00,2026-09-29T14:00:00-04:00,2026-09-30T12:00:00-04:00,dump,,,,,
-C-2,"Williamsport, PA","Batavia, NY",Hemlock timbers,lumber,38000,,per-mile,2.9,2026-09-29T12:00:00-04:00,2026-09-29T18:00:00-04:00,2026-09-30T07:00:00-04:00,2026-09-30T15:00:00-04:00,flatbed,,,,,`;
 
 // ---------------------------------------------------------------------------
 
@@ -203,8 +199,14 @@ function Assumptions({
 
 function MatchDetail({ m, truck, load }: { m: Match; truck: Truck; load: Load }) {
   const e = m.economics;
-  const t = (iso: string) =>
-    formatLocalTime(Date.parse(iso), truck.availability.earliest);
+  // Each time in the zone of the place it happens; zones are labelled when the
+  // trip crosses one, so two times on screen are never silently in different zones.
+  const showZone = tripSpansTimeZones(truck, load);
+  const at = (ref: string) => (iso: string) =>
+    formatLocalTime(Date.parse(iso), ref, { showZone });
+  const tTruck = at(truck.availability.earliest);
+  const tPickup = at(load.pickup.earliest);
+  const tDelivery = at(load.delivery.earliest);
   return (
     <div className="detail-grid">
       <div>
@@ -256,18 +258,18 @@ function MatchDetail({ m, truck, load }: { m: Match; truck: Truck; load: Load })
         <h4>Timing (est.)</h4>
         <dl>
           <dt>Empty at {truck.currentLocation.name}</dt>
-          <dd>{t(truck.availability.earliest)}</dd>
+          <dd>{tTruck(truck.availability.earliest)}</dd>
           <dt>At pickup</dt>
-          <dd>{t(m.timing.arriveAtPickup)}</dd>
+          <dd>{tPickup(m.timing.arriveAtPickup)}</dd>
           <dt>Loaded, rolling</dt>
-          <dd>{t(m.timing.loadedDeparture)}</dd>
+          <dd>{tPickup(m.timing.loadedDeparture)}</dd>
           <dt>At delivery</dt>
-          <dd>{t(m.timing.arriveAtDelivery)}</dd>
+          <dd>{tDelivery(m.timing.arriveAtDelivery)}</dd>
           <dt>Unloaded</dt>
-          <dd>{t(m.timing.finished)}</dd>
+          <dd>{tDelivery(m.timing.finished)}</dd>
           <dt>Delivery window</dt>
           <dd>
-            {t(load.delivery.earliest)} – {t(load.delivery.latest)}
+            {tDelivery(load.delivery.earliest)} – {tDelivery(load.delivery.latest)}
           </dd>
         </dl>
       </div>
@@ -325,12 +327,14 @@ function TruckPanel({
             {formatLocalTime(
               Date.parse(t.availability.earliest),
               t.availability.earliest,
+              {
+                showZone: true,
+              },
             )}
             {" · "}free until{" "}
-            {formatLocalTime(
-              Date.parse(t.availability.latest),
-              t.availability.earliest,
-            )}
+            {formatLocalTime(Date.parse(t.availability.latest), t.availability.latest, {
+              showZone: true,
+            })}
             {" · "}home {t.home.name}
           </div>
           <div className="meta">
@@ -488,91 +492,213 @@ function TruckPanel({
   );
 }
 
-function CsvImport({ onImport }: { onImport: (loads: Load[]) => void }) {
+type ImportKind = "loads" | "trucks";
+type ImportResult =
+  | {
+      ok: true;
+      kind: "loads";
+      loads: Load[];
+      errors: { row: number; message: string }[];
+    }
+  | {
+      ok: true;
+      kind: "trucks";
+      trucks: Truck[];
+      errors: { row: number; message: string }[];
+    }
+  | { ok: false; error: string };
+
+function ImportPanel(props: {
+  kind: ImportKind;
+  tenantId: string;
+  template: string;
+  onLoads?: (loads: Load[]) => void;
+  onTrucks?: (trucks: Truck[]) => void;
+}) {
   const [text, setText] = useState("");
-  const [result, setResult] = useState<{
-    imported: number;
-    errors: { row: number; message: string }[];
-  } | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [result, setResult] = useState<
+    | { imported: number; errors: { row: number; message: string }[] }
+    | { failed: string }
+    | null
+  >(null);
+  const noun = props.kind === "loads" ? "loads" : "trucks";
+
+  async function run() {
+    setBusy(true);
+    setResult(null);
+    try {
+      const res = await fetch("/api/import", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ kind: props.kind, text, tenantId: props.tenantId }),
+      });
+      const r = (await res.json()) as ImportResult;
+      if (!r.ok) {
+        setResult({ failed: r.error });
+      } else if (r.kind === "loads") {
+        setResult({ imported: r.loads.length, errors: r.errors });
+        if (r.loads.length > 0) props.onLoads?.(r.loads);
+      } else {
+        setResult({ imported: r.trucks.length, errors: r.errors });
+        if (r.trucks.length > 0) props.onTrucks?.(r.trucks);
+      }
+    } catch {
+      setResult({ failed: "The app did not answer. Nothing was imported." });
+    } finally {
+      setBusy(false);
+    }
+  }
+
   return (
     <div className="panel">
-      <h2>Add loads from CSV</h2>
+      <h2>Add {noun} from CSV</h2>
       <p className="small muted" style={{ marginTop: 0 }}>
-        Paste rows below. Places not in the built-in list need{" "}
-        <code>origin_lat/lon</code> and <code>destination_lat/lon</code> — a place the
-        tool does not know is refused, never guessed. Imported loads live in this
+        Locations can be anywhere in the US: <code>City, ST</code>, a 5-digit ZIP, or{" "}
+        <code>lat, lon</code>. A location that does not resolve is refused with the
+        reason, never guessed. Every time needs its UTC offset (e.g. <code>-05:00</code>
+        ) because a national fleet crosses time zones. Imported {noun} live in this
         browser tab only and are not saved.
       </p>
       <textarea
         value={text}
         onChange={(e) => setText(e.target.value)}
-        placeholder="id,origin,destination,…"
+        placeholder={props.template.split("\n")[0]}
+        aria-label={`${noun} CSV`}
       />
       <div className="row-actions">
         <button
           className="primary"
-          disabled={text.trim() === ""}
-          onClick={() => {
-            const r = importLoadsCsv(text, {
-              tenantId: DEMO_TENANT_ID,
-              places: DEMO_PLACE_LIST,
-              fileName: "pasted",
-            });
-            setResult({ imported: r.loads.length, errors: r.errors });
-            if (r.loads.length > 0) onImport(r.loads);
-          }}
+          disabled={text.trim() === "" || busy}
+          onClick={() => void run()}
         >
-          Import
+          {busy ? "Importing…" : `Import ${noun}`}
         </button>
-        <button onClick={() => setText(CSV_TEMPLATE)}>Fill with an example</button>
+        <button onClick={() => setText(props.template)}>Fill with an example</button>
       </div>
       {result && (
         <div className="small" style={{ marginTop: 8 }}>
-          <div className={result.imported > 0 ? "pos" : ""}>
-            Imported {result.imported} load(s).
-          </div>
-          {result.errors.length > 0 && (
-            <ul className="reasons neg">
-              {result.errors.map((e) => (
-                <li key={e.row}>
-                  Row {e.row}: {e.message}
-                </li>
-              ))}
-            </ul>
+          {"failed" in result ? (
+            <div className="neg">{result.failed}</div>
+          ) : (
+            <>
+              <div className={result.imported > 0 ? "pos" : ""}>
+                Imported {result.imported} {noun}.
+              </div>
+              {result.errors.length > 0 && (
+                <ul className="reasons neg">
+                  {result.errors.map((e) => (
+                    <li key={e.row}>
+                      Row {e.row}: {e.message}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </>
           )}
         </div>
       )}
-      <p className="small muted">
-        Known places: {DEMO_PLACE_LIST.map((p) => p.name).join("; ")}.
-      </p>
     </div>
   );
 }
 
+function PlaceCheck() {
+  const [q, setQ] = useState("");
+  const [answer, setAnswer] = useState<string | null>(null);
+  async function look() {
+    try {
+      const res = await fetch(`/api/place?q=${encodeURIComponent(q)}`);
+      const r = (await res.json()) as
+        | {
+            ok: true;
+            place: { name: string; lat: number; lon: number };
+            matchedBy: string;
+          }
+        | { ok: false; error: string };
+      setAnswer(
+        r.ok
+          ? `${r.place.name} — ${r.place.lat.toFixed(4)}, ${r.place.lon.toFixed(4)} (matched by ${r.matchedBy})`
+          : r.error,
+      );
+    } catch {
+      setAnswer("The app did not answer.");
+    }
+  }
+  return (
+    <div className="panel">
+      <h2>Check a location</h2>
+      <p className="small muted" style={{ marginTop: 0 }}>
+        See exactly where the engine will put a city, ZIP or coordinate before you
+        import.
+      </p>
+      <form
+        className="row-actions"
+        onSubmit={(e) => {
+          e.preventDefault();
+          void look();
+        }}
+      >
+        <input
+          value={q}
+          onChange={(e) => setQ(e.target.value)}
+          placeholder="e.g. Boise, ID or 99501"
+          aria-label="Location to check"
+          style={{ flex: 1, minWidth: 0, padding: "4px 6px" }}
+        />
+        <button type="submit" disabled={q.trim() === ""}>
+          Check
+        </button>
+      </form>
+      {answer && (
+        <p className="small" style={{ marginBottom: 0 }}>
+          {answer}
+        </p>
+      )}
+    </div>
+  );
+}
+
+const OWN_FLEET_LABEL = "Your own fleet (import trucks and loads by CSV)";
+
 export function MatchBoard() {
   const [cfg, setCfg] = useState<MatchConfig>(DEFAULT_MATCH_CONFIG);
-  const [extraLoads, setExtraLoads] = useState<Load[]>([]);
+  const [fleetId, setFleetId] = useState<string>(SAMPLE_FLEETS[0]?.id ?? OWN_FLEET_ID);
+  const [extraLoads, setExtraLoads] = useState<Record<string, Load[]>>({});
+  const [ownTrucks, setOwnTrucks] = useState<Truck[]>([]);
+
+  const sample = SAMPLE_FLEETS.find((f) => f.id === fleetId);
+  const isOwn = sample === undefined;
+  const tenantId = sample?.tenantId ?? OWN_FLEET_TENANT;
+  const trucks: readonly Truck[] = sample?.trucks ?? ownTrucks;
+  const added = useMemo(() => extraLoads[fleetId] ?? [], [extraLoads, fleetId]);
 
   const loads = useMemo(() => {
     // An imported id that collides with an existing one replaces it, so a
     // corrected CSV can be re-pasted.
-    const ids = new Set(extraLoads.map((l) => l.id));
-    return [...DEMO_LOADS.filter((l) => !ids.has(l.id)), ...extraLoads];
-  }, [extraLoads]);
+    const ids = new Set(added.map((l) => l.id));
+    return [...(sample?.loads ?? []).filter((l) => !ids.has(l.id)), ...added];
+  }, [added, sample]);
   const loadsById = useMemo(() => new Map(loads.map((l) => [l.id, l])), [loads]);
   const run = useMemo(
-    () =>
-      matchFleet({
-        tenantId: DEMO_TENANT_ID,
-        trucks: DEMO_TRUCKS,
-        loads,
-        config: cfg,
-        equipment,
-      }),
-    [loads, cfg],
+    () => matchFleet({ tenantId, trucks, loads, config: cfg, equipment }),
+    [tenantId, trucks, loads, cfg],
   );
-  const trucksById = new Map(DEMO_TRUCKS.map((t) => [t.id, t]));
+  const trucksById = new Map(trucks.map((t) => [t.id, t]));
   const totalMatches = run.trucks.reduce((n, t) => n + t.matches.length, 0);
+
+  const addLoads = (ls: Load[]) =>
+    setExtraLoads((prev) => {
+      const ids = new Set(ls.map((l) => l.id));
+      return {
+        ...prev,
+        [fleetId]: [...(prev[fleetId] ?? []).filter((l) => !ids.has(l.id)), ...ls],
+      };
+    });
+  const addTrucks = (ts: Truck[]) =>
+    setOwnTrucks((prev) => {
+      const ids = new Set(ts.map((t) => t.id));
+      return [...prev.filter((t) => !ids.has(t.id)), ...ts];
+    });
 
   return (
     <div className="wrap">
@@ -580,24 +706,68 @@ export function MatchBoard() {
         <h1>DispatchOS Match</h1>
         <span className="sub">
           Backhaul freight worth taking on the way home — ranked by what it earns.
+          Anywhere in the US.
         </span>
       </header>
-      <div className="demo-banner">
-        <b>SAMPLE DATA.</b> {DEMO_TENANT_LABEL}. Trucks, shippers, rates and loads are
-        invented for demonstration — not any carrier&apos;s real freight. Miles are
-        estimated (no routing API is connected), and no load board is connected.{" "}
-        {run.trucks.length} trucks matched against {loads.length} loads
-        {extraLoads.length > 0 ? ` (${extraLoads.length} from your CSV)` : ""}:{" "}
-        {totalMatches} feasible pairings.
-      </div>
+
+      <label className="fleet-pick">
+        <span>Fleet</span>
+        <select
+          value={fleetId}
+          onChange={(e) => setFleetId(e.target.value)}
+          aria-label="Fleet"
+        >
+          {SAMPLE_FLEETS.map((f) => (
+            <option key={f.id} value={f.id}>
+              {f.label}
+            </option>
+          ))}
+          <option value={OWN_FLEET_ID}>{OWN_FLEET_LABEL}</option>
+        </select>
+      </label>
+
+      {sample ? (
+        <div className="demo-banner">
+          <b>SAMPLE DATA.</b> {sample.label}. Trucks, shippers, rates and loads are
+          invented for demonstration — not any carrier&apos;s real freight. Miles are
+          estimated (no routing API is connected), and no load board is connected.{" "}
+          {run.trucks.length} trucks matched against {loads.length} loads
+          {added.length > 0 ? ` (${added.length} from your CSV)` : ""}: {totalMatches}{" "}
+          feasible pairings.
+        </div>
+      ) : (
+        <div className="demo-banner own">
+          <b>YOUR FLEET.</b> Only what you import below — nothing is invented and
+          nothing is saved.{" "}
+          {trucks.length === 0
+            ? "Start by importing your trucks, then the loads you are considering."
+            : `${trucks.length} truck(s) matched against ${loads.length} load(s): ${totalMatches} feasible pairings.`}{" "}
+          Miles are estimated (no routing API is connected).
+        </div>
+      )}
 
       <div className="grid">
         <aside>
           <Assumptions cfg={cfg} setCfg={setCfg} />
+          <PlaceCheck />
         </aside>
         <main>
+          {isOwn && (
+            <ImportPanel
+              kind="trucks"
+              tenantId={tenantId}
+              template={TRUCK_CSV_TEMPLATE}
+              onTrucks={addTrucks}
+            />
+          )}
+          {isOwn && ownTrucks.length > 0 && (
+            <div className="row-actions" style={{ marginTop: -8, marginBottom: 16 }}>
+              <button onClick={() => setOwnTrucks([])}>Remove imported trucks</button>
+            </div>
+          )}
+
           {run.trucks.map((r) => (
-            <TruckPanel key={r.truck.id} r={r} loadsById={loadsById} />
+            <TruckPanel key={`${fleetId}:${r.truck.id}`} r={r} loadsById={loadsById} />
           ))}
 
           {run.dedicated.length > 0 && (
@@ -617,44 +787,49 @@ export function MatchBoard() {
             </div>
           )}
 
-          <div className="panel">
-            <h2>Loads no truck can take ({run.unmatchedLoads.length})</h2>
-            {run.unmatchedLoads.length === 0 ? (
-              <p className="empty">Every load has at least one feasible truck.</p>
-            ) : (
-              <ul className="reasons">
-                {run.unmatchedLoads.map((u) => {
-                  const l = loadsById.get(u.loadId);
-                  return (
-                    <li key={u.loadId}>
-                      <b>{u.loadId}</b>{" "}
-                      {l &&
-                        `${l.commodity.name}, ${l.origin.name} → ${l.destination.name}`}
-                      <div className="small muted">{u.summary}</div>
-                    </li>
-                  );
-                })}
-              </ul>
-            )}
-          </div>
+          {(loads.length > 0 || !isOwn) && (
+            <div className="panel">
+              <h2>Loads no truck can take ({run.unmatchedLoads.length})</h2>
+              {run.unmatchedLoads.length === 0 ? (
+                <p className="empty">Every load has at least one feasible truck.</p>
+              ) : (
+                <ul className="reasons">
+                  {run.unmatchedLoads.map((u) => {
+                    const l = loadsById.get(u.loadId);
+                    return (
+                      <li key={u.loadId}>
+                        <b>{u.loadId}</b>{" "}
+                        {l &&
+                          `${l.commodity.name}, ${l.origin.name} → ${l.destination.name}`}
+                        <div className="small muted">{u.summary}</div>
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
+            </div>
+          )}
 
-          <CsvImport
-            onImport={(ls) =>
-              setExtraLoads((prev) => {
-                const ids = new Set(ls.map((l) => l.id));
-                return [...prev.filter((l) => !ids.has(l.id)), ...ls];
-              })
-            }
+          <ImportPanel
+            key={`loads:${fleetId}`}
+            kind="loads"
+            tenantId={tenantId}
+            template={LOAD_CSV_TEMPLATE}
+            onLoads={addLoads}
           />
-          {extraLoads.length > 0 && (
+          {added.length > 0 && (
             <div className="row-actions" style={{ marginTop: -8, marginBottom: 16 }}>
-              <button onClick={() => setExtraLoads([])}>Remove imported loads</button>
+              <button
+                onClick={() => setExtraLoads((prev) => ({ ...prev, [fleetId]: [] }))}
+              >
+                Remove imported loads
+              </button>
             </div>
           )}
 
           <p className="small muted">
             Return-load probability is shown only where recorded lane history supports
-            it. This sample fleet has none, so every match says &ldquo;not
+            it. None of these fleets has any, so every match says &ldquo;not
             estimated&rdquo; rather than showing an invented percentage.
           </p>
         </main>
