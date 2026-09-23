@@ -11,6 +11,7 @@ import { MergeButton } from "@/components/MergeButton";
 import { supabaseState } from "@/lib/supabase";
 import { connectionStatus } from "@/lib/secrets";
 import { localAppStatuses } from "@/lib/apps";
+import { textingHealth } from "@/lib/texting-live";
 import { readdir } from "node:fs/promises";
 import path from "node:path";
 import { REPO_ROOT } from "@/lib/shell";
@@ -24,7 +25,8 @@ export default async function Page() {
   const gates = gatesFor(primaryPr);
   const health = overallHealth(gh, gates);
   const milestone = await milestoneState();
-  const approvals = approvalQueue({ gh, health: health.health, milestone });
+  const texting = await textingHealth();
+  const approvals = approvalQueue({ gh, health: health.health, milestone, texting });
   const conn = await connectionStatus();
   const localApps = await localAppStatuses();
 
@@ -84,6 +86,61 @@ export default async function Page() {
           {health.summary}
         </p>
       </div>
+
+      {/* ---- LIVE PRODUCT ALARM: HomeHuddle texts ----
+          Read straight from the outbox, so it works even when texting itself
+          is what broke. HomeHuddle's own alert was sent BY text and failed
+          silently for a month; this one cannot. */}
+      <Card
+        title="HomeHuddle texts"
+        sub="Are schedule texts actually reaching families? Checked every time this page loads."
+      >
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <Dot health={texting.health} />
+          <strong style={{ fontSize: 13.5 }}>{texting.headline}</strong>
+        </div>
+        <p
+          style={{
+            margin: "6px 0 0 17px",
+            fontSize: 12.5,
+            color: "#c9d1d9",
+            lineHeight: 1.55,
+          }}
+        >
+          {texting.summary}
+        </p>
+        {texting.reason && (
+          <p
+            style={{
+              margin: "6px 0 0 17px",
+              fontSize: 12.5,
+              color: "#8b949e",
+              lineHeight: 1.55,
+            }}
+          >
+            {texting.reason}
+          </p>
+        )}
+        {texting.owner && texting.health !== "green" && (
+          <div
+            style={{
+              margin: "6px 0 0 17px",
+              fontSize: 11.5,
+              color: texting.owner === "ceo" ? "#d29922" : "#6e7681",
+            }}
+          >
+            {texting.owner === "ceo"
+              ? "Needs you — see Your decisions"
+              : "Your AI engineer is handling this"}
+          </div>
+        )}
+        {texting.detail && (
+          <details style={{ margin: "8px 0 0 17px", fontSize: 11.5, color: "#6e7681" }}>
+            <summary>Technical detail</summary>
+            <code>{texting.detail}</code>
+          </details>
+        )}
+      </Card>
 
       {/* ---- 4. CEO APPROVAL QUEUE ---- */}
       <Card

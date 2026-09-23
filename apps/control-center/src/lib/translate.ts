@@ -30,6 +30,25 @@ interface Rule {
 }
 
 const RULES: readonly Rule[] = [
+  // --- HomeHuddle texting (Twilio) -------------------------------------
+  // Both hit in production: "Authenticate" from 2026-08-23, then the explicit
+  // "not active" wording from 2026-09-18. Both patterns are deliberately exact:
+  // a loose /authentication failed/ would swallow GitHub's sign-in failure
+  // further down this list.
+  {
+    match: /account AC\w+ with status \d+ is not active/i,
+    headline: "Twilio has switched off the account HomeHuddle texts through.",
+    meaning:
+      "Twilio is refusing every text because the account is suspended or closed. HomeHuddle is still writing the texts on time; none of them can leave. Only the account owner can fix this: sign in at console.twilio.com and the reason is shown at the top of the page. Once the account is active again, texts resume on their own.",
+    owner: "ceo",
+  },
+  {
+    match: /^Authenticate$/,
+    headline: "Twilio is refusing HomeHuddle's login, so no texts can go out.",
+    meaning:
+      "Either Twilio has suspended the account, or the account's password was changed and HomeHuddle still has the old one. Sign in at console.twilio.com: a warning banner there means the account is the problem. No banner means the stored login needs updating, which your AI engineer handles.",
+    owner: "ceo",
+  },
   // --- Social publishing (module 0046) --------------------------------
   // These are the failure modes the social module can actually produce. Each
   // one names who has to act, because three of the four are settings only

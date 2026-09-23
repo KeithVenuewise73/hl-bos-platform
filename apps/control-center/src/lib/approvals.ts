@@ -1,6 +1,7 @@
 import type { GitHubState } from "./github";
 import type { Health } from "./health";
 import type { MilestoneState } from "./milestone";
+import type { TextingAssessment } from "./texting";
 
 /**
  * The approval queue.
@@ -28,8 +29,21 @@ export function approvalQueue(args: {
   gh: GitHubState;
   health: Health;
   milestone: MilestoneState | null;
+  texting?: TextingAssessment;
 }): Approval[] {
   const out: Approval[] = [];
+
+  // A live product outage the CEO alone can clear goes first: families are
+  // missing messages right now.
+  if (args.texting?.health === "red" && args.texting.owner === "ceo") {
+    out.push({
+      title: args.texting.headline,
+      why: `${args.texting.summary} ${args.texting.reason ?? ""}`.trim(),
+      action: "Open Twilio",
+      href: "https://console.twilio.com",
+      urgency: "now",
+    });
+  }
 
   if (!args.gh.connected) {
     out.push({
