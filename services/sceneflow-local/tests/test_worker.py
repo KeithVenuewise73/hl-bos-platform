@@ -12,6 +12,7 @@ import json
 import pytest
 
 from sceneflow_local import ModelUnavailableError, UnsafeJobError, choose_model
+from sceneflow_local.models import plan_generation
 from sceneflow_local.adapters import LocalImageAdapter, MockImageAdapter
 from sceneflow_local.types import GenerationJob, GenerationOutcome
 from sceneflow_local.worker import detect_ram_mb, detect_vram_mb, doctor, run_job
@@ -203,8 +204,22 @@ class TestTheProcessorRoute:
         assert "processor" in adapter.describe()
 
     def test_a_smaller_machine_gets_the_smaller_model(self):
-        assert LocalImageAdapter(vram_mb=None, ram_mb=8_000).tier.name == "SD-Turbo (processor)"
-        assert LocalImageAdapter(vram_mb=None, ram_mb=16_000).tier.name == "SDXL-Turbo (processor)"
+        assert LocalImageAdapter(vram_mb=None, ram_mb=16_000).tier.name == "SD-Turbo (processor)"
+        assert LocalImageAdapter(vram_mb=None, ram_mb=32_000).tier.name == "SDXL-Turbo (processor)"
+
+    def test_his_own_machine_is_not_offered_the_bigger_model(self):
+        # 16GB, which is what his laptop reports. This assertion used to say
+        # SDXL-Turbo and that was WRONG: in full precision -- which is what a
+        # processor uses -- its weights are ~13.2GB, and Windows is already
+        # holding several GB of the 16. It would have been selected and then
+        # swapped to a halt, which on his screen is indistinguishable from the
+        # button doing nothing at all.
+        assert LocalImageAdapter(vram_mb=None, ram_mb=16_384).tier.name == "SD-Turbo (processor)"
+
+    def test_a_machine_too_small_for_either_is_told_so(self):
+        # 8GB cannot hold ~4.9GB of weights and an operating system and the
+        # working memory of a diffusion step. Saying no beats an abandoned tab.
+        assert plan_generation(None, 8_000) is None
 
     def test_a_card_still_wins_when_there_is_one(self):
         # The processor is the fallback, not the preference: a card is minutes
@@ -217,7 +232,7 @@ class TestTheProcessorRoute:
         # Four denoising passes instead of thirty. On a card that is seconds;
         # on a processor it is the difference between a tool and an abandoned
         # tab. Guidance 0.0 because that is what they are trained for.
-        for ram in (8_000, 16_000):
+        for ram in (16_000, 32_000):
             tier = LocalImageAdapter(vram_mb=None, ram_mb=ram).tier
             assert tier.steps == 4
             assert tier.guidance == 0.0
@@ -226,7 +241,7 @@ class TestTheProcessorRoute:
         # SceneFlow's premise is the same people across several scenes, and
         # neither of these does that well. Recorded, so the page can say it
         # rather than the operator finding out on panel four.
-        for ram in (8_000, 16_000):
+        for ram in (16_000, 32_000):
             assert LocalImageAdapter(vram_mb=None, ram_mb=ram).tier.identity == "weak"
 
     def test_it_never_asks_a_512_model_for_a_1040_pixel_picture(self):
@@ -299,7 +314,7 @@ class TestDoctorOnAMachineWithNoCard:
         report = doctor(vram_mb=None, ram_mb=16_000)
         assert report["device"] == "cpu"
         assert report["on_processor"] is True
-        assert report["would_load"] == "SDXL-Turbo (processor)"
+        assert report["would_load"] == "SD-Turbo (processor)"
 
     def test_it_says_the_faces_will_drift(self):
         # The product is the same people across several scenes. This route does
@@ -393,7 +408,7 @@ class TestWhatIsActuallyAskedOfTheModel:
         assert outcome.ok is True
         assert outcome.device == "cpu"
         assert outcome.adapter_kind == "real"
-        assert outcome.model == "SDXL-Turbo (processor)"
+        assert outcome.model == "SD-Turbo (processor)"
 
     def test_the_outcome_carries_a_measured_time(self):
         outcome, _ = self._generated(16_000)

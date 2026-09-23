@@ -255,16 +255,24 @@ export function chooseModel(vramMB: number | null): ImageModelFit | null {
  * same people across several scenes, and neither of these does that the way an
  * identity adapter on a card does. They make good pictures; faces drift
  * between panels. Saying so here beats the operator finding out on panel four.
+ *
+ * The memory numbers are the WEIGHTS PLUS THE MACHINE. A card tier can measure
+ * video memory against the weights alone; system RAM already has an operating
+ * system in it. At four bytes a parameter SD-Turbo is ~4.9GB of weights and
+ * SDXL-Turbo ~13.2GB, so SDXL-Turbo needs about 19GB before it is comfortable.
+ * It was listed at 16GB -- the exact amount the operator's laptop reports --
+ * so his machine would have CHOSEN it and then swapped to a halt. See the
+ * fuller arithmetic in services/sceneflow-local/sceneflow_local/models.py.
  */
 const CPU_TIERS: readonly Omit<ImageModelFit, "fits">[] = [
   {
     model: "SD-Turbo (processor)",
-    needsMB: 6_000,
+    needsMB: 10_000,
     note: "Runs on the processor in a minute or two rather than seconds. 512 pixels, and faces will drift between scenes. NON-COMMERCIAL licence: private use only.",
   },
   {
     model: "SDXL-Turbo (processor)",
-    needsMB: 16_000,
+    needsMB: 24_000,
     note: "The better of the two processor models, and slower for it. Still 512 pixels, and faces will still drift between scenes. NON-COMMERCIAL licence: private use only.",
   },
 ];

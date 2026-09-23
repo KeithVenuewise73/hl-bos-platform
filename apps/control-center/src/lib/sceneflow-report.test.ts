@@ -198,7 +198,17 @@ describe("a machine with no card but enough memory", () => {
 
   it("names the model it would actually load", () => {
     expect(readiness.plan?.onProcessor).toBe(true);
-    expect(readiness.plan?.model.model).toBe("SDXL-Turbo (processor)");
+    // SD-Turbo, NOT SDXL-Turbo. This assertion used to read the other way and
+    // it was wrong: SDXL-Turbo is ~13.2GB of weights in full precision, which
+    // is what a processor uses, and Windows is already holding several GB of
+    // this machine's 16. It would have been chosen and then swapped to a halt
+    // -- which on his screen looks exactly like the button doing nothing.
+    expect(readiness.plan?.model.model).toBe("SD-Turbo (processor)");
+  });
+
+  it("does not offer the bigger processor model to a 16GB machine", () => {
+    const fits = readiness.cpuModels.find((f) => f.model.includes("SDXL-Turbo"));
+    expect(fits?.fits).toBe(false);
   });
 
   it("warns that faces will drift, because that is the product", () => {

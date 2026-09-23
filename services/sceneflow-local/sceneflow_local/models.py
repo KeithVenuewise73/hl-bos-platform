@@ -60,6 +60,26 @@ MODEL_TIERS: tuple[ModelTier, ...] = (
 # is the difference between a few minutes and most of an hour, which is the
 # difference between a tool and an abandoned tab.
 #
+# THESE THRESHOLDS ARE THE WEIGHTS PLUS THE MACHINE, NOT THE WEIGHTS ALONE.
+# A card tier can measure video memory against the weights, because nothing
+# else is living in video memory. System RAM is not like that: the operating
+# system is already in it. Full precision on a processor (half precision is a
+# card optimisation and is slower here, not faster) means four bytes a
+# parameter, so, from published parameter counts:
+#
+#   SD-Turbo     865M + 340M + 84M params  ~= 4.9 GiB of weights
+#   SDXL-Turbo  2567M + 817M + 84M params  ~= 13.2 GiB of weights
+#
+# Add ~4 GiB for Windows itself and room for activations. SDXL-Turbo wants
+# about 19 GiB before it is comfortable; it was listed at 16 GiB, which is the
+# exact amount the operator's laptop reports. It would have been SELECTED on
+# his machine and then swapped to a halt -- the failure that looks like the
+# button doing nothing. Corrected below.
+#
+# This is arithmetic, not a measurement: huggingface.co is refused by the
+# build network so no checkpoint has ever been loaded here. The first real
+# load on a real machine is what confirms or corrects it.
+#
 # Both are marked `identity: weak`, and that is the honest cost of this route.
 # SceneFlow's whole premise is the same people across several scenes, and
 # neither of these holds a face the way an identity adapter on a card does.
@@ -68,7 +88,7 @@ MODEL_TIERS: tuple[ModelTier, ...] = (
 CPU_TIERS: tuple[ModelTier, ...] = (
     ModelTier(
         "SD-Turbo (processor)",
-        6_000,
+        10_000,
         "stabilityai/sd-turbo",
         True,
         steps=4,
@@ -79,7 +99,7 @@ CPU_TIERS: tuple[ModelTier, ...] = (
     ),
     ModelTier(
         "SDXL-Turbo (processor)",
-        16_000,
+        24_000,
         "stabilityai/sdxl-turbo",
         True,
         steps=4,
