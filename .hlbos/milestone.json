@@ -284,6 +284,14 @@
     {
       "title": "SceneFlow AI: load a real checkpoint and produce a real picture \u2014 UNVERIFIED; needs a machine with an NVIDIA card and a reachable weights host",
       "done": false
+    },
+    {
+      "title": "DispatchOS Match: backhaul matching engine + app on sample data, ranked by contribution and $/mile, every rejection explained; 42 tests, 12/12 browser checks, starts from the console",
+      "done": true
+    },
+    {
+      "title": "DispatchOS Match: real road miles, a load-board feed and saved loads/lane history \u2014 NOT BUILT; today it runs on sample data with estimated miles",
+      "done": false
     }
   ],
   "blockers": [

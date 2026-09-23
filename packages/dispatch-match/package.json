@@ -1,0 +1,27 @@
+{
+  "name": "@hl-bos/dispatch-match",
+  "version": "0.1.0",
+  "private": true,
+  "description": "DispatchOS Match — the backhaul load-matching engine. Filters every (truck, load) pair on hard constraints (equipment vs commodity, weight and volume, timing, radius), then ranks what survives by projected contribution and revenue per mile with a visible, adjustable formula. Equipment-agnostic and tenant-scoped so the same engine serves any fleet. Pure and deterministic — no network, no map API, no secrets.",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "default": "./src/index.ts"
+    },
+    "./demo": {
+      "types": "./src/demo.ts",
+      "default": "./src/demo.ts"
+    }
+  },
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run",
+    "clean": "rm -rf dist *.tsbuildinfo"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  }
+}

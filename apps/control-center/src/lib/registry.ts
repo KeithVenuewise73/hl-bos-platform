@@ -122,6 +122,14 @@ export const PORTFOLIO: readonly Product[] = [
       "this repository (apps/sceneflow, packages/sceneflow, services/sceneflow-local)",
   },
   {
+    name: "DispatchOS Match",
+    stage: "development",
+    status:
+      "Backhaul load matching for small carriers. The engine filters every truck/load pair on hard constraints (equipment vs commodity, weight and cubic yards, deadhead, service radius, pickup/delivery windows with hours-of-service rests) and ranks what survives by projected contribution and revenue per mile, using a visible formula the dispatcher can adjust. Dedicated-lane equipment (the tanker) is set aside with a reason, never ranked. Equipment types are data, not code, and every record is tenant-scoped so the same engine can serve other fleets. 39 engine tests + 3 app tests; the tenant guard was verified by removing it and watching its test fail. The app runs on SAMPLE data only (a Western NY bulk fleet, invented loads and rates), verified in a real browser 12/12, and starts from this console's Start button. NOT BUILT: road miles are estimated (great-circle x 1.2) because no routing API is connected; no load board is connected; nothing is saved (CSV-imported loads last for the browser tab); no return-load probability is ever shown, because there is no real lane history to base one on.",
+    version: null,
+    location: "this repository (apps/dispatchos-match, packages/dispatch-match)",
+  },
+  {
     name: "Venuewise",
     stage: "not-started",
     status: "Planned. No code yet.",

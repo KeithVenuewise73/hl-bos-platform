@@ -25,6 +25,14 @@ export const LOCAL_APPS: readonly LocalApp[] = [
     port: 4600,
     healthPath: "/api/health",
   },
+  {
+    key: "dispatchos-match",
+    name: "DispatchOS Match",
+    what: "Find backhaul freight worth taking on the way home, ranked by what each load actually earns, with a plain reason for every load it turns down. Runs on sample data.",
+    filter: "@hl-bos/dispatchos-match",
+    port: 4700,
+    healthPath: "/api/health",
+  },
 ];
 
 export function findApp(key: string): LocalApp | undefined {

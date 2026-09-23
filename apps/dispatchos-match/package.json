@@ -1,0 +1,29 @@
+{
+  "name": "@hl-bos/dispatchos-match",
+  "version": "0.1.0",
+  "private": true,
+  "description": "DispatchOS Match — find backhaul freight worth taking on the way home, ranked by projected contribution and revenue per mile, with every hard-filter rejection explained. Runs on sample data; loads can be added by CSV for the session.",
+  "type": "module",
+  "scripts": {
+    "dev": "next dev --port 4700",
+    "build": "next build",
+    "start": "next start --port 4700",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint .",
+    "test": "vitest run",
+    "clean": "rm -rf .next dist *.tsbuildinfo"
+  },
+  "dependencies": {
+    "@hl-bos/dispatch-match": "workspace:*",
+    "next": "catalog:",
+    "react": "catalog:",
+    "react-dom": "catalog:"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "@types/react": "catalog:",
+    "@types/react-dom": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  }
+}

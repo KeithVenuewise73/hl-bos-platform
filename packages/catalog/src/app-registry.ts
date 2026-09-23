@@ -326,6 +326,36 @@ export const APPLICATIONS: ApplicationRecord[] = [
       "apps/sceneflow + packages/sceneflow; 16/16 access checks and 16/16 director checks against the running app (scripts/local-test/verify-sceneflow-access.cjs, verify-sceneflow-director.cjs); no model checkpoint has ever been loaded",
   },
   {
+    key: "dispatchos-match",
+    name: "DispatchOS Match",
+    description:
+      "Backhaul load matching for small carriers: filters every truck/load pair on hard constraints (equipment vs commodity, weight and cubic yards, deadhead, service radius, pickup and delivery windows) and ranks what survives by projected contribution and revenue per mile, with an adjustable, visible formula and a plain reason for every load it turns down. Dedicated-lane equipment is reported, never ranked.",
+    category: "vertical_product",
+    repository: REPO,
+    owner: "KeithVenuewise73",
+    executiveOwner: "Keith Herman (CEO)",
+    currentBranch: "claude/dispatchos-match-backhaul-fyxbrc",
+    environment: "local",
+    developmentStatus: "prototype",
+    deploymentStatus: "not_deployed",
+    productionUrl: null,
+    stagingUrl: null,
+    localUrl: "http://localhost:4700",
+    // Deliberately null: no schema exists; nothing is stored anywhere.
+    supabaseProject: null,
+    version: "0.1.0",
+    health: "unknown",
+    hosting: "none yet",
+    dependencies: ["@hl-bos/dispatch-match"],
+    reusableModules: [],
+    softwareFactoryIntegration:
+      "None. The engine (@hl-bos/dispatch-match) is a standalone, tenant-scoped, equipment-agnostic capability package with no platform dependencies, so another fleet is new data, not new code.",
+    notes:
+      "Runs on SAMPLE data only (an illustrative Western NY bulk fleet with invented loads and rates). Road miles are estimated (great-circle x 1.2) because no routing API is connected; no load board is connected; nothing is saved (CSV-imported loads last for the browser tab). No return-load probability is shown anywhere, because there is no recorded lane history to base one on.",
+    evidence:
+      "apps/dispatchos-match + packages/dispatch-match; 39 engine tests + 3 app tests; tenant guard verified by removal (its test fails); 12/12 checks in a real browser; started from the Control Center's Start button and answered /api/health",
+  },
+  {
     key: "control-center",
     name: "CEO Development Control Center",
     description:

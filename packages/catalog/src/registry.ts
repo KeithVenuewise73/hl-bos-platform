@@ -206,6 +206,26 @@ const ASSETS: Asset[] = [
       "apps/sceneflow; 16 access checks and 16 director checks against the running app; composes instructions only — no image model is connected",
   },
   {
+    id: "app.dispatchos-match",
+    kind: "application",
+    name: "DispatchOS Match",
+    summary:
+      "Finds backhaul freight worth taking on the way home and ranks it by projected contribution and revenue per mile, with a visible, adjustable score and a plain-English reason for every load a truck cannot take. Runs on sample data.",
+    maturity: "prototype",
+    reuse: ["commercial"],
+    owner: "Herman Legacy Software Ventures",
+    layer: "HL-BOS",
+    key: "dispatchos-match",
+    location: "apps/dispatchos-match",
+    tags: ["logistics", "trucking", "backhaul", "sample-data"],
+    relationships: [
+      { kind: "uses", to: "pkg.dispatch-match" },
+      { kind: "owned_by", to: "repo.hl-bos-platform" },
+    ],
+    evidence:
+      "apps/dispatchos-match; 12/12 checks against the running app; sample data only — no routing API, no load board, nothing saved",
+  },
+  {
     id: "app.ats-resume-optimizer",
     kind: "application",
     name: "ATS Resume Optimizer",
@@ -381,6 +401,23 @@ const ASSETS: Asset[] = [
     relationships: [{ kind: "owned_by", to: "repo.hl-bos-platform" }],
     evidence:
       "packages/highlight-football; 269 tests green; 7 named film-failure fixtures asserted end to end",
+  },
+  {
+    id: "pkg.dispatch-match",
+    kind: "package",
+    name: "@hl-bos/dispatch-match",
+    summary:
+      "The DispatchOS Match engine: tenant-scoped, equipment-agnostic backhaul matching. Hard filters (equipment vs commodity, weight/volume, deadhead, service radius, time windows with hours-of-service rests), full-trip and vs-empty-return economics, a fixed-anchor 0–100 score, and a return-load probability produced only from recorded lane history. Equipment types are registry data, distance and load boards are seams. Pure and deterministic.",
+    maturity: "prototype",
+    reuse: ["reusable", "commercial"],
+    owner: "Herman Legacy Platform",
+    layer: "HL-BOS",
+    key: "dispatch-match",
+    location: "packages/dispatch-match",
+    tags: ["package", "domain-logic", "logistics", "multi-tenant"],
+    relationships: [{ kind: "owned_by", to: "repo.hl-bos-platform" }],
+    evidence:
+      "packages/dispatch-match; 39 tests green; removing the tenant filter fails the cross-tenant test",
   },
   {
     id: "pkg.sceneflow",
