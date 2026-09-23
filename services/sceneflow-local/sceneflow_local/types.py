@@ -66,6 +66,13 @@ class GenerationOutcome:
     other, the same way highlight.ai_jobs records adapter_kind."""
     adapter_kind: str = ""
     model: str = ""
+    """'cuda' or 'cpu'. Carried because the same prompt on the two is a
+    different wait and a different picture, and the page should not guess."""
+    device: str = ""
+    """How long generation actually took. MEASURED, never estimated: nobody
+    here knows how fast the operator's processor is, and inventing a number
+    would be inventing an operational metric."""
+    seconds: float = 0.0
     error_code: str = ""
     error_message: str = ""
 
@@ -76,6 +83,8 @@ class GenerationOutcome:
             "image_path": self.image_path,
             "adapter_kind": self.adapter_kind,
             "model": self.model,
+            "device": self.device,
+            "seconds": round(self.seconds, 1),
             "error_code": self.error_code,
             "error_message": self.error_message,
         }

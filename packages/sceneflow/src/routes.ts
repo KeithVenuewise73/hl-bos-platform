@@ -238,6 +238,92 @@ export function chooseModel(vramMB: number | null): ImageModelFit | null {
   return fitting.length > 0 ? (fitting[fitting.length - 1] ?? null) : null;
 }
 
+/**
+ * Models that run on an ordinary processor, smallest first.
+ *
+ * MUST stay in step with CPU_TIERS in services/sceneflow-local — the same
+ * cross-language contract test that guards the card tiers covers these,
+ * because a page naming one model while the worker loads another is a quiet
+ * lie in the one place this product asked to be trusted.
+ *
+ * Both are turbo models on purpose. An ordinary model needs about thirty
+ * denoising passes; these need four. On a card that is the difference between
+ * four seconds and one. On a processor it is the difference between a few
+ * minutes and most of an hour.
+ *
+ * Both are honestly marked weak at holding a face. SceneFlow's premise is the
+ * same people across several scenes, and neither of these does that the way an
+ * identity adapter on a card does. They make good pictures; faces drift
+ * between panels. Saying so here beats the operator finding out on panel four.
+ *
+ * The memory numbers are the WEIGHTS PLUS THE MACHINE. A card tier can measure
+ * video memory against the weights alone; system RAM already has an operating
+ * system in it. At four bytes a parameter SD-Turbo is ~4.9GB of weights and
+ * SDXL-Turbo ~13.2GB, so SDXL-Turbo needs about 19GB before it is comfortable.
+ * It was listed at 16GB -- the exact amount the operator's laptop reports --
+ * so his machine would have CHOSEN it and then swapped to a halt. See the
+ * fuller arithmetic in services/sceneflow-local/sceneflow_local/models.py.
+ */
+const CPU_TIERS: readonly Omit<ImageModelFit, "fits">[] = [
+  {
+    model: "SD-Turbo (processor)",
+    needsMB: 10_000,
+    note: "Runs on the processor in a minute or two rather than seconds. 512 pixels, and faces will drift between scenes. NON-COMMERCIAL licence: private use only.",
+  },
+  {
+    model: "SDXL-Turbo (processor)",
+    needsMB: 24_000,
+    note: "The better of the two processor models, and slower for it. Still 512 pixels, and faces will still drift between scenes. NON-COMMERCIAL licence: private use only.",
+  },
+];
+
+export function cpuModelFits(ramMB: number | null): ImageModelFit[] {
+  return CPU_TIERS.map((tier) => ({
+    ...tier,
+    fits: ramMB !== null && ramMB >= tier.needsMB,
+  }));
+}
+
+/**
+ * The processor model this machine would load, given its system memory.
+ *
+ * Weights are held in full precision on a processor — half precision is a card
+ * optimisation and is slower on a CPU, not faster — so these thresholds are
+ * the real ones, not the card numbers halved.
+ */
+export function chooseCpuModel(ramMB: number | null): ImageModelFit | null {
+  const fitting = cpuModelFits(ramMB).filter((m) => m.fits);
+  return fitting.length > 0 ? (fitting[fitting.length - 1] ?? null) : null;
+}
+
+export interface GenerationPlan {
+  readonly model: ImageModelFit;
+  readonly device: "cuda" | "cpu";
+  readonly onProcessor: boolean;
+}
+
+/**
+ * What this machine would actually do: the card if there is one, otherwise the
+ * processor, otherwise nothing.
+ *
+ * A card always wins when it fits. It is minutes faster per picture and its
+ * models are the ones that can hold a face; the processor is the fallback, not
+ * the preference. But "no card" is no longer the end of the sentence, which is
+ * what it used to be — and that mattered, because the operator's own machine
+ * has AMD graphics built into the processor and was being told it could do
+ * nothing at all.
+ */
+export function planGeneration(
+  vramMB: number | null,
+  ramMB: number | null,
+): GenerationPlan | null {
+  const card = chooseModel(vramMB);
+  if (card !== null) return { model: card, device: "cuda", onProcessor: false };
+  const processor = chooseCpuModel(ramMB);
+  if (processor !== null) return { model: processor, device: "cpu", onProcessor: true };
+  return null;
+}
+
 /** Entries whose policy text was read second-hand and needs confirming. */
 export function needsPrimarySourceCheck(): readonly ImageRoute[] {
   return IMAGE_ROUTES.filter((r) => r.secondHand);

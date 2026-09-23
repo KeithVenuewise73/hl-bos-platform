@@ -62,7 +62,10 @@ request.
 
 - **A code is set** → it is required from every visitor, including the PC.
 - **No code is set** → the app is open to whatever the operating system lets
-  reach it. Started by hand with `pnpm start` that is this machine only.
+  reach it. Started by hand with `pnpm start` that is this machine only,
+  because that script passes `--hostname 127.0.0.1`. Worth knowing that this
+  is a flag and not a default: `next start` binds every interface unless told
+  otherwise, and for a while both scripts did.
 
 There is deliberately no "only ask when the request came from the network"
 exemption. Deciding that from the `Host` header is a check anything on the
