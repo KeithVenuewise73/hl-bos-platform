@@ -111,3 +111,39 @@ select cron.alter_job(6, command := replace(command,
   'body := ''{}''::jsonb,' || E'\r\n    timeout_milliseconds := 120000'))
 from cron.job where jobid = 6 and command not like '%timeout_milliseconds%';
 ```
+
+## Removing events a team deleted (added 2026-09-24, approved by Keith)
+
+`sync-schedules` only ever inserts and updates, so an event deleted in
+TeamSnap stayed on the family calendar forever (three "Stony Creek tournament"
+entries, removed from TeamSnap in August, were still showing on 2026-09-24).
+
+The sync bumps `updated_at` on every in-window event the feed still lists. So,
+after each captured report, `public.remove_events_missing_from_feed(report_id)`
+treats a **future** event of that feed whose `updated_at` predates the run as
+gone at the source. Guards:
+
+- The feed must have been read cleanly in that run: at least one event
+  fetched, no unparseable events, no save errors. An empty or failing feed
+  never removes anything.
+- The feed must match exactly one active row in `public.feeds`.
+- Only events from now to +360 days (inside the sync's own refresh window).
+- Brake: if more than max(3, 25%) of the feed's upcoming events would go, it
+  holds and records `"action": "held"` instead.
+- Removed rows are **moved** to `public.events_removed` (with `removed_at`,
+  `removed_by_report`, `reason`), not destroyed. Copy a row back to restore it.
+- What happened is written to `sync_reports.removals` for that run.
+- Only the newest captured report acts, so an older report cannot undo a
+  newer one's view of the feed.
+
+`remove_events_missing_from_feed(id, true)` is a dry run and changes nothing.
+The existing `sync_homehuddle_events_to_calendar()` job marks the matching
+calendar entries `cancelled` within 10 minutes. Removals never trigger texts
+(the SMS trigger fires on insert/update only).
+
+First run: report 5 (10:30 PM ET, 2026-09-23) removed the three Stony Creek
+entries. All other feeds were left alone by the guards.
+
+Migrations in the Venuewise Platform history:
+`homehuddle_remove_events_dropped_from_feeds`,
+`homehuddle_capture_applies_feed_removals`.
