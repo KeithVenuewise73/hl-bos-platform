@@ -25,6 +25,14 @@ export const LOCAL_APPS: readonly LocalApp[] = [
     port: 4600,
     healthPath: "/api/health",
   },
+  {
+    key: "hype-video",
+    name: "5-Star Hype Video",
+    what: "Upload an athlete's photo or clip, enter their details, pick a style, and get a complete, fact-checked hype video package: scripts, voiceover, caption, hashtags and ready-to-use video and music prompts.",
+    filter: "@hl-bos/hype-video-app",
+    port: 4602,
+    healthPath: "/api/health",
+  },
 ];
 
 export function findApp(key: string): LocalApp | undefined {

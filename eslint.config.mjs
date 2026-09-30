@@ -52,7 +52,7 @@ export default tseslint.config(
           // One default-project config file per app/package (next/vitest configs)
           // plus the repo root; the default cap of 8 is exceeded as the workspace
           // grows. These files are tiny, so the lint cost is negligible.
-          maximumDefaultProjectFileMatchCount_THIS_WILL_SLOW_DOWN_LINTING: 30,
+          maximumDefaultProjectFileMatchCount_THIS_WILL_SLOW_DOWN_LINTING: 40,
         },
         tsconfigRootDir: import.meta.dirname,
       },
@@ -238,6 +238,17 @@ export default tseslint.config(
       "apps/ats-resume-optimizer/src/lib/browser.ts",
       "apps/ats-resume-optimizer/src/middleware.ts",
     ],
+    rules: {
+      "no-restricted-properties": "off",
+      "no-restricted-syntax": "off",
+    },
+  },
+
+  // 5-Star Hype Video env boundary. ONE file reads process.env: the config
+  // module. Nothing it reads is browser-visible — the Anthropic key is read,
+  // used and kept on the server — so there is no NEXT_PUBLIC_ value here.
+  {
+    files: ["apps/hype-video/src/lib/config.ts"],
     rules: {
       "no-restricted-properties": "off",
       "no-restricted-syntax": "off",
