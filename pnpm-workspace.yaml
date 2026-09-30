@@ -41,7 +41,7 @@ catalog:
   "@anthropic-ai/sdk": "0.126.0"
 
   # --- Supabase -----------------------------------------------------------
-  "@supabase/supabase-js": "2.110.6"
+  "@supabase/supabase-js": "2.116.0"
   "@supabase/ssr": "0.12.3"
 
   # --- Control Center -----------------------------------------------------
