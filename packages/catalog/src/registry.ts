@@ -1355,15 +1355,15 @@ const ASSETS: Asset[] = [
     "Game film, plays, player tracks, detections, jersey readings, events, involvement, highlight candidates, clips, reels and exports — plus the consent records without which nothing leaves private. Written ONLY by the trusted worker path: no tenant write grant or policy exists on any vision output.",
   ),
 
-  // Not via db(): that helper records a live-census schema, and this one is
-  // written and tested but UNAPPLIED to any project.
+  // Not via db(): that helper's evidence is the 2026-07-29 live census, which
+  // predates this schema. Applied 2026-09-30; evidence below is its own.
   {
     id: "db.hype",
     kind: "database",
     name: "5-Star Hype Video (hype)",
     summary:
       "Hype projects, uploaded athlete media, the eight templates, generated hype packages, user profiles, and placeholder purchases and subscriptions. User-owned (auth.uid()), RLS enabled AND forced on all 7 tables. A minor's project cannot record consent without a named guardian; nothing leaves private without an explicit, consented share; generated packages, purchases and subscriptions have NO user insert grant; and a status cannot claim 'generated', 'exported' or 'awaiting payment' without the row that proves it.",
-    maturity: "built_undeployed",
+    maturity: "live",
     reuse: ["internal_only"],
     owner: "Herman Legacy Platform",
     layer: "HL-BOS",
@@ -1373,7 +1373,7 @@ const ASSETS: Asset[] = [
     metrics: { tables: 7 },
     relationships: [{ kind: "owned_by", to: "repo.hl-bos-platform" }],
     evidence:
-      "migration 0051 written and verified from empty against a local PostgreSQL 16 (50 pgTAP assertions; each refusal mutation-checked); UNAPPLIED to any project",
+      "migration 0051 verified from empty against a local PostgreSQL 16 (50 pgTAP assertions; each refusal mutation-checked); APPLIED to canonical production 2026-09-30 (CEO-approved), production fingerprint identical to the tested schema, refusals probed live and rolled back",
   },
 
   ...db(
