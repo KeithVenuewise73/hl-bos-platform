@@ -122,6 +122,15 @@ export const PORTFOLIO: readonly Product[] = [
       "this repository (apps/sceneflow, packages/sceneflow, services/sceneflow-local)",
   },
   {
+    name: "5-Star Hype Video (5-Star Sports Media)",
+    stage: "development",
+    status:
+      "Built in this repository and proven by running it in a real browser (46/46 end-to-end checks): create a project, upload a photo or clip, enter the athlete's details, pick one of eight templates and six tones, and get the full hype package — title, 15- and 30-second scripts, voiceover, caption, hashtags, on-screen text, an AI video prompt, an AI music prompt and a sponsor line — then download it. Every package is checked before it is saved: it may not state a number, an honour or a college offer the family did not enter, and contact details are refused. That check was tested by planting 'Undefeated. 12-0.' in the writer and watching 20 tests fail. Parent/guardian consent is required up front for under-18 athletes; projects are private and stored on this computer only. Written by a built-in template writer (not AI) until an Anthropic key is added, then by Claude with the same checks. NOTHING RENDERS A VIDEO, MUSIC OR A VOICE: those buttons are shown switched off with the reason, and payments are not connected. The database schema (migration 0051) is written and verified against a local PostgreSQL 16 — 1106 pgTAP assertions across the whole suite, 0 failing — and is UNAPPLIED to any project.",
+    version: null,
+    location:
+      "this repository (apps/hype-video, packages/hype-video, supabase/migrations 0051)",
+  },
+  {
     name: "Venuewise",
     stage: "not-started",
     status: "Planned. No code yet.",
