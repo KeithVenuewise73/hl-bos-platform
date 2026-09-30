@@ -341,8 +341,9 @@ export const APPLICATIONS: ApplicationRecord[] = [
     productionUrl: null,
     stagingUrl: null,
     localUrl: "http://localhost:4602",
-    // Deliberately null: migration 0051 is written and unapplied, and this app
-    // stores projects and media only on the machine it runs on.
+    // Deliberately null: migration 0051 is applied to canonical production,
+    // but this app does not connect to it yet — it still stores projects and
+    // media only on the machine it runs on.
     supabaseProject: null,
     version: "0.1.0",
     health: "unknown",
@@ -354,7 +355,7 @@ export const APPLICATIONS: ApplicationRecord[] = [
     notes:
       "Listens on 127.0.0.1 only; projects and uploads live in .hype-video/ (gitignored). Parent/guardian consent is required up front for under-18 athletes, and every project is private. Every package, from the built-in template writer or from Claude, passes a fabrication guard (no number, honour or recruiting claim the user did not enter) and a keyword content screen before it is saved; the guard was mutation-tested. NOTHING RENDERS video, music or voice — those buttons are shown switched off with the reason — and payments are not connected. No AI key is configured, so packages are template-written and labelled 'not AI'.",
     evidence:
-      "apps/hype-video + packages/hype-video; 46/46 end-to-end checks against the running app (scripts/local-test/verify-hype-video.cjs); migration 0051 written UNAPPLIED",
+      "apps/hype-video + packages/hype-video; 46/46 end-to-end checks against the running app (scripts/local-test/verify-hype-video.cjs); migration 0051 APPLIED to canonical production 2026-09-30, app not yet connected to it",
   },
   {
     key: "control-center",

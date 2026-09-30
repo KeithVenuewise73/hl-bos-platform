@@ -72,9 +72,10 @@ drives the whole flow in a real browser — 46 checks, including every refusal.
 (`hype_projects`, `hype_project_media`, `hype_templates`, `hype_outputs`,
 `user_profiles`, `purchases`, `subscriptions`) with the same consent, privacy
 and no-fabrication rules enforced on the data. It is tested (50 pgTAP
-assertions) and **not applied** to any project. Switching the app from the
-local file store to Supabase is a new implementation of `HypeStore`
-(`src/lib/store-core.ts`), after the migration is approved.
+assertions) and **applied to canonical production** (HL-BOS Core, 2026-09-30,
+CEO-approved) — see `docs/operations/hype-video-0051-apply.md`. The app does
+not use it yet: switching from the local file store to Supabase is a new
+implementation of `HypeStore` (`src/lib/store-core.ts`) plus sign-in.
 
 Engine details, the AI layer and the integration plan:
 [`packages/hype-video/README.md`](../../packages/hype-video/README.md).
