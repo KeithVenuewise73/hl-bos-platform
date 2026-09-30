@@ -2,12 +2,12 @@
 
 ## Status, stated plainly
 
-| Thing                                | State                                                                                                  |
-| ------------------------------------ | ------------------------------------------------------------------------------------------------------ |
-| Migration `0051_hype_video`          | **APPLIED** to canonical production (HL-BOS Core, `mvvtngiopdrgiedjmhfb`) on 2026-09-30 under CEO approval. |
-| Recorded in production as            | `hlbos_0051_hype_video` (production assigns its own version number; the repo file is `20260930120000`). |
-| Data in `hype`                       | 8 seed templates. **No projects, media or packages.**                                                  |
-| The app (`apps/hype-video`)          | **Not connected to it.** Still stores projects on the machine it runs on.                              |
+| Thing                       | State                                                                                                       |
+| --------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| Migration `0051_hype_video` | **APPLIED** to canonical production (HL-BOS Core, `mvvtngiopdrgiedjmhfb`) on 2026-09-30 under CEO approval. |
+| Recorded in production as   | `hlbos_0051_hype_video` (production assigns its own version number; the repo file is `20260930120000`).     |
+| Data in `hype`              | 8 seed templates. **No projects, media or packages.**                                                       |
+| The app (`apps/hype-video`) | **Not connected to it.** Still stores projects on the machine it runs on.                                   |
 
 ## How it was applied, and why this way
 
