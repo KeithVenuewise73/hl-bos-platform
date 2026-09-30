@@ -172,3 +172,7 @@ __pycache__/
 # partner must not be committable by accident, and "remember not to add it" is
 # not a control — being outside what git tracks is.
 .sceneflow/
+
+# 5-Star Hype Video projects and uploads: photos and video of young athletes.
+# Stored only on the machine that runs the app; never committable by accident.
+.hype-video/

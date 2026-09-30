@@ -206,6 +206,26 @@ const ASSETS: Asset[] = [
       "apps/sceneflow; 16 access checks and 16 director checks against the running app; composes instructions only — no image model is connected",
   },
   {
+    id: "app.hype-video",
+    kind: "application",
+    name: "5-Star Hype Video",
+    summary:
+      "5-Star Sports Media's hype video builder: project, media upload, athlete details, template and tone, then a complete hype package to copy or download. Consent-gated for minors, private by default, stored on the operator's own machine, and every package fact-checked against what the family entered before it is saved.",
+    maturity: "built_undeployed",
+    reuse: ["internal_only"],
+    owner: "Herman Legacy Software Ventures",
+    layer: "HL-BOS",
+    key: "hype-video",
+    location: "apps/hype-video",
+    tags: ["hype-video", "sports", "youth", "local-first", "private", "consent-gated"],
+    relationships: [
+      { kind: "uses", to: "pkg.hype-video" },
+      { kind: "owned_by", to: "repo.hl-bos-platform" },
+    ],
+    evidence:
+      "apps/hype-video; 46/46 end-to-end browser checks against the running app; renders no video, music or voice — no provider is connected",
+  },
+  {
     id: "app.ats-resume-optimizer",
     kind: "application",
     name: "ATS Resume Optimizer",
@@ -401,6 +421,26 @@ const ASSETS: Asset[] = [
     ],
     evidence:
       "packages/sceneflow; 204 tests green; the policy pre-gate and the intimacy ceiling each verified by mutation (disabling either fails 3 tests); no image or moderation vendor is wired, so nothing generates yet",
+  },
+  {
+    id: "pkg.hype-video",
+    kind: "package",
+    name: "@hl-bos/hype-video",
+    summary:
+      "The 5-Star Hype Video engine: eight seed templates, the deterministic template writer, AI prompt templates, a swappable writer boundary with a Claude writer, the fabrication guard (no number, honour or recruiting claim the user did not enter), a keyword content screen, the project status and consent rules, export to text/Markdown/JSON, and adapter contracts for video, music, voice, payments and media moderation. Pure: no network or secrets needed.",
+    maturity: "built_undeployed",
+    reuse: ["reusable"],
+    owner: "Herman Legacy Platform",
+    layer: "HL-BOS",
+    key: "hype-video",
+    location: "packages/hype-video",
+    tags: ["package", "domain-logic", "sports", "content-generation", "consumer"],
+    relationships: [
+      { kind: "consumes", to: "db.hype" },
+      { kind: "owned_by", to: "repo.hl-bos-platform" },
+    ],
+    evidence:
+      "packages/hype-video; 100 tests green; the fabrication guard verified by mutation (planting 'Undefeated. 12-0.' in the writer fails 20 tests)",
   },
   {
     id: "mod.sceneflow-local",
@@ -1314,6 +1354,27 @@ const ASSETS: Asset[] = [
     "HL-BOS",
     "Game film, plays, player tracks, detections, jersey readings, events, involvement, highlight candidates, clips, reels and exports — plus the consent records without which nothing leaves private. Written ONLY by the trusted worker path: no tenant write grant or policy exists on any vision output.",
   ),
+
+  // Not via db(): that helper's evidence is the 2026-07-29 live census, which
+  // predates this schema. Applied 2026-09-30; evidence below is its own.
+  {
+    id: "db.hype",
+    kind: "database",
+    name: "5-Star Hype Video (hype)",
+    summary:
+      "Hype projects, uploaded athlete media, the eight templates, generated hype packages, user profiles, and placeholder purchases and subscriptions. User-owned (auth.uid()), RLS enabled AND forced on all 7 tables. A minor's project cannot record consent without a named guardian; nothing leaves private without an explicit, consented share; generated packages, purchases and subscriptions have NO user insert grant; and a status cannot claim 'generated', 'exported' or 'awaiting payment' without the row that proves it.",
+    maturity: "live",
+    reuse: ["internal_only"],
+    owner: "Herman Legacy Platform",
+    layer: "HL-BOS",
+    key: "hype",
+    location: "hype schema",
+    tags: ["schema", "postgres", "rls"],
+    metrics: { tables: 7 },
+    relationships: [{ kind: "owned_by", to: "repo.hl-bos-platform" }],
+    evidence:
+      "migration 0051 verified from empty against a local PostgreSQL 16 (50 pgTAP assertions; each refusal mutation-checked); APPLIED to canonical production 2026-09-30 (CEO-approved), production fingerprint identical to the tested schema, refusals probed live and rolled back",
+  },
 
   ...db(
     "sceneflow",
