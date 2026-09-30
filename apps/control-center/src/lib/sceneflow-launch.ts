@@ -30,6 +30,22 @@ import { explain } from "./translate";
  */
 
 const FILTER = "@hl-bos/sceneflow-app";
+
+/**
+ * What Start SceneFlow said last time, so the report can carry it without the
+ * operator having to transcribe it. In memory: it describes this run of the
+ * console, and a stale answer from a previous run would be worse than none.
+ */
+let lastLaunch = "";
+
+export function lastLaunchMessage(): string {
+  return lastLaunch;
+}
+
+function remember(result: LaunchResult): LaunchResult {
+  lastLaunch = result.detail ? `${result.message}\n${result.detail}` : result.message;
+  return result;
+}
 const CODE_FILE = join(REPO_ROOT, ".sceneflow", "access-code.txt");
 
 export interface SceneFlowStatus {
@@ -126,16 +142,16 @@ export async function startSceneFlow(): Promise<LaunchResult> {
     // Writing the code is the first thing that touches the disk, so it is the
     // first thing that can fail on a machine with an unusual profile path or a
     // read-only folder. Say so rather than dying before the panel hears back.
-    return {
+    return remember({
       ok: false,
       message: `Could not save the access code, so SceneFlow was not started. ${
         error instanceof Error ? error.message : String(error)
       }`,
-    };
+    });
   }
 
   if (await healthy()) {
-    return { ok: true, message: "SceneFlow was already running." };
+    return remember({ ok: true, message: "SceneFlow was already running." });
   }
 
   const build = await pnpm(["--filter", FILTER, "build"], {
@@ -146,11 +162,11 @@ export async function startSceneFlow(): Promise<LaunchResult> {
     // operator the tail of a Node stack trace as the reason his button did
     // nothing, which is the exact failure translate.ts exists to prevent.
     const why = explain(build.output);
-    return {
+    return remember({
       ok: false,
       message: `${why.headline} ${why.meaning}`,
       detail: build.output.slice(-1200),
-    };
+    });
   }
 
   const spawned = spawnPnpm(["--filter", FILTER, "start:network"], {
@@ -158,22 +174,23 @@ export async function startSceneFlow(): Promise<LaunchResult> {
   });
   if (!spawned.ok) {
     const why = explain(spawned.error ?? "");
-    return {
+    return remember({
       ok: false,
       message: `${why.headline} ${why.meaning}`,
       detail: spawned.error ?? "",
-    };
+    });
   }
 
   const deadline = Date.now() + 60_000;
   while (Date.now() < deadline) {
-    if (await healthy()) return { ok: true, message: "SceneFlow is running." };
+    if (await healthy())
+      return remember({ ok: true, message: "SceneFlow is running." });
     await new Promise((resolve) => setTimeout(resolve, 1000));
   }
-  return {
+  return remember({
     ok: false,
     message: `SceneFlow was started but never answered on port ${SCENEFLOW_PORT}. Nothing was opened, because an address that will not load is worse than none.`,
-  };
+  });
 }
 
 /**
