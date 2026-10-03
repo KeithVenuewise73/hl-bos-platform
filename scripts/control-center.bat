@@ -69,13 +69,31 @@ if exist "%ROOT%\scripts\update.mjs" (
   "%NODE_EXE%" "%ROOT%\scripts\update.mjs"
   if errorlevel 10 set "FRESH_CODE=1"
 ) else (
-  REM  BOOTSTRAP. This launcher can be dropped into an older copy of the folder
+  REM  BOOTSTRAP. This launcher gets dropped into an older copy of the folder
   REM  on its own -- that is the whole point, because a self-updating launcher
-  REM  cannot deliver itself. When its Node helper is not here yet, it collects
-  REM  it with git directly, once. Every start after this uses the helper above.
+  REM  cannot deliver its own first copy. When its Node helper is not here yet,
+  REM  it collects the rest with git, once. Every start after this uses the
+  REM  helper above and never comes back here.
   REM
-  REM  --ff-only is the safety: git refuses rather than overwrites, so unsaved
-  REM  work and a diverged folder both stop it instead of being destroyed.
+  REM  WHY THIS IS NOT `git merge`. Replacing this file by hand makes git see a
+  REM  locally modified file, and git then REFUSES to merge -- even though the
+  REM  content is byte-for-byte what it was about to install. Verified: the
+  REM  first version of this bootstrap failed at exactly that point.
+  REM
+  REM  So it resets to GitHub's copy instead, behind two guards, and neither is
+  REM  optional:
+  REM
+  REM    1. This launcher must already match GitHub's copy exactly. Windows
+  REM       reads a running .bat incrementally, seeking back for each command,
+  REM       so rewriting it mid-run with DIFFERENT bytes makes cmd resume at a
+  REM       stale offset and execute garbage. Identical bytes are safe; that is
+  REM       the whole reason for the check.
+  REM    2. Nothing else in the folder may be modified. A reset would discard
+  REM       real work, and this must never do that.
+  REM
+  REM  With both true, the only thing the reset can discard is this file's own
+  REM  local modification, which is identical to what replaces it. Nothing is
+  REM  lost. If either guard fails it changes nothing and says which one.
   echo   [..]   First update: collecting the rest of the console from GitHub...
   where git >nul 2>nul
   if errorlevel 1 (
@@ -83,12 +101,25 @@ if exist "%ROOT%\scripts\update.mjs" (
     echo          collect updates yet. Tell Claude and it will sort it out.
   ) else (
     git fetch origin --quiet
-    git merge --ff-only
-    if exist "%ROOT%\scripts\update.mjs" (
-      set "FRESH_CODE=1"
-      echo   [ok]   Collected. From now on this happens by itself.
+    git diff --quiet "@{u}" -- scripts/control-center.bat
+    if errorlevel 1 (
+      echo   [--]   This launcher is not the same as the one on GitHub, so it
+      echo          is not safe to update from here. Download it again and
+      echo          replace this file, then double-click it once more.
     ) else (
-      echo   [ok]   Nothing new to collect. Starting as-is.
+      git diff --quiet HEAD -- . ":(exclude)scripts/control-center.bat"
+      if errorlevel 1 (
+        echo   [--]   This folder has other unsaved changes, so nothing was
+        echo          touched. Tell Claude and it will sort it out.
+      ) else (
+        git reset -q --hard "@{u}"
+        if exist "%ROOT%\scripts\update.mjs" (
+          set "FRESH_CODE=1"
+          echo   [ok]   Collected. From now on this happens by itself.
+        ) else (
+          echo   [ok]   Nothing new to collect. Starting as-is.
+        )
+      )
     )
   )
 )
