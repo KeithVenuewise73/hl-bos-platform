@@ -131,6 +131,15 @@ export const PORTFOLIO: readonly Product[] = [
       "this repository (apps/hype-video, packages/hype-video, supabase/migrations 0051)",
   },
   {
+    name: "JerseySort AI",
+    stage: "development",
+    status:
+      "Built in this repository and proven by running it in a real browser (85/85 end-to-end checks, every step of the brief): sign in, create an event, upload a batch (JPG, PNG and real iPhone-style HEIC; originals kept byte for byte; duplicates and fake files refused), watch analysis progress, see photos grouped by jersey number, review the uncertain ones with keyboard shortcuts, correct numbers, create a player and connect #24 to them for a team and season, open their gallery, search ('24', 'Dominic Herman', 'October 3'), favorite, and download selected photos as a ZIP. Scoreboards and yard markers are kept out of the jersey galleries. Load-tested at 300 camera-size photos through the browser and 14,000 photos in the database (every page under 0.2 s). ANALYSIS TODAY IS LOCAL OCR, not AI: no Anthropic key is set, so Tesseract on this computer reads the numbers, and because it cannot tell a jersey from a sign every reading it makes goes to review. On generated test photos it filed 27 of 31 numbers; on real action photos it will miss far more. Claude vision is built in and switches on when a key is added; it has not been run against the real API. Accounts and photos live on this computer. The Supabase schema (migration 0052: 14 tables, row-level security, three private storage buckets) is written and verified against a local PostgreSQL 16 — 1180 pgTAP assertions across the whole suite, 0 failing — and is UNAPPLIED to any project.",
+    version: null,
+    location:
+      "this repository (apps/jersey-sort, packages/jersey-sort, supabase/migrations 0052)",
+  },
+  {
     name: "Venuewise",
     stage: "not-started",
     status: "Planned. No code yet.",

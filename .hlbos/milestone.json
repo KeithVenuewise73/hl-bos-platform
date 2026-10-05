@@ -1,7 +1,7 @@
 {
   "$comment": "Live milestone state. Version-controlled so it is auditable, and updated by the AI engineer as work lands. The Control Center reads this -- it does not guess progress.",
   "milestone": "Platform Foundation v1.0 \u2014 Enterprise Knowledge Graph live in production",
-  "phase": "5-Star Hype Video is built, and it can be started from this console.\n\nWHAT IT DOES. A parent, athlete, coach or team creates a project, uploads a photo or short clip, enters the athlete's details, picks one of eight templates (Game Day, Senior Night, Athlete Spotlight, Recruiting Intro, Championship Recap, Birthday Tribute, Team Intro, Player of the Game) and one of six tones, and gets the whole hype package: title, 15- and 30-second scripts, voiceover, social caption, hashtags, on-screen text, an AI video prompt, an AI music prompt and a sponsor line. Export downloads it as text, Markdown or JSON. Press Start on the console's home page under 5-Star Hype Video.\n\nIT CANNOT MAKE THINGS UP ABOUT A KID. Every package, from the built-in writer or from Claude, is checked before it is saved: it may not state a number, an honour (champion, MVP, All-State) or a recruiting claim (offer, committed, scholarship) the family did not enter, and phone numbers, emails and street addresses are refused. Proven by planting 'Undefeated. 12-0.' in the writer and watching 20 tests fail.\n\nCONSENT AND PRIVACY. Nobody can upload until they confirm they have the rights to the media; for an under-18 athlete a parent or guardian must be named. Projects are private and stored on this computer only; the app listens on this machine alone. The schema carries the same rules on the data, and 50 database tests prove each one \u2014 including by removing a rule and watching its test fail.\n\nVERIFIED IN A REAL BROWSER against the running app: 46 of 46 end-to-end checks. Running it found two bugs reading it had not: a refused form wiped what had been typed, and uploads redirected to a different address than the one in use. Both fixed and now covered.\n\nNOT DONE, AND SAID SO: nothing renders a video, music or a voice yet \u2014 those buttons are switched off with the reason on them. No AI key is set, so packages come from the template writer, labelled 'not AI'. Payments are not connected. Migration 0051 was APPLIED to canonical production on 2026-09-30 under CEO approval \u2014 applied on its own, production schema fingerprint identical to the tested one, every refusal probed live and rolled back, no new security advisor findings. The app does not use the database yet.",
+  "phase": "JerseySort AI is built, and it can be started from this console.\n\nWHAT IT DOES. Sign in, create an event, and drop in hundreds of game photos (JPG, PNG or iPhone HEIC). JerseySort reads the date from each photo, reads the jersey numbers in it, and files every photo under every athlete in it: one photo, three athletes, three galleries, one file. Uncertain photos go to a fast review screen (confirm, change or add a number with the keyboard). Create a player once \u2014 'Dominic Herman, #24, West Seneca, 2026' \u2014 and the #24 gallery becomes his gallery, for that team and season only. Search by '24', 'Dominic Herman' or 'October 3', filter, favorite, make albums, and download the originals as a ZIP. Press Start on the console's home page under JerseySort AI.\n\nPROVEN, NOT CLAIMED. 85 of 85 checks pass in a real browser against the running app, covering every step of the brief plus the refusals: duplicates and fake files refused, scoreboards and yard markers kept out of the jersey galleries, originals byte-for-byte untouched, another organization sees nothing, a signed-out visitor gets nothing. Load-tested with 300 camera-size photos through the browser (uploaded in 18 seconds, analyzed in under 2 minutes) and 14,000 photos in the database (every page under 0.2 seconds). Testing found and fixed real bugs: the dashboard crashed after sign-up, local OCR never ran in the built app, the review screen jumped away before a second number could be added, and a player's gallery took 1.6 seconds at scale.\n\nNOT DONE, AND SAID SO: no Anthropic key is set, so numbers are read by local OCR (Tesseract) on this computer \u2014 not AI. It cannot tell a jersey from a sign, so every number it reads goes to review; on generated test photos it filed 27 of 31, and on real action photos it will miss many more. Claude vision is built and switches on when a key is added, but has not been run against the live service. Accounts and photos are stored on this computer. Migration 0052 (14 tables, row-level security, three private photo buckets) is written and verified locally \u2014 1180 database assertions, 0 failing \u2014 and is NOT applied anywhere; that needs your approval.",
   "engineer": "Claude (AI engineer)",
   "startedOn": "2026-07-16",
   "tasks": [
@@ -303,6 +303,22 @@
     },
     {
       "title": "5-Star Hype Video: switch the app from the local store to the hype schema, with sign-in",
+      "done": false
+    },
+    {
+      "title": "JerseySort AI: upload, analysis queue, jersey galleries, review, players, search, favorites, albums, ZIP download \u2014 proven 85/85 in a real browser",
+      "done": true
+    },
+    {
+      "title": "JerseySort AI: migration 0052 written and tested locally (1180 assertions, 0 failing); needs approval to apply",
+      "done": false
+    },
+    {
+      "title": "JerseySort AI: add an Anthropic key and measure Claude vision against real game photos",
+      "done": false
+    },
+    {
+      "title": "JerseySort AI: switch the app from the local store to the jerseysort schema, with Supabase sign-in",
       "done": false
     }
   ],

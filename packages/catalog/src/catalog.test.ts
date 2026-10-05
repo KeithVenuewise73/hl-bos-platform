@@ -98,10 +98,11 @@ describe("registry integrity", () => {
     expect(dangling, `dangling targets: ${dangling.join(", ")}`).toEqual([]);
   });
 
-  it("registers the 22 application databases and 10 edge functions", () => {
+  it("registers the 23 application databases and 10 edge functions", () => {
     // 20th: `highlight` (migration 0049, HighlightAI Football).
     // 22nd: `hype` (migration 0051, 5-Star Hype Video), unapplied.
-    expect(assetsByKind(catalog, "database").length).toBe(22);
+    // 23rd: `jerseysort` (migration 0052, JerseySort AI), unapplied.
+    expect(assetsByKind(catalog, "database").length).toBe(23);
     expect(assetsByKind(catalog, "edge_function").length).toBe(10);
   });
 
@@ -113,7 +114,7 @@ describe("registry integrity", () => {
 describe("repository scan (ground truth)", () => {
   it("discovers the real schemas, functions, apps and packages", async () => {
     const inv = await scanRepository(REPO_ROOT);
-    expect(inv.schemas.length).toBe(22);
+    expect(inv.schemas.length).toBe(23);
     expect(inv.schemas).toContain("hype");
     expect(inv.schemas).toContain("hlvs");
     expect(inv.schemas).toContain("highlight");
@@ -147,7 +148,9 @@ describe("repository scan (ground truth)", () => {
     // project.
     // Plus 0050 (sceneflow) and 0051 (hype — 5-Star Hype Video), both verified
     // against a local PostgreSQL 16 and UNAPPLIED to any project.
-    expect(inv.migrations.length).toBe(51);
+    // Plus 0052 (jerseysort — JerseySort AI), verified against a local
+    // PostgreSQL 16 and UNAPPLIED to any project.
+    expect(inv.migrations.length).toBe(52);
     expect(inv.edgeFunctions).toContain("ai-gateway");
     expect(inv.edgeFunctions).not.toContain("tests");
     expect(inv.apps).toEqual(
@@ -181,7 +184,7 @@ describe("executive metrics", () => {
     const catalog = buildCatalog();
     const inv = await scanRepository(REPO_ROOT);
     const m = metrics(catalog, completeness(catalog, inv));
-    expect(m.databases).toBe(22);
+    expect(m.databases).toBe(23);
     expect(m.edgeFunctions).toBe(10);
     expect(m.sharedServices).toBeGreaterThanOrEqual(12);
     expect(m.products).toBeGreaterThanOrEqual(3);

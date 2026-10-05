@@ -50,6 +50,24 @@ catalog:
   # reachable from a browser bundle.
   server-only: "0.0.1"
 
+  # --- JerseySort AI (apps/jersey-sort) -----------------------------------
+  # sharp: thumbnails and previews. Prebuilt per-platform binaries arrive as
+  #   optional dependencies, so no install script has to run.
+  # exifr: reads photo date/camera EXIF without decoding pixels.
+  # heic-convert: iPhone HEIC decode (libheif compiled to wasm). sharp's
+  #   prebuilt libvips cannot decode HEVC-coded HEIC.
+  # tesseract.js + @tesseract.js-data/eng: local OCR, the provider that works
+  #   with no AI key. The language data ships in the package, so analysis
+  #   never downloads anything at run time.
+  # tailwindcss + @tailwindcss/postcss: the app's styling.
+  sharp: "0.35.5"
+  exifr: "7.1.3"
+  heic-convert: "2.1.0"
+  tesseract.js: "7.0.0"
+  "@tesseract.js-data/eng": "1.0.0"
+  tailwindcss: "4.3.3"
+  "@tailwindcss/postcss": "4.3.3"
+
   # --- Test ---------------------------------------------------------------
   vitest: "4.1.10"
   "@vitest/coverage-v8": "4.1.10"

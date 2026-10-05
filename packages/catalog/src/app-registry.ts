@@ -358,6 +358,37 @@ export const APPLICATIONS: ApplicationRecord[] = [
       "apps/hype-video + packages/hype-video; 46/46 end-to-end checks against the running app (scripts/local-test/verify-hype-video.cjs); migration 0051 APPLIED to canonical production 2026-09-30, app not yet connected to it",
   },
   {
+    key: "jersey-sort",
+    name: "JerseySort AI",
+    description:
+      "Sports photo organization for parents, photographers, teams, schools and media companies: upload a game's photos and JerseySort files every photo under every jersey number in it, by event and date, with a fast review queue for uncertain readings, player profiles tied to a number for one team and season, search, filters, favorites, albums and ZIP download of the untouched originals.",
+    category: "vertical_product",
+    repository: REPO,
+    owner: "KeithVenuewise73",
+    executiveOwner: "Keith Herman (CEO)",
+    currentBranch: "claude/jerseysort-ai-mvp",
+    environment: "local",
+    developmentStatus: "built_undeployed",
+    deploymentStatus: "not_deployed",
+    productionUrl: null,
+    stagingUrl: null,
+    localUrl: "http://localhost:4603",
+    // Deliberately null: migration 0052 is written and tested but unapplied,
+    // and the app stores everything on the machine it runs on.
+    supabaseProject: null,
+    version: "0.1.0",
+    health: "unknown",
+    hosting: "none yet",
+    dependencies: ["@hl-bos/jersey-sort"],
+    reusableModules: [],
+    softwareFactoryIntegration:
+      "None yet. The engine (@hl-bos/jersey-sort) is a standalone capability package: the ImageAnalysisProvider boundary, the jersey-vs-scoreboard rules, the confidence bands and the search parser are reusable by HighlightAI, 5-Star Sports Media galleries or Venuewise without this app.",
+    notes:
+      "Listens on 127.0.0.1 only; email/password accounts with an organization per sign-up; the database and photos live in .jersey-sort/ (gitignored) and images are served only through an organization-checked route. No Anthropic key is configured, so numbers are read by local OCR (Tesseract), labelled as such, and every OCR reading goes to review because OCR cannot tell a jersey from a sign. Claude vision is wired behind the provider boundary but has never been run against the live API. Nothing is invented: a provider that cannot run marks the photo failed with the reason.",
+    evidence:
+      "apps/jersey-sort + packages/jersey-sort; 85/85 end-to-end checks against the running app (scripts/local-test/verify-jersey-sort.cjs); load-tested at 300 photos through the browser and 14,000 in the database; migration 0052 verified locally, UNAPPLIED",
+  },
+  {
     key: "control-center",
     name: "CEO Development Control Center",
     description:
