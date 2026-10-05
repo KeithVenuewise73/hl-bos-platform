@@ -226,6 +226,33 @@ const ASSETS: Asset[] = [
       "apps/hype-video; 46/46 end-to-end browser checks against the running app; renders no video, music or voice — no provider is connected",
   },
   {
+    id: "app.jersey-sort",
+    kind: "application",
+    name: "JerseySort AI",
+    summary:
+      "Sports photo organization: events, bulk upload with EXIF dates and duplicate refusal, a background analysis queue, jersey-number galleries (one photo filed under every athlete in it, scoreboards kept out), a keyboard-driven review queue, players tied to a number for one team and season, search, filters, favorites, albums and ZIP download of the untouched originals. Organization accounts; stored on the operator's own machine.",
+    maturity: "built_undeployed",
+    reuse: ["internal_only"],
+    owner: "Herman Legacy Software Ventures",
+    layer: "HL-BOS",
+    key: "jersey-sort",
+    location: "apps/jersey-sort",
+    tags: [
+      "jersey-sort",
+      "sports",
+      "photos",
+      "computer-vision",
+      "local-first",
+      "private",
+    ],
+    relationships: [
+      { kind: "uses", to: "pkg.jersey-sort" },
+      { kind: "owned_by", to: "repo.hl-bos-platform" },
+    ],
+    evidence:
+      "apps/jersey-sort; 85/85 end-to-end browser checks against the running app; analysis today is local OCR, not AI — no key is configured",
+  },
+  {
     id: "app.ats-resume-optimizer",
     kind: "application",
     name: "ATS Resume Optimizer",
@@ -441,6 +468,32 @@ const ASSETS: Asset[] = [
     ],
     evidence:
       "packages/hype-video; 100 tests green; the fabrication guard verified by mutation (planting 'Undefeated. 12-0.' in the writer fails 20 tests)",
+  },
+  {
+    id: "pkg.jersey-sort",
+    kind: "package",
+    name: "@hl-bos/jersey-sort",
+    summary:
+      "The JerseySort AI engine: the swappable ImageAnalysisProvider boundary with a Claude vision provider, the rules that tell a jersey number from a scoreboard, yard marker or sign (and cap context-blind OCR below the automatic band), configurable high/medium/low confidence bands, the review and gallery rules, jersey-number canonicalisation (0 and 00 distinct), the search parser ('24', '#24', 'October 3', names) and a streaming ZIP writer. Pure: no network or secrets needed.",
+    maturity: "built_undeployed",
+    reuse: ["reusable"],
+    owner: "Herman Legacy Platform",
+    layer: "HL-BOS",
+    key: "jersey-sort",
+    location: "packages/jersey-sort",
+    tags: [
+      "package",
+      "domain-logic",
+      "sports",
+      "computer-vision",
+      "provider-abstraction",
+    ],
+    relationships: [
+      { kind: "consumes", to: "db.jerseysort" },
+      { kind: "owned_by", to: "repo.hl-bos-platform" },
+    ],
+    evidence:
+      "packages/jersey-sort; 76 tests green; the Claude provider tested with an injected client only — never run against the live API",
   },
   {
     id: "mod.sceneflow-local",
@@ -1374,6 +1427,25 @@ const ASSETS: Asset[] = [
     relationships: [{ kind: "owned_by", to: "repo.hl-bos-platform" }],
     evidence:
       "migration 0051 verified from empty against a local PostgreSQL 16 (50 pgTAP assertions; each refusal mutation-checked); APPLIED to canonical production 2026-09-30 (CEO-approved), production fingerprint identical to the tested schema, refusals probed live and rolled back",
+  },
+
+  {
+    id: "db.jerseysort",
+    kind: "database",
+    name: "JerseySort AI (jerseysort)",
+    summary:
+      "Events, photos and EXIF, AI and manual jersey-number detections, players and their numbers per team + season, hand tags, albums, favorites, the analysis job log, the review_queue view and three private storage buckets. Tenant-scoped via identity.has_permission, RLS enabled AND forced on all 14 tables, child rows pinned to their parent's tenant by composite foreign keys. A member cannot insert an AI detection or edit a reading's number or confidence; cannot move a photo to completed unless it was analysed; cannot give one number to two athletes in a season; and no bucket is public.",
+    maturity: "built_undeployed",
+    reuse: ["internal_only"],
+    owner: "Herman Legacy Platform",
+    layer: "HL-BOS",
+    key: "jerseysort",
+    location: "jerseysort schema",
+    tags: ["schema", "postgres", "rls", "storage"],
+    metrics: { tables: 14 },
+    relationships: [{ kind: "owned_by", to: "repo.hl-bos-platform" }],
+    evidence:
+      "migration 0052 verified from empty against a local PostgreSQL 16 (74 pgTAP assertions; 1180 across the suite, 0 failing; grant, status-guard and one-number rules each mutation-checked); UNAPPLIED to any project",
   },
 
   ...db(

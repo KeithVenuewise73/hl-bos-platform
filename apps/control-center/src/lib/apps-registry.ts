@@ -33,6 +33,14 @@ export const LOCAL_APPS: readonly LocalApp[] = [
     port: 4602,
     healthPath: "/api/health",
   },
+  {
+    key: "jersey-sort",
+    name: "JerseySort AI",
+    what: "Upload a game's photos and get them sorted into galleries by jersey number, player, event and date, with a fast review screen for the uncertain ones.",
+    filter: "@hl-bos/jersey-sort-app",
+    port: 4603,
+    healthPath: "/api/health",
+  },
 ];
 
 export function findApp(key: string): LocalApp | undefined {

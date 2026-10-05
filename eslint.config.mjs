@@ -255,6 +255,17 @@ export default tseslint.config(
     },
   },
 
+  // JerseySort AI env boundary. ONE file reads process.env: the config
+  // module. The Anthropic key is read and used on the server only; there is
+  // no NEXT_PUBLIC_ value.
+  {
+    files: ["apps/jersey-sort/src/lib/config.ts"],
+    rules: {
+      "no-restricted-properties": "off",
+      "no-restricted-syntax": "off",
+    },
+  },
+
   {
     files: ["**/*.{mjs,js}"],
     ...tseslint.configs.disableTypeChecked,

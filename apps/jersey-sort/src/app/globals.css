@@ -1,0 +1,61 @@
+@import "tailwindcss";
+
+/*
+ * JerseySort AI — sports-media look: night-game dark, scoreboard amber,
+ * a hot "live" red for the things that need you. Tokens only; components use
+ * Tailwind utilities against them.
+ */
+@theme {
+  --color-ink: #0a0c10;
+  --color-panel: #12161d;
+  --color-panel-2: #1a1f29;
+  --color-line: #262d3a;
+  --color-muted: #8b95a7;
+  --color-text: #e8ecf3;
+  --color-brand: #ff4d2e;
+  --color-brand-2: #ffb020;
+  --color-high: #22c55e;
+  --color-medium: #f59e0b;
+  --color-low: #ef4444;
+  --font-display:
+    "Arial Narrow", "Roboto Condensed", "Helvetica Neue", Arial, sans-serif;
+}
+
+html {
+  color-scheme: dark;
+}
+body {
+  background: var(--color-ink);
+  color: var(--color-text);
+  -webkit-font-smoothing: antialiased;
+}
+.display {
+  font-family: var(--font-display);
+  letter-spacing: 0.01em;
+  text-transform: uppercase;
+  font-weight: 800;
+}
+@utility btn {
+  @apply inline-flex items-center justify-center gap-2 rounded-md px-3.5 py-2 text-sm font-semibold transition disabled:opacity-50 disabled:cursor-not-allowed;
+}
+@utility btn-primary {
+  @apply btn bg-brand text-white hover:brightness-110;
+}
+@utility btn-ghost {
+  @apply btn border border-line bg-panel-2 text-text hover:border-muted;
+}
+@utility btn-danger {
+  @apply btn border border-low/60 text-low hover:bg-low/10;
+}
+@utility input {
+  @apply w-full rounded-md border border-line bg-ink px-3 py-2 text-sm text-text placeholder:text-muted focus:border-brand focus:outline-none;
+}
+@utility label {
+  @apply mb-1 block text-xs font-semibold uppercase tracking-wide text-muted;
+}
+@utility card {
+  @apply rounded-xl border border-line bg-panel;
+}
+@utility chip {
+  @apply inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[11px] font-bold leading-none;
+}
