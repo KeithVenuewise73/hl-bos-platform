@@ -176,3 +176,7 @@ __pycache__/
 # 5-Star Hype Video projects and uploads: photos and video of young athletes.
 # Stored only on the machine that runs the app; never committable by accident.
 .hype-video/
+
+# JerseySort AI database and photos: images of young athletes and their
+# names. Stored only on the machine that runs the app; never committable.
+.jersey-sort/

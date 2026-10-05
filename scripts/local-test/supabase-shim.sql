@@ -86,3 +86,33 @@ $$;
 
 grant usage on schema auth to anon, authenticated, service_role;
 grant select on auth.users to authenticated, service_role;
+
+-- Supabase Storage's two tables, reduced to the columns our migrations and
+-- tests touch (added for 0052, the first migration to create buckets and
+-- storage policies). As in real Supabase: RLS is ON for storage.objects, the
+-- API roles hold table privileges, and a policy is what admits a row. CI runs
+-- the same SQL against the real storage schema.
+create schema if not exists storage;
+create table if not exists storage.buckets (
+  id                  text primary key,
+  name                text not null unique,
+  owner               uuid,
+  public              boolean default false,
+  file_size_limit     bigint,
+  allowed_mime_types  text[],
+  created_at          timestamptz default now(),
+  updated_at          timestamptz default now()
+);
+create table if not exists storage.objects (
+  id          uuid primary key default pg_catalog.gen_random_uuid(),
+  bucket_id   text references storage.buckets(id),
+  name        text,
+  owner       uuid,
+  metadata    jsonb,
+  created_at  timestamptz default now(),
+  updated_at  timestamptz default now(),
+  unique (bucket_id, name)
+);
+alter table storage.objects enable row level security;
+grant usage on schema storage to anon, authenticated, service_role;
+grant all on storage.buckets, storage.objects to anon, authenticated, service_role;

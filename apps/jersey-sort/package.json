@@ -1,0 +1,37 @@
+{
+  "name": "@hl-bos/jersey-sort-app",
+  "version": "0.1.0",
+  "private": true,
+  "description": "JerseySort AI — turn hundreds of game photos into organized player galleries in minutes. Sign in, create an event, upload a batch of sports photos, and JerseySort reads the jersey numbers in each one, files every photo under each athlete in it, and sends the uncertain ones to a fast review queue. Runs on this computer; photos are stored locally and only ever served to a signed-in member of the organization that uploaded them.",
+  "type": "module",
+  "scripts": {
+    "dev": "next dev --port 4603 --hostname 127.0.0.1",
+    "build": "next build",
+    "start": "next start --port 4603 --hostname 127.0.0.1",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint .",
+    "test": "vitest run",
+    "clean": "rm -rf .next dist *.tsbuildinfo"
+  },
+  "dependencies": {
+    "@hl-bos/jersey-sort": "workspace:*",
+    "@tesseract.js-data/eng": "catalog:",
+    "exifr": "catalog:",
+    "heic-convert": "catalog:",
+    "next": "catalog:",
+    "react": "catalog:",
+    "react-dom": "catalog:",
+    "server-only": "catalog:",
+    "sharp": "catalog:",
+    "tesseract.js": "catalog:"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "catalog:",
+    "@types/node": "catalog:",
+    "@types/react": "catalog:",
+    "@types/react-dom": "catalog:",
+    "tailwindcss": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  }
+}

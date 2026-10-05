@@ -1,0 +1,27 @@
+{
+  "name": "@hl-bos/jersey-sort",
+  "version": "0.1.0",
+  "private": true,
+  "description": "JerseySort AI engine. Decides which numbers in a sports photo are jersey numbers (and which are scoreboards, yard markers or signs), classifies every reading into high / medium / low confidence against configurable thresholds, decides whether a photo needs a human, parses search queries, and defines the swappable ImageAnalysisProvider boundary with a Claude vision provider. No database, no filesystem, no image decoding: every decision the product makes is testable here.",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "default": "./src/index.ts"
+    }
+  },
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run",
+    "clean": "rm -rf dist *.tsbuildinfo"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "catalog:",
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  }
+}

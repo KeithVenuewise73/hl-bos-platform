@@ -54,6 +54,7 @@ const APPLICATION_SCHEMAS = new Set([
   "highlight",
   "sceneflow",
   "hype",
+  "jerseysort",
 ]);
 
 async function safeReaddir(dir: string): Promise<string[]> {

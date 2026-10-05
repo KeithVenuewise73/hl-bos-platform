@@ -3,7 +3,7 @@
   "schemaVersion": 1,
   "sourceDir": "supabase/migrations",
   "canonicalRepository": "KeithVenuewise73/hl-bos-platform",
-  "count": 51,
+  "count": 52,
   "migrations": [
     {
       "ordinal": 1,
@@ -411,6 +411,14 @@
       "filename": "20260930120000_hlbos_0051_hype_video.sql",
       "version": "20260930120000",
       "sha256": "0174b1dafe3894af0a4cf825b1a125c28da3c549d603f24b735526f07bb71cdb",
+      "foundation": false
+    },
+    {
+      "ordinal": 52,
+      "name": "hlbos_0052_jersey_sort",
+      "filename": "20261005120000_hlbos_0052_jersey_sort.sql",
+      "version": "20261005120000",
+      "sha256": "ea50a63c7a9a3695de26a8741e55020fb4190f7a1b70037acde796f42c4a4cc5",
       "foundation": false
     }
   ]
