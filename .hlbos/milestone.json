@@ -331,7 +331,7 @@
     },
     {
       "title": "DateSort Step 1: scan and report (DateSort.bat, Browse, Include subfolders, camera dates incl. Canon CR3, estimated dates labelled, read-only proven on Windows)",
-      "done": false
+      "done": true
     },
     {
       "title": "DateSort: first scan of a real Canon card on the CEO's laptop",
