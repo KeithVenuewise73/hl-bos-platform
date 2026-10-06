@@ -59,6 +59,9 @@ jobs:
         uses: actions/setup-node@v5
         with:
           node-version: "22"
+          # setup-node reads "packageManager: pnpm" and would look for pnpm
+          # to cache it, before this job installs pnpm the launcher's way.
+          package-manager-cache: false
 
       - name: Build tool, installed inside the repo (control-center.bat step 3)
         run: |
@@ -133,7 +136,7 @@ jobs:
 
       - name: Keep the evidence
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: jersey-sort-windows
           path: |
