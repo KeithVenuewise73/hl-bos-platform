@@ -7,6 +7,7 @@ import {
   describeHealth,
   findApp,
   type LocalApp,
+  nodeTooOld,
 } from "./apps-registry";
 
 export { LOCAL_APPS, appUrl, findApp } from "./apps-registry";
@@ -80,6 +81,9 @@ export async function startApp(key: string): Promise<StartResult> {
   if (already.running) {
     return { ok: true, url: already.url, message: "It was already running." };
   }
+
+  const tooOld = nodeTooOld(app, process.version);
+  if (tooOld !== null) return { ok: false, url: appUrl(app), message: tooOld };
 
   const build = await pnpm(["--filter", app.filter, "build"], {
     timeoutMs: 600_000,

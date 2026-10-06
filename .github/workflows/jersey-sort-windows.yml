@@ -1,0 +1,144 @@
+name: JerseySort on Windows
+
+# Proves JerseySort on a real Windows machine, the way the CEO runs it:
+#   - the build tool installed INSIDE the repo, as control-center.bat does it
+#   - the Development Control Center started, and "Start JerseySort AI"
+#     pressed in a real browser
+#   - Check Folder run on a camera-card-shaped folder and on the photo folder
+#     Windows itself ships (C:\Windows\Web), with every file fingerprinted
+#     before and after: any changed, renamed, deleted or added file fails
+#   - JerseySort's and the console's unit tests, on Windows
+#
+# control-center.bat itself is not run: its update step pulls from GitHub
+# (which would test main instead of this change) and it opens a browser and
+# blocks. Its steps 3, 5, 6 and 7 are reproduced below, command for command.
+
+on:
+  pull_request:
+    paths:
+      - "apps/jersey-sort/**"
+      - "packages/jersey-sort/**"
+      - "apps/control-center/**"
+      - "scripts/local-test/verify-folder-check.cjs"
+      - "scripts/control-center.bat"
+      - ".github/workflows/jersey-sort-windows.yml"
+      - "pnpm-lock.yaml"
+  push:
+    branches: [main]
+    paths:
+      - "apps/jersey-sort/**"
+      - "packages/jersey-sort/**"
+      - "apps/control-center/**"
+      - "scripts/local-test/verify-folder-check.cjs"
+      - ".github/workflows/jersey-sort-windows.yml"
+  workflow_dispatch:
+
+concurrency:
+  group: jersey-sort-windows-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  # control-center.bat pins the same version.
+  PNPM_VERSION: "10.34.5"
+
+jobs:
+  windows:
+    name: JerseySort on Windows (launch, Check Folder, tests)
+    runs-on: windows-latest
+    timeout-minutes: 50
+    defaults:
+      run:
+        shell: pwsh
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Setup Node
+        uses: actions/setup-node@v5
+        with:
+          node-version: "22"
+
+      - name: Build tool, installed inside the repo (control-center.bat step 3)
+        run: |
+          npm install "pnpm@$env:PNPM_VERSION" --prefix .hlbos\toolchain --no-save --no-fund --no-audit
+          "PNPM_CJS=$PWD\.hlbos\toolchain\node_modules\pnpm\bin\pnpm.cjs" >> $env:GITHUB_ENV
+          node --version
+          node .hlbos\toolchain\node_modules\pnpm\bin\pnpm.cjs --version
+
+      - name: Libraries (control-center.bat step 5)
+        run: node $env:PNPM_CJS install --frozen-lockfile
+
+      - name: Existing tests, on Windows
+        run: |
+          node $env:PNPM_CJS --filter @hl-bos/jersey-sort test
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node $env:PNPM_CJS --filter @hl-bos/jersey-sort-app test
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node $env:PNPM_CJS --filter @hl-bos/control-center test
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Build the console (control-center.bat step 6)
+        run: node $env:PNPM_CJS --filter @hl-bos/control-center build
+
+      - name: Start the console (control-center.bat step 7)
+        run: |
+          Start-Process -FilePath node `
+            -ArgumentList $env:PNPM_CJS, "--filter", "@hl-bos/control-center", "start" `
+            -RedirectStandardOutput "$env:RUNNER_TEMP\console.log" `
+            -RedirectStandardError "$env:RUNNER_TEMP\console.err.log" `
+            -WindowStyle Hidden
+          for ($i = 0; $i -lt 90; $i++) {
+            try { Invoke-WebRequest http://localhost:4000 -UseBasicParsing -TimeoutSec 5 | Out-Null; "console is up"; exit 0 }
+            catch { Start-Sleep -Seconds 2 }
+          }
+          Get-Content "$env:RUNNER_TEMP\console.log", "$env:RUNNER_TEMP\console.err.log" -ErrorAction SilentlyContinue
+          exit 1
+
+      - name: Browser for the test
+        run: |
+          npm install -g playwright@1.56.1 --no-fund --no-audit
+          npx -y playwright@1.56.1 install chromium
+
+      - name: Press Start JerseySort AI, then Check Folder (read only)
+        env:
+          JERSEYSORT_REAL_FOLDERS: C:\Windows\Web
+          JERSEYSORT_SCREENSHOTS: ${{ runner.temp }}\shots
+          JERSEYSORT_REPORT: ${{ runner.temp }}\folder-check.json
+        run: node scripts/local-test/verify-folder-check.cjs http://127.0.0.1:4603 --console http://localhost:4000
+
+      - name: Summary
+        if: always()
+        run: |
+          $f = "$env:RUNNER_TEMP\folder-check.json"
+          if (-not (Test-Path $f)) { "No report was written." >> $env:GITHUB_STEP_SUMMARY; exit 0 }
+          $r = Get-Content $f -Raw | ConvertFrom-Json
+          $c = $r.cameraCard
+          $lines = @(
+            "## JerseySort on Windows",
+            "",
+            "Platform: $($r.platform)",
+            "",
+            "- Start JerseySort AI from the console: $(if ($r.windowsLaunch) { 'PASS' } else { 'FAIL' }) ($($r.launchSeconds) s)",
+            "- Camera card: $($c.total) files, $($c.supported) photos, $($c.cr2) CR2, $($c.cr3) CR3, $($c.unsupported) unsupported, $($c.estimated) estimated dates",
+            "- Proposed games: $($c.games -join ' | ')",
+            "- Files altered on the camera card: $($c.filesAltered) of $($c.filesFingerprinted)"
+          )
+          foreach ($f2 in $r.realFolders) {
+            $lines += "- $($f2.folder): $($f2.total) files (independent count $($f2.truth.total)), $($f2.supported) photos, altered $($f2.filesAltered) of $($f2.filesFingerprinted), dates: $(($f2.days | ForEach-Object { "$($_.day) ($($_.photos))" }) -join ', ')"
+          }
+          $lines += "", "Checks failed: $($r.failures)"
+          $lines -join "`n" >> $env:GITHUB_STEP_SUMMARY
+
+      - name: Keep the evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: jersey-sort-windows
+          path: |
+            ${{ runner.temp }}\shots
+            ${{ runner.temp }}\folder-check.json
+            ${{ runner.temp }}\console.log
+            ${{ runner.temp }}\console.err.log
+          if-no-files-found: ignore

@@ -6,6 +6,7 @@ export * from "./review.ts";
 export * from "./search.ts";
 export * from "./zip.ts";
 export * from "./analyze.ts";
+export * from "./folder-check.ts";
 export * from "./provider/types.ts";
 export {
   createClaudeVisionProvider,

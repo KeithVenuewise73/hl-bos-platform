@@ -17,7 +17,15 @@ import exifr from "exifr";
 import convertHeic from "heic-convert";
 import sharp from "sharp";
 
-export type PhotoKind = "jpeg" | "png" | "heic";
+import {
+  cameraTime,
+  MAX_PHOTO_BYTES,
+  sniffPhoto,
+  type PhotoKind,
+} from "@hl-bos/jersey-sort/folder-check";
+
+export { MAX_PHOTO_BYTES };
+export type { PhotoKind };
 
 export const MIME: Readonly<Record<PhotoKind, string>> = {
   jpeg: "image/jpeg",
@@ -31,34 +39,11 @@ export const EXTENSION: Readonly<Record<PhotoKind, string>> = {
   heic: "heic",
 };
 
-/** 60 MB: a full-resolution camera JPEG or iPhone HEIC is far below this. */
-export const MAX_PHOTO_BYTES = 60 * 1024 * 1024;
-
 /**
  * Identify a photo by its bytes, never by its name or the browser's claim.
- * A renamed .exe is not a JPEG because its name ends in .jpg.
+ * The rule lives in @hl-bos/jersey-sort so Check Folder applies the same one.
  */
-export function sniff(bytes: Uint8Array): PhotoKind | null {
-  if (bytes.length >= 3 && bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff)
-    return "jpeg";
-  if (
-    bytes.length >= 8 &&
-    [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a].every((b, i) => bytes[i] === b)
-  ) {
-    return "png";
-  }
-  if (bytes.length >= 12) {
-    const box = String.fromCharCode(...bytes.subarray(4, 8));
-    const brand = String.fromCharCode(...bytes.subarray(8, 12));
-    if (
-      box === "ftyp" &&
-      ["heic", "heix", "hevc", "hevx", "heim", "heis", "mif1", "msf1"].includes(brand)
-    ) {
-      return "heic";
-    }
-  }
-  return null;
-}
+export const sniff = sniffPhoto;
 
 export function sha256(bytes: Uint8Array): string {
   return createHash("sha256").update(bytes).digest("hex");
@@ -92,19 +77,6 @@ const EMPTY_EXIF: ExifSummary = {
   raw: {},
 };
 
-/**
- * Camera clocks have no time zone. exifr returns a Date built from the
- * camera's wall-clock fields in this process's zone; reading the same fields
- * back gives the wall clock exactly, which is what "taken at 7:30 pm" means.
- */
-function wallClock(d: unknown): string | null {
-  if (!(d instanceof Date) || Number.isNaN(d.getTime())) return null;
-  const year = d.getFullYear();
-  if (year < 1990 || year > 2100) return null;
-  const p = (n: number) => String(n).padStart(2, "0");
-  return `${year}-${p(d.getMonth() + 1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`;
-}
-
 const str = (v: unknown) =>
   typeof v === "string" && v.trim().length > 0 ? v.trim().slice(0, 120) : null;
 const num = (v: unknown) => (typeof v === "number" && Number.isFinite(v) ? v : null);
@@ -126,10 +98,7 @@ export async function readExif(bytes: Uint8Array): Promise<ExifSummary> {
     return EMPTY_EXIF;
   }
   if (tags === undefined || tags === null) return EMPTY_EXIF;
-  const capturedAt =
-    wallClock(tags["DateTimeOriginal"]) ??
-    wallClock(tags["CreateDate"]) ??
-    wallClock(tags["DateTime"]);
+  const capturedAt = cameraTime(tags);
   const summary = {
     capturedAt,
     cameraMake: str(tags["Make"]),

@@ -8,6 +8,7 @@ import { Brand } from "./Brand.tsx";
 const LINKS = [
   { href: "/", label: "Dashboard" },
   { href: "/events", label: "Events" },
+  { href: "/check", label: "Check a folder" },
   { href: "/photos", label: "Photos" },
   { href: "/players", label: "Players" },
   { href: "/albums", label: "Albums" },
