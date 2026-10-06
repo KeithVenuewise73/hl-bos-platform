@@ -1,12 +1,23 @@
+import {
+  jerseyConflict,
+  type JerseyShade,
+  parseJerseyShade,
+} from "@hl-bos/jersey-sort";
+
 import type { Db } from "../db-core.ts";
 import { newId } from "../db-core.ts";
-import { IN_GALLERY } from "./sql.ts";
+import { DETECTION_TEAM, IN_GALLERY } from "./sql.ts";
 
 export interface EventInput {
   readonly name: string;
   readonly sport: string;
+  /** The HOME team. */
   readonly teamName: string;
+  /** The AWAY team's name; becomes a team JerseySort knows (it can have a roster). */
   readonly opponent: string;
+  /** "light" | "dark" | "" (not set). */
+  readonly homeJersey: string;
+  readonly awayJersey: string;
   readonly eventDate: string; // YYYY-MM-DD
   readonly location: string;
   readonly season: string;
@@ -17,11 +28,17 @@ export interface EventRow {
   id: string;
   name: string;
   sport: string;
+  /** The HOME team. */
   team_id: string;
   team_name: string;
   season_id: string;
   season_name: string;
+  /** The away team's name (plain text on events made before Home/Away). */
   opponent: string | null;
+  /** The AWAY team; null on events made before Home/Away. */
+  away_team_id: string | null;
+  home_jersey: JerseyShade | null;
+  away_jersey: JerseyShade | null;
   event_date: string;
   location: string | null;
   notes: string | null;
@@ -50,7 +67,22 @@ export function validateEventInput(raw: EventInput): EventInput {
   const teamName = trimTo(raw.teamName, 120);
   if (name.length === 0) throw new ValidationError("Give the event a name.");
   if (sport.length === 0) throw new ValidationError("Choose the sport.");
-  if (teamName.length === 0) throw new ValidationError("Enter your team's name.");
+  if (teamName.length === 0) throw new ValidationError("Enter the home team's name.");
+  const opponent = trimTo(raw.opponent, 120);
+  if (opponent.length > 0 && opponent.toLowerCase() === teamName.toLowerCase()) {
+    throw new ValidationError("The home and away teams must be different teams.");
+  }
+  const home = parseJerseyShade(raw.homeJersey);
+  const away = parseJerseyShade(raw.awayJersey);
+  if (raw.homeJersey !== "" && home === null)
+    throw new ValidationError("Choose Light or Dark for the home jersey.");
+  if (raw.awayJersey !== "" && away === null)
+    throw new ValidationError("Choose Light or Dark for the away jersey.");
+  if (away !== null && opponent.length === 0) {
+    throw new ValidationError("Enter the away team's name, or leave its jersey unset.");
+  }
+  const conflict = jerseyConflict(home, away);
+  if (conflict !== null) throw new ValidationError(conflict);
   if (
     !/^\d{4}-\d{2}-\d{2}$/.test(raw.eventDate) ||
     Number.isNaN(Date.parse(raw.eventDate))
@@ -62,7 +94,9 @@ export function validateEventInput(raw: EventInput): EventInput {
     name,
     sport,
     teamName,
-    opponent: trimTo(raw.opponent, 120),
+    opponent,
+    homeJersey: home ?? "",
+    awayJersey: away ?? "",
     eventDate: raw.eventDate,
     location: trimTo(raw.location, 160),
     season,
@@ -110,6 +144,17 @@ export function seasonId(db: Db, org: string, name: string): string {
   return id;
 }
 
+/** Home and away as teams JerseySort knows, so either side can have a roster. */
+function teamColumns(db: Db, org: string, input: EventInput) {
+  return {
+    team: teamId(db, org, input.teamName, input.sport),
+    opponent: input.opponent || null,
+    away: input.opponent ? teamId(db, org, input.opponent, input.sport) : null,
+    hj: input.homeJersey || null,
+    aj: input.awayJersey || null,
+  };
+}
+
 export function createEvent(
   db: Db,
   org: string,
@@ -120,16 +165,16 @@ export function createEvent(
   return db.tx(() => {
     const id = newId();
     db.run(
-      `insert into events (id, organization_id, name, sport, team_id, season_id, opponent, event_date, location, notes, created_by)
-       values (:id, :org, :name, :sport, :team, :season, :opponent, :date, :location, :notes, :user)`,
+      `insert into events (id, organization_id, name, sport, team_id, season_id, opponent, away_team_id, home_jersey, away_jersey,
+         event_date, location, notes, created_by)
+       values (:id, :org, :name, :sport, :team, :season, :opponent, :away, :hj, :aj, :date, :location, :notes, :user)`,
       {
         id,
         org,
         name: input.name,
         sport: input.sport,
-        team: teamId(db, org, input.teamName, input.sport),
+        ...teamColumns(db, org, input),
         season: seasonId(db, org, input.season),
-        opponent: input.opponent || null,
         date: input.eventDate,
         location: input.location || null,
         notes: input.notes || null,
@@ -145,6 +190,7 @@ export function updateEvent(db: Db, org: string, id: string, raw: EventInput): v
   db.tx(() => {
     const changed = db.run(
       `update events set name = :name, sport = :sport, team_id = :team, season_id = :season, opponent = :opponent,
+         away_team_id = :away, home_jersey = :hj, away_jersey = :aj,
          event_date = :date, location = :location, notes = :notes, updated_at = strftime('%Y-%m-%dT%H:%M:%fZ','now')
        where id = :id and organization_id = :org`,
       {
@@ -152,9 +198,8 @@ export function updateEvent(db: Db, org: string, id: string, raw: EventInput): v
         org,
         name: input.name,
         sport: input.sport,
-        team: teamId(db, org, input.teamName, input.sport),
+        ...teamColumns(db, org, input),
         season: seasonId(db, org, input.season),
-        opponent: input.opponent || null,
         date: input.eventDate,
         location: input.location || null,
         notes: input.notes || null,
@@ -166,8 +211,10 @@ export function updateEvent(db: Db, org: string, id: string, raw: EventInput): v
 
 const EVENT_SELECT = `
   select e.id, e.name, e.sport, e.team_id, t.name as team_name, e.season_id, s.name as season_name,
-         e.opponent, e.event_date, e.location, e.notes, e.created_at
-    from events e join teams t on t.id = e.team_id join seasons s on s.id = e.season_id`;
+         coalesce(a.name, e.opponent) as opponent, e.away_team_id, e.home_jersey, e.away_jersey,
+         e.event_date, e.location, e.notes, e.created_at
+    from events e join teams t on t.id = e.team_id join seasons s on s.id = e.season_id
+    left join teams a on a.id = e.away_team_id`;
 
 export function getEvent(db: Db, org: string, id: string): EventRow | undefined {
   return db.get<EventRow>(
@@ -214,7 +261,7 @@ export function eventStats(
          where p.event_id = :e and p.organization_id = :org and p.unusable = 0 and ${IN_GALLERY("d")}) as numbers,
        (select count(distinct pn.player_id) from photo_detections d join photos p on p.id = d.photo_id
           join events ev on ev.id = p.event_id
-          join player_numbers pn on pn.team_id = ev.team_id and pn.season_id = ev.season_id and pn.jersey_number = d.detected_value
+          join player_numbers pn on pn.team_id = ${DETECTION_TEAM("d", "ev")} and pn.season_id = ev.season_id and pn.jersey_number = d.detected_value
          where p.event_id = :e and p.organization_id = :org and p.unusable = 0 and ${IN_GALLERY("d")}) as namedPlayers,
        (select count(*) from favorites f join photos p on p.id = f.photo_id where p.event_id = :e and f.user_id = :user) as favorites,
        (select count(*) from photos p where p.event_id = :e and p.organization_id = :org
@@ -236,34 +283,45 @@ export function eventStats(
 
 export interface NumberGroup {
   value: string;
+  /** The team this gallery's athlete plays for; null when it cannot be known. */
+  team_id: string | null;
+  team_name: string | null;
   photo_count: number;
   needs_review: number;
   player_id: string | null;
   player_name: string | null;
 }
 
-/** Jersey galleries for one event (or the whole organization when eventId is null). */
+/**
+ * Jersey galleries for one event: one per TEAM + NUMBER. At Caz vs
+ * Wheatfield, Caz #22 and Wheatfield #22 are two galleries; a #22 whose
+ * team cannot be known (jersey not seen) is a third, "team not known",
+ * until a person assigns it.
+ */
 export function numberGroups(
   db: Db,
   org: string,
-  eventId: string | null,
+  eventId: string,
   medium: number,
 ): NumberGroup[] {
   return db.all<NumberGroup>(
-    `select d.detected_value as value,
-            count(distinct p.id) as photo_count,
-            count(distinct case when p.status = 'needs_review' then p.id end) as needs_review,
+    `select x.value, x.team_id, tm.name as team_name,
+            count(distinct x.photo_id) as photo_count,
+            count(distinct case when x.status = 'needs_review' then x.photo_id end) as needs_review,
             max(pl.id) as player_id,
             max(pl.first_name || ' ' || pl.last_name) as player_name
-       from photo_detections d
-       join photos p on p.id = d.photo_id
-       join events ev on ev.id = p.event_id
-       left join player_numbers pn on pn.organization_id = p.organization_id and pn.team_id = ev.team_id
-            and pn.season_id = ev.season_id and pn.jersey_number = d.detected_value and :event is not null
+       from (select d.detected_value as value, ${DETECTION_TEAM("d", "ev")} as team_id,
+                    p.id as photo_id, p.status, ev.season_id, p.organization_id
+               from photo_detections d
+               join photos p on p.id = d.photo_id
+               join events ev on ev.id = p.event_id
+              where p.organization_id = :org and p.event_id = :event
+                and p.unusable = 0 and ${IN_GALLERY("d")}) x
+       left join teams tm on tm.id = x.team_id
+       left join player_numbers pn on pn.organization_id = x.organization_id and pn.team_id = x.team_id
+            and pn.season_id = x.season_id and pn.jersey_number = x.value
        left join players pl on pl.id = pn.player_id
-      where p.organization_id = :org and (:event is null or p.event_id = :event)
-        and p.unusable = 0 and ${IN_GALLERY("d")}
-      group by d.detected_value`,
+      group by x.value, x.team_id`,
     { org, event: eventId, medium },
   );
 }

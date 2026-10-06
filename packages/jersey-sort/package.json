@@ -12,6 +12,10 @@
     "./folder-check": {
       "types": "./src/folder-check.ts",
       "default": "./src/folder-check.ts"
+    },
+    "./teams": {
+      "types": "./src/teams.ts",
+      "default": "./src/teams.ts"
     }
   },
   "scripts": {

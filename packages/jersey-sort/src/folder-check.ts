@@ -204,10 +204,18 @@ export interface DayGroup {
   readonly day: string;
   /** Supported photos taken that day. */
   readonly photos: number;
+  /** Of those, how many carry the camera's own date (EXIF). */
+  readonly camera: number;
   /** Of those, how many are dated only by an estimate. */
   readonly estimated: number;
+  /** The supported photos by format. */
+  readonly jpeg: number;
+  readonly png: number;
+  readonly heic: number;
   /** Canon RAW files taken that day (not importable yet; counted apart). */
   readonly raw: number;
+  readonly cr2: number;
+  readonly cr3: number;
   /** First and last time a photo or RAW file was taken that day. */
   readonly first: string;
   readonly last: string;
@@ -247,10 +255,8 @@ export function summarizeFolder(files: readonly CheckedFile[]): FolderReport {
   let cameraDated = 0;
   let estimatedDated = 0;
   const unsupported: { path: string; reason: string }[] = [];
-  const days = new Map<
-    string,
-    { photos: number; estimated: number; raw: number; first: string; last: string }
-  >();
+  type Day = { -readonly [K in keyof Omit<DayGroup, "day">]: DayGroup[K] };
+  const days = new Map<string, Day>();
   let earliest: CheckedFile | null = null;
   let latest: CheckedFile | null = null;
 
@@ -285,16 +291,28 @@ export function summarizeFolder(files: readonly CheckedFile[]): FolderReport {
     const day = f.takenAt.slice(0, 10);
     const g = days.get(day) ?? {
       photos: 0,
+      camera: 0,
       estimated: 0,
+      jpeg: 0,
+      png: 0,
+      heic: 0,
       raw: 0,
+      cr2: 0,
+      cr3: 0,
       first: f.takenAt,
       last: f.takenAt,
     };
     if (f.category === "photo") {
       g.photos += 1;
+      if (f.dateSource === "camera") g.camera += 1;
       if (f.dateSource === "estimated") g.estimated += 1;
+      if (f.format === "jpeg") g.jpeg += 1;
+      else if (f.format === "png") g.png += 1;
+      else if (f.format === "heic") g.heic += 1;
     } else {
       g.raw += 1;
+      if (f.format === "CR2") g.cr2 += 1;
+      else if (f.format === "CR3") g.cr3 += 1;
     }
     if (f.takenAt < g.first) g.first = f.takenAt;
     if (f.takenAt > g.last) g.last = f.takenAt;
@@ -322,13 +340,11 @@ export function summarizeFolder(files: readonly CheckedFile[]): FolderReport {
   };
 }
 
-export interface ProposedGame {
-  readonly day: string;
+export interface ProposedGame extends DayGroup {
   /** "October 3, 2026 — 428 photos" */
   readonly label: string;
-  readonly photos: number;
-  readonly estimated: number;
-  readonly raw: number;
+  /** What the event is called unless the person renames it: "October 3, 2026 Game". */
+  readonly suggestedName: string;
 }
 
 const MONTHS = [
@@ -362,10 +378,8 @@ export function proposeGames(report: FolderReport): ProposedGame[] {
   return report.days
     .filter((d) => d.photos > 0)
     .map((d) => ({
-      day: d.day,
+      ...d,
       label: `${longDay(d.day)} — ${d.photos.toLocaleString("en-US")} photo${d.photos === 1 ? "" : "s"}`,
-      photos: d.photos,
-      estimated: d.estimated,
-      raw: d.raw,
+      suggestedName: `${longDay(d.day)} Game`,
     }));
 }

@@ -5,7 +5,30 @@ import {
 } from "@hl-bos/jersey-sort";
 
 import { photoAction } from "@/actions/review.ts";
-import type { FullDetection } from "@/lib/repo/photos.ts";
+import type { FullDetection, PhotoDetail } from "@/lib/repo/photos.ts";
+
+type Shade = "light" | "dark";
+
+/** The two teams of a photo's event, when it has two and both jerseys are set. */
+export interface EditorTeams {
+  readonly home: { readonly name: string; readonly jersey: Shade };
+  readonly away: { readonly name: string; readonly jersey: Shade };
+}
+
+export function editorTeams(photo: PhotoDetail): EditorTeams | null {
+  if (
+    photo.away_team_id === null ||
+    photo.home_jersey === null ||
+    photo.away_jersey === null ||
+    photo.opponent === null
+  ) {
+    return null;
+  }
+  return {
+    home: { name: photo.team_name, jersey: photo.home_jersey },
+    away: { name: photo.opponent, jersey: photo.away_jersey },
+  };
+}
 
 const BAND_STYLE = {
   high: "text-high",
@@ -39,13 +62,17 @@ export function DetectionEditor({
   thresholds,
   returnTo,
   autoFocusAdd = false,
+  teams = null,
 }: {
   photoId: string;
   detections: readonly FullDetection[];
   thresholds: ConfidenceThresholds;
   returnTo: string;
   autoFocusAdd?: boolean;
+  /** Set for a two-team event: each number is TEAM + NUMBER. */
+  teams?: EditorTeams | null;
 }) {
+  const sides = teams === null ? [] : [teams.home, teams.away];
   const active = detections.filter((d) => d.status !== "rejected");
   const rejected = detections.filter((d) => d.status === "rejected");
   return (
@@ -62,6 +89,14 @@ export function DetectionEditor({
             data-testid={`detection-${d.detected_value}`}
           >
             <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+              {teams !== null ? (
+                <span
+                  className={`text-sm font-semibold ${d.team_name ? "text-brand-2" : "text-medium"}`}
+                  data-testid="detection-team"
+                >
+                  {d.team_name ?? "Team not known"}
+                </span>
+              ) : null}
               <span className="display text-3xl">#{d.detected_value}</span>
               {d.status === "confirmed" ? (
                 <span className="chip bg-high text-black">Confirmed</span>
@@ -87,6 +122,24 @@ export function DetectionEditor({
                   </button>
                 </form>
               ) : null}
+              {sides
+                .filter((side) => side.jersey !== d.jersey)
+                .map((side) => (
+                  <form action={photoAction} key={side.jersey}>
+                    <input type="hidden" name="op" value="jersey" />
+                    <input type="hidden" name="detectionId" value={d.id} />
+                    <input type="hidden" name="jersey" value={side.jersey} />
+                    <input type="hidden" name="returnTo" value={returnTo} />
+                    <button
+                      className="btn-ghost"
+                      type="submit"
+                      data-testid={`set-team-${side.jersey}`}
+                    >
+                      {d.team_name === null ? "" : "No — "}
+                      {side.name} ({side.jersey})
+                    </button>
+                  </form>
+                ))}
               <form action={photoAction}>
                 <input type="hidden" name="op" value="reject" />
                 <input type="hidden" name="detectionId" value={d.id} />
@@ -131,6 +184,22 @@ export function DetectionEditor({
           autoFocus={autoFocusAdd}
           id="add-number"
         />
+        {teams !== null ? (
+          <select
+            className="input w-auto"
+            name="jersey"
+            aria-label="Which team"
+            defaultValue=""
+            data-testid="add-number-team"
+          >
+            <option value="">Team not known</option>
+            {sides.map((side) => (
+              <option key={side.jersey} value={side.jersey}>
+                {side.name} ({side.jersey})
+              </option>
+            ))}
+          </select>
+        ) : null}
         <button className="btn-ghost" type="submit">
           + Add number
         </button>

@@ -29,6 +29,10 @@ const EVENT = {
   sport: "Football",
   teamName: "West Seneca",
   opponent: "Orchard Park",
+  // West Seneca (home) in dark, Orchard Park in light: a number read on a
+  // dark jersey belongs to West Seneca.
+  homeJersey: "dark",
+  awayJersey: "light",
   eventDate: "2026-10-03",
   location: "West Seneca West",
   season: "2026",
@@ -372,7 +376,18 @@ describe("players", () => {
     });
     const provider = scripted(
       new Map([
-        ["x", [{ text: "24", confidence: 0.95, location: "jersey_back", box: null }]],
+        [
+          "x",
+          [
+            {
+              text: "24",
+              confidence: 0.95,
+              location: "jersey_back",
+              box: null,
+              jersey: "dark",
+            },
+          ],
+        ],
       ]),
       ["x", "x"],
     );
@@ -435,8 +450,30 @@ describe("search", () => {
     });
     const provider = scripted(
       new Map([
-        ["a", [{ text: "24", confidence: 0.95, location: "jersey_back", box: null }]],
-        ["b", [{ text: "7", confidence: 0.95, location: "jersey_back", box: null }]],
+        [
+          "a",
+          [
+            {
+              text: "24",
+              confidence: 0.95,
+              location: "jersey_back",
+              box: null,
+              jersey: "dark",
+            },
+          ],
+        ],
+        [
+          "b",
+          [
+            {
+              text: "7",
+              confidence: 0.95,
+              location: "jersey_back",
+              box: null,
+              jersey: "dark",
+            },
+          ],
+        ],
       ]),
       ["a", "b"],
     );

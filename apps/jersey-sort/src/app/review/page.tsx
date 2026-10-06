@@ -1,7 +1,7 @@
 import Link from "next/link";
 
 import { photoAction } from "@/actions/review.ts";
-import { DetectionEditor } from "@/components/DetectionEditor.tsx";
+import { DetectionEditor, editorTeams } from "@/components/DetectionEditor.tsx";
 import { Notice, param, type SearchParams } from "@/components/Notice.tsx";
 import { ReviewKeys } from "@/components/ReviewKeys.tsx";
 import { db } from "@/lib/db.ts";
@@ -172,6 +172,7 @@ export default async function ReviewPage({
             detections={detections}
             thresholds={t}
             returnTo={editReturn}
+            teams={editorTeams(photo)}
           />
           <div className="grid grid-cols-2 gap-2 pt-2">
             <ReviewButton

@@ -15,6 +15,7 @@ import {
   analyzedStatus,
   normalizeJerseyNumber,
   type ConfidenceThresholds,
+  type JerseyShade,
   type DetectionStatus,
 } from "@hl-bos/jersey-sort";
 
@@ -73,9 +74,17 @@ export function recomputeStatus(
   }
 }
 
-function ownDetection(db: Db, org: string, detectionId: string): { photo_id: string } {
-  const row = db.get<{ photo_id: string }>(
-    "select photo_id from photo_detections where id = :id and organization_id = :org",
+function ownDetection(
+  db: Db,
+  org: string,
+  detectionId: string,
+): { photo_id: string; detected_value: string; jersey: JerseyShade | null } {
+  const row = db.get<{
+    photo_id: string;
+    detected_value: string;
+    jersey: JerseyShade | null;
+  }>(
+    "select photo_id, detected_value, jersey from photo_detections where id = :id and organization_id = :org",
     { id: detectionId, org },
   );
   if (row === undefined) throw new ValidationError("That number was not found.");
@@ -116,7 +125,16 @@ export function rejectDetection(
   });
 }
 
-/** Add a number a person typed. Confirmed by definition; replaces an existing reading of the same number. */
+/**
+ * Add a number a person typed. Confirmed by definition; replaces an existing
+ * reading of the same number.
+ *
+ * `jersey` says which team (light or dark jersey) when the person knows it.
+ * Without it the number has no team in a two-team game, exactly as an AI
+ * reading of an unseen jersey has none. With it, a team-less reading of the
+ * same number is retired (rejected, so it stays inspectable) in favour of the
+ * person's: "this #22 is the dark #22".
+ */
 export function addNumber(
   db: Db,
   org: string,
@@ -124,6 +142,7 @@ export function addNumber(
   photoId: string,
   raw: string,
   t: ConfidenceThresholds,
+  jersey: JerseyShade | null = null,
 ): string {
   const value = normalizeJerseyNumber(raw);
   if (value === null)
@@ -135,8 +154,10 @@ export function addNumber(
     );
     if (owned === undefined) throw new ValidationError("That photo was not found.");
     const existing = db.get<{ id: string }>(
-      "select id from photo_detections where photo_id = :id and detected_value = :v order by status = 'rejected' limit 1",
-      { id: photoId, v: value },
+      jersey === null
+        ? "select id from photo_detections where photo_id = :id and detected_value = :v order by status = 'rejected' limit 1"
+        : "select id from photo_detections where photo_id = :id and detected_value = :v and jersey = :j order by status = 'rejected' limit 1",
+      { id: photoId, v: value, j: jersey },
     );
     if (existing !== undefined) {
       db.run(
@@ -144,10 +165,17 @@ export function addNumber(
         { id: existing.id },
       );
     } else {
+      if (jersey !== null) {
+        db.run(
+          `update photo_detections set status = 'rejected', updated_at = ${NOW}
+            where photo_id = :id and detected_value = :v and jersey is null and status != 'rejected'`,
+          { id: photoId, v: value },
+        );
+      }
       db.run(
-        `insert into photo_detections (id, organization_id, photo_id, detected_value, confidence, method, provider, status, created_by)
-         values (:id, :org, :photo, :v, 1, 'manual', 'person', 'confirmed', :user)`,
-        { id: newId(), org, photo: photoId, v: value, user: userId },
+        `insert into photo_detections (id, organization_id, photo_id, detected_value, confidence, method, provider, status, created_by, jersey)
+         values (:id, :org, :photo, :v, 1, 'manual', 'person', 'confirmed', :user, :j)`,
+        { id: newId(), org, photo: photoId, v: value, user: userId, j: jersey },
       );
     }
     // A person who sees a number has decided there is a jersey to see.
@@ -160,6 +188,59 @@ export function addNumber(
   return value;
 }
 
+/** Say which team (by jersey) a reading belongs to: "this #22 is the dark #22". */
+export function setDetectionJersey(
+  db: Db,
+  org: string,
+  userId: string,
+  detectionId: string,
+  jersey: JerseyShade,
+  t: ConfidenceThresholds,
+): string {
+  return db.tx(() => {
+    const d = ownDetection(db, org, detectionId);
+    if (d.jersey !== jersey) {
+      db.run(
+        `update photo_detections set status = 'rejected', updated_at = ${NOW} where id = :id`,
+        { id: detectionId },
+      );
+    }
+    addNumber(db, org, userId, d.photo_id, d.detected_value, t, jersey);
+    return d.photo_id;
+  });
+}
+
+/**
+ * "These #24s are Caz's": give every #24 in one event whose team is not
+ * known the chosen jersey. One click per number per game for a person
+ * working through what local OCR (which cannot see jerseys) found. Each
+ * reading is retired and replaced as setDetectionJersey does, so nothing the
+ * AI said is rewritten. Returns how many photos it changed.
+ */
+export function assignNumberJersey(
+  db: Db,
+  org: string,
+  userId: string,
+  eventId: string,
+  raw: string,
+  jersey: JerseyShade,
+  t: ConfidenceThresholds,
+): number {
+  const value = normalizeJerseyNumber(raw);
+  if (value === null)
+    throw new ValidationError("A jersey number is one or two digits, 0–99 or 00.");
+  return db.tx(() => {
+    const rows = db.all<{ id: string; photo_id: string }>(
+      `select d.id, d.photo_id from photo_detections d join photos p on p.id = d.photo_id
+        where p.event_id = :event and p.organization_id = :org and d.detected_value = :v
+          and d.jersey is null and d.status != 'rejected'`,
+      { event: eventId, org, v: value },
+    );
+    for (const r of rows) setDetectionJersey(db, org, userId, r.id, jersey, t);
+    return new Set(rows.map((r) => r.photo_id)).size;
+  });
+}
+
 export function changeNumber(
   db: Db,
   org: string,
@@ -169,7 +250,7 @@ export function changeNumber(
   t: ConfidenceThresholds,
 ): string {
   return db.tx(() => {
-    const { photo_id } = ownDetection(db, org, detectionId);
+    const { photo_id, jersey } = ownDetection(db, org, detectionId);
     const value = normalizeJerseyNumber(raw);
     if (value === null)
       throw new ValidationError("A jersey number is one or two digits, 0–99 or 00.");
@@ -177,7 +258,8 @@ export function changeNumber(
       `update photo_detections set status = 'rejected', updated_at = ${NOW} where id = :id`,
       { id: detectionId },
     );
-    addNumber(db, org, userId, photo_id, value, t);
+    // Same athlete, number misread: the jersey (and so the team) carries over.
+    addNumber(db, org, userId, photo_id, value, t, jersey);
     return photo_id;
   });
 }

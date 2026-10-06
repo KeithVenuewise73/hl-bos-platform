@@ -42,7 +42,7 @@ export const LOCAL_APPS: readonly LocalApp[] = [
   {
     key: "jersey-sort",
     name: "JerseySort AI",
-    what: "Upload a game's photos and get them sorted into galleries by jersey number, player, event and date, with a fast review screen for the uncertain ones.",
+    what: "Check a camera folder, turn each shooting date into a game, and get the photos sorted into galleries by team and jersey number, player, event and date, with a fast review screen for the uncertain ones.",
     filter: "@hl-bos/jersey-sort-app",
     port: 4603,
     healthPath: "/api/health",

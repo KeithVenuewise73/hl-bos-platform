@@ -212,28 +212,57 @@ describe("summarizeFolder", () => {
       {
         day: "2026-10-03",
         photos: 2,
+        camera: 2,
         estimated: 0,
+        jpeg: 2,
+        png: 0,
+        heic: 0,
         raw: 1,
+        cr2: 0,
+        cr3: 1,
         first: "2026-10-03T18:01:00",
         last: "2026-10-03T20:44:10",
       },
       {
         day: "2026-10-04",
         photos: 2,
+        camera: 1,
         estimated: 1,
+        jpeg: 0,
+        png: 1,
+        heic: 1,
         raw: 0,
+        cr2: 0,
+        cr3: 0,
         first: "2026-10-04T10:00:00",
         last: "2026-10-04T11:00:00",
       },
       {
         day: "2026-10-05",
         photos: 1,
+        camera: 1,
         estimated: 0,
+        jpeg: 1,
+        png: 0,
+        heic: 0,
         raw: 0,
+        cr2: 0,
+        cr3: 0,
         first: "2026-10-05T09:15:00",
         last: "2026-10-05T09:15:00",
       },
     ]);
+  });
+
+  it("adds up per day to the folder's totals", () => {
+    const sum = (
+      k: "photos" | "camera" | "estimated" | "jpeg" | "png" | "heic" | "cr3",
+    ) => r.days.reduce((n, d) => n + d[k], 0);
+    expect(sum("photos")).toBe(r.supported);
+    expect(sum("camera") + sum("estimated")).toBe(r.supported);
+    expect([sum("jpeg"), sum("png"), sum("heic")]).toEqual([r.jpeg, r.png, r.heic]);
+    // The CR2 has no date at all, so it is counted in the folder but on no day.
+    expect(sum("cr3")).toBe(r.cr3);
   });
 
   it("flags a range that rests on an estimated date", () => {
@@ -293,6 +322,7 @@ describe("proposeGames", () => {
     );
     expect(games.map((g) => g.day)).toEqual(["2026-10-04"]);
     expect(games[0]?.label).toBe("October 4, 2026 — 1 photo");
+    expect(games[0]?.suggestedName).toBe("October 4, 2026 Game");
   });
 
   it("writes a calendar day without shifting it through a time zone", () => {

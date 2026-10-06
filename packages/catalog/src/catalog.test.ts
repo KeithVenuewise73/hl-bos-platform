@@ -148,9 +148,10 @@ describe("repository scan (ground truth)", () => {
     // project.
     // Plus 0050 (sceneflow) and 0051 (hype — 5-Star Hype Video), both verified
     // against a local PostgreSQL 16 and UNAPPLIED to any project.
-    // Plus 0052 (jerseysort — JerseySort AI), verified against a local
-    // PostgreSQL 16 and UNAPPLIED to any project.
-    expect(inv.migrations.length).toBe(52);
+    // Plus 0052 (jerseysort — JerseySort AI) and 0053 (its two teams per
+    // event and jersey per number), verified against a local PostgreSQL 16
+    // and UNAPPLIED to any project.
+    expect(inv.migrations.length).toBe(53);
     expect(inv.edgeFunctions).toContain("ai-gateway");
     expect(inv.edgeFunctions).not.toContain("tests");
     expect(inv.apps).toEqual(
