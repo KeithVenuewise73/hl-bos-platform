@@ -6,6 +6,7 @@ import {
   launchSceneFlow,
   readSceneFlowStatus,
   rotateSceneFlowCode,
+  sceneFlowDiagnostics,
 } from "@/actions/sceneflow";
 import type { SceneFlowStatus } from "@/lib/sceneflow-launch";
 
@@ -20,6 +21,8 @@ export function SceneFlowLaunch({ initial }: { initial: SceneFlowStatus }) {
   const [status, setStatus] = useState(initial);
   const [note, setNote] = useState("");
   const [detail, setDetail] = useState("");
+  const [report, setReport] = useState("");
+  const [copied, setCopied] = useState(false);
   const [pending, start] = useTransition();
 
   /**
@@ -94,7 +97,66 @@ export function SceneFlowLaunch({ initial }: { initial: SceneFlowStatus }) {
         >
           New code
         </button>
+        <button
+          type="button"
+          onClick={() => {
+            setCopied(false);
+            start(async () => {
+              try {
+                const text = await sceneFlowDiagnostics();
+                setReport(text);
+                try {
+                  await navigator.clipboard.writeText(text);
+                  setCopied(true);
+                } catch {
+                  // Clipboard permission can be refused. The text is on screen
+                  // either way, which is the part that matters.
+                }
+              } catch (error) {
+                setReport(
+                  `The report could not be gathered: ${
+                    error instanceof Error ? error.message : String(error)
+                  }`,
+                );
+              }
+            });
+          }}
+          disabled={pending}
+          style={button(pending, "#30363d")}
+        >
+          Report for Claude
+        </button>
       </div>
+
+      {report === "" ? null : (
+        // Built because four rounds were spent asking him to read things off a
+        // screen and relay them. It contains no secrets -- the access code is
+        // reported as set or not set, never as its value.
+        <div style={{ marginBottom: 12 }}>
+          <p style={{ margin: "0 0 6px", color: "#8b949e", fontSize: 12.5 }}>
+            {copied
+              ? "Copied. Paste this into the chat with Claude."
+              : "Select this and copy it into the chat with Claude."}
+          </p>
+          <textarea
+            readOnly
+            value={report}
+            onFocus={(e) => e.currentTarget.select()}
+            rows={16}
+            style={{
+              width: "100%",
+              boxSizing: "border-box",
+              background: "#0d1117",
+              border: "1px solid #262c36",
+              borderRadius: 8,
+              color: "#8b949e",
+              fontSize: 11.5,
+              fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace",
+              padding: "10px 12px",
+            }}
+          />
+        </div>
+      )}
 
       {status.running && status.code !== "" ? (
         <div

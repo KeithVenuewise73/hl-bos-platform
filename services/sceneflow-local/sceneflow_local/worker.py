@@ -23,7 +23,7 @@ from typing import Any
 from .adapters import LocalImageAdapter, MockImageAdapter
 from .checker import CheckVerdict, ContentClassifier, SkinFractionScreen
 from .errors import ModelUnavailableError, UnsafeJobError
-from .models import choose_model
+from .models import Plan, plan_generation
 from .types import GenerationJob, GenerationOutcome
 
 
@@ -64,33 +64,142 @@ def _run_nvidia_smi() -> str:  # pragma: no cover - depends on the host
     return done.stdout if done.returncode == 0 else ""
 
 
+def detect_ram_mb(read: Any = None) -> int | None:
+    """Total system memory in MiB, or None when it cannot be read.
+
+    Total rather than free, for the same reason the card is measured by total
+    video memory: this answers "what can this machine hold", which is a
+    property of the machine, not of whatever happens to be open right now.
+
+    None means "could not tell". It is kept apart from a small number for the
+    same reason as the card: one sends someone to check their machine, the
+    other sends them to buy memory.
+    """
+    reader = read if read is not None else _read_total_ram_bytes
+    try:
+        total = reader()
+    except Exception:  # noqa: BLE001 - every platform fails differently here
+        return None
+    if not total or total <= 0:
+        return None
+    return int(total // (1024 * 1024))
+
+
+def _read_total_ram_bytes() -> int:  # pragma: no cover - depends on the host
+    # Windows first, because that is the machine this was built for.
+    if sys.platform == "win32":
+        import ctypes
+
+        class _Status(ctypes.Structure):
+            _fields_ = [
+                ("dwLength", ctypes.c_ulong),
+                ("dwMemoryLoad", ctypes.c_ulong),
+                ("ullTotalPhys", ctypes.c_ulonglong),
+                ("ullAvailPhys", ctypes.c_ulonglong),
+                ("ullTotalPageFile", ctypes.c_ulonglong),
+                ("ullAvailPageFile", ctypes.c_ulonglong),
+                ("ullTotalVirtual", ctypes.c_ulonglong),
+                ("ullAvailVirtual", ctypes.c_ulonglong),
+                ("ullAvailExtendedVirtual", ctypes.c_ulonglong),
+            ]
+
+        status = _Status()
+        status.dwLength = ctypes.sizeof(_Status)
+        if not ctypes.windll.kernel32.GlobalMemoryStatusEx(ctypes.byref(status)):
+            return 0
+        return int(status.ullTotalPhys)
+
+    if sys.platform == "darwin":
+        done = subprocess.run(
+            ["sysctl", "-n", "hw.memsize"],
+            capture_output=True, text=True, timeout=10, check=False,
+        )
+        return int(done.stdout.strip()) if done.returncode == 0 else 0
+
+    pages = os.sysconf("SC_PHYS_PAGES")
+    page_size = os.sysconf("SC_PAGE_SIZE")
+    return int(pages) * int(page_size)
+
+
 def _has(module: str) -> bool:
     import importlib.util
 
     return importlib.util.find_spec(module) is not None
 
 
-def doctor(vram_mb: int | None = None) -> dict[str, Any]:
-    vram = vram_mb if vram_mb is not None else detect_vram_mb()
-    tier = choose_model(vram)
-    torch_present = _has("torch")
-    diffusers_present = _has("diffusers")
+class _Detect:
+    """Sentinel for "not supplied, go and look".
+
+    Needed because None already means something else here: "looked, could not
+    tell". Defaulting the arguments to None made those two the same value, so
+    a caller could not describe a machine whose memory is unreadable without
+    the function quietly measuring the machine it is running on instead.
+    """
+
+    def __repr__(self) -> str:  # pragma: no cover - debugging aid
+        return "<detect>"
+
+
+DETECT = _Detect()
+
+
+def doctor(
+    vram_mb: int | None | _Detect = DETECT,
+    ram_mb: int | None | _Detect = DETECT,
+    has_module: Any = None,
+) -> dict[str, Any]:
+    """What this machine would do, and what is stopping it.
+
+    `has_module` is injectable for the same reason the card and memory probes
+    are: without it, a test asserting "the libraries are missing" passes on a
+    bare machine and FAILS on a machine where they are installed -- which is
+    the machine that matters. Three tests here did exactly that until the
+    libraries were installed and run against for the first time.
+    """
+    vram = detect_vram_mb() if isinstance(vram_mb, _Detect) else vram_mb
+    ram = detect_ram_mb() if isinstance(ram_mb, _Detect) else ram_mb
+    plan = plan_generation(vram, ram)
+    present = has_module if has_module is not None else _has
+    torch_present = present("torch")
+    diffusers_present = present("diffusers")
+    tier = plan.tier if plan else None
     return {
         "vram_mb": vram,
+        "ram_mb": ram,
+        "device": plan.device if plan else None,
+        "on_processor": plan.on_processor if plan else None,
         "torch_installed": torch_present,
         "diffusers_installed": diffusers_present,
         "would_load": tier.name if tier else None,
         "non_commercial": tier.non_commercial if tier else None,
+        # Said out loud rather than implied. On the processor this is "weak",
+        # and SceneFlow's whole premise is the same people across several
+        # scenes -- the operator should read that here, not deduce it later.
+        "holds_a_face": tier.identity if tier else None,
         "can_generate": bool(tier and torch_present and diffusers_present),
-        "why_not": _why_not(vram, tier, torch_present, diffusers_present),
+        "why_not": _why_not(vram, ram, plan, torch_present, diffusers_present),
     }
 
 
-def _why_not(vram: int | None, tier: Any, torch_ok: bool, diffusers_ok: bool) -> str:
-    if vram is None:
-        return "No NVIDIA card could be read on this machine."
-    if tier is None:
-        return f"The card has {vram} MiB of video memory, below what the smallest model needs."
+def _why_not(
+    vram: int | None,
+    ram: int | None,
+    plan: Plan | None,
+    torch_ok: bool,
+    diffusers_ok: bool,
+) -> str:
+    if plan is None:
+        if vram and vram > 0:
+            return (
+                f"The card has {vram} MiB of video memory, below what the smallest "
+                "model needs, and there is not enough system memory to use the processor instead."
+            )
+        if ram and ram > 0:
+            return (
+                f"There is no usable card, and {ram} MiB of system memory is below what "
+                "the smallest processor model needs."
+            )
+        return "No card and no readable system memory, so nothing could be chosen."
     missing = [n for n, ok in (("torch", torch_ok), ("diffusers", diffusers_ok)) if not ok]
     if missing:
         return f"The model libraries are not installed yet ({', '.join(missing)})."
@@ -169,7 +278,11 @@ def run_job(
 ) -> GenerationOutcome:
     job = GenerationJob.from_dict(raw)
     try:
-        adapter = MockImageAdapter() if use_mock else LocalImageAdapter(detect_vram_mb())
+        adapter = (
+            MockImageAdapter()
+            if use_mock
+            else LocalImageAdapter(detect_vram_mb(), ram_mb=detect_ram_mb())
+        )
         outcome = adapter.generate(job)
     except ModelUnavailableError as exc:
         return GenerationOutcome(
