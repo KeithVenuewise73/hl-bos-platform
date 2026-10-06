@@ -33,19 +33,31 @@ while ($null -eq $win -and (Get-Date) -lt $deadline) {
 if ($null -eq $win) { "dialog: never appeared"; exit 2 }
 "dialog: appeared ($($win.Current.ClassName))"
 
-# The "Folder:" box. Its id is 1152 on current Windows; fall back to the Edit
-# whose name starts with "Folder".
+# The "Folder:" box. On current Windows it is an editable ComboBox (id 1148)
+# whose text can be set directly; on some builds an Edit (id 1152, or named
+# "Folder..."). If neither is exposed, fall back to typing: the box has the
+# keyboard focus when the window opens.
 $isEdit = New-Object System.Windows.Automation.PropertyCondition($AE::ControlTypeProperty, $CT::Edit)
-$edits = $win.FindAll($Scope::Descendants, $isEdit)
+$isCombo = New-Object System.Windows.Automation.PropertyCondition($AE::ControlTypeProperty, $CT::ComboBox)
+$candidates = @()
+foreach ($e in $win.FindAll($Scope::Descendants, $isCombo)) { $candidates += $e }
+foreach ($e in $win.FindAll($Scope::Descendants, $isEdit)) { $candidates += $e }
 $box = $null
-foreach ($e in $edits) { if ($e.Current.AutomationId -eq '1152') { $box = $e } }
-if ($null -eq $box) { foreach ($e in $edits) { if ($e.Current.Name -like 'Folder*') { $box = $e } } }
-if ($null -eq $box) {
-  "dialog: no Folder box among $($edits.Count) edit boxes:"
-  foreach ($e in $edits) { "  id=$($e.Current.AutomationId) name=$($e.Current.Name)" }
-  exit 3
+foreach ($e in $candidates) {
+  $id = $e.Current.AutomationId; $name = $e.Current.Name
+  if ($null -eq $box -and ($id -eq '1148' -or $id -eq '1152' -or $name -like 'Folder*')) {
+    $p = $null
+    if ($e.TryGetCurrentPattern([System.Windows.Automation.ValuePattern]::Pattern, [ref]$p)) { $box = $p; "dialog: Folder box found ($($e.Current.ControlType.ProgrammaticName) id=$id)" }
+  }
 }
-"dialog: Folder box found (id=$($box.Current.AutomationId))"
+
+function Type-Into-Focus([string]$text) {
+  Add-Type -AssemblyName System.Windows.Forms
+  try { $win.SetFocus() } catch { }
+  $escaped = [regex]::Replace($text, '[+^%~(){}\[\]]', '{$0}')
+  [System.Windows.Forms.SendKeys]::SendWait('^a')
+  [System.Windows.Forms.SendKeys]::SendWait($escaped)
+}
 
 $isButton = New-Object System.Windows.Automation.PropertyCondition($AE::ControlTypeProperty, $CT::Button)
 function Press-Ok {
@@ -58,9 +70,15 @@ function Press-Ok {
   return $false
 }
 
-$value = $box.GetCurrentPattern([System.Windows.Automation.ValuePattern]::Pattern)
-$value.SetValue($Folder)
-"dialog: typed $Folder"
+if ($null -ne $box) {
+  $box.SetValue($Folder)
+  "dialog: set the Folder box to $Folder"
+} else {
+  "dialog: no settable Folder box; typing instead. Controls seen:"
+  foreach ($e in $candidates) { "  $($e.Current.ControlType.ProgrammaticName) id=$($e.Current.AutomationId) name=$($e.Current.Name)" }
+  Type-Into-Focus $Folder
+  "dialog: typed $Folder"
+}
 if (-not (Press-Ok)) { "dialog: no OK button"; exit 4 }
 "dialog: pressed OK"
 
@@ -71,7 +89,7 @@ for ($i = 0; $i -lt 2; $i++) {
   Start-Sleep -Seconds 2
   if ($null -eq (Find-Window)) { "dialog: closed with a folder chosen"; exit 0 }
   "dialog: still open; choosing the folder it is showing"
-  try { $value.SetValue('') } catch { }
+  if ($null -ne $box) { try { $box.SetValue('') } catch { } } else { Type-Into-Focus '' }
   [void](Press-Ok)
 }
 Start-Sleep -Seconds 2
