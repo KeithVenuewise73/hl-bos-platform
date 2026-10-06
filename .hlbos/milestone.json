@@ -310,7 +310,15 @@
       "done": true
     },
     {
-      "title": "JerseySort AI: migration 0052 written and tested locally (1180 assertions, 0 failing); needs approval to apply",
+      "title": "JerseySort AI: Check a folder (read only) \u2014 counts photos, JPG/PNG/HEIC, Canon RAW, unsupported files, every shooting date and one proposed game per date; proven on Windows (Start JerseySort AI from the console in 17 s; a camera-card folder and C:\\Windows\\Web checked with 0 files altered)",
+      "done": true
+    },
+    {
+      "title": "JerseySort AI: check one real folder of Canon game photos on the CEO's PC",
+      "done": false
+    },
+    {
+      "title": "JerseySort AI: migration 0052 written and tested locally (1180 assertions, 0 failing); approved, NOT applied \u2014 the Supabase connector drops a request this size. Needs a direct database connection (your decision). A holding area, hlbos_stage, was left in production by the attempt (pieces of the migration text only; no customer data) and must be removed",
       "done": false
     },
     {

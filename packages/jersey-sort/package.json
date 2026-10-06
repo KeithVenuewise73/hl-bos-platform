@@ -8,6 +8,10 @@
     ".": {
       "types": "./src/index.ts",
       "default": "./src/index.ts"
+    },
+    "./folder-check": {
+      "types": "./src/folder-check.ts",
+      "default": "./src/folder-check.ts"
     }
   },
   "scripts": {

@@ -1,25 +1,10 @@
 /** Display helpers. Pure; used by server and client components alike. */
 
-const MONTHS = [
-  "January",
-  "February",
-  "March",
-  "April",
-  "May",
-  "June",
-  "July",
-  "August",
-  "September",
-  "October",
-  "November",
-  "December",
-];
+import { longDay } from "@hl-bos/jersey-sort/folder-check";
 
 /** "2026-10-03" -> "October 3, 2026". Parsed by hand: no time zone can shift the day. */
 export function longDate(isoDay: string): string {
-  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(isoDay);
-  if (m === null) return isoDay;
-  return `${MONTHS[Number(m[2]) - 1] ?? ""} ${Number(m[3])}, ${m[1]}`;
+  return /^\d{4}-\d{2}-\d{2}/.test(isoDay) ? longDay(isoDay.slice(0, 10)) : isoDay;
 }
 
 /** "2026-10-03T19:31:05" -> "October 3, 2026 · 7:31 PM" */
