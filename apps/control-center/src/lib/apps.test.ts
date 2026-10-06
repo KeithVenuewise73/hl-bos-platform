@@ -72,3 +72,13 @@ describe("an app that needs a newer Node than the console", () => {
     }
   });
 });
+
+describe("DateSort in the console", () => {
+  it("can be started from the home page, on the port DateSort.bat uses", () => {
+    const ds = findApp("date-sort");
+    expect(ds?.name).toBe("DateSort");
+    expect(ds?.filter).toBe("@hl-bos/date-sort-app");
+    expect(ds?.port).toBe(4604);
+    expect(ds?.healthPath).toBe("/api/health");
+  });
+});

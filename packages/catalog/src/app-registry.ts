@@ -389,6 +389,36 @@ export const APPLICATIONS: ApplicationRecord[] = [
       "apps/jersey-sort + packages/jersey-sort; 85/85 end-to-end checks against the running app (scripts/local-test/verify-jersey-sort.cjs); load-tested at 300 photos through the browser and 14,000 in the database; migration 0052 verified locally, UNAPPLIED",
   },
   {
+    key: "date-sort",
+    name: "DateSort",
+    description:
+      "Organizes the master photo library before photos reach JerseySort: choose a folder of loose camera photos (Canon JPG/CR2/CR3, PNG, HEIC), scan it read-only, and see every photo grouped by the day it was taken from its camera EXIF date (DateTimeOriginal, then CreateDate; never the edit time), with dates estimated from the file time clearly labelled. Later steps add date galleries, event names and copy-only export to dated event folders.",
+    category: "executive_tooling",
+    repository: REPO,
+    owner: "KeithVenuewise73",
+    executiveOwner: "Keith Herman (CEO)",
+    currentBranch: "claude/determined-carson-ro82be",
+    environment: "local",
+    developmentStatus: "prototype",
+    deploymentStatus: "not_deployed",
+    productionUrl: null,
+    stagingUrl: null,
+    localUrl: "http://localhost:4604",
+    // None by design: DateSort has no database, no account and no network.
+    supabaseProject: null,
+    version: "0.1.0",
+    health: "unknown",
+    hosting: "local only (127.0.0.1); started by DateSort.bat or the Control Center",
+    dependencies: ["@hl-bos/date-sort"],
+    reusableModules: [],
+    softwareFactoryIntegration:
+      "None. Deliberately independent of JerseySort: it imports none of JerseySort's code, and JerseySort imports none of its.",
+    notes:
+      "Step 1 of 4 (scan and report) only. Scanning is read-only by construction: one file in the engine touches the disk and can only list, stat and open for reading, enforced by a source test. Canon CR3 and HEIC capture dates are read by DateSort's own metadata readers, checked against ExifTool on real Canon files. Nothing is copied, renamed or created yet: galleries, event names and copy-only export are Steps 2-3.",
+    evidence:
+      "apps/date-sort + packages/date-sort; engine tests against real Canon EOS M50 CR3 / EOS 350D CR2 files agree with ExifTool; end-to-end browser checks (scripts/local-test/verify-date-sort.cjs) fingerprint every source file before and after each scan",
+  },
+  {
     key: "control-center",
     name: "CEO Development Control Center",
     description:

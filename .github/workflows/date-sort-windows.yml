@@ -1,0 +1,183 @@
+name: DateSort on Windows
+
+# Proves DateSort Step 1 (Scan and Report) on a real Windows machine, the
+# way the CEO runs it:
+#   - DateSort.bat itself is run (with no browser window and no keyboard),
+#     and must set up, build, start and answer on port 4604
+#   - Browse is pressed and the REAL Windows folder window is driven to
+#     choose the test folder
+#   - a camera-card-shaped folder (real Canon CR2/CR3 metadata, JPG, HEIC,
+#     PNG, photos with no camera date, junk) and the photo folder Windows
+#     itself ships (C:\Windows\Web) are scanned, with every file
+#     fingerprinted before and after: any changed, renamed, deleted or added
+#     file fails
+#   - then DateSort is stopped and started again from the Development
+#     Control Center's Start DateSort button, and everything is checked again
+#   - DateSort's and the console's unit tests, on Windows
+
+on:
+  pull_request:
+    paths:
+      - "apps/date-sort/**"
+      - "packages/date-sort/**"
+      - "apps/control-center/**"
+      - "scripts/DateSort.bat"
+      - "scripts/date-sort.mjs"
+      - "scripts/local-test/verify-date-sort.cjs"
+      - "scripts/local-test/pick-folder-in-dialog.ps1"
+      - ".github/workflows/date-sort-windows.yml"
+      - "pnpm-lock.yaml"
+  push:
+    branches: [main]
+    paths:
+      - "apps/date-sort/**"
+      - "packages/date-sort/**"
+      - "scripts/DateSort.bat"
+      - "scripts/date-sort.mjs"
+      - "scripts/local-test/verify-date-sort.cjs"
+      - "scripts/local-test/pick-folder-in-dialog.ps1"
+      - ".github/workflows/date-sort-windows.yml"
+  workflow_dispatch:
+
+concurrency:
+  group: date-sort-windows-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  # DateSort.bat and control-center.bat pin the same version.
+  PNPM_VERSION: "10.34.5"
+
+jobs:
+  windows:
+    name: DateSort on Windows (DateSort.bat, Browse, scan, console Start, tests)
+    runs-on: windows-latest
+    timeout-minutes: 50
+    defaults:
+      run:
+        shell: pwsh
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Setup Node
+        uses: actions/setup-node@v5
+        with:
+          node-version: "22"
+          package-manager-cache: false
+
+      - name: Build tool, installed inside the repo (as DateSort.bat does it)
+        run: |
+          npm install "pnpm@$env:PNPM_VERSION" --prefix .hlbos\toolchain --no-save --no-fund --no-audit
+          "PNPM_CJS=$PWD\.hlbos\toolchain\node_modules\pnpm\bin\pnpm.cjs" >> $env:GITHUB_ENV
+          node --version
+
+      - name: Libraries
+        run: node $env:PNPM_CJS install --frozen-lockfile
+
+      - name: Unit tests, on Windows
+        run: |
+          foreach ($p in "@hl-bos/date-sort", "@hl-bos/date-sort-app", "@hl-bos/control-center") {
+            node $env:PNPM_CJS --filter $p test
+            if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          }
+
+      - name: Build the console
+        run: node $env:PNPM_CJS --filter @hl-bos/control-center build
+
+      - name: Browser for the test
+        run: |
+          npm install -g playwright@1.56.1 --no-fund --no-audit
+          npx -y playwright@1.56.1 install chromium
+
+      - name: Double-click DateSort.bat, Browse, scan; then Start DateSort from the console
+        # One step on purpose: on Windows runners every process a step starts
+        # is ended with that step.
+        env:
+          DATESORT_NO_BROWSER: "1"
+          DATESORT_REAL_FOLDERS: C:\Windows\Web
+        run: |
+          $T = $env:RUNNER_TEMP
+          function Up { try { (Invoke-WebRequest http://localhost:4604/api/health -UseBasicParsing -TimeoutSec 3).StatusCode -eq 200 } catch { $false } }
+
+          # --- 1. DateSort.bat, exactly as double-clicked (stdin from NUL so a
+          #        "pause" on failure cannot hang the job) ---------------------
+          $t0 = Get-Date
+          $bat = Start-Process -FilePath cmd.exe -ArgumentList '/c', 'scripts\DateSort.bat < NUL' `
+            -RedirectStandardOutput "$T\datesort-bat.log" -RedirectStandardError "$T\datesort-bat.err.log" `
+            -WindowStyle Hidden -PassThru
+          $up = $false
+          for ($i = 0; $i -lt 300; $i++) { if (Up) { $up = $true; break }; if ($bat.HasExited) { break }; Start-Sleep -Seconds 2 }
+          $launch = [math]::Round(((Get-Date) - $t0).TotalSeconds)
+          Get-Content "$T\datesort-bat.log", "$T\datesort-bat.err.log" -ErrorAction SilentlyContinue
+          @{ ok = $up; seconds = $launch } | ConvertTo-Json | Set-Content "$T\bat-launch.json"
+          if (-not $up) { "DateSort.bat did not bring DateSort up"; exit 1 }
+          "DateSort.bat: DateSort is up after $launch s"
+
+          $env:DATESORT_REPORT = "$T\run-bat.json"
+          $env:DATESORT_SCREENSHOTS = "$T\shots-bat"
+          node scripts/local-test/verify-date-sort.cjs http://127.0.0.1:4604
+          $first = $LASTEXITCODE
+
+          # --- 2. Stop it, then start it from the Control Center -------------
+          taskkill /T /F /PID $bat.Id | Out-Null
+          for ($i = 0; $i -lt 30 -and (Up); $i++) { Start-Sleep -Seconds 1 }
+          if (Up) { "DateSort did not stop"; exit 1 }
+
+          Start-Process -FilePath node `
+            -ArgumentList $env:PNPM_CJS, "--filter", "@hl-bos/control-center", "start" `
+            -RedirectStandardOutput "$T\console.log" -RedirectStandardError "$T\console.err.log" `
+            -WindowStyle Hidden
+          $cup = $false
+          for ($i = 0; $i -lt 90; $i++) {
+            try { Invoke-WebRequest http://localhost:4000 -UseBasicParsing -TimeoutSec 5 | Out-Null; $cup = $true; break }
+            catch { Start-Sleep -Seconds 2 }
+          }
+          if (-not $cup) { Get-Content "$T\console.log", "$T\console.err.log" -ErrorAction SilentlyContinue; exit 1 }
+
+          $env:DATESORT_REPORT = "$T\run-console.json"
+          $env:DATESORT_SCREENSHOTS = "$T\shots-console"
+          node scripts/local-test/verify-date-sort.cjs http://127.0.0.1:4604 --console http://localhost:4000
+          $second = $LASTEXITCODE
+          if ($first -ne 0) { exit $first }
+          exit $second
+
+      - name: Summary
+        if: always()
+        run: |
+          $T = $env:RUNNER_TEMP
+          function Load($f) { if (Test-Path $f) { Get-Content $f -Raw | ConvertFrom-Json } else { $null } }
+          $launch = Load "$T\bat-launch.json"
+          $a = Load "$T\run-bat.json"
+          $b = Load "$T\run-console.json"
+          $lines = @("## DateSort on Windows", "")
+          if ($a) { $lines += "Platform: $($a.platform)", "" }
+          $lines += "| Check | Result |", "| --- | --- |"
+          $lines += "| DateSort Windows launch (DateSort.bat) | $(if ($launch -and $launch.ok) { "PASS ($($launch.seconds) s, first run: set-up + build)" } else { 'FAIL' }) |"
+          $console = if ($b) { $b.checklist.'Control Center Start button' } else { 'FAIL' }
+          $lines += "| Control Center Start DateSort | $console |"
+          $keys = "Folder Browse", "Include subfolders", "JPG/JPEG detection", "HEIC detection", "CR2 detection", "CR3 detection", "CR3 Date Taken reading", "Date grouping", "Estimated-date labeling"
+          foreach ($k in $keys) {
+            $va = if ($a) { $a.checklist.$k } else { $null }
+            $vb = if ($b) { $b.checklist.$k } else { $null }
+            $v = if ($va -eq 'PASS' -and $vb -eq 'PASS') { 'PASS' } elseif (-not $va -and -not $vb) { 'not run' } else { "FAIL (DateSort.bat run: $va, console run: $vb)" }
+            $lines += "| $k | $v |"
+          }
+          $altered = 0; $printed = 0
+          foreach ($r in @($a, $b)) { if ($r) { $altered += $r.sourceFilesAltered; $printed += $r.sourceFilesFingerprinted } }
+          $lines += "| Source files altered | $altered (of $printed fingerprinted across every scan) |"
+          foreach ($r in @($a, $b)) { if ($r) { $lines += "", "Run: $($r.checks - $r.failures) of $($r.checks) end-to-end checks passed" } }
+          $lines -join "`n" >> $env:GITHUB_STEP_SUMMARY
+
+      - name: Keep the evidence
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: date-sort-windows
+          path: |
+            ${{ runner.temp }}\shots-bat
+            ${{ runner.temp }}\shots-console
+            ${{ runner.temp }}\*.json
+            ${{ runner.temp }}\*.log
+          if-no-files-found: ignore

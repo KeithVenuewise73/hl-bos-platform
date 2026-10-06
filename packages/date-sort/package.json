@@ -1,0 +1,31 @@
+{
+  "name": "@hl-bos/date-sort",
+  "version": "0.1.0",
+  "private": true,
+  "description": "DateSort engine. Reads a folder of loose camera photos WITHOUT CHANGING ANYTHING in it: identifies each file by its bytes (JPG/JPEG, PNG, HEIC, Canon RAW CR2 and CR3), reads when it was taken (EXIF DateTimeOriginal, then CreateDate, then the file's modified time labelled as an estimate; never EXIF DateTime, which is an edit time), and groups the photos into shooting days. Includes a read-only Canon CR3 metadata reader. No network, no database, no AI.",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "default": "./src/index.ts"
+    },
+    "./scan": {
+      "types": "./src/scan.ts",
+      "default": "./src/scan.ts"
+    }
+  },
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run",
+    "clean": "rm -rf dist *.tsbuildinfo"
+  },
+  "dependencies": {
+    "exifr": "catalog:"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "sharp": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  }
+}
