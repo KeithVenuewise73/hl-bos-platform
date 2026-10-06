@@ -85,31 +85,38 @@ jobs:
       - name: Build the console (control-center.bat step 6)
         run: node $env:PNPM_CJS --filter @hl-bos/control-center build
 
-      - name: Start the console (control-center.bat step 7)
+      - name: Browser for the test
+        run: |
+          npm install -g playwright@1.56.1 --no-fund --no-audit
+          npx -y playwright@1.56.1 install chromium
+
+      - name: Start the console (control-center.bat step 7), press Start JerseySort AI, then Check Folder
+        # One step on purpose: on Windows runners every process a step starts
+        # is ended with that step, so a console started in an earlier step is
+        # gone before the browser reaches it. (On the CEO's PC the console
+        # window simply stays open.)
+        env:
+          JERSEYSORT_REAL_FOLDERS: C:\Windows\Web
+          JERSEYSORT_SCREENSHOTS: ${{ runner.temp }}\shots
+          JERSEYSORT_REPORT: ${{ runner.temp }}\folder-check.json
         run: |
           Start-Process -FilePath node `
             -ArgumentList $env:PNPM_CJS, "--filter", "@hl-bos/control-center", "start" `
             -RedirectStandardOutput "$env:RUNNER_TEMP\console.log" `
             -RedirectStandardError "$env:RUNNER_TEMP\console.err.log" `
             -WindowStyle Hidden
+          $up = $false
           for ($i = 0; $i -lt 90; $i++) {
-            try { Invoke-WebRequest http://localhost:4000 -UseBasicParsing -TimeoutSec 5 | Out-Null; "console is up"; exit 0 }
+            try { Invoke-WebRequest http://localhost:4000 -UseBasicParsing -TimeoutSec 5 | Out-Null; $up = $true; break }
             catch { Start-Sleep -Seconds 2 }
           }
-          Get-Content "$env:RUNNER_TEMP\console.log", "$env:RUNNER_TEMP\console.err.log" -ErrorAction SilentlyContinue
-          exit 1
-
-      - name: Browser for the test
-        run: |
-          npm install -g playwright@1.56.1 --no-fund --no-audit
-          npx -y playwright@1.56.1 install chromium
-
-      - name: Press Start JerseySort AI, then Check Folder (read only)
-        env:
-          JERSEYSORT_REAL_FOLDERS: C:\Windows\Web
-          JERSEYSORT_SCREENSHOTS: ${{ runner.temp }}\shots
-          JERSEYSORT_REPORT: ${{ runner.temp }}\folder-check.json
-        run: node scripts/local-test/verify-folder-check.cjs http://127.0.0.1:4603 --console http://localhost:4000
+          if (-not $up) {
+            Get-Content "$env:RUNNER_TEMP\console.log", "$env:RUNNER_TEMP\console.err.log" -ErrorAction SilentlyContinue
+            exit 1
+          }
+          "console is up"
+          node scripts/local-test/verify-folder-check.cjs http://127.0.0.1:4603 --console http://localhost:4000
+          exit $LASTEXITCODE
 
       - name: Summary
         if: always()
