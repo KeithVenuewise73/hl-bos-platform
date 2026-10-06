@@ -49,6 +49,14 @@ export const LOCAL_APPS: readonly LocalApp[] = [
     // Its database is Node's built-in SQLite, available without a flag from 22.13.
     minNode: "22.13.0",
   },
+  {
+    key: "date-sort",
+    name: "DateSort",
+    what: "Choose a folder of loose camera photos and see them grouped by the day they were taken, read from each photo's camera date, without changing anything in the folder.",
+    filter: "@hl-bos/date-sort-app",
+    port: 4604,
+    healthPath: "/api/health",
+  },
 ];
 
 /** Is `version` (e.g. "v22.12.0" or "22.12.0") at least `minimum`? */

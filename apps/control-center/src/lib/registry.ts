@@ -140,6 +140,15 @@ export const PORTFOLIO: readonly Product[] = [
       "this repository (apps/jersey-sort, packages/jersey-sort, supabase/migrations 0052)",
   },
   {
+    name: "DateSort",
+    stage: "development",
+    status:
+      "Step 1 of 4 (scan and report) built in this repository. Choose a folder of loose camera photos with Browse, tick Include subfolders, press Scan, and see every photo grouped by the day it was taken, with counts of JPG, PNG, HEIC, CR2 and CR3, the first and last photo time for each day, and how many dates came from the camera versus estimated from the file time (each estimate labelled). Dates come from the camera's DateTimeOriginal, then CreateDate, never the edit time; Canon CR3 and HEIC dates are read by DateSort's own metadata readers, which agree with ExifTool on real Canon EOS M50 and EOS 350D files. Scanning is read-only, proved by fingerprinting every file before and after. NOT YET BUILT: thumbnails, naming an event, creating folders and copying photos (Steps 2-3), and splitting a day into two games (Step 4). Not yet tried on a real card from the camera in use.",
+    version: null,
+    location:
+      "this repository (apps/date-sort, packages/date-sort, scripts/DateSort.bat)",
+  },
+  {
     name: "Venuewise",
     stage: "not-started",
     status: "Planned. No code yet.",

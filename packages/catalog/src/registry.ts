@@ -253,6 +253,26 @@ const ASSETS: Asset[] = [
       "apps/jersey-sort; 85/85 end-to-end browser checks against the running app; analysis today is local OCR, not AI — no key is configured",
   },
   {
+    id: "app.date-sort",
+    kind: "application",
+    name: "DateSort",
+    summary:
+      "Organizes loose camera photos by the day they were taken: scan a folder read-only, read each photo's camera date (EXIF DateTimeOriginal, then CreateDate; Canon CR3 and HEIC by its own metadata readers), label file-time dates as estimates, and show one card per shooting date. Runs on the operator's machine with no account, database, network or AI.",
+    maturity: "prototype",
+    reuse: ["internal_only"],
+    owner: "Herman Legacy Software Ventures",
+    layer: "HL-BOS",
+    key: "date-sort",
+    location: "apps/date-sort",
+    tags: ["date-sort", "sports", "photos", "local-first", "read-only"],
+    relationships: [
+      { kind: "uses", to: "pkg.date-sort" },
+      { kind: "owned_by", to: "repo.hl-bos-platform" },
+    ],
+    evidence:
+      "apps/date-sort; end-to-end browser checks with every source file fingerprinted before and after each scan; Step 1 of 4 (scan and report)",
+  },
+  {
     id: "app.ats-resume-optimizer",
     kind: "application",
     name: "ATS Resume Optimizer",
@@ -494,6 +514,23 @@ const ASSETS: Asset[] = [
     ],
     evidence:
       "packages/jersey-sort; 76 tests green; the Claude provider tested with an injected client only — never run against the live API",
+  },
+  {
+    id: "pkg.date-sort",
+    kind: "package",
+    name: "@hl-bos/date-sort",
+    summary:
+      "DateSort's engine: identifies photos by their bytes (JPG/JPEG, PNG, HEIC, Canon CR2/CR3), reads capture dates (DateTimeOriginal, then CreateDate, never the EXIF edit time) including read-only Canon CR3 and HEIC metadata readers, groups photos into shooting days, and scans folders through a single filesystem module that can only read.",
+    maturity: "prototype",
+    reuse: ["reusable"],
+    owner: "Herman Legacy Platform",
+    layer: "HL-BOS",
+    key: "date-sort",
+    location: "packages/date-sort",
+    tags: ["package", "domain-logic", "photos", "exif", "read-only"],
+    relationships: [{ kind: "owned_by", to: "repo.hl-bos-platform" }],
+    evidence:
+      "packages/date-sort; date readers checked against ExifTool on real Canon EOS M50 (CR3) and EOS 350D (CR2) files; a source test fails the build if the scanner ever gains a write",
   },
   {
     id: "mod.sceneflow-local",

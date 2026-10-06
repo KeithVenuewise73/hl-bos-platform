@@ -1,0 +1,56 @@
+@import "tailwindcss";
+
+/*
+ * DateSort — a quiet photo-library look: dark, with a calendar-teal accent
+ * and an amber that means "estimated, check this".
+ */
+@theme {
+  --color-ink: #0b0d11;
+  --color-panel: #13171e;
+  --color-panel-2: #1a2029;
+  --color-line: #273040;
+  --color-muted: #8d97a8;
+  --color-text: #e9edf3;
+  --color-brand: #2dd4bf;
+  --color-brand-ink: #062b27;
+  --color-estimate: #f5b041;
+  --color-bad: #f87171;
+  --font-display: "Segoe UI Semibold", "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+}
+
+html {
+  color-scheme: dark;
+}
+body {
+  background: var(--color-ink);
+  color: var(--color-text);
+  font-family:
+    "Segoe UI",
+    system-ui,
+    -apple-system,
+    "Helvetica Neue",
+    Arial,
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+.display {
+  font-family: var(--font-display);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  font-weight: 700;
+}
+@utility btn {
+  @apply inline-flex items-center justify-center gap-2 rounded-md px-4 py-2 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-50;
+}
+@utility btn-primary {
+  @apply btn bg-brand text-brand-ink hover:brightness-110;
+}
+@utility btn-ghost {
+  @apply btn border border-line bg-panel-2 text-text hover:border-muted;
+}
+@utility input {
+  @apply w-full rounded-md border border-line bg-ink px-3 py-2 text-sm text-text placeholder:text-muted focus:border-brand focus:outline-none;
+}
+@utility card {
+  @apply rounded-xl border border-line bg-panel;
+}
