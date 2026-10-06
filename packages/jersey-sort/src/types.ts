@@ -6,6 +6,8 @@
  * every layer.
  */
 
+import type { JerseyShade } from "./teams.ts";
+
 /** A rectangle in NORMALISED image coordinates: 0..1 on both axes. */
 export interface BoundingBox {
   readonly x: number;
@@ -55,6 +57,12 @@ export interface ProviderReading {
   readonly confidence: number;
   readonly box: BoundingBox | null;
   readonly location: NumberLocation;
+  /**
+   * The shade of the jersey the number is printed on, which says which team
+   * the athlete plays for (see teams.ts). Absent or "unknown" when the
+   * provider cannot tell — local OCR sees digits, not jerseys.
+   */
+  readonly jersey?: JerseyShade | "unknown";
 }
 
 /** What a provider returns for one image. */
@@ -82,6 +90,8 @@ export interface JerseyDetection {
   readonly box: BoundingBox | null;
   readonly location: NumberLocation;
   readonly method: DetectionMethod;
+  /** Light or dark jersey; null when not known. Team = event colors + this. */
+  readonly jersey: JerseyShade | null;
 }
 
 /** A reading that was refused, and why. Kept so the refusal is inspectable. */

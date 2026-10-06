@@ -1,5 +1,6 @@
 "use server";
 
+import { parseJerseyShade } from "@hl-bos/jersey-sort/teams";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
@@ -13,7 +14,9 @@ import {
   changeNumber,
   confirmDetection,
   flagPhoto,
+  assignNumberJersey,
   rejectDetection,
+  setDetectionJersey,
 } from "@/lib/repo/review.ts";
 import { getSettings } from "@/lib/repo/settings.ts";
 import { requireUser } from "@/lib/session.ts";
@@ -50,8 +53,32 @@ export async function photoAction(form: FormData): Promise<void> {
         notice = "Number changed.";
         break;
       case "add":
-        notice = `Added #${addNumber(d, org, user.userId, photoId, text(form, "value"), t)}.`;
+        notice = `Added #${addNumber(d, org, user.userId, photoId, text(form, "value"), t, parseJerseyShade(text(form, "jersey")))}.`;
         break;
+      case "number_jersey": {
+        const jersey = parseJerseyShade(text(form, "jersey"));
+        if (jersey === null)
+          throw new ValidationError("Choose the light or dark team.");
+        const n = assignNumberJersey(
+          d,
+          org,
+          user.userId,
+          text(form, "eventId"),
+          text(form, "value"),
+          jersey,
+          t,
+        );
+        notice = `${n} photo${n === 1 ? "" : "s"} assigned.`;
+        break;
+      }
+      case "jersey": {
+        const jersey = parseJerseyShade(text(form, "jersey"));
+        if (jersey === null)
+          throw new ValidationError("Choose the light or dark team.");
+        setDetectionJersey(d, org, user.userId, detectionId, jersey, t);
+        notice = "Team set.";
+        break;
+      }
       case "no_jersey":
       case "unusable":
       case "usable":

@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { reanalyzeAction, retryFailedAction } from "@/actions/events.ts";
+import { photoAction } from "@/actions/review.ts";
 import { Notice, param, type SearchParams } from "@/components/Notice.tsx";
 import { NumberCards } from "@/components/NumberCards.tsx";
 import { Pager } from "@/components/Pager.tsx";
@@ -40,10 +41,21 @@ export default async function EventPage({
   const t = getSettings(d, org).thresholds;
   const stats = eventStats(d, org, id, t.medium, user.userId);
   const groups = numberGroups(d, org, id, t.medium);
+  const team = param(sp, "team");
+  const twoTeams = event.away_team_id !== null;
+  // Tile labels are keyed by number; a number named on BOTH teams stays "#22".
   const names = Object.fromEntries(
     groups
-      .filter((g) => g.player_name !== null)
+      .filter(
+        (g) =>
+          g.player_name !== null &&
+          groups.filter((o) => o.value === g.value && o.player_name !== null).length ===
+            1,
+      )
       .map((g) => [g.value, `#${g.value} — ${g.player_name}`]),
+  );
+  const selected = groups.find(
+    (g) => g.value === number && (team === undefined || (g.team_id ?? "none") === team),
   );
   const p = progress(d, org, id);
   const base = `/events/${id}`;
@@ -56,11 +68,15 @@ export default async function EventPage({
         : tab === "unidentified"
           ? { eventId: id, confidence: "unidentified" }
           : tab === "numbers" && number !== undefined
-            ? { eventId: id, number }
+            ? {
+                eventId: id,
+                number,
+                ...(team !== undefined ? { numberTeam: team } : {}),
+              }
             : null;
   const g =
     filters === null ? null : gallery(d, org, user.userId, t, filters, page, names);
-  const here = `${base}?tab=${tab}${number ? `&number=${encodeURIComponent(number)}` : ""}`;
+  const here = `${base}?tab=${tab}${number ? `&number=${encodeURIComponent(number)}` : ""}${team ? `&team=${encodeURIComponent(team)}` : ""}`;
 
   return (
     <div>
@@ -74,6 +90,23 @@ export default async function EventPage({
           {event.location ? ` · ${event.location}` : ""}
           {event.opponent ? ` · vs ${event.opponent}` : ""}
         </p>
+        {twoTeams ? (
+          <p className="mt-1 text-sm" data-testid="event-teams">
+            <span className="font-semibold">{event.team_name}</span>{" "}
+            <span className="text-muted">
+              (home, {event.home_jersey ?? "jersey not set"})
+            </span>{" "}
+            vs <span className="font-semibold">{event.opponent}</span>{" "}
+            <span className="text-muted">
+              (away, {event.away_jersey ?? "jersey not set"})
+            </span>
+            {event.home_jersey === null || event.away_jersey === null ? (
+              <Link className="ml-2 text-medium underline" href={`${base}/edit`}>
+                Set the jersey colors so numbers can be matched to a team
+              </Link>
+            ) : null}
+          </p>
+        ) : null}
         <p className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-sm font-semibold">
           <span>{count(stats.photos, "photo")}</span>
           <span>{count(stats.numbers, "jersey number")} detected</span>
@@ -164,7 +197,10 @@ export default async function EventPage({
         ) : (
           <NumberCards
             groups={groups}
-            hrefFor={(v) => `${base}?tab=numbers&number=${v}`}
+            hrefFor={(g) =>
+              `${base}?tab=numbers&number=${g.value}${twoTeams ? `&team=${g.team_id ?? "none"}` : ""}`
+            }
+            showTeams={twoTeams}
             unidentified={stats.unidentified}
             unidentifiedHref={`${base}?tab=unidentified`}
           />
@@ -177,7 +213,7 @@ export default async function EventPage({
             {groups
               .filter((x) => x.player_id !== null)
               .map((x) => (
-                <li key={x.value}>
+                <li key={`${x.team_id ?? "none"}|${x.value}`}>
                   <Link
                     href={`/players/${x.player_id}`}
                     className="card flex items-center gap-3 p-3 hover:border-muted"
@@ -215,7 +251,46 @@ export default async function EventPage({
               >
                 ← All numbers
               </Link>
-              <h2 className="display text-2xl">{names[number] ?? `#${number}`}</h2>
+              <h2 className="display text-2xl" data-testid="gallery-title">
+                {twoTeams && team !== undefined
+                  ? `${selected?.team_name ?? "Team not known"} #${number}${selected?.player_name ? ` — ${selected.player_name}` : ""}`
+                  : (names[number] ?? `#${number}`)}
+              </h2>
+            </div>
+          ) : null}
+          {tab === "numbers" &&
+          number !== undefined &&
+          twoTeams &&
+          team === "none" &&
+          event.home_jersey !== null &&
+          event.away_jersey !== null &&
+          g.total > 0 ? (
+            <div className="card mb-3 flex flex-wrap items-center gap-2 p-3 text-sm">
+              <span>
+                Whose #{number} {g.total === 1 ? "is this" : "are these"}? JerseySort
+                could not see the jersey. Check the photos, then:
+              </span>
+              {(
+                [
+                  [event.team_name, event.home_jersey],
+                  [event.opponent ?? "Away team", event.away_jersey],
+                ] as const
+              ).map(([teamName, jersey]) => (
+                <form action={photoAction} key={jersey}>
+                  <input type="hidden" name="op" value="number_jersey" />
+                  <input type="hidden" name="eventId" value={id} />
+                  <input type="hidden" name="value" value={number} />
+                  <input type="hidden" name="jersey" value={jersey} />
+                  <input type="hidden" name="returnTo" value={`${base}?tab=numbers`} />
+                  <button
+                    className="btn-ghost"
+                    type="submit"
+                    data-testid={`assign-team-${jersey}`}
+                  >
+                    All {teamName} #{number} ({jersey})
+                  </button>
+                </form>
+              ))}
             </div>
           ) : null}
           <PhotoGrid

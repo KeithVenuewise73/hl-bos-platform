@@ -230,7 +230,7 @@ const ASSETS: Asset[] = [
     kind: "application",
     name: "JerseySort AI",
     summary:
-      "Sports photo organization: events, bulk upload with EXIF dates and duplicate refusal, a background analysis queue, jersey-number galleries (one photo filed under every athlete in it, scoreboards kept out), a keyboard-driven review queue, players tied to a number for one team and season, search, filters, favorites, albums and ZIP download of the untouched originals. Organization accounts; stored on the operator's own machine.",
+      "Sports photo organization: a read-only folder check that proposes one game per shooting date and imports (copies) a date's photos on confirmation, events with home/away teams in light/dark jerseys so athletes are TEAM + NUMBER, bulk upload with EXIF dates and duplicate refusal, a background analysis queue, jersey-number galleries (one photo filed under every athlete in it, scoreboards kept out), a keyboard-driven review queue, players tied to a number for one team and season, search, filters, favorites, albums and ZIP download of the untouched originals. Organization accounts; stored on the operator's own machine.",
     maturity: "built_undeployed",
     reuse: ["internal_only"],
     owner: "Herman Legacy Software Ventures",

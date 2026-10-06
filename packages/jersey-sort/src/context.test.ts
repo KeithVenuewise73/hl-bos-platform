@@ -132,3 +132,55 @@ describe("interpretReadings with plain OCR (location unknown)", () => {
     expect(out.detections[0]?.confidence).toBe(0.99);
   });
 });
+
+describe("interpretReadings: the jersey a number is printed on", () => {
+  const shaded = (
+    text: string,
+    confidence: number,
+    jersey: NonNullable<ProviderReading["jersey"]>,
+  ): ProviderReading => ({ ...r(text, confidence, "jersey_back"), jersey });
+
+  it("keeps a light #22 and a dark #22: two teams, two athletes", () => {
+    const out = interpretReadings(
+      [shaded("22", 0.9, "dark"), shaded("22", 0.85, "light")],
+      {
+        method: "vision_model",
+      },
+    );
+    expect(out.detections.map((d) => `${d.jersey} #${d.value}`)).toEqual([
+      "dark #22",
+      "light #22",
+    ]);
+  });
+
+  it("merges two readings of the same dark #22, keeping the stronger", () => {
+    const out = interpretReadings(
+      [shaded("22", 0.7, "dark"), shaded("22", 0.9, "dark")],
+      {
+        method: "vision_model",
+      },
+    );
+    expect(out.detections).toHaveLength(1);
+    expect(out.detections[0]?.confidence).toBe(0.9);
+  });
+
+  it("drops a #22 of unknown shade when #22 was seen on a known jersey", () => {
+    const out = interpretReadings(
+      [
+        shaded("22", 0.95, "unknown"),
+        shaded("22", 0.8, "dark"),
+        shaded("7", 0.9, "unknown"),
+      ],
+      { method: "vision_model" },
+    );
+    expect(out.detections.map((d) => [d.value, d.jersey])).toEqual([
+      ["7", null],
+      ["22", "dark"],
+    ]);
+  });
+
+  it("stores no shade when the provider gives none, as local OCR does", () => {
+    const out = interpretReadings([r("24", 0.9, "jersey_back")], { method: "ocr" });
+    expect(out.detections[0]?.jersey).toBeNull();
+  });
+});

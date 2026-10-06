@@ -19,36 +19,59 @@ studio (that becomes your organization), an email and a password.
 
 1. **Sign in.** Email and password. Everyone in an organization sees its
    photos; nobody outside it sees any. The owner adds people in Settings.
-2. **Create an event** — name, sport, team, opponent, date, location, season,
-   notes.
-3. **Upload** — drag and drop, choose hundreds of photos, or a whole folder.
+2. **Check a folder, then import by date** (menu: _Check a folder_). Pick a
+   folder — a camera card, `DCIM\100CANON` and all. JerseySort reads it in the
+   browser and changes nothing: totals, JPG / PNG / HEIC, Canon RAW (counted,
+   not imported yet), every shooting date, and one proposed game per date with
+   its counts, camera-dated vs estimated photos and first / last shot. The date
+   comes from EXIF Date Taken; a photo without one is dated by its file and
+   flagged. For each date: **Create event** (name it — "October 4, 2026 Game"
+   is suggested — and set the teams), **Rename event**, **Skip**, **Review
+   photos**, or add it to an event already on that date. Creating the event
+   **copies** that date's photos in through the normal upload; the folder is
+   only ever read, and a photo already in JerseySort is not copied twice.
+3. **Create an event** — name, sport, date, location, season, notes, and the
+   **home and away teams with their jerseys: Light or Dark**. Choosing one
+   suggests the other.
+
+   **An athlete is TEAM + NUMBER.** At Caz (dark) vs Wheatfield (light), a
+   dark #22 is Caz's #22 and a light #22 is Wheatfield's: two galleries, two
+   players. Claude vision reports each number's jersey shade; local OCR cannot
+   see jerseys, so its numbers start as **"Team not known"** — never guessed.
+   In the event's _Team not known #22_ gallery, one click ("All Caz #22")
+   assigns them; any single photo can be corrected on the review screen. The
+   team is worked out from the jersey and the event's colours, so fixing an
+   event's colours fixes every photo in it. Events made before Home/Away keep
+   working as they did: one team, whose numbers are its own.
+
+4. **Upload** — drag and drop, choose hundreds of photos, or a whole folder.
    JPG, PNG and HEIC (iPhone). The original is stored untouched; a 480 px
    thumbnail and a 1600 px preview are made for the screens. The photo's date
    comes from its EXIF; with no date in the file, the upload date is used and
    marked _inferred_. A file uploaded twice is refused and the first copy is
    named.
-4. **Watch it process** — "Analyzing photos · 147 / 428 complete · 34%".
+5. **Watch it process** — "Analyzing photos · 147 / 428 complete · 34%".
    Analysis runs in the background; go anywhere in the app meanwhile.
    Failed photos say why and have a **Retry** button.
-5. **Jersey galleries** — every photo is filed under every jersey number in
+6. **Jersey galleries** — every photo is filed under every jersey number in
    it (one photo, three athletes, three galleries, one file). Scoreboards,
    yard markers, clocks and signs are kept out. Readings are banded:
    **High** (≥ 85%, filed), **Needs review** (60–84%, filed and flagged),
    **Low** (< 60%, Unidentified). Thresholds are adjustable in Settings and
    re-sort everything immediately.
-6. **Review** — one photo at a time, big. Confirm, delete, change or add a
+7. **Review** — one photo at a time, big. Confirm, delete, change or add a
    number; mark _no jersey visible_, _unusable_, or _skip_. Keyboard: digits
    to add a number, **Enter** done, **N** no jersey, **U** unusable,
    **S** skip. The next photo is preloaded.
-7. **Players** — name, number, team, sport, season, position, graduation
+8. **Players** — name, number, team, sport, season, position, graduation
    year, profile photo. A number belongs to a player for **one team and one
    season**; next season's #24 can be someone else. Galleries then read
    "#24 — Dominic Herman".
-8. **Search** — `24`, `#24`, `Dominic Herman`, `October 3`, `West Seneca`,
+9. **Search** — `24`, `#24`, `Dominic Herman`, `October 3`, `West Seneca`,
    `Football`. Every word must match.
-9. **Filters** — event, date, team, sport, jersey number, player, confidence,
-   reviewed / not, favorited, uploaded by, status.
-10. **Favorites, albums, the date gallery** and **bulk actions**: add a
+10. **Filters** — event, date, team, sport, jersey number, player, confidence,
+    reviewed / not, favorited, uploaded by, status.
+11. **Favorites, albums, the date gallery** and **bulk actions**: add a
     number, assign a player, add to an album, favorite, remove a tag,
     download (ZIP of the untouched originals), mark reviewed.
 
@@ -99,8 +122,9 @@ people are `auth.users`, access is `identity.has_permission()`. Row-level
 security is forced on every table, and the schema itself refuses a member
 writing an AI result, a photo status that claims what has not happened, two
 athletes on one number in one season, and any public photo. Tested by
-`supabase/tests/52_jersey_sort.sql` (74 assertions). **Not applied to any
-project.** Switching the app from the local store to Supabase is a new
+`supabase/tests/52_jersey_sort.sql` (74 assertions). Migration 0053 adds the
+two teams per event and the jersey per number (`53_jersey_sort_teams.sql`,
+23 assertions). **Neither is applied to any project.** Switching the app from the local store to Supabase is a new
 implementation of the queries in `src/lib/repo` plus Supabase Auth (which
 also brings magic links and social sign-in).
 

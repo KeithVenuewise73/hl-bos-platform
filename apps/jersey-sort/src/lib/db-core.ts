@@ -25,7 +25,7 @@ export interface Db {
   tx<T>(fn: () => T): T;
 }
 
-export const SCHEMA_VERSION = 1;
+export const SCHEMA_VERSION = 2;
 
 const SCHEMA = `
 create table if not exists organizations (
@@ -260,10 +260,59 @@ create view if not exists review_queue as
   from photos where status = 'needs_review';
 `;
 
+/**
+ * Version 2: two teams per event, and the jersey each number is printed on
+ * (supabase migration 0053). Added column by column to whatever is there, so
+ * a database made by version 1 keeps every row and gains the columns; a new
+ * database gets them the same way. Nothing is dropped or rewritten.
+ *
+ *   events.team_id        the HOME team (before v2: the event's one team)
+ *   events.away_team_id   the AWAY team; null on events made before v2,
+ *                         whose opponent is the plain-text `opponent`
+ *   events.home_jersey    light | dark
+ *   events.away_jersey    light | dark, never the same as home_jersey
+ *   photo_detections.jersey  light | dark | null (not seen). The TEAM is
+ *                         derived from this and the event (DETECTION_TEAM in
+ *                         repo/sql.ts), never stored twice.
+ */
+const ADDED_COLUMNS: ReadonlyArray<
+  readonly [table: string, column: string, ddl: string]
+> = [
+  [
+    "events",
+    "away_team_id",
+    "away_team_id text references teams(id) check (away_team_id is null or away_team_id != team_id)",
+  ],
+  ["events", "home_jersey", "home_jersey text check (home_jersey in ('light','dark'))"],
+  [
+    "events",
+    "away_jersey",
+    "away_jersey text check (away_jersey in ('light','dark') and (home_jersey is null or away_jersey != home_jersey))",
+  ],
+  ["photo_detections", "jersey", "jersey text check (jersey in ('light','dark'))"],
+];
+
+function addMissingColumns(raw: DatabaseSync): void {
+  for (const [table, column, ddl] of ADDED_COLUMNS) {
+    const has = raw
+      .prepare(`select 1 from pragma_table_info('${table}') where name = ?`)
+      .get(column);
+    if (has === undefined) raw.exec(`alter table ${table} add column ${ddl}`);
+  }
+}
+
 export function openDb(file: string): Db {
   const raw = new DatabaseSync(file, { enableForeignKeyConstraints: true });
   raw.exec("pragma journal_mode = wal; pragma busy_timeout = 5000;");
   raw.exec(SCHEMA);
+  raw.exec("begin immediate");
+  try {
+    addMissingColumns(raw);
+    raw.exec("commit");
+  } catch (error) {
+    raw.exec("rollback");
+    throw error;
+  }
   raw.exec(`pragma user_version = ${SCHEMA_VERSION}`);
   return wrap(raw);
 }
