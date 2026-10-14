@@ -9,6 +9,8 @@ import { LIMITS } from "./validate.ts";
 interface Pack {
   match: RegExp;
   noun: string;
+  /** How the business is described in a sentence, when Google gave no category. */
+  described?: string;
   offerings: [string, string][];
 }
 
@@ -55,6 +57,7 @@ const PACKS: Record<SiteVertical, Pack[]> = {
     {
       match: /electric/i,
       noun: "Electrical work",
+      described: "electrical business",
       offerings: [
         [
           "Repairs and troubleshooting",
@@ -68,6 +71,7 @@ const PACKS: Record<SiteVertical, Pack[]> = {
     {
       match: /pav|asphalt|concrete|mason/i,
       noun: "Paving and masonry",
+      described: "paving and masonry business",
       offerings: [
         ["Driveways", "New driveways, resurfacing and repairs."],
         ["Sealcoating and repairs", "Crack filling, patching and sealcoating."],
@@ -88,6 +92,7 @@ const PACKS: Record<SiteVertical, Pack[]> = {
     {
       match: /hvac|heat|cool|air cond|furnace/i,
       noun: "Heating and cooling",
+      described: "heating and cooling business",
       offerings: [
         ["Heating repair", "Furnace and boiler repair."],
         ["Cooling repair", "Air conditioning repair."],
@@ -108,6 +113,7 @@ const PACKS: Record<SiteVertical, Pack[]> = {
     {
       match: /./,
       noun: "Home services",
+      described: "home services business",
       offerings: [
         ["Repairs", "Fixing what is broken, inside and outside the house."],
         ["Improvements", "Upgrades and remodeling projects."],
@@ -162,6 +168,7 @@ const PACKS: Record<SiteVertical, Pack[]> = {
     {
       match: /bar|pub|tavern|brew|saloon/i,
       noun: "Bar and grill",
+      described: "bar and grill",
       offerings: [
         ["Drinks", "Beer, wine and cocktails."],
         ["Food", "Burgers, wings and bar favorites."],
@@ -200,6 +207,8 @@ export function packFor(facts: SiteFacts): Pack {
   return packs.find((p) => p.match.test(text)) ?? packs[packs.length - 1]!;
 }
 
+const aOrAn = (word: string) => (/^[aeiou]/i.test(word) ? "an" : "a");
+
 const fit = (s: string, max: number) =>
   s.length <= max ? s : `${s.slice(0, max - 1).trimEnd()}…`;
 
@@ -208,6 +217,13 @@ export function templateCopy(facts: SiteFacts): SiteCopy {
   const { verb, cta } = ACTION[facts.vertical];
   const where = facts.city ? ` in ${facts.city}` : "";
   const kind = facts.category ?? pack.noun;
+  // "a roofing contractor" from Google's category; otherwise "a roofing business".
+  const described = facts.category
+    ? facts.category.toLowerCase()
+    : (pack.described ??
+      (/shop|salon|restaurant|pizzeria/i.test(pack.noun)
+        ? pack.noun.toLowerCase()
+        : `${pack.noun.toLowerCase()} business`));
   const reach = facts.phone
     ? `Call or text ${facts.phone} ${verb}.`
     : `Get in touch ${verb}.`;
@@ -229,7 +245,7 @@ export function templateCopy(facts: SiteFacts): SiteCopy {
     heroSubhead: fit(`${pack.noun}${where}. ${reach}`, LIMITS.heroSubhead),
     aboutHeading: `About ${fit(facts.businessName, LIMITS.aboutHeading - 6)}`,
     aboutBody: fit(
-      `${facts.businessName} is a ${kind.toLowerCase()}${where}. This is where the owner's own story goes: how the business started, the people behind it, and what customers can expect.`,
+      `${facts.businessName} is ${aOrAn(described)} ${described}${where}. This is where the owner's own story goes: how the business started, the people behind it, and what customers can expect.`,
       LIMITS.aboutBody,
     ),
     aboutSample: true,

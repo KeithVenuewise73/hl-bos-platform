@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { BuildDemoButton, DemoEditor } from "@/components/DemoControls";
 import { C } from "@/components/presence-style";
 import { Card } from "@/components/ui";
+import { buildTime } from "@/lib/demo";
 import { anthropicConnected } from "@/lib/demo-runtime";
 import { FilePresenceRepository } from "@/lib/presence-store";
 import { FileDraftRepository } from "@/lib/site-store";
@@ -65,7 +66,7 @@ export default async function DemoPage({
               >
                 {draft.status === "approved" ? "Approved" : "Draft"}
               </strong>{" "}
-              · built in {(draft.buildMs / 1000).toFixed(1)} s · copy by{" "}
+              · built in {buildTime(draft.buildMs)} · copy by{" "}
               {draft.copySource === "template"
                 ? "the template writer"
                 : draft.copySource}

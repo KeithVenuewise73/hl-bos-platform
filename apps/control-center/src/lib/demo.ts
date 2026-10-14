@@ -72,10 +72,10 @@ export async function buildDemo(
     ]);
     staged = " The lead moved to Demo built.";
   }
-  const seconds = (draft.buildMs / 1000).toFixed(1);
+  const seconds = buildTime(draft.buildMs);
   return {
     ok: true,
-    headline: `Demo ${previous ? "rebuilt" : "built"}: version ${draft.version}, in ${seconds} seconds.`,
+    headline: `Demo ${previous ? "rebuilt" : "built"}: version ${draft.version}, in ${seconds}.`,
     meaning:
       `Copy by ${draft.copySource === "template" ? "the template writer" : "Claude"}.` +
       (draft.copyNotes.length ? ` ${draft.copyNotes.join(" ")}` : "") +
@@ -130,6 +130,11 @@ export async function approveDemo(
     headline: "Approved as fit to show the owner.",
     meaning: "This is internal sign-off only. Nothing was published or sent.",
   };
+}
+
+/** "under 0.1 seconds" rather than a misleading "0.0 seconds". */
+export function buildTime(ms: number): string {
+  return ms < 100 ? "under 0.1 seconds" : `${(ms / 1000).toFixed(1)} seconds`;
 }
 
 /** The edit form -> a CopyEdit. Only fields present in the form are changed. */

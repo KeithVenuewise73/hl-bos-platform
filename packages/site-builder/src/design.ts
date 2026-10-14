@@ -79,5 +79,5 @@ p{margin:0 0 1.1em}.wrap{max-width:var(--maxw);margin:0 auto;padding:0 24px}
 .cta-band h2{color:#fff}.cta-band p{color:#cdd6df}.cta-band .btn-row{justify-content:center}
 .site-footer{background:var(--ink);color:#aeb9c4;padding:2.6rem 0 1.6rem;font-size:.9rem}
 .site-footer a{color:#aeb9c4}.foot-note{margin-top:1.2rem;padding-top:1.2rem;border-top:1px solid rgba(255,255,255,.12);color:#8290a0;font-size:.82rem}
-@media(max-width:820px){.g-2,.g-3,.split,.form-grid{grid-template-columns:1fr}.nav{padding:.8rem 0}body{font-size:16px}}`;
+@media(max-width:820px){.g-2,.g-3,.split,.form-grid{grid-template-columns:1fr}.nav{padding-top:.8rem;padding-bottom:.8rem}body{font-size:16px}}`;
 }

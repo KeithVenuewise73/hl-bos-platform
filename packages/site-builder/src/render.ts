@@ -157,7 +157,7 @@ ${draft.options.showVideoBlock ? `<section class="section"><div class="wrap"><di
 </div>
 <p class="form-note">This form is switched off in the demo and goes live at launch.${tel ? ` For now, <a href="${esc(tel)}">call ${esc(f.phone)}</a>.` : ""}</p>
 </form></div>
-<div class="cta-band" style="margin-top:2.4rem"><h2>${esc(c.ctaHeading)}</h2><p>${esc(c.ctaBody)}</p><div class="btn-row">${heroButtons}</div></div>
+<div class="cta-band" style="margin-top:2.4rem"><h2>Reach ${esc(f.businessName)}</h2><div class="btn-row">${heroButtons}</div></div>
 </div></section>
 </main>
 <footer class="site-footer"><div class="wrap">

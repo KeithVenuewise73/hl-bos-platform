@@ -195,6 +195,25 @@ describe("the template writer", () => {
     },
   );
 
+  it("describes the business grammatically, from Google's category or the pack", async () => {
+    const roof = factsFromProspect(await googleLead(ROOFER, "contractor"));
+    expect(templateCopy(roof).aboutBody).toContain(
+      "is a roofing contractor in West Seneca",
+    );
+    const plain = factsFromProspect(
+      await importedLead("Quiet Roofing | none | 716-555-0199", "contractor"),
+    );
+    expect(templateCopy(plain).aboutBody).toContain(
+      "is a roofing business in West Seneca",
+    );
+    const elec = factsFromProspect(
+      await importedLead("Ace Electric | none | 716-555-0198", "contractor"),
+    );
+    expect(templateCopy(elec).aboutBody).toContain(
+      "is an electrical business in West Seneca",
+    );
+  });
+
   it("falls back to the generic pack when the category is unknown", async () => {
     const facts = factsFromProspect(
       await importedLead("Quiet Co | none | 716-555-0199", "contractor"),

@@ -10,6 +10,7 @@ import { MemoryDraftRepository } from "@hl-bos/site-builder";
 import {
   approveDemo,
   buildDemo,
+  buildTime,
   editDemo,
   editFromForm,
   PREVIEW_HEADERS,
@@ -68,7 +69,9 @@ describe("buildDemo (the Build demo site button)", () => {
     );
     const r = await buildDemo(lead.id, deps);
     expect(r.ok).toBe(true);
-    expect(r.headline).toMatch(/^Demo built: version 1, in \d+\.\d seconds\.$/);
+    expect(r.headline).toMatch(
+      /^Demo built: version 1, in (under 0\.1|\d+\.\d) seconds\.$/,
+    );
     expect(r.meaning).toContain("nothing was published");
     expect(r.meaning).toContain("moved to Demo built");
     expect(r.href).toBe(`/presence/${lead.id}/demo`);
@@ -146,6 +149,13 @@ describe("editing and approving", () => {
       showVideoBlock: true,
     });
     expect(editFromForm(new FormData())).toEqual({});
+  });
+});
+
+describe("build time wording", () => {
+  it("never says 0.0 seconds", () => {
+    expect(buildTime(12)).toBe("under 0.1 seconds");
+    expect(buildTime(1250)).toBe("1.3 seconds");
   });
 });
 

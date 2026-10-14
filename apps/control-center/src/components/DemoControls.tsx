@@ -43,7 +43,12 @@ export function BuildDemoButton({ id, hasDraft }: { id: string; hasDraft: boolea
       action={(fd) =>
         start(async () => {
           fd.set("id", id);
-          setResult(await buildDemoSite(fd));
+          const r = await buildDemoSite(fd);
+          setResult(r);
+          // Go to the new demo. (On the Lead Card this button is replaced as soon
+          // as a draft exists, so a message left here would never be seen.)
+          if (r.ok && r.href && window.location.pathname !== r.href)
+            window.location.assign(r.href);
         })
       }
     >
