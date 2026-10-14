@@ -131,6 +131,22 @@ describe("Node egress adapter", () => {
   });
 });
 
+describe("connectivity check", () => {
+  it("reports offline when no well-known name resolves", async () => {
+    const failing = ((
+      _h: string,
+      _o: unknown,
+      cb: (e: Error | null, a: unknown) => void,
+    ) =>
+      cb(
+        Object.assign(new Error("getaddrinfo ENOTFOUND"), { code: "ENOTFOUND" }),
+        [],
+      )) as never;
+    expect(await createNodeEgress({ lookup: failing }).online!()).toBe(false);
+    expect(await createNodeEgress({ lookup }).online!()).toBe(true);
+  });
+});
+
 describe("Node egress adapter with the real IP policy", () => {
   it("refuses at connect time a hostname that resolves to loopback (DNS rebinding)", async () => {
     const eg = createNodeEgress({ lookup, timeoutMs: 500, extraPorts: [String(port)] });

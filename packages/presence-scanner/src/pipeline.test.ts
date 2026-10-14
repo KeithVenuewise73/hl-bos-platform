@@ -121,6 +121,35 @@ describe("pasted-list mode (no Google key)", () => {
   });
 });
 
+describe("offline guard", () => {
+  it("when this computer is offline, websites are 'not checked' -- never reported broken", async () => {
+    const eg = fakeEgress({ "smithroofing.example": { body: WEAK_CONTRACTOR_HTML } });
+    const offline = { ...eg, online: () => Promise.resolve(false) };
+    const { run, prospects } = await runMarketScan(
+      importReq(SAMPLE),
+      deps({ egress: offline }),
+    );
+    expect(eg.fetched).toEqual([]);
+    expect(run.counts.inspected).toBe(0);
+    expect(run.warnings.join(" ")).toContain("could not reach the internet");
+    const ridge = prospects.find((p) => p.name === "Ridge Electric")!;
+    expect(ridge.websiteStatus).toBe("not_checked");
+    expect(ridge.score.components.find((c) => c.component === "website")!.status).toBe(
+      "not_checked",
+    );
+    expect(ridge.findings.find((f) => f.key === "website.reachable")!.status).toBe(
+      "not_checked",
+    );
+    // Facts that need no network are still recorded.
+    expect(prospects.find((p) => p.name === "Jones Plumbing")!.websiteStatus).toBe(
+      "none",
+    );
+    expect(prospects.find((p) => p.name === "Seneca Paving")!.websiteStatus).toBe(
+      "social_only",
+    );
+  });
+});
+
 describe("Google Places mode", () => {
   const placesFetch: FetchLike = (_u, init) => {
     const body = JSON.parse(init.body) as { textQuery: string };

@@ -9,7 +9,7 @@ import { dedupeCandidates, identityKeys, type DedupeGroup } from "./dedupe.ts";
 import { importFindings, placeFindings, reviewFigures } from "./findings.ts";
 import { distanceMiles, resolveMarket, type LatLon } from "./geo.ts";
 import { parseImport } from "./import.ts";
-import { formatPhone, normalizePhone, toUrl } from "./normalize.ts";
+import { classifyUrl, formatPhone, normalizePhone, toUrl } from "./normalize.ts";
 import {
   PLACES_MAX_RESULTS,
   placesConfigMessage,
@@ -24,7 +24,7 @@ import {
 } from "./score.ts";
 import { suggestServices } from "./services.ts";
 import { VERTICALS, isVertical } from "./verticals.ts";
-import { inspectWebsite, type WebEgress } from "./website.ts";
+import { inspectWebsite, offlineInspection, type WebEgress } from "./website.ts";
 import type {
   ApiUsage,
   Candidate,
@@ -194,6 +194,11 @@ export async function runMarketScan(
 
   // 3-6. Inspect, find, qualify, score -- a few at a time.
   const now = deps.now();
+  const online = await isOnline(deps.egress);
+  if (!online && groups.some((g) => g.merged.website || g.merged.place?.website))
+    run.warnings.push(
+      "This computer could not reach the internet, so no website was inspected. Website-based parts of the score are 'not checked'. Rescan when online.",
+    );
   const results: Prospect[] = new Array<Prospect>(groups.length);
   const concurrency = Math.max(1, deps.concurrency ?? 4);
   let next = 0;
@@ -213,6 +218,7 @@ export async function runMarketScan(
         existing,
         actor: deps.actor,
         freshPlaces: req.source === "google_places",
+        online,
         config: deps.config ?? DEFAULT_SCORING_CONFIG,
       });
     }
@@ -244,6 +250,15 @@ export function rankProspects(a: Prospect, b: Prospect): number {
     b.score.total - a.score.total ||
     a.name.localeCompare(b.name)
   );
+}
+
+async function isOnline(egress: WebEgress): Promise<boolean> {
+  if (!egress.online) return true;
+  try {
+    return await egress.online();
+  } catch {
+    return false;
+  }
 }
 
 export function prospectKeys(p: Prospect): string[] {
@@ -278,6 +293,8 @@ interface BuildCtx {
   /** True when the Places record in the group was just fetched from Google. */
   freshPlaces: boolean;
   config: ScoringConfig;
+  /** False when the connectivity check failed: websites are not inspected. */
+  online: boolean;
 }
 
 /** Inspect, find, qualify and score one de-duplicated business. */
@@ -292,7 +309,12 @@ export async function buildProspect(g: DedupeGroup, ctx: BuildCtx): Promise<Pros
   const rawWebsite = corrected ?? c.website ?? place?.website;
   const assertedNone = rawWebsite !== undefined && /^\s*none\s*$/i.test(rawWebsite);
   const url = assertedNone ? undefined : toUrl(rawWebsite);
-  const inspection = await inspectWebsite(url, ctx.egress, ctx.now);
+  const inspection =
+    // Social and link-in-bio pages are classified from the address alone, so
+    // only a real website needs the network.
+    url && !ctx.online && classifyUrl(url).kind === "site"
+      ? offlineInspection(url, ctx.now)
+      : await inspectWebsite(url, ctx.egress, ctx.now);
 
   const findings: Finding[] = [];
   if (place)
@@ -306,7 +328,7 @@ export async function buildProspect(g: DedupeGroup, ctx: BuildCtx): Promise<Pros
 
   let websiteStatus: WebsiteStatus = inspection.status;
   if (url) {
-    if (["ok", "unreachable", "blocked"].includes(inspection.status)) {
+    if (["ok", "unreachable", "blocked", "not_checked"].includes(inspection.status)) {
       const from = corrected
         ? "a reviewer's correction"
         : c.website && c.source === "import"
@@ -464,6 +486,7 @@ export async function rescanProspect(
       existing: p,
       actor: deps.actor,
       freshPlaces: false,
+      online: await isOnline(deps.egress),
       config: deps.config ?? DEFAULT_SCORING_CONFIG,
     },
   );

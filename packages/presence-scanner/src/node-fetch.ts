@@ -177,6 +177,18 @@ export function createNodeEgress(opts: SafeFetchOptions = {}): WebEgress {
 
   return {
     resolve,
+    // DNS only: resolving two well-known public names proves the computer is
+    // online without fetching anything from them.
+    online: async () => {
+      for (const host of ["www.google.com", "one.one.one.one"]) {
+        try {
+          if ((await resolve(host)).length) return true;
+        } catch {
+          // try the next one
+        }
+      }
+      return false;
+    },
     fetchPage: (url) => follow(url, "text/html,application/xhtml+xml;q=0.9,*/*;q=0.1"),
     fetchRobots: async (origin) => {
       try {

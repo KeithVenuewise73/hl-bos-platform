@@ -32,6 +32,13 @@ export interface WebEgress {
   fetchRobots: (
     origin: string,
   ) => Promise<{ status: number; body: string } | undefined>;
+  /**
+   * Can this computer reach the internet at all? Checked once per scan. When
+   * it cannot, websites are "not checked" -- never reported as broken, since
+   * every site would fail to resolve for a reason that is ours, not theirs.
+   * Absent = assume online.
+   */
+  online?: () => Promise<boolean>;
 }
 
 export interface WebsiteInspection {
@@ -557,6 +564,33 @@ export async function inspectWebsite(
     summary: `The homepage loaded and was inspected (${w.https ? "HTTPS" : "not HTTPS"}).`,
     findings: out,
     rubric: { version: scan.rubricVersion, dimensions: scan.dimensions },
+  };
+}
+
+/** What inspection reports when this computer was offline: not checked, with the reason. */
+export function offlineInspection(
+  url: string | undefined,
+  now: Date,
+): WebsiteInspection {
+  return {
+    status: "not_checked",
+    url,
+    finalUrl: undefined,
+    rubric: undefined,
+    summary:
+      "The website was not inspected: this computer could not reach the internet during the scan.",
+    findings: url
+      ? [
+          f(
+            "website.reachable",
+            "Website not inspected (no internet connection)",
+            "not_checked",
+            `${url} was not inspected because this computer could not reach the internet during the scan (a connectivity check failed). Rescan when online.`,
+            now.toISOString(),
+            "high",
+          ),
+        ]
+      : [],
   };
 }
 
