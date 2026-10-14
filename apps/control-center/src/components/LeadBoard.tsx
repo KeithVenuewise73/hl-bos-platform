@@ -12,6 +12,7 @@ import {
 import {
   filterLeads,
   filtersToParams,
+  nextSort,
   sortLeads,
   type LeadFilters,
   type LeadRow,
@@ -96,12 +97,7 @@ export function LeadBoard({ rows }: { rows: LeadRow[] }) {
     <th style={th}>
       <button
         type="button"
-        onClick={() =>
-          setSort((s) => ({
-            key,
-            dir: s.key === key && s.dir === "desc" ? "asc" : "desc",
-          }))
-        }
+        onClick={() => setSort((s) => nextSort(s, key))}
         style={{
           background: "none",
           border: 0,
@@ -286,9 +282,11 @@ export function LeadBoard({ rows }: { rows: LeadRow[] }) {
                       fontSize: 15,
                     }}
                   >
-                    {r.score}
+                    {r.checkedMax === 0 ? "—" : r.score}
                   </span>
-                  {r.checkedMax < 100 ? (
+                  {r.checkedMax === 0 ? (
+                    <div style={{ color: C.muted, fontSize: 11 }}>not scored yet</div>
+                  ) : r.checkedMax < 100 ? (
                     <div
                       style={{ color: C.muted, fontSize: 11 }}
                       title="Points with evidence behind them; the rest were not checked"

@@ -15,6 +15,7 @@ import {
   filterLeads,
   filtersFromParams,
   filtersToParams,
+  nextSort,
   sortLeads,
 } from "./lead-board";
 import {
@@ -282,6 +283,17 @@ describe("Lead Board filtering and sorting", () => {
       "Seneca Paving",
       "Smith Roofing",
     ]);
+  });
+
+  it("a new column sorts in its natural order; a second click reverses it", () => {
+    const start = { key: "score" as const, dir: "desc" as const };
+    expect(nextSort(start, "name")).toEqual({ key: "name", dir: "asc" });
+    expect(nextSort({ key: "name", dir: "asc" }, "name")).toEqual({
+      key: "name",
+      dir: "desc",
+    });
+    expect(nextSort(start, "reviews")).toEqual({ key: "reviews", dir: "desc" });
+    expect(nextSort(start, "score")).toEqual({ key: "score", dir: "asc" });
   });
 
   it("filters round-trip through the export link's query string", () => {

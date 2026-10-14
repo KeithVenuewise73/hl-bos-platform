@@ -61,6 +61,19 @@ export function filterLeads(rows: LeadRow[], f: LeadFilters): LeadRow[] {
 
 const STAGE_ORDER = new Map(LEAD_STAGES.map((s, i) => [s.key, i]));
 
+/**
+ * Clicking a column: a new column starts in its natural order (A-Z for names,
+ * pipeline order for stages, biggest first for numbers and newest first for
+ * dates); clicking it again reverses it.
+ */
+export function nextSort(
+  current: { key: SortKey; dir: "asc" | "desc" },
+  key: SortKey,
+): { key: SortKey; dir: "asc" | "desc" } {
+  if (current.key === key) return { key, dir: current.dir === "asc" ? "desc" : "asc" };
+  return { key, dir: key === "name" || key === "stage" ? "asc" : "desc" };
+}
+
 export function sortLeads(
   rows: LeadRow[],
   key: SortKey,
