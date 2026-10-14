@@ -723,6 +723,22 @@ importers:
         specifier: 'catalog:'
         version: 4.1.10(@types/node@22.20.1)(@vitest/coverage-v8@4.1.10)(jiti@2.7.0)
 
+  packages/presence-scanner:
+    dependencies:
+      '@hl-bos/bti-engine':
+        specifier: workspace:*
+        version: link:../bti-engine
+    devDependencies:
+      '@types/node':
+        specifier: 'catalog:'
+        version: 22.20.1
+      typescript:
+        specifier: 'catalog:'
+        version: 6.0.3
+      vitest:
+        specifier: 'catalog:'
+        version: 4.1.10(@types/node@22.20.1)(@vitest/coverage-v8@4.1.10)(jiti@2.7.0)
+
   packages/sceneflow:
     devDependencies:
       '@types/node':

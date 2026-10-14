@@ -1,0 +1,30 @@
+{
+  "name": "@hl-bos/presence-scanner",
+  "version": "0.1.0",
+  "private": true,
+  "description": "HLG Presence Scanner engine. Finds local businesses (Google Places or an imported list), inspects each website through the existing SSRF-safe HL-BOS website scanner, scores the opportunity with a deterministic, versioned, evidence-backed rubric, qualifies and de-duplicates leads, and exports them. No storage of its own: it talks to a repository interface. No AI in the score.",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "default": "./src/index.ts"
+    },
+    "./node": {
+      "types": "./src/node-fetch.ts",
+      "default": "./src/node-fetch.ts"
+    }
+  },
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run",
+    "clean": "rm -rf dist *.tsbuildinfo"
+  },
+  "dependencies": {
+    "@hl-bos/bti-engine": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  }
+}
