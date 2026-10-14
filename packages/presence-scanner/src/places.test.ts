@@ -114,7 +114,7 @@ describe("Google Places client", () => {
   it("sends the narrow field mask and the key only in a header", async () => {
     const { fn, calls } = fakeFetch([{ places: [RAW] }]);
     const client = createGooglePlacesClient({
-      apiKey: "AIzaTESTKEY000000000000000000000000000",
+      apiKey: "test-places-key-not-real",
       fetchImpl: fn,
     });
     const res = await client.searchText({
@@ -128,7 +128,8 @@ describe("Google Places client", () => {
       [...PLACES_FIELDS, "nextPageToken"].join(","),
     );
     expect(calls[0]!.headers["X-Goog-FieldMask"]).not.toContain("reviews");
-    expect(JSON.stringify(calls[0]!.body)).not.toContain("AIza");
+    expect(JSON.stringify(calls[0]!.body)).not.toContain("test-places-key");
+    expect(calls[0]!.headers["X-Goog-Api-Key"]).toBe("test-places-key-not-real");
     expect(calls[0]!.body["pageSize"]).toBe(5);
     expect(calls[0]!.body["locationBias"]).toEqual({
       circle: { center: { latitude: 42.8, longitude: -78.8 }, radius: 16093 },
@@ -180,7 +181,7 @@ describe("Google Places client", () => {
   });
 
   it("reports a refusal in plain English without echoing the key", async () => {
-    const key = "AIzaSECRETSECRETSECRET";
+    const key = "secret-places-key-not-real";
     const { fn } = fakeFetch([{ error: { message: `API key ${key} not valid` } }], 400);
     const client = createGooglePlacesClient({ apiKey: key, fetchImpl: fn });
     const res = await client.searchText({
