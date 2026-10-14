@@ -51,6 +51,21 @@ export interface WebsiteInspection {
   rubric: { version: string; dimensions: DimensionScore[] } | undefined;
 }
 
+/** Decode the HTML entities a title or description commonly carries, for display. */
+export function decodeEntities(s: string): string {
+  return s
+    .replace(/&#x([0-9a-f]+);/gi, (_, h: string) =>
+      String.fromCodePoint(parseInt(h, 16)),
+    )
+    .replace(/&#(\d+);/g, (_, d: string) => String.fromCodePoint(Number(d)))
+    .replace(/&quot;/g, '"')
+    .replace(/&apos;/g, "'")
+    .replace(/&nbsp;/g, " ")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&amp;/g, "&");
+}
+
 const HOMEPAGE_ONLY =
   "Only the homepage is inspected, so it may exist on another page of the site.";
 
@@ -272,7 +287,7 @@ export async function inspectWebsite(
           at,
         ),
   );
-  const title = w.title?.trim() ?? "";
+  const title = decodeEntities(w.title ?? "").trim();
   const weakTitle =
     title.length > 0 &&
     (title.length < 10 || /^(home|homepage|welcome|untitled|index)$/i.test(title));
@@ -302,7 +317,7 @@ export async function inspectWebsite(
           "site.meta_description",
           "Has a meta description",
           "present",
-          `"${w.metaDescription.slice(0, 120)}"`,
+          `"${decodeEntities(w.metaDescription).slice(0, 120)}"`,
           at,
         )
       : f(

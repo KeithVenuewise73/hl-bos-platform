@@ -8,7 +8,7 @@ import {
   STRONG_SALON_HTML,
   WEAK_CONTRACTOR_HTML,
 } from "./test-helpers.ts";
-import { explainScanError, inspectWebsite } from "./website.ts";
+import { decodeEntities, explainScanError, inspectWebsite } from "./website.ts";
 
 const status = (fs: { key: string; status: string }[], key: string) =>
   fs.find((f) => f.key === key)?.status;
@@ -204,6 +204,21 @@ describe("conversion detectors", () => {
         NOW,
       ).capabilities.menu?.found,
     ).toBe(false);
+  });
+
+  it("credits a capability from a navigation label, not from a brand line that contains the word", () => {
+    const brand = `<a href="index.html">DDH Home Services Property Maintenance · WNY</a>`;
+    expect(detectConversion(brand, NOW).capabilities.services?.found).toBe(false);
+    const nav = `${brand}<a href="services.html">Services</a>`;
+    expect(detectConversion(nav, NOW).capabilities.services?.evidence).toContain(
+      "services.html",
+    );
+  });
+
+  it("decodes entities in titles for display", () => {
+    expect(decodeEntities("Residential &amp; Commercial &#x27;WNY&#39;")).toBe(
+      "Residential & Commercial 'WNY'",
+    );
   });
 
   it("counts prices shown on the page as pricing only with three or more", () => {

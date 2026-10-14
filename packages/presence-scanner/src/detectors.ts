@@ -223,6 +223,8 @@ export interface ConversionDetections {
 interface Link {
   href: string;
   text: string;
+  /** A navigation or button label (<= 5 words), not a sentence or a brand line. */
+  short: boolean;
 }
 
 const clip = (s: string, n = 120) => (s.length > n ? `${s.slice(0, n - 1)}…` : s);
@@ -238,8 +240,14 @@ function links(html: string): Link[] {
   const out: Link[] = [];
   for (const m of html.matchAll(/<a\b([^>]*)>([\s\S]*?)<\/a>/gi)) {
     const href = (m[1] ?? "").match(/href\s*=\s*["']([^"']*)["']/i)?.[1];
-    if (href)
-      out.push({ href: href.trim(), text: stripTags(m[2] ?? "").toLowerCase() });
+    if (href) {
+      const text = stripTags(m[2] ?? "").toLowerCase();
+      out.push({
+        href: href.trim(),
+        text,
+        short: text.split(" ").length <= 5 && text.length <= 40,
+      });
+    }
   }
   return out;
 }
@@ -293,26 +301,31 @@ export function detectConversion(html: string, now: Date): ConversionDetections 
 
   const booking =
     vendorDetection(["booking", "reservations"]) ??
-    firstLink(ls, (l) =>
-      /\b(book (now|online|an appointment|a table|your)|schedule (now|online|an appointment)|make an appointment|request an appointment|reserve( a table| now)?|reservations?)\b/.test(
-        l.text,
-      ),
+    firstLink(
+      ls,
+      (l) =>
+        /\b(book (now|online|an appointment|a table|your)|schedule (now|online|an appointment)|make an appointment|request an appointment|reserve( a table| now)?|reservations?)\b/.test(
+          l.text,
+        ) && l.short,
     );
 
   const ordering =
     vendorDetection(["ordering"]) ??
-    firstLink(ls, (l) =>
-      /\b(order (online|now|here|pickup|delivery|food)|online ordering|start (an|your) order)\b/.test(
-        l.text,
-      ),
+    firstLink(
+      ls,
+      (l) =>
+        /\b(order (online|now|here|pickup|delivery|food)|online ordering|start (an|your) order)\b/.test(
+          l.text,
+        ) && l.short,
     );
 
   const menuLink = firstLink(
     ls,
     (l) =>
-      /^(our |view |see |food |drink |dinner |lunch |full |the )?menus?( ?[&+]? ?(drinks?|prices?))?$/.test(
+      (/^(our |view |see |food |drink |dinner |lunch |full |the )?menus?( ?[&+]? ?(drinks?|prices?))?$/.test(
         l.text,
-      ) ||
+      ) &&
+        l.short) ||
       /\/menus?(\.pdf|\/|$|\?|#|-)/i.test(l.href) ||
       /menu[^/]*\.pdf$/i.test(l.href),
   );
@@ -326,7 +339,8 @@ export function detectConversion(html: string, now: Date): ConversionDetections 
   const pricingLink = firstLink(
     ls,
     (l) =>
-      /\b(pricing|prices|price list|rates|fees|tuition|packages)\b/.test(l.text) ||
+      (/\b(pricing|prices|price list|rates|fees|tuition|packages)\b/.test(l.text) &&
+        l.short) ||
       /\/(pricing|prices|rates|fees|tuition)\b/i.test(l.href),
   );
   const pricing = pricingLink.found
@@ -341,9 +355,11 @@ export function detectConversion(html: string, now: Date): ConversionDetections 
   const servicesLink = firstLink(
     ls,
     (l) =>
-      /\b(services|what we do|our work|programs|classes|lessons|treatments)\b/.test(
+      (/\b(services|what we do|our work|programs|classes|lessons|treatments)\b/.test(
         l.text,
-      ) || /\/(services|programs|classes)\b/i.test(l.href),
+      ) &&
+        l.short) ||
+      /\/(services|programs|classes)\b/i.test(l.href),
   );
   const services = servicesLink.found
     ? servicesLink
@@ -360,24 +376,31 @@ export function detectConversion(html: string, now: Date): ConversionDetections 
   );
   const directions = mapAddress
     ? { found: true, evidence: clip(`map or directions link: ${mapAddress}`) }
-    : firstLink(ls, (l) =>
-        /\b(directions|get directions|find us|location|map)\b/.test(l.text),
+    : firstLink(
+        ls,
+        (l) =>
+          /\b(directions|get directions|find us|location|map)\b/.test(l.text) &&
+          l.short,
       );
 
   const registration =
     vendorDetection(["registration"]) ??
-    firstLink(ls, (l) =>
-      /\b(register|registration|sign ?up|join (the|our) (team|league|club)|tryouts?)\b/.test(
-        l.text,
-      ),
+    firstLink(
+      ls,
+      (l) =>
+        /\b(register|registration|sign ?up|join (the|our) (team|league|club)|tryouts?)\b/.test(
+          l.text,
+        ) && l.short,
     );
 
   const quote =
     vendorDetection(["quote"]) ??
-    firstLink(ls, (l) =>
-      /\b(free (estimate|quote)|get a quote|request (a )?(quote|estimate)|estimate)\b/.test(
-        l.text,
-      ),
+    firstLink(
+      ls,
+      (l) =>
+        /\b(free (estimate|quote)|get a quote|request (a )?(quote|estimate)|estimate)\b/.test(
+          l.text,
+        ) && l.short,
     );
 
   // Copyright year. A year written by script (getFullYear) is current by
