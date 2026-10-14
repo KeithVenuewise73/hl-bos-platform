@@ -336,6 +336,14 @@
     {
       "title": "HLG Presence Scanner: add a Google Places key with a monthly budget cap, then run the first live scan (West Seneca / Orchard Park contractors)",
       "done": false
+    },
+    {
+      "title": "HLG Instant Site Builder Phase 2: demo sites from a lead (contractor, salon/barber, restaurant/bar), fabrication guard, sample content marked, launch checklist, ZIP; in the console at /presence/[id]/demo; built and tested, branch feat/instant-site-builder-phase-2 (stacked on Phase 1), not merged",
+      "done": true
+    },
+    {
+      "title": "HLG Instant Site Builder: add an Anthropic key to switch demo copy from the template writer to Claude (every draft is still checked)",
+      "done": false
     }
   ],
   "blockers": [
