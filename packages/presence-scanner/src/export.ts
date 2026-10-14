@@ -8,24 +8,8 @@ import { effectiveQualification } from "./qualify.ts";
 import { topFindings } from "./score.ts";
 import { stageLabel } from "./stages.ts";
 import { VERTICALS } from "./verticals.ts";
-import type { Prospect, WebsiteStatus } from "./types.ts";
-
-export const WEBSITE_STATUS_LABELS: Record<WebsiteStatus, string> = {
-  none: "No website",
-  social_only: "Facebook/social only",
-  link_in_bio: "Link-in-bio only",
-  retired_google_site: "Retired Google site",
-  ok: "Working website",
-  unreachable: "Broken / unreachable",
-  blocked: "Could not inspect",
-  not_checked: "Not checked",
-};
-
-export const QUALIFICATION_LABELS = {
-  qualified: "Qualified",
-  excluded: "Excluded",
-  needs_review: "Needs review",
-} as const;
+import { QUALIFICATION_LABELS, WEBSITE_STATUS_LABELS } from "./labels.ts";
+import type { Prospect } from "./types.ts";
 
 /** One CSV cell: quoted, doubled quotes, and formula characters neutralised. */
 export function csvCell(v: string | number | undefined | null): string {

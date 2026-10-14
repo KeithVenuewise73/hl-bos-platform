@@ -9,6 +9,10 @@
       "types": "./src/index.ts",
       "default": "./src/index.ts"
     },
+    "./labels": {
+      "types": "./src/labels.ts",
+      "default": "./src/labels.ts"
+    },
     "./node": {
       "types": "./src/node-fetch.ts",
       "default": "./src/node-fetch.ts"

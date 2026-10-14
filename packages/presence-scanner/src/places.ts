@@ -243,15 +243,30 @@ export function placesSnapshot(record: PlaceRecord, now: Date): PlacesSnapshot {
   };
 }
 
+const EXPIRED_LABELS: Record<string, string> = {
+  "places.category": "Google category",
+  "places.business_status": "Google status",
+  "places.website": "Website on Google profile",
+  "places.phone": "Phone on Google profile",
+  "places.hours": "Opening hours on Google profile",
+  "places.photos": "Photos on Google profile",
+  "places.reviews": "Google reviews",
+};
+
 /**
  * Enforce the retention rule on a stored prospect: once its Places copy has
- * expired, drop everything Google supplied except the place ID, and mark the
- * Google-sourced findings as no longer held. Scores are left as they were
- * computed (they are HLG's own derived output) but the prospect needs a rescan
- * to show Google data again.
+ * expired, drop everything Google supplied except the place ID -- the record
+ * itself, and the Google values quoted in finding labels, evidence, score
+ * explanations and qualification details. The score's points are kept (they
+ * are HLG's own derived output) but explained generically, and the lead needs
+ * a rescan to show Google data again.
  */
 export function expirePlacesContent(p: Prospect, now: Date): Prospect {
   if (!p.places || new Date(p.places.expiresAt).getTime() > now.getTime()) return p;
+  const purged = `purged after ${PLACES_RETENTION_DAYS} days (Google's storage rules); rescan to refresh`;
+  const googleKeys = new Set(
+    p.findings.filter((f) => f.source === "google_places").map((f) => f.key),
+  );
   return {
     ...p,
     places: undefined,
@@ -259,10 +274,34 @@ export function expirePlacesContent(p: Prospect, now: Date): Prospect {
       f.source === "google_places"
         ? {
             ...f,
+            label: `${EXPIRED_LABELS[f.key] ?? "Google data"} (expired)`,
             status: "not_checked",
-            evidence: `Google data from ${f.observedAt.slice(0, 10)} was purged after ${PLACES_RETENTION_DAYS} days (Google's storage rules). Rescan to refresh.`,
+            evidence: `Google data from ${f.observedAt.slice(0, 10)} was ${purged}.`,
           }
         : f,
     ),
+    score: {
+      ...p.score,
+      components: p.score.components.map((c) => ({
+        ...c,
+        contributions: c.contributions.map((x) =>
+          x.findingKeys.every((k) => googleKeys.has(k))
+            ? { ...x, label: `${x.ruleId}: Google listing gap (details ${purged})` }
+            : x,
+        ),
+        note:
+          c.component === "reviews" || c.component === "profile"
+            ? `Scored from Google data that was later ${purged}.`
+            : c.note,
+      })),
+    },
+    qualification: {
+      ...p.qualification,
+      checks: p.qualification.checks.map((c) =>
+        c.code === "operating" || c.code === "vertical"
+          ? { ...c, detail: `Based on Google data that was later ${purged}.` }
+          : c,
+      ),
+    },
   };
 }

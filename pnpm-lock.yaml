@@ -150,6 +150,9 @@ importers:
       '@hl-bos/catalog':
         specifier: workspace:*
         version: link:../../packages/catalog
+      '@hl-bos/presence-scanner':
+        specifier: workspace:*
+        version: link:../../packages/presence-scanner
       '@hl-bos/sceneflow':
         specifier: workspace:*
         version: link:../../packages/sceneflow

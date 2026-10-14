@@ -250,6 +250,41 @@ describe("retention", () => {
           confidence: "high",
         },
       ],
+      score: {
+        version: "v",
+        total: 9,
+        checkedMax: 15,
+        components: [
+          {
+            component: "reviews",
+            label: "Reviews",
+            max: 15,
+            awarded: 9,
+            status: "scored",
+            contributions: [
+              {
+                ruleId: "R.very_few_reviews",
+                label: "Fewer than 10 reviews (3)",
+                points: 9,
+                findingKeys: ["places.reviews"],
+              },
+            ],
+            note: "3 reviews",
+          },
+        ],
+      },
+      qualification: {
+        computed: "qualified",
+        override: undefined,
+        checks: [
+          {
+            code: "vertical",
+            label: "v",
+            outcome: "pass",
+            detail: 'Google category "roofing_contractor"',
+          },
+        ],
+      },
     } as unknown as Prospect;
   };
 
@@ -267,5 +302,11 @@ describe("retention", () => {
     expect(p.findings[0]!.status).toBe("not_checked");
     expect(p.findings[0]!.evidence).toContain("purged");
     expect(p.findings[1]!.status).toBe("present");
+    expect(p.findings[0]!.label).toBe("Google reviews (expired)");
+    // No Google value survives anywhere in the stored lead.
+    const json = JSON.stringify({ ...p, placeId: undefined });
+    expect(json).not.toContain("(3)");
+    expect(json).not.toContain("roofing_contractor");
+    expect(p.score.total).toBe(9);
   });
 });

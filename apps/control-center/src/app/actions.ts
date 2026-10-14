@@ -182,7 +182,9 @@ export async function saveConnection(form: FormData): Promise<ActionResult> {
   const gh = field(form, "github");
   const sb = field(form, "supabase");
   const ref = field(form, "ref");
+  const places = field(form, "places");
   if (gh) values["HLBOS_GITHUB_TOKEN"] = gh;
+  if (places) values["GOOGLE_PLACES_API_KEY"] = places;
   if (sb) values["SUPABASE_ACCESS_TOKEN"] = sb;
   if (ref) values["HLBOS_SUPABASE_PROJECT_REF"] = ref;
 
@@ -197,6 +199,7 @@ export async function saveConnection(form: FormData): Promise<ActionResult> {
   await writeEnvValues(values);
   revalidatePath("/");
   revalidatePath("/connect");
+  revalidatePath("/presence");
   return ok(
     "Connected.",
     "The console can now see your builds. This is stored on this machine only and is never committed.",

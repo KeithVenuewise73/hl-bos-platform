@@ -23,3 +23,4 @@ export * from "./prospect-ops.ts";
 export * from "./repository.ts";
 export * from "./pipeline.ts";
 export * from "./export.ts";
+export * from "./labels.ts";
