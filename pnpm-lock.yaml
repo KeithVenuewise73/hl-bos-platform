@@ -156,6 +156,9 @@ importers:
       '@hl-bos/sceneflow':
         specifier: workspace:*
         version: link:../../packages/sceneflow
+      '@hl-bos/site-builder':
+        specifier: workspace:*
+        version: link:../../packages/site-builder
       '@hl-bos/video-studio':
         specifier: workspace:*
         version: link:../../packages/video-studio

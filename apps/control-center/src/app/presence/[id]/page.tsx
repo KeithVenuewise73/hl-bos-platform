@@ -1,5 +1,7 @@
 import { notFound } from "next/navigation";
 
+import { isSiteVertical } from "@hl-bos/site-builder";
+
 import {
   effectiveQualification,
   QUALIFICATION_LABELS,
@@ -11,9 +13,11 @@ import {
 } from "@hl-bos/presence-scanner";
 
 import { Card, Row } from "@/components/ui";
+import { BuildDemoButton } from "@/components/DemoControls";
 import { LeadControls } from "@/components/LeadControls";
 import { C, QUAL_COLOUR, scoreColour } from "@/components/presence-style";
 import { FilePresenceRepository } from "@/lib/presence-store";
+import { FileDraftRepository } from "@/lib/site-store";
 
 export const dynamic = "force-dynamic";
 
@@ -38,7 +42,10 @@ export default async function LeadCardPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const p = await new FilePresenceRepository().getProspect(id);
+  const [p, draft] = await Promise.all([
+    new FilePresenceRepository().getProspect(id),
+    new FileDraftRepository().getByProspect(id),
+  ]);
   if (!p) notFound();
   const q = effectiveQualification(p.qualification);
   const rec = p.places?.record;
@@ -369,8 +376,31 @@ export default async function LeadCardPage({
       </Card>
 
       <Card
+        title="Demo site"
+        sub="A private one-page demo built from this lead, for the owner to see. Nothing is published from here."
+      >
+        {!isSiteVertical(p.vertical) ? (
+          <p style={{ margin: 0, fontSize: 13, color: C.muted }}>
+            Demo templates exist for contractors, salons/barbers and restaurants/bars so
+            far; this vertical comes later.
+          </p>
+        ) : draft ? (
+          <p style={{ margin: 0, fontSize: 13 }}>
+            Version {draft.version},{" "}
+            {draft.status === "approved" ? "approved" : "draft"}, built{" "}
+            {draft.updatedAt.slice(0, 10)}.{" "}
+            <a href={`/presence/${p.id}/demo`} style={{ color: C.link }}>
+              Open the demo →
+            </a>
+          </p>
+        ) : (
+          <BuildDemoButton id={p.id} hasDraft={false} />
+        )}
+      </Card>
+
+      <Card
         title="Next steps (not built yet)"
-        sub="Shown so you know where this is going. None of these do anything in Phase 1 — nothing is built, sent or published from here."
+        sub="Shown so you know where this is going. Neither does anything yet — nothing is sent from here."
       >
         <ul
           style={{
@@ -381,10 +411,6 @@ export default async function LeadCardPage({
             color: C.muted,
           }}
         >
-          <li>
-            Build Demo — Phase 2 (Instant Site Builder): a private one-page demo from
-            this lead.
-          </li>
           <li>
             Draft Outreach — Phase 3: a draft for your approval. Nothing is sent
             automatically.
