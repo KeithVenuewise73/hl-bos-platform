@@ -50,7 +50,7 @@ const SEC_HEADERS = [
 
 function attr(tag: string, name: string): string | null {
   const m = tag.match(new RegExp(`${name}\\s*=\\s*["']([^"']*)["']`, "i"));
-  return m ? m[1] : null;
+  return m ? (m[1] ?? null) : null;
 }
 function all(re: RegExp, s: string): string[] {
   return [...s.matchAll(re)].map((m) => m[0]);
@@ -124,7 +124,7 @@ export function extractFindings(
     html,
   )) {
     const body = block.replace(/<[^>]*>/g, "");
-    for (const m of body.matchAll(/"@type"\s*:\s*"([^"]+)"/g)) ldTypes.push(m[1]);
+    for (const m of body.matchAll(/"@type"\s*:\s*"([^"]+)"/g)) if (m[1]) ldTypes.push(m[1]);
   }
 
   const https = finalUrl.startsWith("https:");
@@ -132,14 +132,14 @@ export function extractFindings(
 
   return {
     https,
-    title: titleM ? titleM[1].trim() : null,
+    title: titleM ? (titleM[1] ?? "").trim() : null,
     metaDescription: meta("description"),
     canonical: canonM ? attr(canonM[0], "href") : null,
     robotsMeta: meta("robots"),
     lang: htmlTagM ? attr(htmlTagM[0], "lang") : null,
     hasViewport: metaTags.some((t) => /name\s*=\s*["']viewport["']/i.test(t)),
     h1: [...html.matchAll(/<h1[^>]*>([\s\S]*?)<\/h1>/gi)].map((m) =>
-      m[1].replace(/<[^>]*>/g, "").trim(),
+      (m[1] ?? "").replace(/<[^>]*>/g, "").trim(),
     ),
     headingCounts: Object.fromEntries(
       ["h1", "h2", "h3", "h4", "h5", "h6"].map((t) => [
