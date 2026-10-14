@@ -124,7 +124,8 @@ export function extractFindings(
     html,
   )) {
     const body = block.replace(/<[^>]*>/g, "");
-    for (const m of body.matchAll(/"@type"\s*:\s*"([^"]+)"/g)) if (m[1]) ldTypes.push(m[1]);
+    for (const m of body.matchAll(/"@type"\s*:\s*"([^"]+)"/g))
+      if (m[1]) ldTypes.push(m[1]);
   }
 
   const https = finalUrl.startsWith("https:");
