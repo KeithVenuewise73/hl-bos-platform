@@ -3,7 +3,7 @@
 The HLG Presence Scanner engine: find local businesses (Google Places or an
 imported list), inspect each website through the **existing** HL-BOS safe
 website scanner, score the opportunity with a deterministic, versioned,
-evidence-backed rubric (`presence-opportunity-0.1.0`), qualify, de-duplicate,
+evidence-backed rubric (`presence-opportunity-0.2.0`), qualify, de-duplicate,
 rank and export.
 
 No storage (it talks to `PresenceRepository`), no UI, no AI in the score.
@@ -27,6 +27,8 @@ Product documentation: [`docs/products/presence-scanner`](../../docs/products/pr
 | `stages.ts`     | Lead stages and their mapping onto `visibility.prospect_stage`               |
 | `services.ts`   | Suggested services via `@hl-bos/bti-engine`                                  |
 | `node-fetch.ts` | Redirects validated before each hop; IP checked at connect time              |
+| `verticals.ts`  | The vertical registry: queries, place types, conversion rules, extra checks  |
+| `saved-copy.ts` | Inspect a saved homepage copy (no network), every finding labelled           |
 
 ```
 pnpm --filter @hl-bos/presence-scanner test

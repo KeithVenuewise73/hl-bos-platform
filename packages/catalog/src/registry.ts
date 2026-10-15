@@ -502,7 +502,7 @@ const ASSETS: Asset[] = [
     kind: "package",
     name: "@hl-bos/presence-scanner",
     summary:
-      "The HLG Presence Scanner engine: finds local businesses (Google Places Text Search behind an adapter, or a pasted list / CSV), inspects each website through the existing SSRF-safe discovery scanner (runScan, extractFindings, rubric-0.1.0, reused unchanged), adds conversion detectors (booking, ordering, menu, pricing, directions, registration), de-duplicates, qualifies and scores with the deterministic, versioned presence-opportunity-0.1.0 rubric, where every point names a rule and its evidence and unchecked data is never scored as zero. Suggested services come from the BTI growth map. Storage is behind a repository interface; Google content other than the place ID expires after 30 days.",
+      "The HLG Presence Scanner engine: finds local businesses (Google Places Text Search behind an adapter, or a pasted list / CSV), inspects each website through the existing SSRF-safe discovery scanner (runScan, extractFindings, rubric-0.1.0, reused unchanged), adds conversion detectors (booking, ordering, menu, pricing, directions, registration, and for professional services consultation, industries, process, proof, plus verification-only observations), de-duplicates, qualifies and scores with the deterministic, versioned presence-opportunity-0.2.0 rubric driven by a vertical registry, where every point names a rule and its evidence and unchecked data is never scored as zero. Suggested services come from the BTI growth map. Storage is behind a repository interface; Google content other than the place ID expires after 30 days.",
     maturity: "built_undeployed",
     reuse: ["reusable"],
     owner: "Herman Legacy Platform",
@@ -522,7 +522,7 @@ const ASSETS: Asset[] = [
     kind: "package",
     name: "@hl-bos/site-builder",
     summary:
-      "The HLG Instant Site Builder engine: turns a Presence Scanner lead into a one-page demo website for contractors, salons/barbers and restaurants/bars, in the shared HLG static-site design. Facts come only from the lead; everything else is marked Sample. Copy comes from a Claude writer (structured output, refusal fallback) or the deterministic template writer, and every word passes a fabrication guard (no prices, guarantees, credentials, history, ratings or invented numbers). The real Google rating is shown only with attribution. Renders one noindex HTML file with no scripts, plus a launch checklist from the lead's findings and a ZIP export. Publishes nothing.",
+      "The HLG Instant Site Builder engine: turns a Presence Scanner lead into a one-page demo website for contractors, salons/barbers, restaurants/bars and professional-services firms (one site vertical registry entry per vertical; batches of up to 10), or a verified Business Profile into a private internal draft, in the shared HLG static-site design. Facts come only from the lead; everything else is marked Sample. Copy comes from a Claude writer (structured output, refusal fallback) or the deterministic template writer, and every word passes a fabrication guard (no prices, guarantees, credentials, history, ratings or invented numbers). The real Google rating is shown only with attribution. Renders one noindex HTML file with no scripts, plus a launch checklist from the lead's findings and a ZIP export. Publishes nothing.",
     maturity: "built_undeployed",
     reuse: ["reusable"],
     owner: "Herman Legacy Platform",

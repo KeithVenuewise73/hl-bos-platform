@@ -41,10 +41,19 @@ edge worker `discovery-website-worker` is unchanged and still inert.
 4. **Qualify**: operating, matches the vertical, has a contact path, not a
    national chain in that vertical, inside the radius. Failures are "excluded"
    with the reason; doubts go to "needs review"; a reviewer can override.
-5. **Score** with `presence-opportunity-0.1.0` and **rank**: qualified first,
+5. **Score** with `presence-opportunity-0.2.0` and **rank**: qualified first,
    then highest score.
 
-## Opportunity Score `presence-opportunity-0.1.0`
+## Opportunity Score `presence-opportunity-0.2.0`
+
+0.2.0 (Phase 3A) adds the **professional-services** vertical: conversion priorities
+consultation 4, call 3, form 3, services 3, email 2, case studies 2, process 1,
+industries 1, about 1; extra checks for service area, testimonials, statistics,
+placeholder (555) numbers, privacy policy and business structured data. A new evidence
+status, **Requires manual verification**, covers what a web page cannot prove
+(testimonials, statistics, placeholder-looking numbers) and is never scored. The five
+Phase 1 verticals score exactly as under 0.1.0. A website can also be inspected from a
+**saved copy** of its homepage (`saved-copy.ts`), every finding labelled as such.
 
 0–100; higher = bigger opportunity. Deterministic and versioned
 (`packages/presence-scanner/src/score.ts`). Every point names a rule ID and the
