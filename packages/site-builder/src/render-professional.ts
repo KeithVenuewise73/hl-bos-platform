@@ -17,10 +17,12 @@ import { esc, initials, jsonLd, sampleTag } from "./html.ts";
 import type { Offering, SiteDraft, ToolItem } from "./types.ts";
 import { verticalDef } from "./verticals.ts";
 
-const TOOL_STATUS: Record<ToolItem["status"], string> = {
-  live: "Available",
+export const TOOL_STATUS: Record<ToolItem["status"], string> = {
+  live: "Available now",
+  pilot: "Pilot",
   in_development: "In development",
   planned: "Planned",
+  concept: "Concept",
   in_use: "In use",
 };
 

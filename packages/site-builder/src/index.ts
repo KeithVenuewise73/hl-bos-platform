@@ -13,6 +13,7 @@ export * from "./builder.ts";
 export * from "./profile.ts";
 export * from "./internal.ts";
 export * from "./hlg-profiles.ts";
+export * from "./premium/index.ts";
 export * from "./render-professional.ts";
 export * from "./html.ts";
 export * from "./export.ts";

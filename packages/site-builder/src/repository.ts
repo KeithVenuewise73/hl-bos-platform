@@ -1,6 +1,7 @@
 // Storage boundary for demo drafts, mirroring the Presence Scanner's: the
 // builder never touches a file or a database. One draft per lead.
 
+import type { PremiumDraft } from "./premium/draft.ts";
 import type { BusinessProfile } from "./profile.ts";
 import type { SiteDraft } from "./types.ts";
 
@@ -47,6 +48,23 @@ export class MemoryProfileRepository implements BusinessProfileRepository {
   }
   save(profile: BusinessProfile) {
     this.profiles.set(profile.id, structuredClone(profile));
+    return Promise.resolve();
+  }
+}
+
+/** Storage boundary for Premium Business Site drafts: one per profile. */
+export interface PremiumDraftRepository {
+  getByProfile(profileId: string): Promise<PremiumDraft | undefined>;
+  save(draft: PremiumDraft): Promise<void>;
+}
+
+export class MemoryPremiumRepository implements PremiumDraftRepository {
+  private drafts = new Map<string, PremiumDraft>();
+  getByProfile(profileId: string) {
+    return Promise.resolve(structuredClone(this.drafts.get(profileId)));
+  }
+  save(draft: PremiumDraft) {
+    this.drafts.set(draft.profileId, structuredClone(draft));
     return Promise.resolve();
   }
 }

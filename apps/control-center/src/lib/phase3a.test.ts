@@ -158,7 +158,7 @@ describe("Business Profiles in the console", () => {
       pd,
     );
     expect(noSource.meaning).toContain("say who verified it");
-    expect((await profiles.get(HSCS_ID))!.fields.phone.value).toBe("");
+    expect((await profiles.get(HSCS_ID))!.fields.phone.value).toBe("716-220-7354");
   });
 
   it("parses list lines, including product status and links", () => {

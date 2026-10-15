@@ -1,6 +1,8 @@
 import { notFound } from "next/navigation";
 
 import {
+  PREMIUM_THEMES,
+  premiumTheme,
   profileMissing,
   PROFILE_FIELDS,
   PROFILE_LISTS,
@@ -18,7 +20,12 @@ import { C, scoreColour } from "@/components/presence-style";
 import { Card } from "@/components/ui";
 import { draftKey, itemsToText } from "@/lib/profiles";
 import { FilePresenceRepository } from "@/lib/presence-store";
-import { FileDraftRepository, FileProfileRepository } from "@/lib/site-store";
+import { BuildPremiumButton } from "@/components/PremiumControls";
+import {
+  FileDraftRepository,
+  FilePremiumRepository,
+  FileProfileRepository,
+} from "@/lib/site-store";
 
 export const dynamic = "force-dynamic";
 
@@ -30,9 +37,11 @@ const HINTS: Record<ProfileListKey, string> = {
   process: "one step per line, “Step: what happens”",
   industries: "one per line, “Name: description”",
   experience: "one approved claim per line",
+  pillars: "one per line, “Pillar: the promise”; shown only when verified",
   statistics: "one approved statistic per line, with its source in the Source box",
   caseStudies: "one per line; only with the client's permission",
-  products: "one per line, “Name: description [planned | in_development | live]”",
+  products:
+    "one per line, “Name: description [live | pilot | in_development | planned | concept]”",
   socialLinks: "one per line, “Label: https://…”",
 };
 
@@ -44,9 +53,10 @@ export default async function ProfilePage({
   const { id } = await params;
   const p = await new FileProfileRepository().get(id);
   if (!p) notFound();
-  const [lead, draft] = await Promise.all([
+  const [lead, draft, premium] = await Promise.all([
     p.prospectId ? new FilePresenceRepository().getProspect(p.prospectId) : undefined,
     new FileDraftRepository().getByProspect(draftKey(p)),
+    new FilePremiumRepository().getByProfile(p.id),
   ]);
   const name = verified(p, "brandName") ?? (p.fields.brandName.value || p.id);
   const missing = profileMissing(p);
@@ -95,8 +105,8 @@ export default async function ProfilePage({
           <AssessProfileForm id={p.id} hasWebsite={Boolean(verified(p, "website"))} />
         </Card>
         <Card
-          title="2. Internal website draft"
-          sub="Built from verified fields only. Private to this computer; never published from here."
+          title="2. Express internal draft"
+          sub="The fast one-page draft, from verified fields only. Private to this computer; never published from here."
         >
           {draft ? (
             <p style={{ margin: "0 0 12px", fontSize: 13 }}>
@@ -108,6 +118,24 @@ export default async function ProfilePage({
             </p>
           ) : null}
           <BuildInternalDraftButton id={p.id} hasDraft={Boolean(draft)} />
+        </Card>
+        <Card
+          title="3. Premium Business Site"
+          sub="Six pages with a distinct brand treatment, from verified fields only. Private; approval never publishes."
+        >
+          {premium ? (
+            <p style={{ margin: "0 0 12px", fontSize: 13 }}>
+              Version {premium.version} ·{" "}
+              {premium.status === "approved"
+                ? "design approved"
+                : "awaiting design review"}{" "}
+              ·{" "}
+              <a href={`/profiles/${p.id}/premium`} style={{ color: C.link }}>
+                Open the review →
+              </a>
+            </p>
+          ) : null}
+          <BuildPremiumButton id={p.id} hasDraft={Boolean(premium)} />
         </Card>
       </div>
 
@@ -132,6 +160,8 @@ export default async function ProfilePage({
         <ProfileEditor
           id={p.id}
           notes={p.internalNotes}
+          theme={premiumTheme(p.design?.theme).key}
+          themes={Object.values(PREMIUM_THEMES).map((t) => [t.key, t.label])}
           fields={(Object.keys(PROFILE_FIELDS) as ProfileFieldKey[]).map((k) => ({
             key: k,
             label: PROFILE_FIELDS[k],
