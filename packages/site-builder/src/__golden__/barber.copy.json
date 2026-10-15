@@ -1,0 +1,36 @@
+{
+ "seoTitle": "Union Road Barbers | Barber shop in West Seneca",
+ "metaDescription": "Union Road Barbers: barber shop in West Seneca. Call or text (716) 555-0150 to book your next visit.",
+ "heroEyebrow": "Barber shop in West Seneca",
+ "heroHeadline": "Union Road Barbers",
+ "heroSubhead": "Barbershop in West Seneca. Call or text (716) 555-0150 to book your next visit.",
+ "aboutHeading": "About Union Road Barbers",
+ "aboutBody": "Union Road Barbers is a barber shop in West Seneca. This is where the owner's own story goes: how the business started, the people behind it, and what customers can expect.",
+ "aboutSample": true,
+ "offeringsHeading": "What we do",
+ "offeringsIntro": "Examples to show the layout. Replace them with the real list before launch.",
+ "offerings": [
+  {
+   "name": "Haircuts",
+   "description": "Classic cuts, fades and tapers.",
+   "sample": true
+  },
+  {
+   "name": "Beard trims",
+   "description": "Beard shaping, line-ups and trims.",
+   "sample": true
+  },
+  {
+   "name": "Hot towel shaves",
+   "description": "A traditional straight-razor shave.",
+   "sample": true
+  },
+  {
+   "name": "Kids' cuts",
+   "description": "Haircuts for younger customers.",
+   "sample": true
+  }
+ ],
+ "ctaHeading": "Ready for your next appointment?",
+ "ctaBody": "Call or text (716) 555-0150 to book your next visit."
+}
