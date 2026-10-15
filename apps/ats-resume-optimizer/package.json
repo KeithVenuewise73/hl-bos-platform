@@ -5,9 +5,9 @@
   "description": "ATS Resume Optimizer \u2014 compare a job posting against a master resume, see every requirement matched against real evidence, and generate a tailored, ATS-friendly resume in which every sentence is traceable to a source fact. Optimize aggressively, fabricate nothing.",
   "type": "module",
   "scripts": {
-    "dev": "next dev --port 4600",
+    "dev": "next dev --port 4600 --hostname 127.0.0.1",
     "build": "next build",
-    "start": "next start --port 4600",
+    "start": "next start --port 4600 --hostname 127.0.0.1",
     "typecheck": "tsc --noEmit",
     "lint": "eslint .",
     "test": "vitest run",

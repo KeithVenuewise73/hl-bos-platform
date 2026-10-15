@@ -5,9 +5,9 @@
   "description": "Internal Development Control Center. Runs locally on the CEO's machine; drives git, GitHub and Supabase so no terminal is needed.",
   "type": "module",
   "scripts": {
-    "dev": "next dev --port 4000",
+    "dev": "next dev --port 4000 --hostname 127.0.0.1",
     "build": "next build",
-    "start": "next start --port 4000",
+    "start": "next start --port 4000 --hostname 127.0.0.1",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "clean": "rm -rf .next dist *.tsbuildinfo"
