@@ -340,6 +340,22 @@
     {
       "title": "One-click install of the image libraries from the console \u2014 not built; without it the processor route needs a terminal, which the contract forbids",
       "done": false
+    },
+    {
+      "title": "HLG Presence Scanner Phase 1: scan a market (pasted list or Google Places), inspect websites through the existing safe scanner, score with presence-opportunity-0.1.0, Lead Board, Lead Card, CSV export \u2014 in the console at /presence; built and tested, merged to main in #90",
+      "done": true
+    },
+    {
+      "title": "HLG Presence Scanner: add a Google Places key with a monthly budget cap, then run the first live scan (West Seneca / Orchard Park contractors)",
+      "done": false
+    },
+    {
+      "title": "HLG Instant Site Builder Phase 2: demo sites from a lead (contractor, salon/barber, restaurant/bar), fabrication guard, sample content marked, launch checklist, ZIP; in the console at /presence/[id]/demo; built and tested, merged to main in #91",
+      "done": true
+    },
+    {
+      "title": "HLG Instant Site Builder: add an Anthropic key to switch demo copy from the template writer to Claude (every draft is still checked)",
+      "done": false
     }
   ],
   "blockers": [

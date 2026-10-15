@@ -52,6 +52,10 @@ export default async function Page() {
             {conn.github && conn.supabase ? "Connections" : "Connect accounts"}
           </a>{" "}
           ·{" "}
+          <a href="/presence" style={{ color: "#58a6ff" }}>
+            Presence Scanner
+          </a>{" "}
+          ·{" "}
           <a href="/video" style={{ color: "#58a6ff" }}>
             Video Studio
           </a>{" "}
