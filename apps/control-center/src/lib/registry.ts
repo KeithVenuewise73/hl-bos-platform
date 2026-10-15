@@ -28,6 +28,14 @@ export interface Product {
 
 export const PORTFOLIO: readonly Product[] = [
   {
+    name: "HLG Instant Site Builder",
+    stage: "development",
+    status:
+      "Phase 2 built and tested in the console: one-page demo sites for contractors, salons/barbers and restaurants/bars, built from a Presence Scanner lead in under a second, with a fabrication guard, sample content marked, a launch checklist and a ZIP download. Private previews only; nothing is published. Copy uses the template writer until an Anthropic key is added.",
+    version: null,
+    location: "this repository (packages/site-builder, console /presence/[id]/demo)",
+  },
+  {
     name: "HLG Presence Scanner",
     stage: "development",
     status:

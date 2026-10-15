@@ -16,6 +16,7 @@
     "@hl-bos/catalog": "workspace:*",
     "@hl-bos/presence-scanner": "workspace:*",
     "@hl-bos/sceneflow": "workspace:*",
+    "@hl-bos/site-builder": "workspace:*",
     "@hl-bos/video-studio": "workspace:*",
     "next": "catalog:",
     "react": "catalog:",

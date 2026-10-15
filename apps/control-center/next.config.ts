@@ -11,6 +11,8 @@ const config: NextConfig = {
     "@hl-bos/video-studio",
     "@hl-bos/sceneflow",
     "@hl-bos/presence-scanner",
+    "@hl-bos/site-builder",
+    "@hl-bos/jersey-sort",
     "@hl-bos/bti-engine",
   ],
   experimental: {

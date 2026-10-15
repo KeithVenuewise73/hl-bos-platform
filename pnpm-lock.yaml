@@ -156,6 +156,9 @@ importers:
       '@hl-bos/sceneflow':
         specifier: workspace:*
         version: link:../../packages/sceneflow
+      '@hl-bos/site-builder':
+        specifier: workspace:*
+        version: link:../../packages/site-builder
       '@hl-bos/video-studio':
         specifier: workspace:*
         version: link:../../packages/video-studio
@@ -743,6 +746,31 @@ importers:
         version: 4.1.10(@types/node@22.20.1)(@vitest/coverage-v8@4.1.10)(jiti@2.7.0)
 
   packages/sceneflow:
+    devDependencies:
+      '@types/node':
+        specifier: 'catalog:'
+        version: 22.20.1
+      typescript:
+        specifier: 'catalog:'
+        version: 6.0.3
+      vitest:
+        specifier: 'catalog:'
+        version: 4.1.10(@types/node@22.20.1)(@vitest/coverage-v8@4.1.10)(jiti@2.7.0)
+
+  packages/site-builder:
+    dependencies:
+      '@anthropic-ai/sdk':
+        specifier: 'catalog:'
+        version: 0.126.0(zod@4.4.3)
+      '@hl-bos/jersey-sort':
+        specifier: workspace:*
+        version: link:../jersey-sort
+      '@hl-bos/presence-scanner':
+        specifier: workspace:*
+        version: link:../presence-scanner
+      zod:
+        specifier: 'catalog:'
+        version: 4.4.3
     devDependencies:
       '@types/node':
         specifier: 'catalog:'

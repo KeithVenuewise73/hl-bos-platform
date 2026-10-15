@@ -166,6 +166,26 @@ export default async function ConnectPage() {
       </Card>
 
       <Card
+        title="Claude (optional)"
+        sub="Lets Claude write the words on demo sites. Without it, the built-in template writer is used and everything still works."
+      >
+        <div
+          style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}
+        >
+          <Dot health={status.anthropic ? "green" : "yellow"} />
+          <span style={{ fontSize: 13 }}>
+            {status.anthropic ? "Connected." : "Not connected."}
+          </span>
+        </div>
+        <p style={{ margin: 0, fontSize: 13, color: "#c9d1d9", lineHeight: 1.7 }}>
+          Billed per use to your Anthropic account. Whatever Claude writes is checked
+          before it reaches a page — no prices, guarantees, credentials, history,
+          ratings or invented numbers — and is replaced by the template writer&rsquo;s
+          copy if it fails.
+        </p>
+      </Card>
+
+      <Card
         title="Paste them here"
         sub="Stored on this machine only. Never committed, never sent anywhere else."
       >
@@ -174,6 +194,7 @@ export default async function ConnectPage() {
           hasSupabase={status.supabase}
           supabaseRef={status.supabaseRef}
           hasPlaces={status.googlePlaces}
+          hasAnthropic={status.anthropic}
         />
       </Card>
     </main>

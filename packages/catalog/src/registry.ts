@@ -180,6 +180,7 @@ const ASSETS: Asset[] = [
     relationships: [
       { kind: "consumes", to: "pkg.catalog" },
       { kind: "uses", to: "pkg.presence-scanner" },
+      { kind: "uses", to: "pkg.site-builder" },
       { kind: "provides", to: "wf.catalog-governance" },
       { kind: "owned_by", to: "repo.hl-bos-platform" },
     ],
@@ -515,6 +516,33 @@ const ASSETS: Asset[] = [
     ],
     evidence:
       "packages/presence-scanner; tests green; the Google Places client tested with an injected fetch only — never run against the live API (no key configured)",
+  },
+  {
+    id: "pkg.site-builder",
+    kind: "package",
+    name: "@hl-bos/site-builder",
+    summary:
+      "The HLG Instant Site Builder engine: turns a Presence Scanner lead into a one-page demo website for contractors, salons/barbers and restaurants/bars, in the shared HLG static-site design. Facts come only from the lead; everything else is marked Sample. Copy comes from a Claude writer (structured output, refusal fallback) or the deterministic template writer, and every word passes a fabrication guard (no prices, guarantees, credentials, history, ratings or invented numbers). The real Google rating is shown only with attribution. Renders one noindex HTML file with no scripts, plus a launch checklist from the lead's findings and a ZIP export. Publishes nothing.",
+    maturity: "built_undeployed",
+    reuse: ["reusable"],
+    owner: "Herman Legacy Platform",
+    layer: "HL-BOS",
+    key: "site-builder",
+    location: "packages/site-builder",
+    tags: [
+      "package",
+      "domain-logic",
+      "site-generation",
+      "copywriting",
+      "provider-abstraction",
+    ],
+    relationships: [
+      { kind: "uses", to: "pkg.presence-scanner" },
+      { kind: "uses", to: "pkg.jersey-sort" },
+      { kind: "owned_by", to: "repo.hl-bos-platform" },
+    ],
+    evidence:
+      "packages/site-builder; tests green; the Claude writer tested with an injected client only — never run against the live API (no key configured)",
   },
   {
     id: "mod.sceneflow-local",
