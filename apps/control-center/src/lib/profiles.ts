@@ -277,7 +277,12 @@ export async function assessProfile(
       egress: page ? savedPageEgress(page) : deps.egress,
       now: deps.now,
       newId: deps.newId,
-      existing: await deps.leads.listProspects(),
+      // Only this profile's own lead. Two HLG companies may share a phone
+      // number, and the scanner de-duplicates by phone: matching against
+      // every lead would merge one company's audit into another's.
+      existing: p.prospectId
+        ? (await deps.leads.listProspects()).filter((x) => x.id === p.prospectId)
+        : [],
       actor: deps.actor,
     },
   );

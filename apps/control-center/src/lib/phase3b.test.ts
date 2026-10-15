@@ -130,6 +130,34 @@ describe("Premium Business Sites in the console", () => {
   });
 });
 
+describe("HLG companies that share a phone number", () => {
+  it("keep separate audits and drafts (the scanner would otherwise merge them by phone)", async () => {
+    const { pd, profiles } = await world();
+    const { assessProfile, buildProfileDraft } = await import("./profiles");
+    await assessProfile(HLG_BT_ID, undefined, pd);
+    await assessProfile(HSCS_ID, undefined, pd);
+    const bt = (await profiles.get(HLG_BT_ID))!;
+    const hs = (await profiles.get(HSCS_ID))!;
+    expect(bt.fields.phone.value).toBe(hs.fields.phone.value);
+    expect(bt.prospectId).toBeDefined();
+    expect(hs.prospectId).toBeDefined();
+    expect(hs.prospectId).not.toBe(bt.prospectId);
+    const leads = await pd.leads.listProspects();
+    expect(leads.map((l) => l.name).sort()).toEqual([
+      "HLG Business Transformation",
+      "Herman Supply Chain Solutions",
+    ]);
+    await buildProfileDraft(HLG_BT_ID, pd);
+    await buildProfileDraft(HSCS_ID, pd);
+    expect((await pd.drafts.getByProspect(bt.prospectId!))!.profileId).toBe(HLG_BT_ID);
+    expect((await pd.drafts.getByProspect(hs.prospectId!))!.profileId).toBe(HSCS_ID);
+    // Re-assessing updates the profile's own lead, not a new one.
+    await assessProfile(HSCS_ID, undefined, pd);
+    expect((await profiles.get(HSCS_ID))!.prospectId).toBe(hs.prospectId);
+    expect(await pd.leads.listProspects()).toHaveLength(2);
+  });
+});
+
 describe("file stores", () => {
   let dir = "";
   afterEach(async () => {
