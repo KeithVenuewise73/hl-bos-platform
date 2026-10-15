@@ -8,7 +8,7 @@ import type { SiteDraft } from "./types.ts";
 
 export function checklistMarkdown(d: SiteDraft): string {
   const lines = [
-    `# Launch checklist — ${d.facts.businessName}`,
+    `# ${d.mode === "internal_draft" ? "Launch readiness" : "Launch checklist"} — ${d.facts.businessName}`,
     "",
     `Demo version ${d.version}, ${d.status}${d.approved ? ` (approved by ${d.approved.by} on ${d.approved.at.slice(0, 10)})` : ""}. Prepared ${d.updatedAt.slice(0, 10)}.`,
     "Nothing on this list has been done. Domain, hosting and anything paid are decisions, not steps.",
@@ -24,6 +24,22 @@ export function checklistMarkdown(d: SiteDraft): string {
 }
 
 export function readme(d: SiteDraft): string {
+  if (d.mode === "internal_draft")
+    return [
+      `INTERNAL DRAFT — ${d.facts.businessName} (not published)`,
+      "",
+      `Version ${d.version}, prepared ${d.updatedAt.slice(0, 10)} from the verified Business Profile for internal review.`,
+      "This draft must not be published without explicit CEO approval.",
+      "It is marked noindex. It runs no scripts. The contact form is switched off.",
+      d.infoRequired?.length
+        ? `Information required before launch: ${d.infoRequired.join("; ")}.`
+        : "",
+      "",
+      "Files: index.html (the page, one file, no scripts), LAUNCH-CHECKLIST.md (launch readiness).",
+      "",
+    ]
+      .filter((l, i, a) => l !== "" || a[i - 1] !== "")
+      .join("\n");
   return [
     `DEMO WEBSITE — ${d.facts.businessName}`,
     "",
@@ -50,7 +66,7 @@ const slug = (s: string) =>
     .slice(0, 50) || "demo";
 
 export function zipFileName(d: SiteDraft): string {
-  return `hlg-demo-${slug(d.facts.businessName)}-v${d.version}.zip`;
+  return `hlg-${d.mode === "internal_draft" ? "internal-draft" : "demo"}-${slug(d.facts.businessName)}-v${d.version}.zip`;
 }
 
 export async function draftZip(d: SiteDraft, now: Date): Promise<Uint8Array> {

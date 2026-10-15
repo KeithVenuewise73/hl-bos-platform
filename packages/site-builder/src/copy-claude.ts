@@ -124,7 +124,10 @@ export async function writeCopy(
   if (!writer || !writer.available)
     return { copy: baseline, source: "template", notes: [] };
   try {
-    const draft = await writer.write(facts, baseline);
+    const written = await writer.write(facts, baseline);
+    // Claude writes the core fields only; the professional sections stay the
+    // template's, so every sample item keeps its Sample marker.
+    const draft: SiteCopy = baseline.pro ? { ...written, pro: baseline.pro } : written;
     const problems = validateCopy(draft, facts);
     if (problems.length)
       return {
