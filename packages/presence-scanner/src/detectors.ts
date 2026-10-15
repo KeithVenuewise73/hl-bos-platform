@@ -217,6 +217,21 @@ export interface ConversionDetections {
   vendors: { id: string; name: string; category: VendorCategory; evidence: string }[];
   /** Per capability. call/email/form come from extractFindings and are filled in by website.ts. */
   capabilities: Partial<Record<ConversionKey, Detection>>;
+  /**
+   * Observations recorded only for verticals that ask for them. None is ever
+   * scored: testimonials, statistics and placeholder-looking contact details
+   * can be SEEN on a page, but whether they are true cannot.
+   */
+  observations: {
+    serviceArea: Detection;
+    testimonials: Detection;
+    /** Statistic-style claims ("$2.4M+ saved", "98% retention", "200+ clients"). */
+    claims: Detection;
+    /** Phone numbers in the fictional 555 exchange (e.g. 716-555-0142). */
+    placeholderPhones: Detection;
+    /** A privacy-policy link (only meaningful when the page collects data). */
+    privacy: Detection;
+  };
   copyrightYear: number | undefined;
 }
 
@@ -269,6 +284,32 @@ const hostAndPath = (u: string) => {
     return u.toLowerCase();
   }
 };
+
+/** Visible heading texts (h1-h4), lower-cased. */
+function headings(html: string): string[] {
+  return [...html.matchAll(/<h([1-4])\b[^>]*>([\s\S]*?)<\/h\1>/gi)].map((m) =>
+    stripTags(m[2] ?? "").toLowerCase(),
+  );
+}
+
+/** A short link whose text matches, a link address that matches, or a heading. */
+function linkOrHeading(
+  ls: Link[],
+  hs: string[],
+  text: RegExp,
+  href: RegExp | undefined,
+  what: string,
+): Detection {
+  const link = firstLink(
+    ls,
+    (l) => (text.test(l.text) && l.short) || (href !== undefined && href.test(l.href)),
+  );
+  if (link.found) return link;
+  const h = hs.find((x) => text.test(x) && x.split(" ").length <= 8);
+  return h
+    ? { found: true, evidence: clip(`a “${h}” ${what} heading on the homepage`) }
+    : link;
+}
 
 function firstLink(ls: Link[], test: (l: Link) => boolean): Detection {
   const l = ls.find(test);
@@ -403,6 +444,102 @@ export function detectConversion(html: string, now: Date): ConversionDetections 
         ) && l.short,
     );
 
+  // Professional-services signals. Each records exactly what was seen.
+  const hs = headings(html);
+  const consultation =
+    vendorDetection(["booking"]) ??
+    firstLink(
+      ls,
+      (l) =>
+        /\b(consultations?|consult|assessments?|discovery call|strategy (call|session)|(book|schedule|request) (a |an |your )?(call|meeting)|get a proposal|request (a )?proposal|talk to (us|an? (expert|advisor|consultant)))\b/.test(
+          l.text,
+        ) && l.short,
+    );
+  const industries = linkOrHeading(
+    ls,
+    hs,
+    /\b(industries( we serve)?|who we serve|sectors( we serve)?|clients we serve|markets we serve)\b/,
+    /\/(industries|sectors|who-we-serve)\b/i,
+    "industries",
+  );
+  const about = linkOrHeading(
+    ls,
+    hs,
+    /^(about( us)?|our story|who we are|our team|meet the team|leadership|our leadership|about [a-z0-9 &'.-]{2,40})$/,
+    /\/(about|our-story|team|leadership)(\.html?)?(\/|$|[?#])/i,
+    "about",
+  );
+  const process = linkOrHeading(
+    ls,
+    hs,
+    /\b(how we work|our process|our approach|how it works|our methodology|methodology|engagement process|a proven methodology)\b/,
+    /\/(process|approach|how-we-work|how-it-works|methodology)\b/i,
+    "process",
+  );
+  const proof = linkOrHeading(
+    ls,
+    hs,
+    /\b(case stud(y|ies)|portfolio|our work|client results|success stories|results|projects)\b/,
+    /\/(case-stud(y|ies)|portfolio|our-work|results|projects)\b/i,
+    "proof",
+  );
+  const serviceAreaText = text.match(
+    /\b(?:[Ss]ervice [Aa]reas?|[Aa]reas [Ww]e [Ss]erve|[Ss]erving (?:the )?[A-Z][A-Za-z.&–' -]{2,60}|[Nn]ationwide|[Aa]ll 48 (?:[Cc]ontinental )?[Ss]tates)/,
+  );
+  const serviceArea: Detection = serviceAreaText
+    ? { found: true, evidence: clip(`“${serviceAreaText[0].trim()}” on the homepage`) }
+    : { found: false, evidence: undefined };
+  const testimonialHeading = hs.find((h) =>
+    /\b(testimonials?|what (our )?clients say|what our customers say|client reviews|kind words)\b/.test(
+      h,
+    ),
+  );
+  const quotes = (html.match(/<blockquote\b/gi) ?? []).length;
+  const testimonials: Detection = testimonialHeading
+    ? {
+        found: true,
+        evidence: clip(`a “${testimonialHeading}” section on the homepage`),
+      }
+    : quotes > 0
+      ? { found: true, evidence: `${quotes} quotation block(s) on the homepage` }
+      : { found: false, evidence: undefined };
+  const claimMatches = [
+    ...text.matchAll(
+      /(\$\s?\d[\d.,]*\s?(?:[KMB]\b|million|billion)\+?|\b\d{1,3}(?:\.\d+)?%|\b\d{2,}\+\s?(?:[a-z]+\s){0,2}(?:clients|customers|engagements|projects|years|businesses|companies|locations|vehicles)|\b\d{1,3}\s?(?:years?|yrs)\b(?: of)?(?:\s[a-z]+){0,2}\s(?:experience|leadership|in business))/gi,
+    ),
+  ].map((m) => m[0].trim());
+  const claims: Detection = claimMatches.length
+    ? {
+        found: true,
+        evidence: clip(
+          `${claimMatches.length} statistic-style claim(s), e.g. ${[...new Set(claimMatches)].slice(0, 4).join("; ")}`,
+          200,
+        ),
+      }
+    : { found: false, evidence: undefined };
+  const phones = [
+    ...new Set(
+      [
+        ...ls.filter((l) => /^tel:/i.test(l.href)).map((l) => l.href.slice(4)),
+        ...(text.match(/\(?\b\d{3}\)?[-. ]?555[-. ]?\d{4}\b/g) ?? []),
+      ].filter((p) => /(^|\D)555\D?\d{4}$/.test(p.replace(/\s/g, ""))),
+    ),
+  ];
+  const placeholderPhones: Detection = phones.length
+    ? {
+        found: true,
+        evidence: clip(
+          `phone number(s) in the 555 exchange, which is reserved for fiction and examples: ${phones.slice(0, 3).join(", ")}`,
+          200,
+        ),
+      }
+    : { found: false, evidence: undefined };
+  const privacy = firstLink(
+    ls,
+    (l) =>
+      (/\bprivacy\b/.test(l.text) && l.short) || /\/privacy(-policy)?\b/i.test(l.href),
+  );
+
   // Copyright year. A year written by script (getFullYear) is current by
   // construction, so it cannot be judged from the static HTML.
   let copyrightYear: number | undefined;
@@ -428,7 +565,13 @@ export function detectConversion(html: string, now: Date): ConversionDetections 
       // A quote tool or quote link also counts as a form for contractors;
       // website.ts merges it with the <form> count.
       form: quote,
+      consultation,
+      industries,
+      about,
+      process,
+      proof,
     },
+    observations: { serviceArea, testimonials, claims, placeholderPhones, privacy },
     copyrightYear,
   };
 }

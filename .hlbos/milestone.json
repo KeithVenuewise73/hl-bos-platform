@@ -356,6 +356,14 @@
     {
       "title": "HLG Instant Site Builder: add an Anthropic key to switch demo copy from the template writer to Claude (every draft is still checked)",
       "done": false
+    },
+    {
+      "title": "HLG Phase 3A: professional-services vertical (scanner + builder) through vertical registries; Business Profiles with verified facts; internal drafts for HLG Business Transformation and HSCS; batch demo builds (max 10); Market-to-Client architecture (docs/architecture/75) \u2014 built and tested, branch feat/professional-services-scale-foundation, not merged",
+      "done": true
+    },
+    {
+      "title": "HLG internal pilot: CEO reviews the HLG Business Transformation and HSCS drafts and supplies the missing facts (business emails, HSCS phone, privacy policy, legal names)",
+      "done": false
     }
   ],
   "blockers": [

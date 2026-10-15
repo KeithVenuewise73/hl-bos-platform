@@ -1,9 +1,10 @@
 import { notFound } from "next/navigation";
 
-import { isSiteVertical } from "@hl-bos/site-builder";
+import { isSiteVertical, supportedVerticalsText } from "@hl-bos/site-builder";
 
 import {
   effectiveQualification,
+  FINDING_STATUS_LABELS,
   QUALIFICATION_LABELS,
   STAGE_TO_HLBOS,
   stageLabel,
@@ -17,17 +18,24 @@ import { BuildDemoButton } from "@/components/DemoControls";
 import { LeadControls } from "@/components/LeadControls";
 import { C, QUAL_COLOUR, scoreColour } from "@/components/presence-style";
 import { FilePresenceRepository } from "@/lib/presence-store";
-import { FileDraftRepository } from "@/lib/site-store";
+import { FileDraftRepository, FileProfileRepository } from "@/lib/site-store";
 
 export const dynamic = "force-dynamic";
 
-const STATUS_TEXT: Record<Finding["status"], [string, string]> = {
-  present: ["Present", C.green],
-  missing: ["Missing", C.red],
-  not_found: ["Not found", C.yellow],
-  blocked: ["Blocked", C.yellow],
-  not_checked: ["Not checked", C.grey],
+const STATUS_COLOUR: Record<Finding["status"], string> = {
+  present: C.green,
+  missing: C.red,
+  not_found: C.yellow,
+  blocked: C.yellow,
+  not_checked: C.grey,
+  needs_verification: C.yellow,
 };
+const STATUS_TEXT = Object.fromEntries(
+  Object.entries(STATUS_COLOUR).map(([k, c]) => [
+    k,
+    [FINDING_STATUS_LABELS[k as Finding["status"]], c],
+  ]),
+) as Record<Finding["status"], [string, string]>;
 
 const SOURCE_TEXT: Record<Finding["source"], string> = {
   google_places: "Google Maps",
@@ -42,10 +50,13 @@ export default async function LeadCardPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const [p, draft] = await Promise.all([
+  const [p, draft, profiles] = await Promise.all([
     new FilePresenceRepository().getProspect(id),
     new FileDraftRepository().getByProspect(id),
+    new FileProfileRepository().list(),
   ]);
+  // An HLG-owned business: its site is an internal draft from its Business Profile.
+  const profile = profiles.find((x) => x.prospectId === id);
   if (!p) notFound();
   const q = effectiveQualification(p.qualification);
   const rec = p.places?.record;
@@ -376,13 +387,34 @@ export default async function LeadCardPage({
       </Card>
 
       <Card
-        title="Demo site"
-        sub="A private one-page demo built from this lead, for the owner to see. Nothing is published from here."
+        title={profile ? "Internal website draft" : "Demo site"}
+        sub={
+          profile
+            ? "An HLG-owned business: its site is built from its verified Business Profile, not as a prospect demo. Nothing is published from here."
+            : "A private one-page demo built from this lead, for the owner to see. Nothing is published from here."
+        }
       >
-        {!isSiteVertical(p.vertical) ? (
+        {profile ? (
+          <p style={{ margin: 0, fontSize: 13 }}>
+            {draft
+              ? `Internal draft version ${draft.version}, ${draft.status === "approved" ? "approved" : "draft"}. `
+              : "No internal draft yet. "}
+            <a href={`/profiles/${profile.id}`} style={{ color: C.link }}>
+              Open the Business Profile →
+            </a>
+            {draft ? (
+              <>
+                {" · "}
+                <a href={`/profiles/${profile.id}/draft`} style={{ color: C.link }}>
+                  Open the internal draft →
+                </a>
+              </>
+            ) : null}
+          </p>
+        ) : !isSiteVertical(p.vertical) ? (
           <p style={{ margin: 0, fontSize: 13, color: C.muted }}>
-            Demo templates exist for contractors, salons/barbers and restaurants/bars so
-            far; this vertical comes later.
+            Demo templates exist for {supportedVerticalsText()} so far; this vertical
+            comes later.
           </p>
         ) : draft ? (
           <p style={{ margin: 0, fontSize: 13 }}>

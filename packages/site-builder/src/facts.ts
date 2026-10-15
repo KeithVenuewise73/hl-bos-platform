@@ -2,24 +2,22 @@
 // filled in. A reviewer's correction wins over Google and the import, exactly
 // as it does on the Lead Card.
 
-import { classifyUrl, normalizePhone, type Prospect } from "@hl-bos/presence-scanner";
+import {
+  classifyUrl,
+  normalizePhone,
+  professionalSubtype,
+  type Prospect,
+} from "@hl-bos/presence-scanner";
 
-import type { SiteFacts, SiteVertical } from "./types.ts";
+import type { SiteFacts } from "./types.ts";
+import { isSiteVertical, supportedVerticalsText } from "./verticals.ts";
 
-export const SITE_VERTICALS: SiteVertical[] = [
-  "contractor",
-  "salon_barber",
-  "restaurant_bar",
-];
-
-export function isSiteVertical(v: string): v is SiteVertical {
-  return (SITE_VERTICALS as string[]).includes(v);
-}
+export { isSiteVertical, SITE_VERTICALS } from "./verticals.ts";
 
 export class UnsupportedVerticalError extends Error {
   constructor(vertical: string) {
     super(
-      `Demo sites are built for contractors, salons/barbers and restaurants/bars so far; "${vertical}" templates come later.`,
+      `Demo sites are built for ${supportedVerticalsText()} so far; "${vertical}" templates come later.`,
     );
     this.name = "UnsupportedVerticalError";
   }
@@ -99,5 +97,12 @@ export function factsFromProspect(p: Prospect): SiteFacts {
       .map((s) => s.replace(/\s*\(.*\)$/, "").trim())
       .filter(Boolean),
     websiteStatus: p.websiteStatus,
+    ...(p.vertical === "professional_services"
+      ? {
+          subtype: professionalSubtype(
+            `${p.name} ${rec?.primaryTypeLabel ?? rec?.primaryType ?? ""}`,
+          ).key,
+        }
+      : {}),
   };
 }

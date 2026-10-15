@@ -6,22 +6,20 @@
 // banner and "sample" marker. No scripts: the page works without JavaScript.
 
 import type { SiteVertical } from "./types.ts";
+import { SITE_VERTICAL_REGISTRY, verticalDef } from "./verticals.ts";
 
-/** Per-vertical accent, in the same three-token form the live sites use. */
-export const ACCENTS: Record<
-  SiteVertical,
-  { accent: string; dark: string; soft: string }
-> = {
-  contractor: { accent: "#2f5e8c", dark: "#244a70", soft: "#e6eef6" }, // DDH blue
-  salon_barber: { accent: "#9a4040", dark: "#7a3030", soft: "#f6e8e8" },
-  restaurant_bar: { accent: "#d97828", dark: "#b0601d", soft: "#fbeee2" },
-};
+export type Accent = { accent: string; dark: string; soft: string };
+
+/** Per-vertical accent, in the same three-token form the live sites use (from the registry). */
+export const ACCENTS = Object.fromEntries(
+  Object.values(SITE_VERTICAL_REGISTRY).map((d) => [d.key, d.accent]),
+) as Record<SiteVertical, Accent>;
 
 export const FONTS_HREF =
   "https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Inter:wght@400;500;600;700&display=swap";
 
-export function siteCss(v: SiteVertical): string {
-  const a = ACCENTS[v];
+export function siteCss(v: SiteVertical, brand?: Accent): string {
+  const a = brand ?? verticalDef(v).accent;
   return `:root{--ink:#13283d;--ink-2:#1d3a54;--ink-soft:#3a4f63;--paper:#f7f4ee;--paper-2:#fffefa;--card:#fff;--line:#e6ded0;--line-2:#efe9dd;--muted:#5d6b78;--brass:#c0892d;--brass-dark:#9a6a1d;--accent:${a.accent};--accent-dark:${a.dark};--accent-soft:${a.soft};--shadow-sm:0 1px 2px rgba(19,40,61,.05),0 4px 14px rgba(19,40,61,.06);--shadow:0 2px 6px rgba(19,40,61,.06),0 18px 44px rgba(19,40,61,.10);--radius:14px;--radius-sm:9px;--maxw:1160px}
 *{box-sizing:border-box}html{scroll-behavior:smooth}
 body{margin:0;font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;color:var(--ink);background:var(--paper);line-height:1.62;font-size:17px;-webkit-font-smoothing:antialiased}

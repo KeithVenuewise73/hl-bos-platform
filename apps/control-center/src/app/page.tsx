@@ -56,6 +56,10 @@ export default async function Page() {
             Presence Scanner
           </a>{" "}
           ·{" "}
+          <a href="/profiles" style={{ color: "#58a6ff" }}>
+            Business Profiles
+          </a>{" "}
+          ·{" "}
           <a href="/video" style={{ color: "#58a6ff" }}>
             Video Studio
           </a>{" "}

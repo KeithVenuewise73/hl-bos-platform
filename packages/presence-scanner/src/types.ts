@@ -6,7 +6,12 @@
 // on guesses is worse than no lead, because the CEO acts on it.
 
 export type Vertical =
-  "contractor" | "salon_barber" | "restaurant_bar" | "trainer_coach" | "youth_sports";
+  | "contractor"
+  | "salon_barber"
+  | "restaurant_bar"
+  | "trainer_coach"
+  | "youth_sports"
+  | "professional_services";
 
 /**
  * What we know about one fact.
@@ -18,9 +23,18 @@ export type Vertical =
  *                inspected, so it may exist elsewhere
  *   blocked      we tried and could not inspect (robots.txt, 403, unsafe address)
  *   not_checked  no source we used covers this fact
+ *   needs_verification
+ *                we saw it, but whether it is TRUE cannot be judged from a
+ *                web page (a testimonial, a statistic, a phone number that
+ *                looks like a placeholder). Never scored either way.
  */
 export type FindingStatus =
-  "present" | "missing" | "not_found" | "blocked" | "not_checked";
+  | "present"
+  | "missing"
+  | "not_found"
+  | "blocked"
+  | "not_checked"
+  | "needs_verification";
 
 export type FindingSource = "google_places" | "website" | "import" | "reviewer";
 

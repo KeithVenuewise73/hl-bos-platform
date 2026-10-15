@@ -1,5 +1,6 @@
 "use client";
 
+import { VERTICAL_LABELS } from "@hl-bos/presence-scanner/labels";
 import { useState, useTransition } from "react";
 
 import { runPresenceScan } from "@/actions/presence";
@@ -7,13 +8,8 @@ import type { PresenceResult } from "@/lib/presence";
 
 import { button, C, input, label } from "./presence-style";
 
-const VERTICALS: [string, string][] = [
-  ["contractor", "Contractor / home services"],
-  ["salon_barber", "Salon / barber"],
-  ["restaurant_bar", "Restaurant / bar"],
-  ["trainer_coach", "Trainer / coach"],
-  ["youth_sports", "Youth sports organization"],
-];
+// From the vertical registry, so a new vertical appears here without editing this file.
+const VERTICALS = Object.entries(VERTICAL_LABELS);
 
 const EXAMPLE = `name,website,phone,address
 Example Roofing,exampleroofing.com,716-555-0100,12 Main St

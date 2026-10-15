@@ -14,6 +14,7 @@ export * from "./chains.ts";
 export * from "./robots.ts";
 export * from "./detectors.ts";
 export * from "./website.ts";
+export * from "./saved-copy.ts";
 export * from "./findings.ts";
 export * from "./score.ts";
 export * from "./qualify.ts";

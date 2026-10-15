@@ -2,7 +2,14 @@ import "server-only";
 import { mkdir, readFile, rename, writeFile } from "node:fs/promises";
 import path from "node:path";
 
-import type { SiteDraft, SiteDraftRepository } from "@hl-bos/site-builder";
+import type {
+  BusinessProfile,
+  BusinessProfileRepository,
+  SiteDraft,
+  SiteDraftRepository,
+} from "@hl-bos/site-builder";
+
+import type { BatchRun } from "./batch";
 
 /**
  * Demo drafts on this computer: apps/control-center/.data/site-builder/
@@ -49,4 +56,69 @@ export class FileDraftRepository implements SiteDraftRepository {
     });
     await rename(tmp, file);
   }
+}
+
+/** Business Profiles on this computer: .data/site-builder/profiles.json (gitignored). */
+export class FileProfileRepository implements BusinessProfileRepository {
+  constructor(
+    private readonly dir: string = path.join(process.cwd(), ".data", "site-builder"),
+  ) {}
+
+  private async all(): Promise<BusinessProfile[]> {
+    try {
+      const parsed: unknown = JSON.parse(
+        await readFile(path.join(this.dir, "profiles.json"), "utf8"),
+      );
+      return Array.isArray(parsed) ? (parsed as BusinessProfile[]) : [];
+    } catch {
+      return [];
+    }
+  }
+
+  async get(id: string) {
+    return (await this.all()).find((p) => p.id === id);
+  }
+
+  list() {
+    return this.all();
+  }
+
+  async save(profile: BusinessProfile): Promise<void> {
+    const rest = (await this.all()).filter((p) => p.id !== profile.id);
+    await writeAtomic(this.dir, "profiles.json", [...rest, profile]);
+  }
+}
+
+/** Batch build records: .data/site-builder/batches.json (gitignored), newest first. */
+export class FileBatchStore {
+  constructor(
+    private readonly dir: string = path.join(process.cwd(), ".data", "site-builder"),
+  ) {}
+
+  async list(): Promise<BatchRun[]> {
+    try {
+      const parsed: unknown = JSON.parse(
+        await readFile(path.join(this.dir, "batches.json"), "utf8"),
+      );
+      return Array.isArray(parsed) ? (parsed as BatchRun[]) : [];
+    } catch {
+      return [];
+    }
+  }
+
+  async save(run: BatchRun): Promise<void> {
+    const rest = (await this.list()).filter((r) => r.id !== run.id);
+    await writeAtomic(this.dir, "batches.json", [run, ...rest].slice(0, 50));
+  }
+}
+
+async function writeAtomic(dir: string, name: string, data: unknown): Promise<void> {
+  await mkdir(dir, { recursive: true });
+  const file = path.join(dir, name);
+  const tmp = `${file}.${process.pid}.${Date.now()}.tmp`;
+  await writeFile(tmp, JSON.stringify(data, null, 1), {
+    encoding: "utf8",
+    mode: 0o600,
+  });
+  await rename(tmp, file);
 }

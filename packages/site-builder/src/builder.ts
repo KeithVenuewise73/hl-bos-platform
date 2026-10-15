@@ -164,6 +164,15 @@ export function editDraft(
     changed.push(edit.showVideoBlock ? "video block shown" : "video block hidden");
   }
   if (!changed.length) return d;
+  // Text a reviewer typed is not verified, whatever it replaced.
+  if (copy.verifiedFields) {
+    const touched = new Set<string>([
+      ...(changed.includes("headline") ? ["heroHeadline"] : []),
+      ...(changed.includes("subhead") ? ["heroSubhead"] : []),
+      ...(changed.includes("about text") ? ["aboutBody"] : []),
+    ]);
+    copy.verifiedFields = copy.verifiedFields.filter((f) => !touched.has(f));
+  }
   const problems = validateCopy(copy, d.facts);
   if (problems.length) throw new DraftEditError(problems.slice(0, 4).join(" "));
   const at = now.toISOString();
@@ -171,7 +180,11 @@ export function editDraft(
     ...d,
     copy,
     options,
-    checklist: launchChecklist(d.facts, sampleCount(copy)),
+    // An internal draft's launch-readiness list comes from its profile, not the copy.
+    checklist:
+      d.mode === "internal_draft"
+        ? d.checklist
+        : launchChecklist(d.facts, sampleCount(copy)),
     status: "draft",
     approved: undefined,
     updatedAt: at,
@@ -201,7 +214,10 @@ export function approveDraft(d: SiteDraft, by: string, now: Date): SiteDraft {
         at,
         by,
         action: "approved",
-        detail: "Approved as fit to show the business owner. Nothing was published.",
+        detail:
+          d.mode === "internal_draft"
+            ? "Approved as an internal draft for CEO review. Nothing was published."
+            : "Approved as fit to show the business owner. Nothing was published.",
       },
     ],
   };
