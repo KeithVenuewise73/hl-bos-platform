@@ -328,6 +328,14 @@
     {
       "title": "JerseySort AI: switch the app from the local store to the jerseysort schema, with Supabase sign-in",
       "done": false
+    },
+    {
+      "title": "HLG Presence Scanner Phase 1: scan a market (pasted list or Google Places), inspect websites through the existing safe scanner, score with presence-opportunity-0.1.0, Lead Board, Lead Card, CSV export \u2014 in the console at /presence; built and tested, branch feat/presence-scanner-phase-1, not merged",
+      "done": true
+    },
+    {
+      "title": "HLG Presence Scanner: add a Google Places key with a monthly budget cap, then run the first live scan (West Seneca / Orchard Park contractors)",
+      "done": false
     }
   ],
   "blockers": [

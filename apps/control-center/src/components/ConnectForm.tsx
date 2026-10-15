@@ -20,10 +20,12 @@ export function ConnectForm({
   hasGithub,
   hasSupabase,
   supabaseRef,
+  hasPlaces,
 }: {
   hasGithub: boolean;
   hasSupabase: boolean;
   supabaseRef: string | null;
+  hasPlaces: boolean;
 }) {
   const [pending, start] = useTransition();
   const [result, setResult] = useState<ActionResult | null>(null);
@@ -69,6 +71,19 @@ export function ConnectForm({
         style={input}
         defaultValue={supabaseRef ?? ""}
         placeholder="mvvtngiopdrgiedjmhfb"
+        autoComplete="off"
+      />
+
+      <label style={{ fontSize: 12.5, color: "#8b949e" }}>
+        Google Places API key (Presence Scanner — optional)
+      </label>
+      <input
+        name="places"
+        type="password"
+        style={input}
+        placeholder={
+          hasPlaces ? "Already connected — paste a new one to replace it" : "AIza..."
+        }
         autoComplete="off"
       />
 

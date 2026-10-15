@@ -56,7 +56,7 @@ export interface ScanResult {
   dimensions: ReturnType<typeof scoreFromFindings>["dimensions"];
   rubricVersion: string;
   aiFindings: unknown | null;
-  aiError?: string;
+  aiError?: string | undefined;
 }
 
 export interface RunScanParams {
@@ -116,7 +116,7 @@ export async function runScan(params: RunScanParams): Promise<ScanResult> {
   // 3. response guards
   if (res.bytes > limits.maxBytes)
     return fail(normalized, "ssrf_blocked:response_too_large");
-  const ct = (res.contentType || "").split(";")[0].trim().toLowerCase();
+  const ct = ((res.contentType || "").split(";")[0] ?? "").trim().toLowerCase();
   if (!limits.allowedContentTypes.includes(ct))
     return fail(normalized, `unsupported_content_type:${ct}`);
   if (res.status >= 400) return fail(normalized, `http_${res.status}`);

@@ -25,3 +25,6 @@ apps/hl-bti-alpha/preview/hl-bti-preview.html
 # Prettier walks the filesystem rather than git.
 **/.venv/
 **/__pycache__/
+
+# Generated gazetteer subset (one-line JSON tables). See the file header.
+packages/presence-scanner/src/gazetteer-wny.ts

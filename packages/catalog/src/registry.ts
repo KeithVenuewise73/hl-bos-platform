@@ -179,6 +179,7 @@ const ASSETS: Asset[] = [
     tags: ["executive", "console", "local-only"],
     relationships: [
       { kind: "consumes", to: "pkg.catalog" },
+      { kind: "uses", to: "pkg.presence-scanner" },
       { kind: "provides", to: "wf.catalog-governance" },
       { kind: "owned_by", to: "repo.hl-bos-platform" },
     ],
@@ -494,6 +495,26 @@ const ASSETS: Asset[] = [
     ],
     evidence:
       "packages/jersey-sort; 76 tests green; the Claude provider tested with an injected client only — never run against the live API",
+  },
+  {
+    id: "pkg.presence-scanner",
+    kind: "package",
+    name: "@hl-bos/presence-scanner",
+    summary:
+      "The HLG Presence Scanner engine: finds local businesses (Google Places Text Search behind an adapter, or a pasted list / CSV), inspects each website through the existing SSRF-safe discovery scanner (runScan, extractFindings, rubric-0.1.0, reused unchanged), adds conversion detectors (booking, ordering, menu, pricing, directions, registration), de-duplicates, qualifies and scores with the deterministic, versioned presence-opportunity-0.1.0 rubric, where every point names a rule and its evidence and unchecked data is never scored as zero. Suggested services come from the BTI growth map. Storage is behind a repository interface; Google content other than the place ID expires after 30 days.",
+    maturity: "built_undeployed",
+    reuse: ["reusable"],
+    owner: "Herman Legacy Platform",
+    layer: "HL-BOS",
+    key: "presence-scanner",
+    location: "packages/presence-scanner",
+    tags: ["package", "domain-logic", "lead-discovery", "website-scanner", "scoring"],
+    relationships: [
+      { kind: "uses", to: "pkg.bti-engine" },
+      { kind: "owned_by", to: "repo.hl-bos-platform" },
+    ],
+    evidence:
+      "packages/presence-scanner; tests green; the Google Places client tested with an injected fetch only — never run against the live API (no key configured)",
   },
   {
     id: "mod.sceneflow-local",
