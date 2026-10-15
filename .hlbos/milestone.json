@@ -352,6 +352,14 @@
     {
       "title": "HLG internal pilot: CEO reviews the HLG Business Transformation and HSCS drafts and supplies the missing facts (business emails, HSCS phone, privacy policy, legal names)",
       "done": false
+    },
+    {
+      "title": "HLG Phase 3B: Premium Business Site mode (six pages, Atelier and Meridian themes, bundled fonts, no scripts, accessibility and performance reviews) and premium drafts for HLG Business Transformation and HSCS; console review at /profiles/[id]/premium \u2014 built and tested, branch feat/premium-professional-sites-phase-3b, not merged",
+      "done": true
+    },
+    {
+      "title": "HLG premium sites: CEO design review of both drafts; confirm business emails and legal names; approve privacy-policy preparation; decide on private preview hosting",
+      "done": false
     }
   ],
   "blockers": [

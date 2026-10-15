@@ -78,6 +78,17 @@ policy, and the explicit approval to publish. HSCS also has two taglines on reco
 the brief's _Transportation & Operations Consulting supported with AI_ (used) and the
 Commercial Foundation's _35 Years of Operational Experience. Enhanced by AI._
 
+## Phase 3B updates
+
+- The Phase 3B brief updated the facts: HLG Business Transformation's positioning,
+  service list and calls to action; both companies' phone (716-220-7354); HSCS's two
+  approved statements; planned addresses for display only. Product statuses are now
+  **Pilot** (Presence Scanner, Instant Site Builder) and **Planned** (the rest).
+- HSCS now also uses the approved Commercial Foundation's service catalog (§6), method
+  (§9), tier-1 verticals (§7.1, without employer names) and value pillars (§4.2).
+- Both companies have a **Premium Business Site** draft: see
+  `docs/products/premium-sites`.
+
 ## Known limitations
 
 - No live check has been run: this build environment has no internet, so HSCS was

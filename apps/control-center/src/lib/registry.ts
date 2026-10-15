@@ -31,7 +31,7 @@ export const PORTFOLIO: readonly Product[] = [
     name: "HLG Instant Site Builder",
     stage: "development",
     status:
-      "Phase 3A built and tested in the console (branch feat/professional-services-scale-foundation, not merged): professional services added through a vertical registry; Business Profiles with verified facts; private internal drafts for HLG Business Transformation and HSCS; batch demo builds of up to 10 leads. Phase 2 demo sites for contractors, salons/barbers and restaurants/bars are unchanged. Private previews only; nothing is published. Copy uses the template writer until an Anthropic key is added.",
+      "Phase 3B built and tested in the console (branch feat/premium-professional-sites-phase-3b, not merged): a second product, the Premium Business Site (six pages, theme presets, verified Business Profile content, accessibility and performance reviews), used for private drafts of HLG Business Transformation and HSCS awaiting CEO design review. The one-page Express Demo for prospects is unchanged. Professional services, Business Profiles, internal drafts and batch builds are merged (Phase 3A). Private previews only; nothing is published.",
     version: null,
     location: "this repository (packages/site-builder, console /presence/[id]/demo)",
   },
