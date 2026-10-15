@@ -415,13 +415,14 @@ describe("HSCS draft", () => {
       "Transportation &amp; Operations Consulting supported with AI.",
     );
     for (const area of [
-      "White-glove delivery",
+      "Final mile and white-glove delivery",
+      "Thirty-five years of operational experience",
       "Direct-to-customer distribution",
       "Dispatch and routing",
       "Practical AI-supported improvement",
     ])
       expect(html).toContain(area);
-    expect(d.brand!.accent).toBe("#006d77");
+    expect(d.brand!.accent).toBe("#34506b");
     expect(d.brand!.accent).not.toBe(
       internal(hlgBusinessTransformationProfile(NOW)).brand!.accent,
     );

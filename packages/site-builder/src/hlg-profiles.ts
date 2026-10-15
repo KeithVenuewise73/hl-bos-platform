@@ -21,6 +21,9 @@ const BRIEF = "CEO, Phase 3A brief (2026-10-15)";
 const HLG_SITE = "hermanlegacygroup.com source (GitHub hermanlegacygroup @ 57ee5b9)";
 const HSCS_SITE =
   "hermansupplychainsolutions.com source (GitHub herman-supply-chain @ 0971d06)";
+const HSCS_FOUNDATION =
+  "HSCS Commercial Foundation v1.0 (docs/products/hscs-commercial-foundation; owner: CEO)";
+const HSCS_DESIGN = "HSCS Design System v1.0 (docs/products/hscs-design-system) §4";
 const REGISTRY =
   "HL-BOS portfolio registry (apps/control-center/src/lib/registry.ts), 2026-10-15";
 
@@ -168,6 +171,10 @@ export function hscsProfile(now: Date): BusinessProfile {
       "Transportation & Operations Consulting supported with AI.",
       `${BRIEF}: approved positioning`,
     ),
+    description: v(
+      "HSCS is a transportation & operations consulting firm built by a business owner and designed for operators. Thirty-five years of operational experience, enhanced by AI.",
+      `${HSCS_FOUNDATION} §3.1 canonical positioning statement, verbatim`,
+    ),
     businessType: v(
       "Transportation & operations consulting",
       `${BRIEF}: approved positioning`,
@@ -177,7 +184,10 @@ export function hscsProfile(now: Date): BusinessProfile {
       `${HSCS_SITE}: CNAME file`,
     ),
     logoText: v("HSCS", `${BRIEF}: the business's short name`),
-    brandColor: v("#006d77", `${HSCS_SITE}: the teal in css/styles.css`),
+    brandColor: v(
+      "#34506b",
+      `${HSCS_DESIGN}: steel, the secondary brand colour for accents`,
+    ),
     serviceArea: u(
       "All 48 continental states",
       "Stated on the current HSCS site; not verified.",
@@ -221,12 +231,16 @@ export function hscsProfile(now: Date): BusinessProfile {
     ),
     experience: list(
       "verified",
-      `Approved experience areas: ${BRIEF}. No years, clients or results are stated.`,
+      `${BRIEF} (experience areas) and ${HSCS_FOUNDATION} §3.1 and §4.6. No clients or results are stated.`,
       [
-        ["White-glove delivery", ""],
+        [
+          "Thirty-five years of operational experience",
+          "Across the complete supply chain.",
+        ],
+        ["Manufacturing and warehousing", ""],
+        ["Middle mile and distribution", ""],
+        ["Final mile and white-glove delivery", ""],
         ["Direct-to-customer distribution", ""],
-        ["Middle mile and final mile", ""],
-        ["Warehousing", ""],
         ["Dispatch and routing", ""],
         ["Transportation operations", ""],
         ["Contractor and driver performance", ""],
@@ -244,6 +258,7 @@ export function hscsProfile(now: Date): BusinessProfile {
     "Its phone number 1-800-555-1234 is in the 555 exchange reserved for examples. Its email info@hermansupplychain.com is on a different domain from the site (hermansupplychainsolutions.com). Neither is used.",
     "The repository also contains a KPI dashboard page naming a retailer. No client is named on the draft.",
     "Business phone and email: CEO input required.",
+    "The approved HSCS Commercial Foundation's primary tagline is '35 Years of Operational Experience. Enhanced by AI.'; this draft uses the Phase 3A brief's 'Transportation & Operations Consulting supported with AI.' as the headline. Choose one.",
   ].join("\n");
   return p;
 }
