@@ -1,4 +1,8 @@
-// The Opportunity Score: presence-opportunity-0.1.0.
+// The Opportunity Score: presence-opportunity-0.2.0.
+//
+// 0.2.0 adds the professional-services conversion rules (verticals.ts). The
+// five Phase 1 verticals score exactly as they did under 0.1.0: same rules,
+// same points, pinned by score.test.ts.
 //
 // 0-100, higher = a bigger opportunity for HLG to improve the business's
 // digital presence. Deterministic: the same findings always give the same
@@ -27,7 +31,7 @@ import type {
   WebsiteStatus,
 } from "./types.ts";
 
-export const SCORING_VERSION = "presence-opportunity-0.1.0";
+export const SCORING_VERSION = "presence-opportunity-0.2.0";
 
 export interface ScoringConfig {
   version: string;
@@ -112,7 +116,20 @@ export const CONVERSION_LABELS: Record<ConversionKey, string> = {
   services: "services information",
   directions: "map or directions",
   registration: "online registration",
+  consultation: "consultation or assessment call to action",
+  industries: "industries-served section",
+  about: "about or experience section",
+  process: "how-we-work section",
+  proof: "case studies, portfolio or results",
 };
+
+/** Statuses that mean "we have no answer either way": never scored. */
+const UNANSWERED = new Set<string | undefined>([
+  undefined,
+  "not_checked",
+  "blocked",
+  "needs_verification",
+]);
 
 export interface ScoreInput {
   vertical: Vertical;
@@ -285,7 +302,7 @@ export function scoreOpportunity(
     for (const [k, pts] of Object.entries(rules) as [ConversionKey, number][]) {
       const key = `site.${k}`;
       const st = status(key);
-      if (st === undefined || st === "not_checked" || st === "blocked") continue;
+      if (UNANSWERED.has(st)) continue;
       p.checked += pts;
       if (st === "not_found" || st === "missing") {
         p.awarded += pts;
@@ -461,7 +478,7 @@ export function scoreOpportunity(
     ];
     for (const [key, rule, label, pts] of rules) {
       const st = status(key);
-      if (st === undefined || st === "not_checked" || st === "blocked") continue;
+      if (UNANSWERED.has(st)) continue;
       p.checked += pts;
       if (st === "missing" || st === "not_found") {
         p.awarded += pts;
