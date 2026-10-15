@@ -107,7 +107,11 @@ export function BatchRunner({
                 </td>
                 <td style={{ padding: 6 }}>{r?.version ?? "—"}</td>
                 <td style={{ padding: 6 }}>
-                  {r?.ms !== undefined ? `${(r.ms / 1000).toFixed(2)} s` : "—"}
+                  {r?.ms !== undefined
+                    ? r.ms < 100
+                      ? "under 0.1 s"
+                      : `${(r.ms / 1000).toFixed(1)} s`
+                    : "—"}
                 </td>
                 <td style={{ padding: 6, color: C.muted }}>
                   {r ? (

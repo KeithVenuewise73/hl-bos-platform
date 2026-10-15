@@ -183,6 +183,31 @@ describe("Business Profiles in the console", () => {
     expect(parseItems(itemsToText(items), "products")).toEqual(items);
   });
 
+  it("re-submitting the whole editor unchanged changes nothing (CRLF, key order)", async () => {
+    const { pd, profiles } = world();
+    await seedInternalProfiles(pd);
+    const { PROFILE_FIELDS, PROFILE_LISTS } = await import("@hl-bos/site-builder");
+    for (const id of [HLG_BT_ID, HSCS_ID]) {
+      const p = (await profiles.get(id))!;
+      const fd = new FormData();
+      for (const k of Object.keys(PROFILE_FIELDS) as (keyof typeof PROFILE_FIELDS)[]) {
+        fd.set(`f.${k}.value`, p.fields[k].value);
+        fd.set(`f.${k}.status`, p.fields[k].status);
+        fd.set(`f.${k}.source`, p.fields[k].source);
+      }
+      for (const k of Object.keys(PROFILE_LISTS) as (keyof typeof PROFILE_LISTS)[]) {
+        // As a browser sends a textarea: CRLF line breaks.
+        fd.set(`l.${k}.items`, itemsToText(p.lists[k].items).replace(/\n/g, "\r\n"));
+        fd.set(`l.${k}.status`, p.lists[k].status);
+        fd.set(`l.${k}.source`, p.lists[k].source);
+      }
+      fd.set("internalNotes", p.internalNotes.replace(/\n/g, "\r\n"));
+      expect(profileFromForm(p, fd).changed).toEqual([]);
+      fd.set("l.industries.items", "Regional fleets: Local and regional operations.");
+      expect(profileFromForm(p, fd).changed).toEqual(["Industries served"]);
+    }
+  });
+
   it("an unchanged form changes nothing", async () => {
     const { pd, profiles } = world();
     await seedInternalProfiles(pd);
@@ -413,7 +438,7 @@ describe("controlled batch building", () => {
     ]);
     expect(run.items[1]!.message).toBe("Not built: disk full");
     expect(run.summary).toMatch(
-      /^3 built, 0 need information, 1 failed \(\d+\.\d s of build time\)\. Template copy only\. Nothing was published or sent\.$/,
+      /^3 built, 0 need information, 1 failed \(total build time (under 0\.1|\d+\.\d) seconds\)\. Template copy only\. Nothing was published or sent\.$/,
     );
     for (const i of run.items.filter((x) => x.status === "completed")) {
       expect(i.version).toBe(1);

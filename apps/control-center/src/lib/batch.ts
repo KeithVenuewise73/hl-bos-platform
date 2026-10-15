@@ -185,7 +185,7 @@ export function summarize(items: BatchItemResult[]): string {
     items.filter((i) => i.status === s).length;
   const built = items.filter((i) => i.status === "completed");
   const ms = built.reduce((a, i) => a + (i.ms ?? 0), 0);
-  return `${n("completed")} built, ${n("needs_info")} need information, ${n("failed")} failed${built.length ? ` (${(ms / 1000).toFixed(1)} s of build time)` : ""}. Template copy only. Nothing was published or sent.`;
+  return `${n("completed")} built, ${n("needs_info")} need information, ${n("failed")} failed${built.length ? ` (total build time ${ms < 100 ? "under 0.1" : (ms / 1000).toFixed(1)} seconds)` : ""}. Template copy only. Nothing was published or sent.`;
 }
 
 /** Run a whole planned batch, one lead at a time, reporting each status as it changes. */

@@ -106,10 +106,20 @@ export function itemsToText(items: ProfileItem[]): string {
     .join("\n");
 }
 
+/** Browsers send textarea line breaks as CRLF; profiles store LF. */
 const str = (fd: FormData, k: string) => {
   const v = fd.get(k);
-  return typeof v === "string" ? v : undefined;
+  return typeof v === "string" ? v.replace(/\r\n?/g, "\n") : undefined;
 };
+
+const sameItems = (a: ProfileItem[], b: ProfileItem[]) =>
+  a.length === b.length &&
+  a.every(
+    (x, i) =>
+      x.name === b[i]!.name &&
+      x.description === b[i]!.description &&
+      x.status === b[i]!.status,
+  );
 const status = (v: string | undefined): Verification | undefined =>
   STATUSES.includes(v as Verification) ? (v as Verification) : undefined;
 
@@ -152,7 +162,11 @@ export function profileFromForm(
       status: st ?? cur.status,
       source: source?.trim() ?? cur.source,
     };
-    if (JSON.stringify(upd) !== JSON.stringify(cur)) {
+    if (
+      !sameItems(upd.items, cur.items) ||
+      upd.status !== cur.status ||
+      upd.source !== cur.source
+    ) {
       next.lists[k] = upd;
       changed.push(PROFILE_LISTS[k]);
     }
