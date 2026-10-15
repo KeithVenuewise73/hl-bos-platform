@@ -1,4 +1,4 @@
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 
 import { BuildDemoButton, DemoEditor } from "@/components/DemoControls";
 import { C } from "@/components/presence-style";
@@ -22,6 +22,9 @@ export default async function DemoPage({
     anthropicConnected(),
   ]);
   if (!lead) notFound();
+  // HLG-owned businesses have an internal draft, shown on its own page.
+  if (draft?.mode === "internal_draft" && draft.profileId)
+    redirect(`/profiles/${draft.profileId}/draft`);
 
   return (
     <main style={{ maxWidth: 1240, margin: "0 auto", padding: "28px 24px 64px" }}>

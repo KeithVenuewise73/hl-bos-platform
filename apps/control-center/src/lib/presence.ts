@@ -32,6 +32,7 @@ import {
   type ScoringConfig,
   type WebEgress,
 } from "@hl-bos/presence-scanner";
+import { isSiteVertical } from "@hl-bos/site-builder";
 
 export interface PresenceDeps {
   repo: PresenceRepository;
@@ -247,7 +248,21 @@ export function toLeadRow(p: Prospect): LeadRow {
     overridden: p.qualification.override !== undefined,
     stage: p.stage,
     lastScannedAt: p.lastScannedAt,
+    ...batchability(p),
   };
+}
+
+function batchability(p: Prospect): { batchable: boolean; batchNote: string } {
+  if (p.notes.some((n) => n.text.startsWith("HLG-owned business")))
+    return {
+      batchable: false,
+      batchNote: "HLG-owned: built from its Business Profile",
+    };
+  if (!isSiteVertical(p.vertical))
+    return { batchable: false, batchNote: "No demo template for this vertical yet" };
+  if (effectiveQualification(p.qualification) !== "qualified")
+    return { batchable: false, batchNote: "Only qualified leads can be batch-built" };
+  return { batchable: true, batchNote: "" };
 }
 
 /** All leads in default ranking order. */
