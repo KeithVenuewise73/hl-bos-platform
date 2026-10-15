@@ -63,8 +63,12 @@ export interface Offering {
 export interface ToolItem {
   name: string;
   description: string;
-  /** live = customers can use it; in_development = built, not offered; planned = no product yet. */
-  status: "live" | "in_development" | "planned" | "in_use";
+  /**
+   * live = available now; pilot = in use with HLG's own businesses, not yet
+   * offered; in_development = built, not offered; planned = committed, no
+   * product yet; concept = an idea; in_use = a third-party tool already used.
+   */
+  status: "live" | "pilot" | "in_development" | "planned" | "concept" | "in_use";
 }
 
 /** The extra sections of the professional-services template. */

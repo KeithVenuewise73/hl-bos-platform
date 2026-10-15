@@ -369,7 +369,7 @@ describe("HLG Business Transformation draft", () => {
       "HLG Business Transformation helps local and service-based businesses",
     );
     expect(html).toContain("(716) 220-7354");
-    expect(html).toContain("Website and customer-experience transformation");
+    expect(html).toContain("Booking and ordering systems");
     expect(d.brand!.accent).toBe("#c0892d");
     expect(d.brand!.mark).toBe("HLG");
   });
@@ -387,7 +387,7 @@ describe("HLG Business Transformation draft", () => {
       expect(card).toContain('class="tool-status planned">Planned</span>');
     }
     expect(html).not.toContain(">Available</span>");
-    expect(html).toContain("In development");
+    expect(html).toContain(">Pilot</span>");
   });
 
   it("shows notices, not invented content, where facts are missing", () => {
@@ -412,17 +412,18 @@ describe("HSCS draft", () => {
     expect(p.id).toBe(HSCS_ID);
     expect(validateProfile(p)).toEqual([]);
     expect(html).toContain(
-      "Transportation &amp; Operations Consulting supported with AI.",
+      "Transportation &amp; Operations Consulting Supported by AI",
     );
     for (const area of [
-      "Final mile and white-glove delivery",
+      "White glove",
       "Thirty-five years of operational experience",
-      "Direct-to-customer distribution",
-      "Dispatch and routing",
-      "Practical AI-supported improvement",
+      "Direct-to-customer and cold-chain distribution",
+      "Middle-mile logistics",
+      "Transportation &amp; Fleet Optimization",
+      "AI-Enablement for Operations",
     ])
       expect(html).toContain(area);
-    expect(d.brand!.accent).toBe("#34506b");
+    expect(d.brand!.accent).toBe("#006d77");
     expect(d.brand!.accent).not.toBe(
       internal(hlgBusinessTransformationProfile(NOW)).brand!.accent,
     );
@@ -442,9 +443,10 @@ describe("HSCS draft", () => {
       "Lowe",
     ])
       expect(body(html)).not.toContain(s);
-    expect(html).not.toMatch(/href="tel:/);
-    expect(html).toContain(
-      "Information required:</strong> a business phone number or email address",
+    // The verified phone (Phase 3B brief), never the 1-800-555 placeholder.
+    expect(html).toContain('href="tel:+17162207354"');
+    expect(html).not.toContain(
+      "Information required:</strong> a business phone number",
     );
   });
 

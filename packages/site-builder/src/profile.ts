@@ -58,10 +58,12 @@ export const PROFILE_FIELDS = {
   bookingUrl: "Consultation or booking link",
   logoText: "Logo text mark",
   brandColor: "Brand colour",
+  credibility: "Credibility statement",
   primaryCta: "Primary call to action",
   secondaryCta: "Secondary call to action",
   privacyUrl: "Privacy policy link",
   termsUrl: "Terms link",
+  plannedDomain: "Planned public address (display and readiness only)",
 } as const;
 
 export const PROFILE_LISTS = {
@@ -70,6 +72,7 @@ export const PROFILE_LISTS = {
   process: "How the engagement works",
   industries: "Industries served",
   experience: "Approved experience claims",
+  pillars: "Value pillars (why choose us)",
   statistics: "Approved statistics",
   caseStudies: "Approved case studies",
   products: "Products and tools",
@@ -82,6 +85,7 @@ export type ProfileListKey = keyof typeof PROFILE_LISTS;
 /** Lists that make claims: never shown unless verified. */
 export const CLAIM_LISTS: ProfileListKey[] = [
   "experience",
+  "pillars",
   "statistics",
   "caseStudies",
   "products",
@@ -93,6 +97,8 @@ const URL_FIELDS: ProfileFieldKey[] = [
   "privacyUrl",
   "termsUrl",
 ];
+/** A bare host name, e.g. transform.hermanlegacygroup.com. */
+const HOST_FIELDS: ProfileFieldKey[] = ["plannedDomain"];
 
 export interface BusinessProfile {
   id: string;
@@ -106,6 +112,8 @@ export interface BusinessProfile {
   fields: Record<ProfileFieldKey, ProfileValue>;
   lists: Record<ProfileListKey, ProfileList>;
   internalNotes: string;
+  /** Premium Business Site design choices (not facts): the theme preset. */
+  design?: { theme?: string };
   createdAt: string;
   updatedAt: string;
   audit: { at: string; by: string; detail: string }[];
@@ -146,6 +154,20 @@ export function emptyProfile(
     updatedAt: at,
     audit: [],
   };
+}
+
+/**
+ * A profile saved by an older version gains any field or list added since,
+ * as "information required". Nothing is ever guessed.
+ */
+export function normalizeProfile(p: BusinessProfile): BusinessProfile {
+  const fields = { ...p.fields };
+  for (const k of Object.keys(PROFILE_FIELDS) as ProfileFieldKey[])
+    fields[k] ??= emptyValue();
+  const lists = { ...p.lists };
+  for (const k of Object.keys(PROFILE_LISTS) as ProfileListKey[])
+    lists[k] ??= emptyList();
+  return { ...p, fields, lists };
 }
 
 /** A field's value if, and only if, it is verified. */
@@ -213,6 +235,9 @@ export function validateProfile(p: BusinessProfile): string[] {
     } else if (URL_FIELDS.includes(k)) {
       if (!/^https:\/\/[^\s/]+\.[^\s]+$/i.test(v))
         problems.push(`${label} must be a full https:// address.`);
+    } else if (HOST_FIELDS.includes(k)) {
+      if (!/^([a-z0-9-]+\.)+[a-z]{2,}$/i.test(v))
+        problems.push(`${label} must be a host name like transform.example.com.`);
     } else if (k === "brandColor") {
       if (!/^#[0-9a-f]{6}$/i.test(v))
         problems.push(`${label} must be a colour like #c0892d.`);
@@ -247,10 +272,11 @@ export function validateProfile(p: BusinessProfile): string[] {
   const max: Partial<Record<ProfileFieldKey, number>> = {
     brandName: LIMITS.heroHeadline,
     tagline: LIMITS.heroHeadline,
+    credibility: LIMITS.heroHeadline,
     description: LIMITS.heroSubhead,
     businessType: LIMITS.heroEyebrow,
-    primaryCta: LIMITS.heroEyebrow,
-    secondaryCta: LIMITS.heroEyebrow,
+    primaryCta: LIMITS.cta,
+    secondaryCta: LIMITS.cta,
     logoText: 4,
   };
   for (const [k, m] of Object.entries(max) as [ProfileFieldKey, number][])

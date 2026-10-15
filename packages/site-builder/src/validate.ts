@@ -21,6 +21,8 @@ export const LIMITS = {
   offeringName: 40,
   offeringDescription: 160,
   ctaHeading: 70,
+  /** A button's words. */
+  cta: 50,
   ctaBody: 220,
   minOfferings: 3,
   maxOfferings: 6,
@@ -180,7 +182,7 @@ export function validateCopy(c: SiteCopy, facts: SiteFacts): string[] {
   });
   const p = c.pro;
   if (p) {
-    len("primary call to action", p.primaryCta, LIMITS.heroEyebrow);
+    len("primary call to action", p.primaryCta, LIMITS.cta);
     for (const [label, list] of [
       ["challenge", p.challenges],
       ["process step", p.process],

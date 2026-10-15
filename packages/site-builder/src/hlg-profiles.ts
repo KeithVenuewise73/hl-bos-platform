@@ -2,12 +2,13 @@
 // Transformation and Herman Supply Chain Solutions (HSCS).
 //
 // Every field says where it came from. A field is "verified" only when the
-// CEO supplied it (the Phase 3A brief, 2026-10-15) or it is a matter of record
-// in HLG's own repositories (a domain in a CNAME file, a colour in a
-// stylesheet, a product's status in the portfolio registry). Everything else
-// is "unverified" (entered, to confirm) or "required" (not supplied). Nothing
-// is copied from the current HSCS site's statistics, testimonials or contact
-// details: none of them could be verified (see internalNotes).
+// CEO supplied it (the Phase 3A brief and the Phase 3B brief, both
+// 2026-10-15), it is in an approved HLG document in this repository (the HSCS
+// Commercial Foundation and Design System), or it is a matter of record (a
+// domain in a CNAME file, a product's status in the portfolio registry).
+// Everything else is "unverified" (entered, to confirm) or "required" (not
+// supplied). Nothing is copied from the current HSCS site's statistics,
+// testimonials or contact details: none of them could be verified.
 
 import {
   emptyProfile,
@@ -18,12 +19,12 @@ import {
 } from "./profile.ts";
 
 const BRIEF = "CEO, Phase 3A brief (2026-10-15)";
+const BRIEF_3B = "CEO, Phase 3B brief (2026-10-15)";
 const HLG_SITE = "hermanlegacygroup.com source (GitHub hermanlegacygroup @ 57ee5b9)";
 const HSCS_SITE =
   "hermansupplychainsolutions.com source (GitHub herman-supply-chain @ 0971d06)";
 const HSCS_FOUNDATION =
   "HSCS Commercial Foundation v1.0 (docs/products/hscs-commercial-foundation; owner: CEO)";
-const HSCS_DESIGN = "HSCS Design System v1.0 (docs/products/hscs-design-system) §4";
 const REGISTRY =
   "HL-BOS portfolio registry (apps/control-center/src/lib/registry.ts), 2026-10-15";
 
@@ -57,63 +58,75 @@ export const HSCS_ID = "herman-supply-chain-solutions";
 export function hlgBusinessTransformationProfile(now: Date): BusinessProfile {
   const p = emptyProfile(HLG_BT_ID, "professional_services", now);
   p.subtype = "business_transformation";
+  p.design = { theme: "atelier" };
   Object.assign(p.fields, {
     brandName: v("HLG Business Transformation", BRIEF),
+    tagline: v(
+      "Better digital presence, customer acquisition and operating systems.",
+      `${BRIEF_3B}: the approved positioning, condensed to a headline; review in the design review`,
+    ),
     description: v(
-      "HLG Business Transformation helps local and service-based businesses strengthen their digital presence, improve lead capture, modernize customer interactions and implement practical business systems.",
-      `${BRIEF}: approved positioning, verbatim`,
+      "HLG Business Transformation helps local and service-based businesses improve their digital presence, customer acquisition and operating systems.",
+      `${BRIEF_3B}: approved positioning, verbatim`,
     ),
     businessType: v(
-      "Business transformation services",
+      "Business transformation",
       `${BRIEF}: the business's name and positioning`,
     ),
     phone: v("716-220-7354", `${BRIEF}: business phone confirmed by the CEO`),
     logoText: v("HLG", `${HLG_SITE}: the HLG brand mark`),
     brandColor: v("#c0892d", `${HLG_SITE}: the HLG brass accent`),
+    primaryCta: v(
+      "Request a Business Transformation Assessment",
+      `${BRIEF_3B}: primary CTA`,
+    ),
+    secondaryCta: v("Call HLG", `${BRIEF_3B}: secondary CTA`),
+    plannedDomain: v(
+      "transform.hermanlegacygroup.com",
+      `${BRIEF_3B}: suggested future address, for display and readiness planning only (not configured)`,
+    ),
     serviceArea: u(
       "Western New York",
       "The parent site hermanlegacygroup.com lists Western New York; confirm for this business.",
     ),
-    primaryCta: u(
-      "Request a digital-presence assessment",
-      "Proposed by HLG engineering from the first approved service; CEO to confirm.",
-    ),
-    secondaryCta: u("See the services", "Proposed by HLG engineering; CEO to confirm."),
   });
   Object.assign(p.lists, {
     services: list(
       "verified",
-      `Service names: ${BRIEF}. One-line descriptions restate each name.`,
+      `Service names: ${BRIEF_3B}. One-line descriptions restate each name.`,
       [
         [
           "Digital-presence assessments",
-          "A clear picture of how customers find the business online.",
+          "A clear picture of how customers find the business online, and where they drop away.",
         ],
         [
-          "Website creation and modernization",
-          "New websites, and updates to existing ones.",
+          "Website strategy and development",
+          "Websites planned around what customers need to do, then built and launched.",
         ],
         [
-          "Google-presence improvement",
-          "A complete, accurate Google Business Profile.",
+          "Google presence",
+          "A complete, accurate Google Business Profile that matches the website.",
         ],
-        ["Lead capture", "Making sure every enquiry is captured and followed up."],
+        ["Lead capture", "Calls, forms and messages captured, routed and followed up."],
         [
-          "Booking, ordering and customer contact",
-          "Systems for booking, ordering and staying in touch.",
-        ],
-        ["Business-process improvement", "Practical changes to everyday work."],
-        ["AI-assisted business tools", "Tools that take repetitive work off the team."],
-        [
-          "Industry-specific operating systems",
-          "Software shaped around one kind of business.",
+          "Customer communication",
+          "Clear, timely contact with customers before and after the sale.",
         ],
         [
-          "Website and customer-experience transformation",
-          "The whole customer journey, online and off.",
+          "Booking and ordering systems",
+          "Online booking and ordering connected to how the business runs.",
         ],
         [
-          "Ongoing managed digital services",
+          "Operational improvement",
+          "Practical changes to the everyday work behind sales and service.",
+        ],
+        [
+          "AI-assisted business tools",
+          "Tools that take repetitive work off the team, with people in charge.",
+        ],
+        ["Industry-specific solutions", "Systems shaped around one kind of business."],
+        [
+          "Ongoing managed services",
           "Looking after the website and tools after launch.",
         ],
       ],
@@ -128,36 +141,39 @@ export function hlgBusinessTransformationProfile(now: Date): BusinessProfile {
         ["Other local service businesses", "Owner-led local businesses."],
       ],
     ),
-    products: list("verified", `Each product's status: ${REGISTRY}`, [
+    products: list(
+      "verified",
+      `Each product's status: ${REGISTRY}. Pilot = in use with HLG's own businesses, not yet offered.`,
       [
-        "HLG Presence Scanner",
-        "Finds where a local business's online presence falls short, with evidence.",
-        "in_development",
+        [
+          "HLG Presence Scanner",
+          "Finds where a local business's online presence falls short, with evidence.",
+          "pilot",
+        ],
+        [
+          "HLG Instant Site Builder",
+          "Builds a private website draft from a presence assessment.",
+          "pilot",
+        ],
+        ["TakeoutOS", "Ordering and operations for takeout restaurants.", "planned"],
+        [
+          "SalonOS / BarberOS",
+          "Booking and operations for salons and barbers.",
+          "planned",
+        ],
+        [
+          "Contractor Performance System",
+          "Lead and job tracking for contractors.",
+          "planned",
+        ],
       ],
-      [
-        "HLG Instant Site Builder",
-        "Builds a private website draft from a presence assessment.",
-        "in_development",
-      ],
-      ["HL-BTI", "Business transformation assessment and scoring.", "in_development"],
-      ["TakeoutOS", "Ordering and operations for takeout restaurants.", "planned"],
-      [
-        "SalonOS / BarberOS",
-        "Booking and operations for salons and barbers.",
-        "planned",
-      ],
-      [
-        "Contractor Performance System",
-        "Lead and job tracking for contractors.",
-        "planned",
-      ],
-    ]),
+    ),
   });
   p.internalNotes = [
     "No website of its own was found. The parent site hermanlegacygroup.com does not mention Business Transformation.",
     "The parent site lists (716) 555-0142, which is in the 555 exchange reserved for examples, and hello@hermanlegacygroup.com; neither is verified for this business, so neither is used.",
     "Legal or operating name: confirm whether HLG Business Transformation trades as part of Herman Legacy Group.",
-    "Products marked planned have no product yet; the page labels them Planned.",
+    "Products marked Planned have no product yet; the Presence Scanner and Instant Site Builder are a Pilot (used on HLG's own businesses only).",
   ].join("\n");
   return p;
 }
@@ -165,11 +181,16 @@ export function hlgBusinessTransformationProfile(now: Date): BusinessProfile {
 export function hscsProfile(now: Date): BusinessProfile {
   const p = emptyProfile(HSCS_ID, "professional_services", now);
   p.subtype = "transport_operations";
+  p.design = { theme: "meridian" };
   Object.assign(p.fields, {
     brandName: v("Herman Supply Chain Solutions", BRIEF),
     tagline: v(
-      "Transportation & Operations Consulting supported with AI.",
-      `${BRIEF}: approved positioning`,
+      "Transportation & Operations Consulting Supported by AI",
+      `${BRIEF_3B}: approved primary headline`,
+    ),
+    credibility: v(
+      "35 Years of Operational Experience. Enhanced by AI.",
+      `${BRIEF_3B}: approved credibility statement; ${HSCS_FOUNDATION} §3.2 primary tagline`,
     ),
     description: v(
       "HSCS is a transportation & operations consulting firm built by a business owner and designed for operators. Thirty-five years of operational experience, enhanced by AI.",
@@ -179,86 +200,148 @@ export function hscsProfile(now: Date): BusinessProfile {
       "Transportation & operations consulting",
       `${BRIEF}: approved positioning`,
     ),
+    phone: v("716-220-7354", `${BRIEF_3B}: verified phone for HSCS`),
     website: v(
       "https://www.hermansupplychainsolutions.com",
       `${HSCS_SITE}: CNAME file`,
     ),
     logoText: v("HSCS", `${BRIEF}: the business's short name`),
     brandColor: v(
-      "#34506b",
-      `${HSCS_DESIGN}: steel, the secondary brand colour for accents`,
+      "#006d77",
+      `${BRIEF_3B}: controlled teal accent (the teal of the current HSCS site)`,
+    ),
+    primaryCta: v(
+      "Request an operations assessment",
+      `${HSCS_FOUNDATION} §4.1 call to action`,
+    ),
+    secondaryCta: v(
+      "Call HSCS",
+      "HLG engineering, following the Phase 3B brief's Call pattern",
+    ),
+    plannedDomain: v(
+      "hermansupplychainsolutions.com",
+      `${BRIEF_3B}: suggested future domain, for display and readiness planning only (not configured)`,
     ),
     serviceArea: u(
       "All 48 continental states",
-      "Stated on the current HSCS site; not verified.",
-    ),
-    primaryCta: u(
-      "Request an operational assessment",
-      "Proposed by HLG engineering from the approved experience areas; CEO to confirm.",
+      "Stated on the current HSCS site only; not verified.",
     ),
   });
   Object.assign(p.lists, {
     services: list(
       "verified",
-      `Approved experience areas: ${BRIEF}. One-line descriptions restate each name.`,
+      `${HSCS_FOUNDATION} §6 service catalog (names and descriptions condensed). Pricing: to be established.`,
       [
         [
-          "Operational assessments",
-          "A structured look at how the operation runs today.",
+          "Operations Assessment",
+          "An evidence-backed diagnostic: a scored current state, prioritized findings and a recommended sequence of moves.",
         ],
         [
-          "Dispatch and routing",
-          "Planning routes and dispatch so the day runs as designed.",
+          "Transportation & Fleet Optimization",
+          "Routing, utilization, dispatch, middle- and final-mile network design, carrier strategy and fleet cost.",
         ],
         [
-          "Transportation operations",
-          "Day-to-day running of transportation operations.",
+          "Warehousing & Distribution Improvement",
+          "Throughput, labor productivity, layout and slotting, inventory flow and network design.",
         ],
         [
-          "Final-mile and middle-mile delivery",
-          "Delivery operations from the network to the customer.",
-        ],
-        ["Warehousing", "How goods are received, stored and sent out."],
-        [
-          "Contractor and driver performance",
-          "Clear measures and routines for the people doing the work.",
+          "Final-Mile & White-Glove Delivery Excellence",
+          "High-touch delivery operations, customer experience and damage and claims reduction.",
         ],
         [
-          "Practical AI-supported improvement",
-          "Using AI where it makes the operation simpler to run.",
+          "Operational Turnaround & Margin Recovery",
+          "Rapid diagnosis, stabilization and a measured recovery plan for operations under pressure.",
+        ],
+        [
+          "Operations Technology Advisory",
+          "Vendor-neutral evaluation of TMS, WMS, routing and telematics: what to buy, what to skip.",
+        ],
+        [
+          "Operations Transformation Program",
+          "A sequenced, multi-quarter program executing the assessment's roadmap, reported honestly.",
+        ],
+        [
+          "AI-Enablement for Operations",
+          "Guard-railed AI and automation inside the operation, with the operator's judgment in charge.",
+        ],
+        [
+          "Fractional Operations Leadership",
+          "Recurring operator-level advisory for leadership teams.",
+        ],
+        [
+          "Executive Operations Dashboards",
+          "Ongoing, evidence-based visibility into the operation, as part of an engagement.",
+        ],
+      ],
+    ),
+    process: list("verified", `${HSCS_FOUNDATION} §9 the HSCS method`, [
+      [
+        "Assess",
+        "Structured current state across defined domains. Every rating has a source.",
+      ],
+      [
+        "Analyze",
+        "AI reads across the evidence; the operator frames the questions and interprets.",
+      ],
+      [
+        "Recommend",
+        "Prioritized moves, each with impact, priority and success metrics; fact, inference and opinion labelled.",
+      ],
+      [
+        "Transform",
+        "Sequenced execution with success metrics defined up front and reported honestly.",
+      ],
+    ]),
+    industries: list(
+      "verified",
+      `${HSCS_FOUNDATION} §7.1 tier-1 verticals (no employer or client names)`,
+      [
+        [
+          "White-glove and high-touch delivery",
+          "Delivery operations leaders and home-goods retailers.",
+        ],
+        [
+          "Direct-to-customer and cold-chain distribution",
+          "D2C and cold-chain distribution leaders.",
+        ],
+        ["Middle-mile logistics", "Middle-mile and network operations leaders."],
+        ["Final-mile retail delivery", "Retail final-mile and big-and-bulky leaders."],
+        [
+          "Warehousing and fulfillment",
+          "Warehouse, distribution-center and plant leaders.",
         ],
       ],
     ),
     experience: list(
       "verified",
-      `${BRIEF} (experience areas) and ${HSCS_FOUNDATION} §3.1 and §4.6. No clients or results are stated.`,
+      `${BRIEF_3B} (experience areas) and ${HSCS_FOUNDATION} §3.1 and §4.6. No clients or results are stated.`,
       [
-        [
-          "Thirty-five years of operational experience",
-          "Across the complete supply chain.",
-        ],
-        ["Manufacturing and warehousing", ""],
-        ["Middle mile and distribution", ""],
-        ["Final mile and white-glove delivery", ""],
-        ["Direct-to-customer distribution", ""],
-        ["Dispatch and routing", ""],
-        ["Transportation operations", ""],
-        ["Contractor and driver performance", ""],
+        ["Manufacturing", ""],
+        ["Warehousing", ""],
+        ["Middle mile", ""],
+        ["Distribution", ""],
+        ["Final mile", ""],
+        ["White glove", ""],
       ],
     ),
-    industries: list("unverified", "Listed on the current HSCS site; not verified.", [
-      ["Foodservice and beverage distribution", "Distribution operations."],
-      ["Third-party logistics providers", "Third-party logistics operations."],
-      ["Retail and e-commerce fulfillment", "Retail delivery and fulfillment."],
-      ["Last-mile delivery networks", "Final-mile delivery operations."],
+    pillars: list("verified", `${HSCS_FOUNDATION} §4.2 the four value pillars`, [
+      [
+        "Experience",
+        "We've run the operation you're trying to fix, across the whole chain.",
+      ],
+      ["Evidence", "Every recommendation is backed by data and reasoning."],
+      ["Outcomes", "We measure what we recommend."],
+      [
+        "Enhancement",
+        "AI makes the analysis faster and more rigorous. It doesn't replace the operator.",
+      ],
     ]),
   });
   p.internalNotes = [
     "The current HSCS site (saved copy, GitHub herman-supply-chain @ 0971d06) shows claims that could not be verified and are NOT used: 'Est. 1994', '30 years', '$2.4M+ average annual savings', '18.3% average cost reduction', '200+ engagements', '$180M+ recovered', '98.2% client retention', and client testimonials.",
-    "Its phone number 1-800-555-1234 is in the 555 exchange reserved for examples. Its email info@hermansupplychain.com is on a different domain from the site (hermansupplychainsolutions.com). Neither is used.",
-    "The repository also contains a KPI dashboard page naming a retailer. No client is named on the draft.",
-    "Business phone and email: CEO input required.",
-    "The approved HSCS Commercial Foundation's primary tagline is '35 Years of Operational Experience. Enhanced by AI.'; this draft uses the Phase 3A brief's 'Transportation & Operations Consulting supported with AI.' as the headline. Choose one.",
+    "Its phone number 1-800-555-1234 is in the 555 exchange reserved for examples, and its email info@hermansupplychain.com is on a different domain from the site. Neither is used.",
+    "The Commercial Foundation names past employers (Amazon, Lowe's, Sears, Bob's Discount Furniture, Arctic Glacier, Herman Movers, Sorrento / Lactalis) as operating proof. They are not shown: naming them on the site is a CEO decision.",
+    "Business email: CEO input required.",
   ].join("\n");
   return p;
 }
