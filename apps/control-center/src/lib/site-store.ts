@@ -2,11 +2,14 @@ import "server-only";
 import { mkdir, readFile, rename, writeFile } from "node:fs/promises";
 import path from "node:path";
 
-import type {
-  BusinessProfile,
-  BusinessProfileRepository,
-  SiteDraft,
-  SiteDraftRepository,
+import {
+  normalizeProfile,
+  type BusinessProfile,
+  type BusinessProfileRepository,
+  type PremiumDraft,
+  type PremiumDraftRepository,
+  type SiteDraft,
+  type SiteDraftRepository,
 } from "@hl-bos/site-builder";
 
 import type { BatchRun } from "./batch";
@@ -69,7 +72,10 @@ export class FileProfileRepository implements BusinessProfileRepository {
       const parsed: unknown = JSON.parse(
         await readFile(path.join(this.dir, "profiles.json"), "utf8"),
       );
-      return Array.isArray(parsed) ? (parsed as BusinessProfile[]) : [];
+      // Profiles saved by an older version gain any newer field as "required".
+      return Array.isArray(parsed)
+        ? (parsed as BusinessProfile[]).map(normalizeProfile)
+        : [];
     } catch {
       return [];
     }
@@ -121,4 +127,31 @@ async function writeAtomic(dir: string, name: string, data: unknown): Promise<vo
     mode: 0o600,
   });
   await rename(tmp, file);
+}
+
+/** Premium site drafts: .data/site-builder/premium.json (gitignored), one per profile. */
+export class FilePremiumRepository implements PremiumDraftRepository {
+  constructor(
+    private readonly dir: string = path.join(process.cwd(), ".data", "site-builder"),
+  ) {}
+
+  private async all(): Promise<PremiumDraft[]> {
+    try {
+      const parsed: unknown = JSON.parse(
+        await readFile(path.join(this.dir, "premium.json"), "utf8"),
+      );
+      return Array.isArray(parsed) ? (parsed as PremiumDraft[]) : [];
+    } catch {
+      return [];
+    }
+  }
+
+  async getByProfile(profileId: string) {
+    return (await this.all()).find((d) => d.profileId === profileId);
+  }
+
+  async save(draft: PremiumDraft): Promise<void> {
+    const rest = (await this.all()).filter((d) => d.profileId !== draft.profileId);
+    await writeAtomic(this.dir, "premium.json", [...rest, draft]);
+  }
 }

@@ -21,6 +21,7 @@ import {
   PROFILE_FIELDS,
   PROFILE_LISTS,
   profileBuildProblems,
+  PREMIUM_THEMES,
   validateProfile,
   verified,
   type BusinessProfile,
@@ -76,7 +77,7 @@ const STATUSES: Verification[] = ["verified", "unverified", "required"];
 
 /**
  * "Name: description" per line. Products may end with " [planned]" (or
- * live, in_development, in_use). Social links are "Label: https://...".
+ * live, pilot, in_development, concept, in_use). Social links are "Label: https://...".
  */
 export function parseItems(text: string, k: ProfileListKey): ProfileItem[] {
   return text
@@ -85,7 +86,9 @@ export function parseItems(text: string, k: ProfileListKey): ProfileItem[] {
     .filter(Boolean)
     .map((l) => {
       let status: ToolItem["status"] | undefined;
-      const m = l.match(/\s*\[(live|in_development|planned|in_use)\]\s*$/);
+      const m = l.match(
+        /\s*\[(live|pilot|in_development|planned|concept|in_use)\]\s*$/,
+      );
       if (m && k === "products") {
         status = m[1] as ToolItem["status"];
         l = l.slice(0, m.index).trim();
@@ -170,6 +173,11 @@ export function profileFromForm(
       next.lists[k] = upd;
       changed.push(PROFILE_LISTS[k]);
     }
+  }
+  const theme = str(fd, "design.theme");
+  if (theme !== undefined && theme in PREMIUM_THEMES && theme !== next.design?.theme) {
+    next.design = { ...next.design, theme };
+    changed.push("Premium site theme");
   }
   const notes = str(fd, "internalNotes");
   if (notes !== undefined && notes.trim() !== next.internalNotes) {

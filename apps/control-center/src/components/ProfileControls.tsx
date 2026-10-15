@@ -84,11 +84,16 @@ export function ProfileEditor({
   fields,
   lists,
   notes,
+  theme,
+  themes,
 }: {
   id: string;
   fields: FieldView[];
   lists: ListView[];
   notes: string;
+  /** Premium Business Site theme preset (a design choice, not a fact). */
+  theme: string;
+  themes: [string, string][];
 }) {
   const [pending, start] = useTransition();
   const [result, setResult] = useState<PresenceResult | null>(null);
@@ -209,7 +214,22 @@ export function ProfileEditor({
           </div>
         ))}
       </div>
-      <label style={{ ...label, marginTop: 18 }} htmlFor="internalNotes">
+      <label style={{ ...label, marginTop: 18 }} htmlFor="design-theme">
+        Premium Business Site theme (a design choice, not a fact)
+      </label>
+      <select
+        id="design-theme"
+        name="design.theme"
+        defaultValue={theme}
+        style={{ ...input, marginBottom: 6, maxWidth: 420 }}
+      >
+        {themes.map(([k, l]) => (
+          <option key={k} value={k}>
+            {l}
+          </option>
+        ))}
+      </select>
+      <label style={{ ...label, marginTop: 14 }} htmlFor="internalNotes">
         Internal notes (never shown on the site)
       </label>
       <textarea
