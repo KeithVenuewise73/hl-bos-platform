@@ -63,8 +63,8 @@ p{margin:0}
 .menu>summary svg{width:18px;height:18px}
 .menu[open]>summary{border-color:var(--ink)}
 .menu-panel{position:absolute;right:0;top:calc(100% + 10px);width:min(86vw,340px);background:var(--surface);border:1px solid var(--line);border-radius:calc(var(--radius) + 4px);box-shadow:0 24px 60px rgba(0,0,0,.16);padding:.6rem}
-.menu-panel a{display:block;padding:.85rem 1rem;border-radius:10px;color:var(--ink);text-decoration:none;font-weight:600}
-.menu-panel a:hover,.menu-panel a[aria-current="page"]{background:var(--band)}
+.menu-panel a:not(.btn){display:block;padding:.85rem 1rem;border-radius:10px;color:var(--ink);text-decoration:none;font-weight:600}
+.menu-panel a:not(.btn):hover,.menu-panel a:not(.btn)[aria-current="page"]{background:var(--band)}
 .menu-panel .btn{width:100%;margin-top:.4rem}
 /* Hero */
 .hero{position:relative;overflow:hidden;background:var(--dark);color:var(--dark-ink);isolation:isolate}
@@ -85,7 +85,7 @@ p{margin:0}
 .credential i{display:block;width:10px;height:10px;border-radius:50%;background:var(--dark-accent);box-shadow:0 0 0 5px color-mix(in srgb,var(--dark-accent) 25%,transparent)}
 .actions{display:flex;flex-wrap:wrap;gap:.8rem;margin-top:2rem}
 .hero-meta{display:flex;flex-wrap:wrap;gap:.4rem 1.6rem;margin-top:1.8rem;font-size:.92rem;color:var(--dark-muted)}
-.hero-meta a{color:var(--dark-ink)}
+.hero-meta a:not(.btn){color:var(--dark-ink)}
 /* Hero composition: layers */
 .stack{position:relative;padding:1.4rem 0 1.4rem 1.4rem}
 .stack::before,.stack::after{content:"";position:absolute;inset:0 1.4rem 2.8rem 0;border:1px solid color-mix(in srgb,var(--dark-accent) 40%,transparent);border-radius:calc(var(--radius) + 6px)}
@@ -166,7 +166,7 @@ p{margin:0}
 .panel dl{margin:1.4rem 0 0;display:grid;gap:1.1rem}
 .panel dt{font-size:.74rem;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--dark-muted)}
 .panel dd{margin:.25rem 0 0;font-size:1.08rem;font-weight:600}
-.panel a{color:var(--dark-ink)}
+.panel a:not(.btn){color:var(--dark-ink)}
 .panel .btn{margin-top:1.6rem}
 .form{background:var(--surface);border:1px solid var(--line);border-radius:calc(var(--radius) + 4px);padding:clamp(1.4rem,3vw,2.2rem)}
 .form-grid{display:grid;grid-template-columns:1fr 1fr;gap:1rem}
@@ -194,7 +194,7 @@ p{margin:0}
 .foot-grid{display:grid;grid-template-columns:1.5fr 1fr 1fr 1fr;gap:2.4rem}
 .footer h2{font-family:var(--body);font-size:.76rem;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:var(--dark-ink);margin-bottom:1rem}
 .footer ul{list-style:none;margin:0;padding:0;display:grid;gap:.55rem}
-.footer a{color:var(--dark-ink);text-decoration:none}
+.footer a:not(.btn){color:var(--dark-ink);text-decoration:none}
 .footer a:hover{text-decoration:underline}
 .footer .brand-name{color:var(--dark-ink)}
 .foot-base{display:flex;flex-wrap:wrap;justify-content:space-between;gap:1rem;margin-top:3rem;padding-top:1.6rem;border-top:1px solid color-mix(in srgb,var(--dark-ink) 12%,transparent);font-size:.86rem}

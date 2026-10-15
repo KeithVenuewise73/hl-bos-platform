@@ -4,10 +4,6 @@
 // changes underneath the approval. Approval is internal sign-off on the
 // design; it publishes nothing, and nothing in this package can publish.
 
-import { existsSync } from "node:fs";
-import { readFile } from "node:fs/promises";
-import path from "node:path";
-
 import { zipStore, type ZipEntry } from "@hl-bos/jersey-sort";
 
 import type { BusinessProfile } from "../profile.ts";
@@ -313,32 +309,6 @@ export const FONT_FILES = [
 
 /** Approximate bytes of the two fonts a page loads (checked exactly in tests). */
 export const FONT_BYTES_ESTIMATE = 90 * 1024;
-
-/**
- * The bundled fonts folder, found by walking up from a starting directory
- * (the console runs from apps/control-center; tests from the package).
- */
-export function fontsDir(fromDir: string): string {
-  let dir = path.resolve(fromDir);
-  for (;;) {
-    for (const candidate of [
-      path.join(dir, "assets", "fonts"),
-      path.join(dir, "packages", "site-builder", "assets", "fonts"),
-    ])
-      if (existsSync(path.join(candidate, FONT_FILES[0].file))) return candidate;
-    const up = path.dirname(dir);
-    if (up === dir)
-      throw new PremiumDraftError(`The bundled fonts were not found above ${fromDir}.`);
-    dir = up;
-  }
-}
-
-/** Read one bundled asset (font or licence) by file name. */
-export async function readFontAsset(dir: string, file: string): Promise<Uint8Array> {
-  if (!FONT_FILES.some((f) => f.file === file || f.licence === file))
-    throw new PremiumDraftError(`Not a bundled font asset: ${file}`);
-  return new Uint8Array(await readFile(path.join(dir, file)));
-}
 
 export function premiumZipName(d: PremiumDraft): string {
   const slug = d.content.brand.name

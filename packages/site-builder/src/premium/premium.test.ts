@@ -9,11 +9,11 @@ import { hlgBusinessTransformationProfile, hscsProfile } from "../hlg-profiles.t
 import { emptyProfile, normalizeProfile, type BusinessProfile } from "../profile.ts";
 import { renderSite } from "../render.ts";
 import { premiumContent } from "./content.ts";
+import { fontsDir } from "./fonts-node.ts";
 import {
   approvePremiumDraft,
   buildPremiumDraft,
   FONT_FILES,
-  fontsDir,
   premiumAsset,
   premiumClaimProblems,
   premiumFiles,
@@ -345,6 +345,16 @@ describe("accessibility and performance reviews", () => {
       );
     });
   }
+
+  it("link colours in dark panels never override a button's text colour", () => {
+    // Found by axe-core in the browser proof: ".panel a" turned the Call
+    // button's text cream on brass (2.34:1). Buttons keep their own colours.
+    const css = premiumFiles(build(hscsProfile(NOW))).css;
+    for (const container of [".panel", ".menu-panel", ".footer", ".hero-meta"]) {
+      expect(css).toContain(`${container} a:not(.btn)`);
+      expect(css).not.toContain(`${container} a{`);
+    }
+  });
 
   it("the reviews catch real problems", () => {
     const d = build(hscsProfile(NOW));

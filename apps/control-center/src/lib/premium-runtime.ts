@@ -1,9 +1,9 @@
 import "server-only";
 import { randomUUID } from "node:crypto";
-import { stat } from "node:fs/promises";
+import { readFile, stat } from "node:fs/promises";
 import path from "node:path";
 
-import { fontsDir, premiumTheme, readFontAsset } from "@hl-bos/site-builder";
+import { FONT_FILES, premiumTheme } from "@hl-bos/site-builder";
 
 import type { PremiumDeps } from "./premium";
 import { FilePremiumRepository, FileProfileRepository } from "./site-store";
@@ -19,10 +19,28 @@ export function premiumDeps(): PremiumDeps {
   };
 }
 
-/** The bundled fonts, found from where the console runs. */
-export const FONTS_DIR = () => fontsDir(process.cwd());
+/**
+ * The bundled fonts (packages/site-builder/assets/fonts), from where the
+ * console runs (apps/control-center). The ignore hint keeps the bundler from
+ * tracing the whole repository through this one path.
+ */
+export const FONTS_DIR = () =>
+  path.join(
+    /*turbopackIgnore: true*/ process.cwd(),
+    "..",
+    "..",
+    "packages",
+    "site-builder",
+    "assets",
+    "fonts",
+  );
 
-export const readAsset = (file: string) => readFontAsset(FONTS_DIR(), file);
+/** Read one bundled font or licence file; nothing else can be read. */
+export async function readAsset(file: string): Promise<Uint8Array> {
+  if (!FONT_FILES.some((f) => f.file === file || f.licence === file))
+    throw new Error(`Not a bundled font asset: ${file}`);
+  return new Uint8Array(await readFile(path.join(FONTS_DIR(), file)));
+}
 
 /** Bytes of the two fonts a theme's pages load (for the performance review). */
 export async function themeFontBytes(theme: string): Promise<number> {
