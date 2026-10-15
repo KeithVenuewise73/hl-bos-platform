@@ -14,6 +14,7 @@ import {
   DraftEditError,
   editDraft,
   isSiteVertical,
+  supportedVerticalsText,
   type CopyEdit,
   type CopyWriter,
   type SiteDraftRepository,
@@ -45,10 +46,16 @@ export async function buildDemo(
     return {
       ok: false,
       headline: "No demo template for this vertical yet.",
-      meaning:
-        "Demo sites are built for contractors, salons/barbers and restaurants/bars so far.",
+      meaning: `Demo sites are built for ${supportedVerticalsText()} so far.`,
     };
   const previous = await deps.drafts.getByProspect(prospectId);
+  if (previous?.mode === "internal_draft")
+    return {
+      ok: false,
+      headline: "This lead has an internal draft.",
+      meaning:
+        "It is an HLG-owned business: rebuild its site from its Business Profile, not as a prospect demo.",
+    };
   const draft = await buildDraft(lead, {
     writer: deps.writer,
     now: deps.now,

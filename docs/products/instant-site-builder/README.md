@@ -61,6 +61,25 @@ registers a prospect's name), hosting (**CEO decision**), Google profile
 fixes, calls and texts, booking or ordering (using tools they already have),
 where form leads go (**CEO decision**), honest review requests, measurement.
 
+## Phase 3A — professional services, internal drafts, batches
+
+- **Vertical registry** (`packages/site-builder/src/verticals.ts`): every vertical's
+  packs, sections, calls to action, required facts, modules, checklist steps, schema
+  type, accent, renderer and limits in one entry. Prospect demos for contractors,
+  salons/barbers and restaurants/bars are byte-identical to Phase 2 (golden files).
+- **Professional services** template and subtypes (business transformation,
+  transport/operations, accounting, insurance, real estate, digital services, general
+  consulting): challenges, services, process, industries, experience, case studies,
+  tools, about, call to action, contact, legal footer. Experience and case studies are
+  never sample claims: empty, they show an _Information required_ notice.
+- **Business Profile** (`profile.ts`) and **internal-draft mode** (`internal.ts`) for
+  businesses HLG owns: verified facts only, _Internal draft — not published_, a
+  launch-readiness checklist, version history. Console: `/profiles`.
+- **Batch builds**: up to 10 qualified leads, template copy only, each built on its
+  own. Console: `/presence/batch`.
+- The HLG pilot (HLG Business Transformation, HSCS): `docs/products/hlg-internal-pilot`.
+- Architecture: `docs/architecture/75-market-to-client-engine.md`.
+
 ## Known limitations
 
 - Copy is from the template writer until an Anthropic key is added; the Claude

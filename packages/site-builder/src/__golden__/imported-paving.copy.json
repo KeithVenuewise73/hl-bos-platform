@@ -1,0 +1,36 @@
+{
+ "seoTitle": "Seneca Paving | Paving and masonry in West Seneca",
+ "metaDescription": "Seneca Paving: paving and masonry in West Seneca. Call or text (716) 555-0103 to ask about a job.",
+ "heroEyebrow": "Paving and masonry in West Seneca",
+ "heroHeadline": "Seneca Paving",
+ "heroSubhead": "Paving and masonry in West Seneca. Call or text (716) 555-0103 to ask about a job.",
+ "aboutHeading": "About Seneca Paving",
+ "aboutBody": "Seneca Paving is a paving and masonry business in West Seneca. This is where the owner's own story goes: how the business started, the people behind it, and what customers can expect.",
+ "aboutSample": true,
+ "offeringsHeading": "What we do",
+ "offeringsIntro": "Examples to show the layout. Replace them with the real list before launch.",
+ "offerings": [
+  {
+   "name": "Driveways",
+   "description": "New driveways, resurfacing and repairs.",
+   "sample": true
+  },
+  {
+   "name": "Sealcoating and repairs",
+   "description": "Crack filling, patching and sealcoating.",
+   "sample": true
+  },
+  {
+   "name": "Walkways and patios",
+   "description": "Walkways, patios and steps.",
+   "sample": true
+  },
+  {
+   "name": "Estimates",
+   "description": "An on-site look at the job and a written estimate.",
+   "sample": true
+  }
+ ],
+ "ctaHeading": "Tell us about your project",
+ "ctaBody": "Call or text (716) 555-0103 to ask about a job."
+}

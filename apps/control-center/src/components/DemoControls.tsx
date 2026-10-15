@@ -7,7 +7,13 @@ import type { PresenceResult } from "@/lib/presence";
 
 import { button, C, input, label } from "./presence-style";
 
-function Status({ r }: { r: PresenceResult | null }) {
+export function Status({
+  r,
+  linkText = "Open the demo →",
+}: {
+  r: PresenceResult | null;
+  linkText?: string;
+}) {
   if (!r) return null;
   return (
     <div
@@ -26,7 +32,7 @@ function Status({ r }: { r: PresenceResult | null }) {
         <>
           {" "}
           <a href={r.href} style={{ color: C.link }}>
-            Open the demo →
+            {linkText}
           </a>
         </>
       ) : null}
@@ -70,6 +76,7 @@ export function DemoEditor({
   canShowRating,
   showVideoBlock,
   approved,
+  internal = false,
 }: {
   id: string;
   headline: string;
@@ -80,6 +87,8 @@ export function DemoEditor({
   canShowRating: boolean;
   showVideoBlock: boolean;
   approved: boolean;
+  /** An HLG-owned internal draft rather than a prospect demo. */
+  internal?: boolean;
 }) {
   const [pending, start] = useTransition();
   const [result, setResult] = useState<PresenceResult | null>(null);
@@ -178,7 +187,11 @@ export function DemoEditor({
           disabled={pending || approved}
           style={button(true, pending || approved)}
         >
-          {approved ? "Approved" : "Approve as fit to show the owner"}
+          {approved
+            ? "Approved"
+            : internal
+              ? "Approve as internal draft for CEO review"
+              : "Approve as fit to show the owner"}
         </button>
         <span style={{ marginLeft: 10, fontSize: 12, color: C.muted }}>
           Internal sign-off only. Nothing is published or sent.

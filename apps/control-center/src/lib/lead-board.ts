@@ -28,7 +28,14 @@ export interface LeadRow {
   overridden: boolean;
   stage: LeadStage;
   lastScannedAt: string;
+  /** Can join a batch demo build: qualified, a vertical with a template, not HLG-owned. */
+  batchable: boolean;
+  /** Why it cannot, in a few words (shown as the checkbox's tooltip). */
+  batchNote: string;
 }
+
+/** The most leads one batch may build. Mirrors MAX_BATCH in batch.ts (tested equal). */
+export const BATCH_LIMIT = 10;
 
 export interface LeadFilters {
   market?: string;

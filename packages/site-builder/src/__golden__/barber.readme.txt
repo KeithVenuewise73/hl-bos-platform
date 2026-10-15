@@ -1,0 +1,8 @@
+DEMO WEBSITE — Union Road Barbers
+
+Prepared by Herman Legacy Group on 2026-10-14 for review by the business owner.
+This is not the business's official website and must not be published without the owner's approval.
+It is marked noindex so search engines will not list it.
+Items marked SAMPLE are placeholders. The contact form is switched off.
+
+Files: index.html (the page, one file, no scripts), LAUNCH-CHECKLIST.md.

@@ -314,7 +314,12 @@ export async function buildProspect(g: DedupeGroup, ctx: BuildCtx): Promise<Pros
     // only a real website needs the network.
     url && !ctx.online && classifyUrl(url).kind === "site"
       ? offlineInspection(url, ctx.now)
-      : await inspectWebsite(url, ctx.egress, ctx.now);
+      : await inspectWebsite(
+          url,
+          ctx.egress,
+          ctx.now,
+          VERTICALS[ctx.vertical].extraChecks,
+        );
 
   const findings: Finding[] = [];
   if (place)

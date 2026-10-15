@@ -92,8 +92,8 @@ function assertEvidence(s: OpportunityScore, findings: Finding[]) {
 }
 
 describe("configuration", () => {
-  it("is versioned presence-opportunity-0.1.0 and internally consistent", () => {
-    expect(SCORING_VERSION).toBe("presence-opportunity-0.1.0");
+  it("is versioned presence-opportunity-0.2.0 and internally consistent", () => {
+    expect(SCORING_VERSION).toBe("presence-opportunity-0.2.0");
     expect(DEFAULT_SCORING_CONFIG.version).toBe(SCORING_VERSION);
     expect(validateConfig(DEFAULT_SCORING_CONFIG)).toEqual([]);
   });

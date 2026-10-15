@@ -6,6 +6,7 @@
 // or links that are not theirs.
 
 import type { SiteCopy, SiteFacts } from "./types.ts";
+import { SITE_VERTICAL_REGISTRY } from "./verticals.ts";
 
 export const LIMITS = {
   seoTitle: 60,
@@ -23,10 +24,12 @@ export const LIMITS = {
   ctaBody: 220,
   minOfferings: 3,
   maxOfferings: 6,
+  /** Professional sections (challenges, process, industries, ...). */
+  maxSectionItems: 10,
 } as const;
 
 /** Claims we cannot verify about a business we have never spoken to. */
-const FORBIDDEN: [RegExp, string][] = [
+export const FORBIDDEN: [RegExp, string][] = [
   [
     /\$\s?\d|\b\d+\s?(usd|dollars?)\b|\bprices? (start|from)\b|\bcheapest\b|\baffordable\b/i,
     "a price or price claim",
@@ -56,8 +59,26 @@ const FORBIDDEN: [RegExp, string][] = [
   [/\bhttps?:\/\/|\bwww\.|@[a-z0-9-]+\.[a-z]/i, "a link or email address"],
 ];
 
-function textFields(c: SiteCopy): [string, string][] {
-  return [
+/**
+ * The rules a VERIFIED Business Profile item still has to pass. Verified items
+ * may state approved experience and history ("final-mile operations since
+ * 2010") -- the CEO has checked them -- but no prices, guarantees, awards,
+ * credentials, testimonials or links, verified or not.
+ */
+const STILL_FORBIDDEN_WHEN_VERIFIED = new Set([
+  "a price or price claim",
+  "a guarantee",
+  "something offered free",
+  "a superlative or award",
+  "a credential",
+  "a rating or review claim",
+  "a link or email address",
+]);
+
+type Field = [label: string, text: string, verified: boolean];
+
+function textFields(c: SiteCopy): Field[] {
+  const base: [string, string][] = [
     ["SEO title", c.seoTitle],
     ["meta description", c.metaDescription],
     ["eyebrow", c.heroEyebrow],
@@ -67,13 +88,55 @@ function textFields(c: SiteCopy): [string, string][] {
     ["about text", c.aboutBody],
     ["offerings heading", c.offeringsHeading],
     ["offerings intro", c.offeringsIntro],
-    ...c.offerings.flatMap((o, i): [string, string][] => [
-      [`offering ${i + 1} name`, o.name],
-      [`offering ${i + 1} description`, o.description],
-    ]),
     ["call-to-action heading", c.ctaHeading],
     ["call-to-action text", c.ctaBody],
   ];
+  const items = (
+    label: string,
+    list: { name: string; description: string; verified?: boolean }[],
+  ) =>
+    list.flatMap((o, i): Field[] => [
+      [`${label} ${i + 1} name`, o.name, o.verified === true],
+      [`${label} ${i + 1} description`, o.description, o.verified === true],
+    ]);
+  const ver = new Set<string>(c.verifiedFields ?? []);
+  const key: Record<string, string> = {
+    eyebrow: "heroEyebrow",
+    headline: "heroHeadline",
+    subhead: "heroSubhead",
+    "about text": "aboutBody",
+    "meta description": "metaDescription",
+  };
+  const mark = ([l, t]: [string, string]): Field => [l, t, ver.has(key[l] ?? "")];
+  const fields: Field[] = [
+    ...base.slice(0, 9).map(mark),
+    ...items("offering", c.offerings),
+    ...base.slice(9).map(mark),
+  ];
+  const p = c.pro;
+  if (p)
+    fields.push(
+      ["primary call to action", p.primaryCta, false],
+      ...(p.secondaryCta
+        ? [["secondary call to action", p.secondaryCta, false] as Field]
+        : []),
+      ["challenges heading", p.challengesHeading, false],
+      ...items("challenge", p.challenges),
+      ["process heading", p.processHeading, false],
+      ...items("process step", p.process),
+      ["industries heading", p.industriesHeading, false],
+      ...items("industry", p.industries),
+      ["experience heading", p.experienceHeading, false],
+      ...items("experience item", p.experience),
+      ["proof heading", p.proofHeading, false],
+      ...items("case study", p.proof),
+      ["tools heading", p.toolsHeading, false],
+      ...p.tools.flatMap((t, i): Field[] => [
+        [`tool ${i + 1} name`, t.name, false],
+        [`tool ${i + 1} description`, t.description, false],
+      ]),
+    );
+  return fields;
 }
 
 /**
@@ -99,17 +162,43 @@ export function validateCopy(c: SiteCopy, facts: SiteFacts): string[] {
   len("offerings intro", c.offeringsIntro, LIMITS.offeringsIntro);
   len("call-to-action heading", c.ctaHeading, LIMITS.ctaHeading);
   len("call-to-action text", c.ctaBody, LIMITS.ctaBody);
-  if (
-    c.offerings.length < LIMITS.minOfferings ||
-    c.offerings.length > LIMITS.maxOfferings
-  )
+  // Facts without a known vertical (older callers) get the Phase 2 limits.
+  const { minOfferings, maxOfferings, itemNameMax } = (
+    SITE_VERTICAL_REGISTRY as Partial<typeof SITE_VERTICAL_REGISTRY>
+  )[facts.vertical]?.validation ?? {
+    minOfferings: LIMITS.minOfferings,
+    maxOfferings: LIMITS.maxOfferings,
+    itemNameMax: LIMITS.offeringName,
+  };
+  if (c.offerings.length < minOfferings || c.offerings.length > maxOfferings)
     problems.push(
-      `There are ${c.offerings.length} offerings; between ${LIMITS.minOfferings} and ${LIMITS.maxOfferings} are needed.`,
+      `There are ${c.offerings.length} offerings; between ${minOfferings} and ${maxOfferings} are needed.`,
     );
   c.offerings.forEach((o, i) => {
-    len(`offering ${i + 1} name`, o.name, LIMITS.offeringName);
+    len(`offering ${i + 1} name`, o.name, itemNameMax);
     len(`offering ${i + 1} description`, o.description, LIMITS.offeringDescription);
   });
+  const p = c.pro;
+  if (p) {
+    len("primary call to action", p.primaryCta, LIMITS.heroEyebrow);
+    for (const [label, list] of [
+      ["challenge", p.challenges],
+      ["process step", p.process],
+      ["industry", p.industries],
+      ["experience item", p.experience],
+      ["case study", p.proof],
+      ["tool", p.tools],
+    ] as const) {
+      if (list.length > LIMITS.maxSectionItems)
+        problems.push(
+          `There are ${list.length} ${label} entries; at most ${LIMITS.maxSectionItems} fit the page.`,
+        );
+      list.forEach((o, i) => {
+        len(`${label} ${i + 1} name`, o.name, itemNameMax);
+        len(`${label} ${i + 1} description`, o.description, LIMITS.offeringDescription);
+      });
+    }
+  }
   if (!c.seoTitle.toLowerCase().includes(facts.businessName.toLowerCase().slice(0, 20)))
     problems.push("The SEO title must include the business name.");
 
@@ -118,8 +207,9 @@ export function validateCopy(c: SiteCopy, facts: SiteFacts): string[] {
       .join(" ")
       .match(/\d+/g) ?? [],
   );
-  for (const [label, text] of textFields(c)) {
+  for (const [label, text, verified] of textFields(c)) {
     for (const [re, what] of FORBIDDEN) {
+      if (verified && !STILL_FORBIDDEN_WHEN_VERIFIED.has(what)) continue;
       // The business's own name may contain a flagged word ("Best Roofing"):
       // judge the text with the name removed.
       const scrubbed = text.split(facts.businessName).join(" ");
@@ -127,7 +217,7 @@ export function validateCopy(c: SiteCopy, facts: SiteFacts): string[] {
         problems.push(`The ${label} contains ${what}: "${clip(text)}".`);
     }
     const scrubbedDigits = text.split(facts.businessName).join(" ");
-    for (const d of scrubbedDigits.match(/\d+/g) ?? [])
+    for (const d of verified ? [] : (scrubbedDigits.match(/\d+/g) ?? []))
       if (!ownDigits.has(d))
         problems.push(
           `The ${label} contains the number ${d}, which is not in the business's details.`,

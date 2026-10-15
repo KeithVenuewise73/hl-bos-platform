@@ -31,7 +31,7 @@ export const PORTFOLIO: readonly Product[] = [
     name: "HLG Instant Site Builder",
     stage: "development",
     status:
-      "Phase 2 built and tested in the console: one-page demo sites for contractors, salons/barbers and restaurants/bars, built from a Presence Scanner lead in under a second, with a fabrication guard, sample content marked, a launch checklist and a ZIP download. Private previews only; nothing is published. Copy uses the template writer until an Anthropic key is added.",
+      "Phase 3A built and tested in the console (branch feat/professional-services-scale-foundation, not merged): professional services added through a vertical registry; Business Profiles with verified facts; private internal drafts for HLG Business Transformation and HSCS; batch demo builds of up to 10 leads. Phase 2 demo sites for contractors, salons/barbers and restaurants/bars are unchanged. Private previews only; nothing is published. Copy uses the template writer until an Anthropic key is added.",
     version: null,
     location: "this repository (packages/site-builder, console /presence/[id]/demo)",
   },
@@ -39,7 +39,7 @@ export const PORTFOLIO: readonly Product[] = [
     name: "HLG Presence Scanner",
     stage: "development",
     status:
-      "Phase 1 built and tested in the console: market scans from a pasted list or Google Places, safe website inspection, an evidence-backed Opportunity Score, Lead Board, Lead Card and CSV export. Google search needs a Places key (your decision). Not yet run against a live market; leads are stored on this computer.",
+      "Built and tested in the console: market scans from a pasted list or Google Places, safe website inspection (or a saved homepage copy), an evidence-backed Opportunity Score (presence-opportunity-0.2.0, now with professional services), Lead Board with batch selection, Lead Card and CSV export. Google search needs a Places key (your decision). Not yet run against a live market; leads are stored on this computer.",
     version: null,
     location: "this repository (packages/presence-scanner, console /presence)",
   },

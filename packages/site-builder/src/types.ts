@@ -6,7 +6,14 @@
 // the actual services, prices, story -- is SAMPLE content, marked as such on
 // the page, for the owner to replace. Nothing is published from here.
 
-export type SiteVertical = "contractor" | "salon_barber" | "restaurant_bar";
+export type SiteVertical =
+  "contractor" | "salon_barber" | "restaurant_bar" | "professional_services";
+
+/**
+ * prospect_demo   a demo for a business HLG has not spoken to (Phase 2).
+ * internal_draft  HLG's own business, built from a verified Business Profile.
+ */
+export type DraftMode = "prospect_demo" | "internal_draft";
 
 /** What we actually know about the business, each item traceable to the lead. */
 export interface SiteFacts {
@@ -35,6 +42,8 @@ export interface SiteFacts {
   /** Conversion tools already on their current site (e.g. "Vagaro"). */
   vendors: string[];
   websiteStatus: string;
+  /** Professional services only: the kind of firm (verticals in presence-scanner). */
+  subtype?: string;
 }
 
 export interface Offering {
@@ -42,6 +51,40 @@ export interface Offering {
   description: string;
   /** True until a reviewer replaces it with the business's own. */
   sample: boolean;
+  /**
+   * True only for content copied from a VERIFIED Business Profile field.
+   * Verified items may state approved experience; they still may not carry a
+   * price, a link, markup or a testimonial.
+   */
+  verified?: boolean;
+}
+
+/** A product or tool shown on a page, with its real status. */
+export interface ToolItem {
+  name: string;
+  description: string;
+  /** live = customers can use it; in_development = built, not offered; planned = no product yet. */
+  status: "live" | "in_development" | "planned" | "in_use";
+}
+
+/** The extra sections of the professional-services template. */
+export interface ProfessionalCopy {
+  primaryCta: string;
+  secondaryCta: string | undefined;
+  challengesHeading: string;
+  challenges: Offering[];
+  processHeading: string;
+  process: Offering[];
+  industriesHeading: string;
+  industries: Offering[];
+  experienceHeading: string;
+  /** Empty until a verified profile supplies it: never sample claims. */
+  experience: Offering[];
+  proofHeading: string;
+  /** Verified case studies only. Empty = an "information required" notice. */
+  proof: Offering[];
+  toolsHeading: string;
+  tools: ToolItem[];
 }
 
 /** The words on the page. Every field passes validateCopy before use. */
@@ -60,7 +103,18 @@ export interface SiteCopy {
   offerings: Offering[];
   ctaHeading: string;
   ctaBody: string;
+  /** Professional services only. */
+  pro?: ProfessionalCopy;
+  /**
+   * Core fields whose text came from a VERIFIED Business Profile field (internal
+   * drafts only). They pass the relaxed verified rules; a reviewer edit drops
+   * the field from this list, so edited text faces the full guard again.
+   */
+  verifiedFields?: VerifiableField[];
 }
+
+export type VerifiableField =
+  "heroEyebrow" | "heroHeadline" | "heroSubhead" | "aboutBody" | "metaDescription";
 
 export interface SiteOptions {
   /** Show the Google rating strip (only possible when a rating is held). */
@@ -81,7 +135,11 @@ export interface ChecklistItem {
     | "Ordering"
     | "Leads and CRM"
     | "Reviews"
-    | "Measurement";
+    | "Measurement"
+    | "Consultations"
+    | "Verification"
+    | "Legal"
+    | "Publishing";
   task: string;
   /** Why it is on the list: the finding or fact behind it. */
   why: string;
@@ -111,4 +169,14 @@ export interface SiteDraft {
   buildMs: number;
   approved: { by: string; at: string } | undefined;
   audit: { at: string; by: string; action: string; detail: string }[];
+  /** Absent on drafts saved before Phase 3A: those are prospect demos. */
+  mode?: DraftMode;
+  /** internal_draft: the Business Profile it was built from. */
+  profileId?: string;
+  /** internal_draft: what the profile is still missing, in plain English. */
+  infoRequired?: string[];
+  /** internal_draft: the brand accent from the profile. */
+  brand?: { accent: string; dark: string; soft: string; mark: string | undefined };
+  /** internal_draft: verified footer links (privacy, terms). */
+  legalLinks?: { label: string; url: string }[];
 }

@@ -21,6 +21,7 @@ import {
 import { extractFindings } from "../../../supabase/functions/_shared/discovery/extract.ts";
 import type { DimensionScore } from "../../../supabase/functions/_shared/discovery/rubric.ts";
 import { detectConversion, type Detection } from "./detectors.ts";
+import type { ExtraCheck } from "./verticals.ts";
 import { classifyUrl } from "./normalize.ts";
 import { robotsAllows } from "./robots.ts";
 import type { Confidence, Finding, FindingStatus, WebsiteStatus } from "./types.ts";
@@ -96,6 +97,8 @@ export async function inspectWebsite(
   url: string | undefined,
   egress: WebEgress,
   now: Date,
+  /** The vertical's extra checks (verticals.ts). Empty = the Phase 1 set exactly. */
+  extraChecks: readonly ExtraCheck[] = [],
 ): Promise<WebsiteInspection> {
   const at = now.toISOString();
   const base = { url, finalUrl: undefined, rubric: undefined };
@@ -560,6 +563,8 @@ export async function inspectWebsite(
         ),
   );
 
+  out.push(...extraFindings(extraChecks, det, w, notFound, at));
+
   if (scan.dimensions.length) {
     out.push(
       f(
@@ -580,6 +585,203 @@ export async function inspectWebsite(
     findings: out,
     rubric: { version: scan.rubricVersion, dimensions: scan.dimensions },
   };
+}
+
+/** Business schema types that describe a business (not just a web page). */
+const BUSINESS_SCHEMA =
+  /^(LocalBusiness|ProfessionalService|Organization|Corporation|AccountingService|InsuranceAgency|RealEstateAgent|FinancialService|LegalService|HomeAndConstructionBusiness|Restaurant|HairSalon|[A-Za-z]+Business)$/;
+
+/** Findings for a vertical's extra checks. Nothing here is guessed. */
+function extraFindings(
+  checks: readonly ExtraCheck[],
+  det: ReturnType<typeof detectConversion>,
+  w: ReturnType<typeof extractFindings>,
+  notFound: (what: string) => string,
+  at: string,
+): Finding[] {
+  const out: Finding[] = [];
+  const seen = (
+    key: string,
+    ok: string,
+    miss: string,
+    d: Detection | undefined,
+    what: string,
+  ) =>
+    out.push(
+      d?.found
+        ? f(key, ok, "present", d.evidence ?? "seen on the homepage", at)
+        : f(key, miss, "not_found", notFound(what), at, "medium"),
+    );
+  const verify = (
+    key: string,
+    label: string,
+    d: Detection,
+    what: string,
+    none: string,
+  ) =>
+    out.push(
+      d.found
+        ? f(
+            key,
+            label,
+            "needs_verification",
+            `${d.evidence ?? "seen on the homepage"}. Whether this is true cannot be judged from a web page: a person must check it before it is relied on or reused.`,
+            at,
+            "low",
+          )
+        : f(key, none, "not_found", notFound(what), at, "medium"),
+    );
+  const c = det.capabilities;
+  const o = det.observations;
+  for (const check of checks) {
+    switch (check) {
+      case "consultation":
+        seen(
+          "site.consultation",
+          "Consultation or assessment call to action",
+          "No consultation or assessment call to action",
+          c.consultation,
+          "a consultation, assessment or book-a-call link, or a scheduling tool",
+        );
+        break;
+      case "industries":
+        seen(
+          "site.industries",
+          "Industries or clients served",
+          "No industries-served section",
+          c.industries,
+          "an industries or who-we-serve link or heading",
+        );
+        break;
+      case "service_area":
+        seen(
+          "site.service_area",
+          "Service area stated",
+          "No service area stated",
+          o.serviceArea,
+          "a service area, “serving …” or areas-we-serve statement",
+        );
+        break;
+      case "about":
+        seen(
+          "site.about",
+          "About or experience section",
+          "No about or experience section",
+          c.about,
+          "an about, our-story, team or leadership link or heading",
+        );
+        break;
+      case "process":
+        seen(
+          "site.process",
+          "How-we-work section",
+          "No process or how-we-work section",
+          c.process,
+          "a process, approach or how-we-work link or heading",
+        );
+        break;
+      case "proof":
+        seen(
+          "site.proof",
+          "Case studies, portfolio or results section",
+          "No case studies, portfolio or results",
+          c.proof,
+          "a case study, portfolio or results link or heading",
+        );
+        break;
+      case "testimonials":
+        verify(
+          "site.testimonials",
+          "Testimonials shown: requires manual verification",
+          o.testimonials,
+          "a testimonials section or quotation block",
+          "No testimonials shown",
+        );
+        break;
+      case "claims":
+        verify(
+          "site.claims",
+          "Statistics and claims: require manual verification",
+          o.claims,
+          "statistic-style claims (savings, percentages, client counts, years)",
+          "No statistic-style claims",
+        );
+        break;
+      case "placeholder_contact":
+        out.push(
+          o.placeholderPhones.found
+            ? f(
+                "site.placeholder_contact",
+                "Contact number looks like a placeholder",
+                "needs_verification",
+                `${o.placeholderPhones.evidence}. A real business number must replace it; confirm the number customers should use.`,
+                at,
+                "medium",
+              )
+            : f(
+                "site.placeholder_contact",
+                "No placeholder-looking phone numbers",
+                "not_found",
+                notFound("phone numbers in the 555 exchange"),
+                at,
+                "medium",
+              ),
+        );
+        break;
+      case "privacy":
+        out.push(
+          w.forms === 0
+            ? f(
+                "site.privacy",
+                "Privacy policy: not required on this page",
+                "not_checked",
+                "The homepage has no form, so a privacy policy was not judged.",
+                at,
+                "low",
+              )
+            : o.privacy.found
+              ? f(
+                  "site.privacy",
+                  "Privacy policy linked",
+                  "present",
+                  o.privacy.evidence ?? "",
+                  at,
+                )
+              : f(
+                  "site.privacy",
+                  "Form without a privacy-policy link",
+                  "not_found",
+                  notFound("a privacy-policy link next to the form"),
+                  at,
+                  "medium",
+                ),
+        );
+        break;
+      case "business_schema": {
+        const types = w.structuredDataTypes.filter((t) => BUSINESS_SCHEMA.test(t));
+        out.push(
+          types.length
+            ? f(
+                "site.business_schema",
+                "Business structured data",
+                "present",
+                `Schema types: ${types.slice(0, 4).join(", ")}`,
+                at,
+              )
+            : f(
+                "site.business_schema",
+                "No LocalBusiness or ProfessionalService structured data",
+                "not_found",
+                notFound("LocalBusiness, ProfessionalService or Organization JSON-LD"),
+                at,
+                "medium",
+              ),
+        );
+        break;
+      }
+    }
+  }
+  return out;
 }
 
 /** What inspection reports when this computer was offline: not checked, with the reason. */

@@ -1,7 +1,7 @@
 // Display labels, kept free of engine code so the browser can import them
 // ("@hl-bos/presence-scanner/labels") without pulling in the scanner.
 
-import type { Vertical, WebsiteStatus } from "./types.ts";
+import type { FindingStatus, Vertical, WebsiteStatus } from "./types.ts";
 
 export { LEAD_STAGES, STAGE_TO_HLBOS, stageLabel } from "./stages.ts";
 import { VERTICALS } from "./verticals.ts";
@@ -15,6 +15,16 @@ export const WEBSITE_STATUS_LABELS: Record<WebsiteStatus, string> = {
   unreachable: "Broken / unreachable",
   blocked: "Could not inspect",
   not_checked: "Not checked",
+};
+
+/** The evidence language every finding uses. */
+export const FINDING_STATUS_LABELS: Record<FindingStatus, string> = {
+  present: "Present",
+  missing: "Missing",
+  not_found: "Not found on the inspected page",
+  blocked: "Blocked",
+  not_checked: "Not checked",
+  needs_verification: "Requires manual verification",
 };
 
 export const QUALIFICATION_LABELS = {

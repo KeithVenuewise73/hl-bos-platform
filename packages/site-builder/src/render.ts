@@ -12,61 +12,16 @@
 //   * the contact form is inert (disabled fields, no action, no submit).
 
 import { FONTS_HREF, siteCss } from "./design.ts";
-import type { SiteDraft, SiteVertical } from "./types.ts";
+import { renderProfessional } from "./render-professional.ts";
+import type { SiteDraft } from "./types.ts";
+import { verticalDef } from "./verticals.ts";
 
-export const esc = (s: string | number | undefined | null): string =>
-  String(s ?? "")
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#39;");
-
-const SCHEMA_TYPE: Record<SiteVertical, string> = {
-  contractor: "HomeAndConstructionBusiness",
-  salon_barber: "HairSalon",
-  restaurant_bar: "Restaurant",
-};
-
-const PRIMARY_CTA: Record<SiteVertical, string> = {
-  contractor: "Request an estimate",
-  salon_barber: "Book an appointment",
-  restaurant_bar: "Plan a visit",
-};
-
-function initials(name: string): string {
-  const words = name
-    .replace(/[^A-Za-z0-9 ]+/g, " ")
-    .split(/\s+/)
-    .filter(Boolean);
-  return (
-    words.length >= 2 ? `${words[0]![0]}${words[1]![0]}` : (words[0] ?? "?").slice(0, 2)
-  ).toUpperCase();
-}
-
-const sampleTag = (on: boolean) =>
-  on
-    ? '<span class="sample" title="Sample content: replace before launch">Sample</span>'
-    : "";
-
-/** JSON for a <script type="application/ld+json"> block, safe inside HTML. */
-export function jsonLd(draft: SiteDraft): string {
-  const f = draft.facts;
-  const data: Record<string, unknown> = {
-    "@context": "https://schema.org",
-    "@type": SCHEMA_TYPE[draft.vertical],
-    name: f.businessName,
-  };
-  if (f.phone) data["telephone"] = f.phone;
-  if (f.address) data["address"] = f.address;
-  if (f.email) data["email"] = f.email;
-  return JSON.stringify(data)
-    .replace(/</g, "\\u003c")
-    .replace(/>/g, "\\u003e")
-    .replace(/&/g, "\\u0026");
-}
+export { esc, initials, jsonLd, sampleTag } from "./html.ts";
+import { esc, initials, jsonLd, sampleTag } from "./html.ts";
 
 export function renderSite(draft: SiteDraft): string {
+  if (verticalDef(draft.vertical).renderer === "professional")
+    return renderProfessional(draft);
   const f = draft.facts;
   const c = draft.copy;
   const tel = f.phoneLink ? `tel:${f.phoneLink}` : undefined;
@@ -79,7 +34,7 @@ export function renderSite(draft: SiteDraft): string {
   const heroButtons = [
     tel ? `<a class="btn btn-light" href="${esc(tel)}">Call ${esc(f.phone)}</a>` : "",
     sms ? `<a class="btn btn-outline-light" href="${esc(sms)}">Send a text</a>` : "",
-    `<a class="btn btn-outline-light" href="#contact">${esc(PRIMARY_CTA[draft.vertical])}</a>`,
+    `<a class="btn btn-outline-light" href="#contact">${esc(verticalDef(draft.vertical).primaryCta)}</a>`,
   ].join("");
 
   const offerings = c.offerings

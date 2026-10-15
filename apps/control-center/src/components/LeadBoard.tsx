@@ -10,6 +10,7 @@ import {
 } from "@hl-bos/presence-scanner/labels";
 
 import {
+  BATCH_LIMIT,
   filterLeads,
   filtersToParams,
   nextSort,
@@ -92,6 +93,15 @@ export function LeadBoard({ rows }: { rows: LeadRow[] }) {
     [rows, f, sort],
   );
   const query = filtersToParams(f);
+  const [picked, setPicked] = useState<string[]>([]);
+  const toggle = (id: string) =>
+    setPicked((cur) =>
+      cur.includes(id)
+        ? cur.filter((x) => x !== id)
+        : cur.length >= BATCH_LIMIT
+          ? cur
+          : [...cur, id],
+    );
 
   const head = (key: SortKey, text: string) => (
     <th style={th}>
@@ -245,10 +255,52 @@ export function LeadBoard({ rows }: { rows: LeadRow[] }) {
         </span>
       </div>
 
+      <div
+        style={{
+          display: "flex",
+          gap: 12,
+          alignItems: "center",
+          flexWrap: "wrap",
+          margin: "0 0 10px",
+          padding: "8px 10px",
+          border: `1px solid ${C.border}`,
+          borderRadius: 8,
+          fontSize: 13,
+        }}
+      >
+        <span style={{ color: C.muted }}>
+          Selected {picked.length} of at most {BATCH_LIMIT} qualified leads.
+        </span>
+        <a
+          href={picked.length ? `/presence/batch?ids=${picked.join(",")}` : undefined}
+          aria-disabled={picked.length === 0}
+          style={{
+            color: picked.length ? C.link : C.grey,
+            fontWeight: 600,
+            pointerEvents: picked.length ? "auto" : "none",
+          }}
+        >
+          Build demos for selected →
+        </a>
+        {picked.length ? (
+          <button
+            type="button"
+            onClick={() => setPicked([])}
+            style={{ background: "none", border: 0, color: C.muted, cursor: "pointer" }}
+          >
+            Clear
+          </button>
+        ) : null}
+        <span style={{ color: C.muted, fontSize: 12 }}>
+          You confirm the list before anything is built. Nothing is published or sent.
+        </span>
+      </div>
+
       <div style={{ overflowX: "auto" }}>
         <table style={{ width: "100%", borderCollapse: "collapse" }}>
           <thead>
             <tr>
+              <th style={th}>Select</th>
               {head("name", "Business")}
               <th style={th}>Vertical</th>
               {head("score", "Score")}
@@ -264,6 +316,18 @@ export function LeadBoard({ rows }: { rows: LeadRow[] }) {
           <tbody>
             {shown.map((r) => (
               <tr key={r.id}>
+                <td style={td} title={r.batchNote || undefined}>
+                  <input
+                    type="checkbox"
+                    aria-label={`Select ${r.name} for a batch demo build`}
+                    checked={picked.includes(r.id)}
+                    disabled={
+                      !r.batchable ||
+                      (!picked.includes(r.id) && picked.length >= BATCH_LIMIT)
+                    }
+                    onChange={() => toggle(r.id)}
+                  />
+                </td>
                 <td style={td}>
                   <a
                     href={`/presence/${r.id}`}

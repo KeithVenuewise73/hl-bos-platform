@@ -155,6 +155,17 @@ const CHAINS: Record<Vertical, string[]> = {
     "life time fitness",
   ],
   youth_sports: ["i9 sports", "soccer shots", "skyhawks sports", "little kickers"],
+  // National tax-prep and real-estate franchises: the local office does not
+  // control the brand's website.
+  professional_services: [
+    "h r block",
+    "jackson hewitt",
+    "liberty tax",
+    "keller williams",
+    "re max",
+    "coldwell banker",
+    "century 21",
+  ],
 };
 
 const NORMALIZED = Object.fromEntries(

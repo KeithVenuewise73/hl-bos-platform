@@ -4,6 +4,7 @@
 // never steps the tool takes.
 
 import type { ChecklistItem, SiteFacts } from "./types.ts";
+import { verticalDef } from "./verticals.ts";
 
 export function launchChecklist(f: SiteFacts, sampleCount: number): ChecklistItem[] {
   const has = (k: string) => f.gaps.includes(k);
@@ -81,40 +82,7 @@ export function launchChecklist(f: SiteFacts, sampleCount: number): ChecklistIte
       : "Calls and texts are the main way local customers get in touch.",
     owner: "Business owner",
   });
-  if (f.vertical === "salon_barber")
-    add({
-      id: "booking",
-      area: "Booking",
-      task: f.vendors.length
-        ? `Connect the Book button to the booking tool they already use (${f.vendors.join(", ")}).`
-        : "Choose an online booking tool with the owner (for example Square Appointments, Vagaro or Booksy) and connect the Book button.",
-      why: has("site.booking")
-        ? "No online booking was found on their current site."
-        : "Booking is the main action for a salon or barber.",
-      owner: "Business owner",
-    });
-  if (f.vertical === "restaurant_bar") {
-    add({
-      id: "menu",
-      area: "Content",
-      task: "Get the real menu (with prices, if the owner wants them shown) and replace the sample menu section.",
-      why: has("site.menu")
-        ? "No menu was found on their current site."
-        : "Customers look for the menu first.",
-      owner: "Business owner",
-    });
-    add({
-      id: "ordering",
-      area: "Ordering",
-      task: f.vendors.length
-        ? `Link the ordering tool they already use (${f.vendors.join(", ")}).`
-        : "Decide with the owner whether to offer online ordering (for example Toast or Square Online) and link it.",
-      why: has("site.ordering")
-        ? "No online ordering was found on their current site."
-        : "Ordering ahead is a common reason to visit a restaurant site.",
-      owner: "Business owner",
-    });
-  }
+  for (const i of verticalDef(f.vertical).checklist(f, has)) add(i);
   add({
     id: "form-crm",
     area: "Leads and CRM",
