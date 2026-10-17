@@ -20,6 +20,7 @@
  * automatic band by default, so OCR-only readings always reach a human.
  */
 
+import { parseJerseyShade } from "./teams.ts";
 import { normalizeJerseyNumber } from "./numbers.ts";
 import {
   JERSEY_LOCATIONS,
@@ -115,16 +116,26 @@ export function interpretReadings(
       box: reading.box,
       location: reading.location,
       method: options.method,
+      jersey: parseJerseyShade(reading.jersey),
     };
-    // One detection per number per photo: two readings of the same #24 are
-    // the same athlete seen twice, not two athletes. Keep the stronger.
-    const existing = best.get(value);
+    // One detection per number per jersey shade: two readings of the same
+    // dark #24 are the same athlete seen twice. Keep the stronger. A light
+    // #24 and a dark #24 are two athletes on two teams, and both are kept.
+    const key = `${value}|${detection.jersey ?? "?"}`;
+    const existing = best.get(key);
     if (existing === undefined || existing.confidence < detection.confidence) {
-      best.set(value, detection);
+      best.set(key, detection);
     }
   }
 
-  const detections = [...best.values()].sort((a, b) => b.confidence - a.confidence);
+  // A #24 whose jersey could not be seen is the #24 that WAS seen, not a third
+  // athlete: drop it when the same number was read on a known jersey.
+  const known = new Set(
+    [...best.values()].filter((d) => d.jersey !== null).map((d) => d.value),
+  );
+  const detections = [...best.values()]
+    .filter((d) => d.jersey !== null || !known.has(d.value))
+    .sort((a, b) => b.confidence - a.confidence);
   return { detections, rejected };
 }
 

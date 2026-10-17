@@ -3,7 +3,11 @@ import { notFound } from "next/navigation";
 
 import { reanalyzeAction, retryFailedAction } from "@/actions/events.ts";
 import { photoAction } from "@/actions/review.ts";
-import { DetectionEditor, FlagButton } from "@/components/DetectionEditor.tsx";
+import {
+  DetectionEditor,
+  editorTeams,
+  FlagButton,
+} from "@/components/DetectionEditor.tsx";
 import { Notice, param, type SearchParams } from "@/components/Notice.tsx";
 import { db } from "@/lib/db.ts";
 import { bytes, longDate, longDateTime, STATUS_LABEL } from "@/lib/format.ts";
@@ -183,6 +187,7 @@ export default async function PhotoPage({
               detections={detections}
               thresholds={t}
               returnTo={here}
+              teams={editorTeams(photo)}
             />
           </section>
 

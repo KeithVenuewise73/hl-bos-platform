@@ -13,6 +13,8 @@ import {
 import exifr from "exifr";
 import { useMemo, useRef, useState } from "react";
 
+import { useHydrated } from "@/lib/use-hydrated.ts";
+import { DateCard, type ExistingEvent } from "@/components/DateCard.tsx";
 import { Stat } from "@/components/Stat.tsx";
 import { bytes, count, longDate, longDateTime } from "@/lib/format.ts";
 
@@ -80,8 +82,20 @@ async function inspect(file: File): Promise<CheckedFile> {
 
 type View = "all" | "estimated" | "raw" | "unsupported";
 
-export function FolderCheck() {
+export function FolderCheck({
+  events,
+  defaultSport,
+}: {
+  /** Events already in JerseySort, so a date can be added to one instead. */
+  events: readonly ExistingEvent[];
+  defaultSport: string;
+}) {
   const input = useRef<HTMLInputElement>(null);
+  const ready = useHydrated();
+  // The files as the browser handed them over, kept for "Create event &
+  // import". Read-only File objects: nothing here can write to the folder.
+  const handed = useRef(new Map<string, File>());
+  const [dayFilter, setDayFilter] = useState<string | null>(null);
   const [folder, setFolder] = useState<string | null>(null);
   const [done, setDone] = useState(0);
   const [total, setTotal] = useState(0);
@@ -106,6 +120,8 @@ export function FolderCheck() {
     setTotal(list.length);
     setView("all");
     setPage(0);
+    setDayFilter(null);
+    handed.current = new Map(list.map((f) => [f.webkitRelativePath || f.name, f]));
     const out: CheckedFile[] = new Array<CheckedFile>(list.length);
     let next = 0;
     let finished = 0;
@@ -128,13 +144,33 @@ export function FolderCheck() {
 
   const shown = useMemo(() => {
     if (files === null) return [];
+    const onDay =
+      dayFilter === null
+        ? files
+        : files.filter((f) => f.takenAt?.startsWith(dayFilter));
     if (view === "estimated")
-      return files.filter((f) => f.category === "photo" && f.dateSource !== "camera");
-    if (view === "raw") return files.filter((f) => f.category === "raw");
+      return onDay.filter((f) => f.category === "photo" && f.dateSource !== "camera");
+    if (view === "raw") return onDay.filter((f) => f.category === "raw");
     if (view === "unsupported")
-      return files.filter((f) => f.category === "unsupported");
-    return files;
-  }, [files, view]);
+      return onDay.filter((f) => f.category === "unsupported");
+    return onDay;
+  }, [files, view, dayFilter]);
+
+  /** The supported photos taken on `day`, ready to import. */
+  function photosOn(day: string): File[] {
+    if (files === null) return [];
+    return files
+      .filter((f) => f.category === "photo" && f.takenAt?.startsWith(day))
+      .map((f) => handed.current.get(f.path))
+      .filter((f): f is File => f !== undefined);
+  }
+
+  function review(day: string) {
+    setDayFilter(day);
+    setView("all");
+    setPage(0);
+    document.getElementById("every-file")?.scrollIntoView({ behavior: "smooth" });
+  }
   const pages = Math.max(1, Math.ceil(shown.length / PAGE));
 
   return (
@@ -148,12 +184,13 @@ export function FolderCheck() {
           Read only. Nothing in the folder is changed.
         </p>
         <p className="mt-1 text-muted">
-          Check Folder only reads your photos, on this computer. It does not upload,
-          copy, move, rename, delete or re-date anything, and it writes nothing into the
+          Checking only reads your photos, on this computer. It does not upload, copy,
+          move, rename, delete or re-date anything, and it writes nothing into the
           folder. Your browser may ask whether to &ldquo;upload&rdquo; the folder: that
           is the browser&apos;s standard wording for letting a page see files. Nothing
-          is sent, and nothing is imported or created. Choosing games and importing come
-          later, as a separate step.
+          is sent and nothing is created until you press{" "}
+          <em>Create event &amp; import</em> on a date — and even then the photos are
+          copied into JerseySort, never moved or changed.
         </p>
       </div>
 
@@ -172,6 +209,7 @@ export function FolderCheck() {
           multiple
           hidden
           data-testid="check-folder-input"
+          data-ready={ready ? "true" : undefined}
           aria-label="Choose a folder to check"
           {...({ webkitdirectory: "" } as Record<string, string>)}
           onChange={(e) => {
@@ -308,44 +346,53 @@ export function FolderCheck() {
             </table>
           </section>
 
-          <section className="card p-4" aria-label="Proposed games">
-            <h3 className="label">Proposed games</h3>
+          <section aria-label="Proposed games">
+            <h3 className="label">Proposed games — one per shooting date</h3>
             {games.length === 0 ? (
-              <p className="text-sm text-muted">
+              <p className="card p-4 text-sm text-muted">
                 No supported photos, so no games to propose.
               </p>
             ) : (
               <>
-                <ul className="space-y-1.5 text-sm" data-testid="games">
+                <ul className="space-y-3" data-testid="games">
                   {games.map((g) => (
-                    <li key={g.day} className="flex flex-wrap items-baseline gap-2">
-                      <span className="font-semibold" data-testid="game">
-                        {g.label}
-                      </span>
-                      {g.estimated > 0 ? (
-                        <span className="chip bg-medium/15 text-medium">
-                          {g.estimated.toLocaleString("en-US")} by estimated date
-                        </span>
-                      ) : null}
-                      {g.raw > 0 ? (
-                        <span className="chip bg-panel-2 text-muted">
-                          + {g.raw.toLocaleString("en-US")} RAW
-                        </span>
-                      ) : null}
-                    </li>
+                    <DateCard
+                      key={g.day}
+                      game={g}
+                      photos={photosOn(g.day)}
+                      existing={events.filter((e) => e.event_date === g.day)}
+                      defaultSport={defaultSport}
+                      onReview={review}
+                    />
                   ))}
                 </ul>
                 <p className="mt-3 text-xs text-muted" data-testid="games-not-created">
                   A proposal, one game per shooting date. No games have been created and
-                  nothing has been imported.
+                  nothing has been imported: that happens only when you press{" "}
+                  <em>Create event &amp; import</em> on a date, and it copies the
+                  photos, leaving the folder exactly as it is.
                 </p>
               </>
             )}
           </section>
 
-          <section className="card overflow-x-auto p-4" aria-label="Every file">
+          <section
+            className="card overflow-x-auto p-4"
+            aria-label="Every file"
+            id="every-file"
+          >
             <div className="mb-2 flex flex-wrap items-center gap-2">
               <h3 className="label mb-0 mr-2">Every file</h3>
+              {dayFilter !== null ? (
+                <button
+                  type="button"
+                  className="chip bg-brand-2/20 px-2 py-1 text-brand-2"
+                  data-testid="day-filter"
+                  onClick={() => setDayFilter(null)}
+                >
+                  {longDate(dayFilter)} only · show all dates ✕
+                </button>
+              ) : null}
               {(
                 [
                   ["all", `All (${files.length})`],

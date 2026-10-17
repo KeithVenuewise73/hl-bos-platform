@@ -121,20 +121,21 @@ export async function processPhoto(
         "delete from photo_detections where photo_id = :id and status = 'suggested' and method != 'manual'",
         { id: photoId },
       );
-      const decided = new Set(
-        db
-          .all<{ v: string }>(
-            "select detected_value as v from photo_detections where photo_id = :id",
-            { id: photoId },
-          )
-          .map((r) => r.v),
+      // What a person already decided (or an earlier reading kept) stays.
+      // A decision about "#22, team unknown" covers every #22; a decision
+      // about the dark #22 covers only the dark #22.
+      const decided = db.all<{ v: string; j: string | null }>(
+        "select detected_value as v, jersey as j from photo_detections where photo_id = :id",
+        { id: photoId },
       );
+      const isDecided = (v: string, j: string | null) =>
+        decided.some((x) => x.v === v && (x.j === null || x.j === j));
       for (const d of analysis.detections) {
-        if (decided.has(d.value)) continue;
+        if (isDecided(d.value, d.jersey)) continue;
         db.run(
           `insert into photo_detections (id, organization_id, photo_id, detected_value, confidence, bounding_box, location,
-             method, provider, provider_model, status)
-           values (:id, :org, :photo, :v, :c, :box, :loc, :method, :p, :m, 'suggested')`,
+             method, provider, provider_model, status, jersey)
+           values (:id, :org, :photo, :v, :c, :box, :loc, :method, :p, :m, 'suggested', :jersey)`,
           {
             id: newId(),
             org,
@@ -146,6 +147,7 @@ export async function processPhoto(
             method: d.method,
             p: analysis.provider,
             m: analysis.providerModel,
+            jersey: d.jersey,
           },
         );
       }

@@ -28,6 +28,8 @@ function input(form: FormData): EventInput {
     sport: text(form, "sport"),
     teamName: text(form, "team"),
     opponent: text(form, "opponent"),
+    homeJersey: text(form, "home_jersey"),
+    awayJersey: text(form, "away_jersey"),
     eventDate: text(form, "date"),
     location: text(form, "location"),
     season: text(form, "season"),
@@ -48,6 +50,33 @@ export async function createEventAction(form: FormData): Promise<void> {
   redirect(
     `/events/${id}?notice=${encodeURIComponent("Event created. Now add the photos.")}`,
   );
+}
+
+export type CreateForImportResult =
+  | { readonly ok: true; readonly id: string; readonly name: string }
+  | { readonly ok: false; readonly error: string };
+
+/**
+ * Create the event for one shooting date from Check a folder, and hand its id
+ * back so the page can import that date's photos into it. Only called when
+ * the person presses "Create event & import": checking a folder creates
+ * nothing.
+ */
+export async function createEventForImportAction(
+  form: FormData,
+): Promise<CreateForImportResult> {
+  const user = await requireUser();
+  const fields = input(form);
+  try {
+    const id = createEvent(db(), user.organizationId, user.userId, fields);
+    revalidatePath("/", "layout");
+    return { ok: true, id, name: fields.name.trim() };
+  } catch (e) {
+    return {
+      ok: false,
+      error: e instanceof ValidationError ? e.message : "Could not create the event.",
+    };
+  }
 }
 
 export async function updateEventAction(form: FormData): Promise<void> {
