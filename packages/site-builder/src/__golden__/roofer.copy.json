@@ -1,0 +1,36 @@
+{
+ "seoTitle": "Seneca Roofing & Gutters | Roofing contractor in West Seneca",
+ "metaDescription": "Seneca Roofing & Gutters: roofing contractor in West Seneca. Call or text (716) 555-0101 to ask about a job.",
+ "heroEyebrow": "Roofing contractor in West Seneca",
+ "heroHeadline": "Seneca Roofing & Gutters",
+ "heroSubhead": "Roofing in West Seneca. Call or text (716) 555-0101 to ask about a job.",
+ "aboutHeading": "About Seneca Roofing & Gutters",
+ "aboutBody": "Seneca Roofing & Gutters is a roofing contractor in West Seneca. This is where the owner's own story goes: how the business started, the people behind it, and what customers can expect.",
+ "aboutSample": true,
+ "offeringsHeading": "What we do",
+ "offeringsIntro": "Examples to show the layout. Replace them with the real list before launch.",
+ "offerings": [
+  {
+   "name": "Roof repairs",
+   "description": "Leaks, missing shingles, flashing and storm damage, looked at and fixed.",
+   "sample": true
+  },
+  {
+   "name": "Roof replacement",
+   "description": "Tear-off and new roofs, with the options explained before work starts.",
+   "sample": true
+  },
+  {
+   "name": "Gutters",
+   "description": "Gutter cleaning, repair and new gutters to keep water off the house.",
+   "sample": true
+  },
+  {
+   "name": "Inspections and estimates",
+   "description": "A walk-through of the roof and a written estimate for the work.",
+   "sample": true
+  }
+ ],
+ "ctaHeading": "Tell us about your project",
+ "ctaBody": "Call or text (716) 555-0101 to ask about a job."
+}

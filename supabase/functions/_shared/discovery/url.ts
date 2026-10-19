@@ -80,7 +80,7 @@ function ipv6Blocked(ipRaw: string): string | null {
   if (/^f[cd]/.test(ip)) return "unique_local"; // fc00::/7
   // IPv4-mapped / -embedded (::ffff:a.b.c.d or ::a.b.c.d)
   const v4 = ip.match(/(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})$/);
-  if (v4) return ipv4Blocked(v4[1]);
+  if (v4?.[1]) return ipv4Blocked(v4[1]);
   return null;
 }
 

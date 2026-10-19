@@ -1,0 +1,29 @@
+{
+  "name": "@hl-bos/site-builder",
+  "version": "0.1.0",
+  "private": true,
+  "description": "HLG Instant Site Builder engine. Turns a Presence Scanner lead into a one-page demo website for its vertical (contractor, salon/barber, restaurant/bar, professional services; one registry entry per vertical), or a verified Business Profile into a private internal draft, in the shared HLG static-site design: facts only from the lead's evidence, sample content clearly marked, copy from a validated Claude writer or the deterministic template writer, a launch checklist derived from the lead's findings, and a downloadable ZIP. Renders a single self-contained HTML file with no scripts. Never publishes anything.",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "default": "./src/index.ts"
+    }
+  },
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run",
+    "clean": "rm -rf dist *.tsbuildinfo"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "catalog:",
+    "@hl-bos/jersey-sort": "workspace:*",
+    "@hl-bos/presence-scanner": "workspace:*",
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  }
+}

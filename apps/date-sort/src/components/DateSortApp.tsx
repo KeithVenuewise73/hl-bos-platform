@@ -2,12 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 
-import {
-  FORMAT_LABEL,
-  PHOTO_FORMATS,
-  type DayReport,
-  type FormatCounts,
-} from "@hl-bos/date-sort";
+import { FORMAT_LABEL, PHOTO_FORMATS, type DayReport } from "@hl-bos/date-sort";
 
 import { clockTime, count, dateAndTime, longDate } from "@/lib/format.ts";
 import type { ScanMessage, ScanView } from "@/lib/scan-view.ts";
@@ -270,12 +265,6 @@ function Stat({
   );
 }
 
-function formatLine(byFormat: FormatCounts): string {
-  return PHOTO_FORMATS.filter((f) => byFormat[f] > 0)
-    .map((f) => `${byFormat[f].toLocaleString("en-US")} ${FORMAT_LABEL[f]}`)
-    .join(" · ");
-}
-
 function Report({ view }: { view: ScanView }) {
   const r = view.report;
   const [showEstimated, setShowEstimated] = useState(false);
@@ -466,9 +455,24 @@ function DateCard({ day }: { day: DayReport }) {
       <p className="text-2xl font-semibold" data-col="photos">
         {count(day.photos, "photo")}
       </p>
-      <p className="text-sm text-muted" data-col="formats">
-        {formatLine(day.byFormat)}
-      </p>
+      <dl className="grid grid-cols-5 gap-1 text-center" data-col="formats">
+        {PHOTO_FORMATS.map((f) => (
+          <div
+            key={f}
+            className="rounded border border-line bg-panel-2 px-1 py-1"
+            data-format={f}
+          >
+            <dt className="text-[10px] font-semibold uppercase tracking-wide text-muted">
+              {f === "jpeg" ? "JPG/JPEG" : FORMAT_LABEL[f]}
+            </dt>
+            <dd
+              className={`text-sm font-semibold ${day.byFormat[f] > 0 ? "text-text" : "text-muted"}`}
+            >
+              {day.byFormat[f].toLocaleString("en-US")}
+            </dd>
+          </div>
+        ))}
+      </dl>
       <dl className="space-y-1 text-sm">
         <div>
           <dt className="inline text-muted">First photo: </dt>

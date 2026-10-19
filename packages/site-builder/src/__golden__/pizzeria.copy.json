@@ -1,0 +1,36 @@
+{
+ "seoTitle": "Orchard Park Pizza | Pizza restaurant in Orchard Park",
+ "metaDescription": "Orchard Park Pizza: pizza restaurant in Orchard Park. Call or text (716) 555-0170 to order ahead or plan a visit.",
+ "heroEyebrow": "Pizza restaurant in Orchard Park",
+ "heroHeadline": "Orchard Park Pizza",
+ "heroSubhead": "Pizzeria in Orchard Park. Call or text (716) 555-0170 to order ahead or plan a visit.",
+ "aboutHeading": "About Orchard Park Pizza",
+ "aboutBody": "Orchard Park Pizza is a pizza restaurant in Orchard Park. This is where the owner's own story goes: how the business started, the people behind it, and what customers can expect.",
+ "aboutSample": true,
+ "offeringsHeading": "On the menu",
+ "offeringsIntro": "Examples to show the layout. Replace them with the real list before launch.",
+ "offerings": [
+  {
+   "name": "Pizza",
+   "description": "Pies and slices.",
+   "sample": true
+  },
+  {
+   "name": "Wings",
+   "description": "Wings and sides.",
+   "sample": true
+  },
+  {
+   "name": "Subs and salads",
+   "description": "Subs, wraps and salads.",
+   "sample": true
+  },
+  {
+   "name": "Takeout and delivery",
+   "description": "Order ahead for pickup.",
+   "sample": true
+  }
+ ],
+ "ctaHeading": "Hungry? Call ahead or stop in",
+ "ctaBody": "Call or text (716) 555-0170 to order ahead or plan a visit."
+}

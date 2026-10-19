@@ -20,10 +20,14 @@ export function ConnectForm({
   hasGithub,
   hasSupabase,
   supabaseRef,
+  hasPlaces,
+  hasAnthropic,
 }: {
   hasGithub: boolean;
   hasSupabase: boolean;
   supabaseRef: string | null;
+  hasPlaces: boolean;
+  hasAnthropic: boolean;
 }) {
   const [pending, start] = useTransition();
   const [result, setResult] = useState<ActionResult | null>(null);
@@ -69,6 +73,34 @@ export function ConnectForm({
         style={input}
         defaultValue={supabaseRef ?? ""}
         placeholder="mvvtngiopdrgiedjmhfb"
+        autoComplete="off"
+      />
+
+      <label style={{ fontSize: 12.5, color: "#8b949e" }}>
+        Google Places API key (Presence Scanner — optional)
+      </label>
+      <input
+        name="places"
+        type="password"
+        style={input}
+        placeholder={
+          hasPlaces ? "Already connected — paste a new one to replace it" : "AIza..."
+        }
+        autoComplete="off"
+      />
+
+      <label style={{ fontSize: 12.5, color: "#8b949e" }}>
+        Anthropic API key (Claude copy for demo sites — optional)
+      </label>
+      <input
+        name="anthropic"
+        type="password"
+        style={input}
+        placeholder={
+          hasAnthropic
+            ? "Already connected — paste a new one to replace it"
+            : "sk-ant-..."
+        }
         autoComplete="off"
       />
 

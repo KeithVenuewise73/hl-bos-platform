@@ -314,7 +314,19 @@ async function readReport(page) {
         day: c.getAttribute("data-day"),
         title: (c.querySelector("h3")?.textContent || "").trim(),
         photos: n("photos"),
-        formats: col("formats"),
+        // Every card shows all five counts; summarised here as "3 JPG · 1 CR3"
+        // (non-zero only) to compare, and the five cells are checked present.
+        formatCells: [...c.querySelectorAll("[data-format]")].map((e) =>
+          e.getAttribute("data-format"),
+        ),
+        formats: [...c.querySelectorAll("[data-format]")]
+          .map((e) => [
+            e.getAttribute("data-format"),
+            Number(e.querySelector("dd").textContent.replace(/[^0-9]/g, "")),
+          ])
+          .filter(([, n]) => n > 0)
+          .map(([f, n]) => `${n} ${f === "jpeg" ? "JPG" : f.toUpperCase()}`)
+          .join(" · "),
         first: col("first")
           .replace(/Estimated date/i, "")
           .trim(),
@@ -657,6 +669,7 @@ async function refusals() {
       got.first === want.first &&
       got.last === want.last &&
       got.formats === want.formats &&
+      got.formatCells.join() === "jpeg,png,heic,cr2,cr3" &&
       got.lastIsEstimate === Boolean(want.lastIsEstimate);
     cardsOk =
       check(

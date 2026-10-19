@@ -133,6 +133,59 @@ export default async function ConnectPage() {
       </Card>
 
       <Card
+        title="Google Places (optional)"
+        sub="Turns on Google search in the Presence Scanner. Without it, the scanner still works from a pasted list."
+      >
+        <div
+          style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}
+        >
+          <Dot health={status.googlePlaces ? "green" : "yellow"} />
+          <span style={{ fontSize: 13 }}>
+            {status.googlePlaces ? "Connected." : "Not connected."}
+          </span>
+        </div>
+        <p
+          style={{
+            margin: "0 0 10px",
+            fontSize: 13,
+            color: "#c9d1d9",
+            lineHeight: 1.7,
+          }}
+        >
+          This is a spending decision, so it is yours. In Google Cloud: create a key
+          restricted to <strong>Places API (New)</strong>, and set a{" "}
+          <strong>monthly budget cap</strong> on the billing account before you paste it
+          here. Each search request costs about US$0.035 at Google&rsquo;s list price
+          (1,000 free a month), and returns up to 20 businesses. The scanner shows the
+          cost of every scan.
+        </p>
+        <p style={{ margin: 0, fontSize: 12, color: "#8b949e", lineHeight: 1.6 }}>
+          The key stays on this machine. It is sent only to Google, in a request header,
+          and never shown back to you or written into the repository.
+        </p>
+      </Card>
+
+      <Card
+        title="Claude (optional)"
+        sub="Lets Claude write the words on demo sites. Without it, the built-in template writer is used and everything still works."
+      >
+        <div
+          style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}
+        >
+          <Dot health={status.anthropic ? "green" : "yellow"} />
+          <span style={{ fontSize: 13 }}>
+            {status.anthropic ? "Connected." : "Not connected."}
+          </span>
+        </div>
+        <p style={{ margin: 0, fontSize: 13, color: "#c9d1d9", lineHeight: 1.7 }}>
+          Billed per use to your Anthropic account. Whatever Claude writes is checked
+          before it reaches a page — no prices, guarantees, credentials, history,
+          ratings or invented numbers — and is replaced by the template writer&rsquo;s
+          copy if it fails.
+        </p>
+      </Card>
+
+      <Card
         title="Paste them here"
         sub="Stored on this machine only. Never committed, never sent anywhere else."
       >
@@ -140,6 +193,8 @@ export default async function ConnectPage() {
           hasGithub={status.github}
           hasSupabase={status.supabase}
           supabaseRef={status.supabaseRef}
+          hasPlaces={status.googlePlaces}
+          hasAnthropic={status.anthropic}
         />
       </Card>
     </main>
