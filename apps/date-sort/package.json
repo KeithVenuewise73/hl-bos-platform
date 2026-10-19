@@ -1,0 +1,33 @@
+{
+  "name": "@hl-bos/date-sort-app",
+  "version": "0.1.0",
+  "private": true,
+  "description": "DateSort — organize loose camera photos by the day they were taken. Choose a folder, scan it (read only: nothing in it is moved, renamed, changed or deleted, and nothing is created there), and see every photo grouped by shooting date from its camera EXIF, with estimated dates labelled as estimates. Runs on this computer only; no account, no database, no internet, no AI.",
+  "type": "module",
+  "scripts": {
+    "dev": "next dev --port 4604 --hostname 127.0.0.1",
+    "build": "next build",
+    "start": "next start --port 4604 --hostname 127.0.0.1",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint .",
+    "test": "vitest run",
+    "clean": "rm -rf .next dist *.tsbuildinfo"
+  },
+  "dependencies": {
+    "@hl-bos/date-sort": "workspace:*",
+    "exifr": "catalog:",
+    "next": "catalog:",
+    "react": "catalog:",
+    "react-dom": "catalog:",
+    "server-only": "catalog:"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "catalog:",
+    "@types/node": "catalog:",
+    "@types/react": "catalog:",
+    "@types/react-dom": "catalog:",
+    "tailwindcss": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  }
+}

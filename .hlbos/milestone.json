@@ -352,6 +352,26 @@
     {
       "title": "HLG internal pilot: CEO reviews the HLG Business Transformation and HSCS drafts and supplies the missing facts (business emails, HSCS phone, privacy policy, legal names)",
       "done": false
+    },
+    {
+      "title": "DateSort Step 1: scan and report (DateSort.bat, Browse, Include subfolders, camera dates incl. Canon CR3, estimated dates labelled, read-only proven on Windows)",
+      "done": true
+    },
+    {
+      "title": "DateSort: first scan of a real Canon card on the CEO's laptop",
+      "done": false
+    },
+    {
+      "title": "DateSort Step 2: View Gallery (thumbnails) and Name Event",
+      "done": false
+    },
+    {
+      "title": "DateSort Step 3: Create Folder and copy photos (copy only, duplicates skipped safely)",
+      "done": false
+    },
+    {
+      "title": "DateSort Step 4: possible second event (60+ minute gaps) and split on confirmation",
+      "done": false
     }
   ],
   "blockers": [

@@ -38,6 +38,9 @@ Dockerfile  text eol=lf
 *.woff      binary
 *.woff2     binary
 *.pdf       binary
+*.heic      binary
+*.cr2       binary
+*.cr3       binary
 
 # Generated — collapse in review, exclude from language stats
 pnpm-lock.yaml      linguist-generated=true -diff
