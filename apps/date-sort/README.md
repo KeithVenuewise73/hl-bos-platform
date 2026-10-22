@@ -13,15 +13,11 @@ team → jersey number → player galleries). Neither imports the other's code.
 
 ## Start it
 
-Either:
+Double-click the **DateSort** icon on the desktop. You can also use **`scripts\DateSort.bat`**, or **Start DateSort** on the Development Control Center's home page.
 
-- double-click **`scripts\DateSort.bat`**. The first time it sets itself up (a few
-  minutes), and after that it opens in seconds. Or
-- press **Start DateSort** on the Development Control Center's home page.
+All three start DateSort at `http://localhost:4604` and open it in your browser once it answers. It listens on this computer only. Leave the DateSort window open while you use it, and close it to stop. The first start sets things up (a few minutes); later starts take seconds.
 
-Both start DateSort at `http://localhost:4604` and open it in your browser once it
-answers. It listens on this computer only. Leave the DateSort window open while you
-use it, and close it to stop.
+The desktop icon is made **once**, the first time HL-BOS starts on a computer (from the Control Center or `DateSort.bat`), by `scripts/desktop-shortcut.mjs`. If you delete it, it stays deleted. Delete `.hlbos\desktop-shortcut.json` to get it back on the next start.
 
 ## Step 1: Scan and report (built)
 
