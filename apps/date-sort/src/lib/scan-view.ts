@@ -78,4 +78,6 @@ export type CopyMessage =
     }
   | { readonly type: "error"; readonly message: string }
   /** Whether Windows agreed to stay awake for this copy (keep-awake.ts). */
-  | { readonly type: "awake"; readonly held: boolean };
+  | { readonly type: "awake"; readonly held: boolean }
+  /** Sent every few seconds while copying, even between photos (copy-watch.ts). */
+  | { readonly type: "alive" };

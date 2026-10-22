@@ -1015,6 +1015,41 @@ async function refusals() {
   console.log("\nCreate folders and copy photos");
   await copyChecks(page, card, work);
 
+  // A refreshed page, and a copy whose connection goes silent (as after the
+  // CEO's laptop slept: the bar froze with no message, and a refresh then
+  // cost a whole new scan).
+  console.log("\nRefreshing the page, and a copy that goes silent");
+  const fresh = await browser.newPage();
+  await fresh.clock.install();
+  await fresh.goto(BASE);
+  const restored = await fresh
+    .waitForSelector("[data-testid=date-card][data-day='2026-10-04']", {
+      timeout: 15_000,
+    })
+    .then(() => true)
+    .catch(() => false);
+  check("a refreshed page shows the last scan again, without scanning again", restored);
+  if (restored) {
+    fresh.on("dialog", (d) => void d.accept());
+    // The request is sent and then nothing ever comes back: no error, no data.
+    await fresh.route("**/api/copy", () => undefined);
+    await fresh.fill("[data-testid=destination-input]", work);
+    await fresh.click("[data-testid=copy-all]");
+    await fresh.waitForSelector("[data-testid=copy-cancel]", { timeout: 10_000 });
+    await fresh.clock.fastForward(40_000);
+    const said = await fresh
+      .waitForSelector("[data-testid=copy-error]", { timeout: 15_000 })
+      .then((e) => e.textContent())
+      .catch(() => null);
+    check(
+      "a copy that goes silent says DateSort lost touch, instead of freezing",
+      /lost touch with this page/.test(said || ""),
+      said,
+    );
+    await shot(fresh, "09b-copy-went-silent");
+  }
+  await fresh.close();
+
   // CR3 Date Taken
   console.log("\nCR3-only folder");
   const cr3Dir = path.join(work, "CR3 only");

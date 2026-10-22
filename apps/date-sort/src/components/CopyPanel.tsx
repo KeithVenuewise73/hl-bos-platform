@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 
 import { folderName } from "@hl-bos/date-sort";
 
+import { copyHealth } from "@/lib/copy-watch.ts";
 import { count, longDate } from "@/lib/format.ts";
 import type { CopyMessage, DayCopyView, ScanView } from "@/lib/scan-view.ts";
 
@@ -25,6 +26,7 @@ export function useCopy(view: ScanView) {
   const [note, setNote] = useState<string | null>(null);
   const [browsing, setBrowsing] = useState(false);
   const [awake, setAwake] = useState<boolean | null>(null);
+  const [stalled, setStalled] = useState(false);
   const abort = useRef<AbortController | null>(null);
 
   useEffect(() => {
@@ -91,7 +93,20 @@ export function useCopy(view: ScanView) {
     setError(null);
     setProgress(null);
     setAwake(null);
+    setStalled(false);
     await rememberDestination(destination.trim());
+    let lastMessageAt = Date.now();
+    let lastPhotoAt = Date.now();
+    let lastDone = -1;
+    let lost = false;
+    const watch = setInterval(() => {
+      const health = copyHealth(Date.now(), lastMessageAt, lastPhotoAt);
+      setStalled(health === "stalled");
+      if (health === "lost") {
+        lost = true;
+        controller.abort();
+      }
+    }, 2_000);
     try {
       const res = await fetch("/api/copy", {
         method: "POST",
@@ -121,8 +136,15 @@ export function useCopy(view: ScanView) {
           buffered = buffered.slice(nl + 1);
           if (line.trim() === "") continue;
           const m = JSON.parse(line) as CopyMessage;
-          if (m.type === "progress") setProgress(m);
-          else if (m.type === "awake") setAwake(m.held);
+          lastMessageAt = Date.now();
+          if (m.type === "alive") continue;
+          if (m.type === "progress") {
+            if (m.done !== lastDone) {
+              lastDone = m.done;
+              lastPhotoAt = lastMessageAt;
+            }
+            setProgress(m);
+          } else if (m.type === "awake") setAwake(m.held);
           else if (m.type === "done")
             setResults((prev) => {
               const next = { ...prev };
@@ -133,7 +155,7 @@ export function useCopy(view: ScanView) {
         }
       }
     } catch {
-      if (controller.signal.aborted) {
+      if (controller.signal.aborted && !lost) {
         setError(
           "Stopped. Everything copied so far is complete and checked; press the button again to finish the rest.",
         );
@@ -143,6 +165,8 @@ export function useCopy(view: ScanView) {
         );
       }
     } finally {
+      clearInterval(watch);
+      setStalled(false);
       setRunning(null);
       setProgress(null);
     }
@@ -160,6 +184,7 @@ export function useCopy(view: ScanView) {
     running,
     progress,
     awake,
+    stalled,
     results,
     error,
     cancel: () => abort.current?.abort(),
@@ -270,6 +295,13 @@ export function CopyPanel({ view, copy }: { view: ScanView; copy: CopyState }) {
         </div>
       ) : busy ? (
         <p className="text-sm">Checking the destination…</p>
+      ) : null}
+      {busy && copy.stalled ? (
+        <p className="text-sm text-estimate" data-testid="copy-stalled">
+          No photo has finished copying in the last 2 minutes. If the photo drive was
+          unplugged or the laptop went to sleep, press Stop copying, then Copy all
+          again: everything copied so far is kept and skipped.
+        </p>
       ) : null}
       {busy && copy.awake !== null ? (
         <p className="text-xs text-muted" data-testid="copy-awake">

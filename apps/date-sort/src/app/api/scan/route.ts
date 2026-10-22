@@ -1,7 +1,7 @@
 import { scanFolder, ScanError, type ScanResult } from "@hl-bos/date-sort/scan";
 
 import { guard } from "@/lib/guard.ts";
-import { rememberScan } from "@/lib/scan-store.ts";
+import { latestView, rememberScan, rememberView } from "@/lib/scan-store.ts";
 import type { ScanMessage, ScanView } from "@/lib/scan-view.ts";
 
 export const dynamic = "force-dynamic";
@@ -11,6 +11,16 @@ export const dynamic = "force-dynamic";
  * with the report. Everything that touches the disk is in
  * @hl-bos/date-sort's read-only-file.ts, which can only read.
  */
+/** The last scan's report, so a reloaded page picks up where it was. */
+export function GET(request: Request): Response {
+  const refused = guard(request);
+  if (refused !== null) return refused;
+  return Response.json(
+    { view: latestView() },
+    { headers: { "Cache-Control": "no-store" } },
+  );
+}
+
 export async function POST(request: Request): Promise<Response> {
   const refused = guard(request);
   if (refused !== null) return refused;
@@ -45,7 +55,10 @@ export async function POST(request: Request): Promise<Response> {
             send({ type: "progress", ...p });
           },
         });
-        send({ type: "done", view: toView(result, rememberScan(result)) });
+        send({
+          type: "done",
+          view: rememberView(toView(result, rememberScan(result))),
+        });
       } catch (e) {
         if (request.signal.aborted) return; // the page went away; nobody to tell
         send({

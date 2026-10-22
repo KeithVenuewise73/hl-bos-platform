@@ -96,6 +96,13 @@ The rules (`packages/date-sort/src/copy`):
   says to keep it open. A Windows test checks with `powercfg /requests` that Windows really sees
   the request, and that it is gone afterwards. If the copy is cut off anyway, the page says so in
   plain words and says to press the button again.
+- **A frozen copy says so.** After a laptop sleeps, the connection can hang without ever reporting
+  an error, which once left a progress bar that looked busy but never moved. The copy now sends a
+  heartbeat every 5 seconds. If the page hears nothing for 30 seconds it says DateSort lost touch
+  and to press the button again. If heartbeats arrive but no photo finishes for 2 minutes (an
+  unplugged drive), it says that and what to do (`src/lib/copy-watch.ts`).
+- **Refreshing the page keeps the scan.** A reloaded page shows the last scan again, as long as
+  DateSort has not been restarted, so it does not cost another full scan.
 - **Refused:** a destination inside the scanned folder, a destination that does not exist, or not
   enough free space (checked before anything is written).
 
