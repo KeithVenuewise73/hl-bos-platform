@@ -24,6 +24,7 @@ export function useCopy(view: ScanView) {
   const [error, setError] = useState<string | null>(null);
   const [note, setNote] = useState<string | null>(null);
   const [browsing, setBrowsing] = useState(false);
+  const [awake, setAwake] = useState<boolean | null>(null);
   const abort = useRef<AbortController | null>(null);
 
   useEffect(() => {
@@ -89,6 +90,7 @@ export function useCopy(view: ScanView) {
     setRunning(days);
     setError(null);
     setProgress(null);
+    setAwake(null);
     await rememberDestination(destination.trim());
     try {
       const res = await fetch("/api/copy", {
@@ -120,6 +122,7 @@ export function useCopy(view: ScanView) {
           if (line.trim() === "") continue;
           const m = JSON.parse(line) as CopyMessage;
           if (m.type === "progress") setProgress(m);
+          else if (m.type === "awake") setAwake(m.held);
           else if (m.type === "done")
             setResults((prev) => {
               const next = { ...prev };
@@ -129,14 +132,14 @@ export function useCopy(view: ScanView) {
           else setError(m.message);
         }
       }
-    } catch (e) {
+    } catch {
       if (controller.signal.aborted) {
         setError(
           "Stopped. Everything copied so far is complete and checked; press the button again to finish the rest.",
         );
       } else {
         setError(
-          `The copy stopped: ${e instanceof Error ? e.message : String(e)}. Your originals were not touched.`,
+          "The copy was interrupted: DateSort lost touch with this page (this happens if the laptop went to sleep or DateSort's window was closed). Every photo copied so far is complete and checked, and your originals were not touched. Press the button again to finish the rest.",
         );
       }
     } finally {
@@ -156,6 +159,7 @@ export function useCopy(view: ScanView) {
     run,
     running,
     progress,
+    awake,
     results,
     error,
     cancel: () => abort.current?.abort(),
@@ -266,6 +270,13 @@ export function CopyPanel({ view, copy }: { view: ScanView; copy: CopyState }) {
         </div>
       ) : busy ? (
         <p className="text-sm">Checking the destination…</p>
+      ) : null}
+      {busy && copy.awake !== null ? (
+        <p className="text-xs text-muted" data-testid="copy-awake">
+          {copy.awake
+            ? "This laptop will not go to sleep until the copy finishes. Keep the lid open: closing it still puts Windows to sleep."
+            : "Windows could not be kept awake for this copy. Keep the laptop awake and the lid open until it finishes; if it does sleep, press the button again to finish the rest."}
+        </p>
       ) : null}
       {copy.error !== null ? (
         <p className="text-sm text-bad" data-testid="copy-error">

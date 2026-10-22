@@ -76,4 +76,6 @@ export type CopyMessage =
       readonly days: readonly DayCopyView[];
       readonly seconds: number;
     }
-  | { readonly type: "error"; readonly message: string };
+  | { readonly type: "error"; readonly message: string }
+  /** Whether Windows agreed to stay awake for this copy (keep-awake.ts). */
+  | { readonly type: "awake"; readonly held: boolean };

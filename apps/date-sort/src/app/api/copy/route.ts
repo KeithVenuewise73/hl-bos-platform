@@ -1,6 +1,7 @@
 import { copyDays, CopyError, type DayRequest } from "@hl-bos/date-sort/copy";
 
 import { guard } from "@/lib/guard.ts";
+import { keepAwake } from "@/lib/keep-awake.ts";
 import { findScan } from "@/lib/scan-store.ts";
 import type { CopyMessage } from "@/lib/scan-view.ts";
 
@@ -14,6 +15,8 @@ let busy = false;
  * as lines of JSON. Originals are only read; nothing is ever overwritten
  * (@hl-bos/date-sort's copy/write-file.ts). Closing the page cancels it,
  * leaving no half-written file; pressing the button again finishes the rest.
+ * While it runs, Windows is asked not to sleep (keep-awake.ts): a sleeping
+ * laptop drops the page's connection, which would stop the copy.
  */
 export async function POST(request: Request): Promise<Response> {
   const refused = guard(request);
@@ -64,6 +67,8 @@ export async function POST(request: Request): Promise<Response> {
       const send = (m: CopyMessage) =>
         controller.enqueue(encoder.encode(`${JSON.stringify(m)}\n`));
       let lastSent = 0;
+      const awake = await keepAwake();
+      send({ type: "awake", held: awake.held });
       try {
         const results = await copyDays({
           root: scan.root,
@@ -89,6 +94,7 @@ export async function POST(request: Request): Promise<Response> {
               : `The copy stopped: ${e instanceof Error ? e.message : String(e)}. Your originals were not touched; press the button again to finish.`,
         });
       } finally {
+        awake.release();
         busy = false;
         try {
           controller.close();

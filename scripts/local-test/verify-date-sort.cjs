@@ -406,8 +406,28 @@ async function copyChecks(page, card, work) {
       ),
     );
 
+  // 3b. The page loses DateSort mid-copy (a laptop that went to sleep): it
+  //     must say so in plain words and say how to finish, not show jargon.
+  await page.route("**/api/copy", (r) => r.abort("connectionreset"));
+  await page.click("[data-testid=copy-all]");
+  const lost = await waitForCopy(page);
+  await page.unroute("**/api/copy");
+  check(
+    "a copy cut off (e.g. by sleep) says so plainly and to press the button again",
+    /lost touch with this page/.test(lost.error || "") &&
+      /Press the button again to finish the rest/.test(lost.error || ""),
+    lost.error,
+  );
+
   // 4. Copy all dates.
   await page.click("[data-testid=copy-all]");
+  // Do not read 3b's message as this copy's answer.
+  await page.waitForFunction(
+    () =>
+      !/lost touch/.test(
+        document.querySelector("[data-testid=copy-error]")?.textContent || "",
+      ),
+  );
   const all = await waitForCopy(page);
   await shot(page, "09-copied-all");
   const folders = fs.readdirSync(dest).sort();
