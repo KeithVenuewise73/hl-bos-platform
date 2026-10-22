@@ -11,6 +11,8 @@ name: DateSort on Windows
 #     itself ships (C:\Windows\Web) are scanned, with every file
 #     fingerprinted before and after: any changed, renamed, deleted or added
 #     file fails
+#   - the desktop icons (DateSort and the Control Center) are made on the
+#     first start, double-clicked, deleted, and must stay deleted
 #   - then DateSort is stopped and started again from the Development
 #     Control Center's Start DateSort button, and everything is checked again
 #   - DateSort.bat collects new work from GitHub when it starts: a change
@@ -117,6 +119,9 @@ jobs:
           "Icon before the first start: $preIcon"
           if ($preIcon) { Remove-Item -LiteralPath (Join-Path ([Environment]::GetFolderPath('Desktop')) 'DateSort.lnk') }
           Remove-Item -LiteralPath '.hlbos\desktop-shortcut.json' -ErrorAction SilentlyContinue
+          # ...and no Control Center icon either; DateSort.bat makes that one too.
+          Remove-Item -LiteralPath (Join-Path ([Environment]::GetFolderPath('Desktop')) 'HL-BOS Control Center.lnk') -ErrorAction SilentlyContinue
+          Remove-Item -LiteralPath '.hlbos\desktop-shortcut-control-center.json' -ErrorAction SilentlyContinue
 
           # --- 1. DateSort.bat, exactly as double-clicked (stdin from NUL so a
           #        "pause" on failure cannot hang the job) ---------------------
@@ -175,8 +180,41 @@ jobs:
           $icon.staysDeleted = -not (Test-Path -LiteralPath $lnk)
           "Icon: stays deleted after the next start: $($icon.staysDeleted)"
 
-          # A computer that has never had it: the Control Center makes it on start.
+          # --- 4. The Control Center icon --------------------------------------
+          function ConsoleUp { try { Invoke-WebRequest http://localhost:4000 -UseBasicParsing -TimeoutSec 5 | Out-Null; $true } catch { $false } }
+          function Stop-Console {
+            foreach ($c in Get-NetTCPConnection -LocalPort 4000 -State Listen -ErrorAction SilentlyContinue) { taskkill /T /F /PID $c.OwningProcess 2>$null | Out-Null }
+            foreach ($p in Get-CimInstance Win32_Process | Where-Object { $_.CommandLine -like '*control-center.bat*' }) { taskkill /T /F /PID $p.ProcessId 2>$null | Out-Null }
+            for ($i = 0; $i -lt 30 -and (ConsoleUp); $i++) { Start-Sleep -Seconds 1 }
+            if (ConsoleUp) { "The console did not stop"; exit 1 }
+          }
+          $ccLnk = Join-Path $desk 'HL-BOS Control Center.lnk'
+          $cc = @{ created = $false; target = $false; iconFile = $false; starts = $false; staysDeleted = $false; consoleMakes = $false }
+          if (Test-Path -LiteralPath $ccLnk) {
+            $cc.created = $true
+            $sc = (New-Object -ComObject WScript.Shell).CreateShortcut($ccLnk)
+            "Control Center icon: $ccLnk -> $($sc.TargetPath) (icon $($sc.IconLocation), start in $($sc.WorkingDirectory))"
+            $cc.target = $sc.TargetPath -ieq (Join-Path $PWD 'scripts\control-center.bat')
+            $cc.iconFile = $sc.IconLocation -ieq ((Join-Path $PWD 'scripts\assets\control-center.ico') + ',0')
+          } else { "Control Center icon: none on the desktop ($desk)" }
+
+          # Double-click it: control-center.bat must bring the console up.
+          if ($cc.created) {
+            $t2 = Get-Date
+            Start-Process -FilePath $ccLnk
+            for ($i = 0; $i -lt 150; $i++) { if (ConsoleUp) { $cc.starts = $true; break }; Start-Sleep -Seconds 2 }
+            "Control Center icon: console up after double-click: $($cc.starts) ($([math]::Round(((Get-Date) - $t2).TotalSeconds)) s)"
+            Stop-Console
+          }
+
+          Remove-Item -LiteralPath $ccLnk -ErrorAction SilentlyContinue
+          node scripts/desktop-shortcut.mjs
+          $cc.staysDeleted = -not (Test-Path -LiteralPath $ccLnk)
+          "Control Center icon: stays deleted after the next start: $($cc.staysDeleted)"
+
+          # A computer that has never had them: the Control Center makes both on start.
           Remove-Item -LiteralPath '.hlbos\desktop-shortcut.json' -ErrorAction SilentlyContinue
+          Remove-Item -LiteralPath '.hlbos\desktop-shortcut-control-center.json' -ErrorAction SilentlyContinue
 
           Start-Process -FilePath node `
             -ArgumentList $env:PNPM_CJS, "--filter", "@hl-bos/control-center", "start" `
@@ -191,7 +229,11 @@ jobs:
           for ($i = 0; $i -lt 30 -and -not (Test-Path -LiteralPath $lnk); $i++) { Start-Sleep -Seconds 1 }
           $icon.consoleMakes = Test-Path -LiteralPath $lnk
           "Icon: made by the Control Center on start: $($icon.consoleMakes)"
+          for ($i = 0; $i -lt 30 -and -not (Test-Path -LiteralPath $ccLnk); $i++) { Start-Sleep -Seconds 1 }
+          $cc.consoleMakes = Test-Path -LiteralPath $ccLnk
+          "Control Center icon: made by the Control Center on start: $($cc.consoleMakes)"
           $icon | ConvertTo-Json | Set-Content "$T\icon.json"
+          $cc | ConvertTo-Json | Set-Content "$T\cc-icon.json"
 
           $env:DATESORT_REPORT = "$T\run-console.json"
           $env:DATESORT_SCREENSHOTS = "$T\shots-console"
@@ -201,6 +243,7 @@ jobs:
           if ($second -ne 0) { exit $second }
           foreach ($k in 'created', 'target', 'iconFile', 'starts', 'staysDeleted', 'consoleMakes') {
             if (-not $icon[$k]) { "Desktop icon check failed: $k"; exit 1 }
+            if (-not $cc[$k]) { "Control Center desktop icon check failed: $k"; exit 1 }
           }
 
       - name: DateSort.bat collects new work from GitHub when it starts
@@ -277,6 +320,14 @@ jobs:
             $lines += "| Double-clicking the icon starts DateSort | $(& $yn $ic.starts) |"
             $lines += "| A deleted icon stays deleted | $(& $yn $ic.staysDeleted) |"
             $lines += "| Control Center makes the icon on a new computer | $(& $yn $ic.consoleMakes) |"
+          }
+          $cci = Load "$T\cc-icon.json"
+          if ($cci) {
+            $lines += "| Control Center desktop icon made on first start | $(& $yn $cci.created) |"
+            $lines += "| ...opens control-center.bat, with the Control Center icon | $(& $yn ($cci.target -and $cci.iconFile)) |"
+            $lines += "| Double-clicking it starts the Control Center | $(& $yn $cci.starts) |"
+            $lines += "| A deleted Control Center icon stays deleted | $(& $yn $cci.staysDeleted) |"
+            $lines += "| The console makes its own icon on a new computer | $(& $yn $cci.consoleMakes) |"
           }
           $up = Load "$T\update.json"
           if ($up) {

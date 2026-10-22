@@ -19,7 +19,7 @@ All three start DateSort at `http://localhost:4604` and open it in your browser 
 
 **Updates arrive by themselves.** Each time the icon or `DateSort.bat` starts DateSort, it first collects any finished work from GitHub, using the same updater as the Control Center (`scripts/update.mjs`). That updater fast-forwards only, leaves a folder with unsaved changes alone, and never stops DateSort from starting: with no internet it says so in one line and starts the copy already there. If new code arrived, DateSort reinstalls and rebuilds what changed before it opens. It also leaves the Control Center a note (`.hlbos\console-needs-rebuild`), so the console rebuilds on its next start too. If DateSort is already running, a second start just opens it; updates are checked the next time it starts.
 
-The desktop icon is made **once**, the first time HL-BOS starts on a computer (from the Control Center or `DateSort.bat`), by `scripts/desktop-shortcut.mjs`. If you delete it, it stays deleted. Delete `.hlbos\desktop-shortcut.json` to get it back on the next start.
+The desktop icon is made **once**, the first time HL-BOS starts on a computer (from the Control Center or `DateSort.bat`), by `scripts/desktop-shortcut.mjs`. If you delete it, it stays deleted. Delete `.hlbos\desktop-shortcut.json` to get it back on the next start. (The same step also makes the **HL-BOS Control Center** icon; see `apps/control-center/README.md`.)
 
 ## Step 1: Scan and report (built)
 

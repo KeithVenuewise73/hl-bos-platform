@@ -33,7 +33,10 @@ import { existsSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { ensureDateSortShortcut } from "./desktop-shortcut.mjs";
+import {
+  ensureControlCenterShortcut,
+  ensureDateSortShortcut,
+} from "./desktop-shortcut.mjs";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const APP_DIR = path.join(ROOT, "apps", "date-sort");
@@ -164,8 +167,9 @@ async function main() {
     console.log("  =================================================");
     console.log("");
 
-    // The desktop icon, the first time only (never blocks starting).
+    // The desktop icons, the first time only (never blocks starting).
     say("ok", `Desktop icon: ${await ensureDateSortShortcut()}`);
+    say("ok", `Desktop icon: ${await ensureControlCenterShortcut()}`);
   }
 
   const now = await healthy();
