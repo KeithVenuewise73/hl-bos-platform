@@ -252,6 +252,10 @@ jobs:
           foreach ($k in 'behind', 'clean', 'collected', 'restarted', 'rebuilt', 'up', 'atNewCode', 'consoleNote') {
             if (-not $r[$k]) { "Update check failed: $k"; exit 1 }
           }
+          # Every check passed. Said explicitly: the runner otherwise reports the
+          # exit code of the last program run, and taskkill above fails when
+          # DateSort had already stopped with its parent.
+          exit 0
 
       - name: Summary
         if: always()
