@@ -29,15 +29,18 @@ describe("the DateSort app", () => {
     }
   });
 
-  it("runs no program but PowerShell's folder window", () => {
+  it("runs no program but PowerShell (the folder window, and keeping Windows awake)", () => {
     const spawners = files.filter((f) => /child_process/.test(readFileSync(f, "utf8")));
-    expect(spawners.map((f) => f.replace(/\\/g, "/").split("/src/")[1])).toEqual([
-      "lib/browse.ts",
-    ]);
-    const browse = readFileSync(spawners[0]!, "utf8");
-    expect([...browse.matchAll(/execFile\(\s*"([^"]+)"/g)].map((m) => m[1])).toEqual([
-      "powershell.exe",
-    ]);
+    expect(spawners.map((f) => f.replace(/\\/g, "/").split("/src/")[1]).sort()).toEqual(
+      ["lib/browse.ts", "lib/keep-awake.ts"],
+    );
+    for (const f of spawners) {
+      const src = readFileSync(f, "utf8");
+      expect(
+        [...src.matchAll(/(?:execFile|spawn)\(\s*"([^"]+)"/g)].map((m) => m[1]),
+        f,
+      ).toEqual(["powershell.exe"]);
+    }
   });
 
   it("makes no request to the internet", () => {

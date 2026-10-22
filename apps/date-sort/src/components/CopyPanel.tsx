@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 
 import { folderName } from "@hl-bos/date-sort";
 
+import { copyHealth } from "@/lib/copy-watch.ts";
 import { count, longDate } from "@/lib/format.ts";
 import type { CopyMessage, DayCopyView, ScanView } from "@/lib/scan-view.ts";
 
@@ -24,14 +25,20 @@ export function useCopy(view: ScanView) {
   const [error, setError] = useState<string | null>(null);
   const [note, setNote] = useState<string | null>(null);
   const [browsing, setBrowsing] = useState(false);
+  const [awake, setAwake] = useState<boolean | null>(null);
+  const [stalled, setStalled] = useState(false);
   const abort = useRef<AbortController | null>(null);
 
   useEffect(() => {
     void fetch("/api/settings", { headers: { "Content-Type": "application/json" } })
       .then((r) => r.json())
-      .then((s: { destination?: string | null }) => {
-        if (s.destination) setDestination(s.destination);
-      })
+      .then(
+        (s: { destination?: string | null; eventNames?: Record<string, string> }) => {
+          if (s.destination) setDestination(s.destination);
+          // Names typed before a refresh or restart (settings.ts).
+          if (s.eventNames) setNames((n) => ({ ...s.eventNames, ...n }));
+        },
+      )
       .catch(() => undefined);
   }, []);
 
@@ -40,6 +47,14 @@ export function useCopy(view: ScanView) {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ destination: path }),
+    }).catch(() => undefined);
+  }
+
+  async function rememberNames(all: Record<string, string> = names) {
+    await fetch("/api/settings", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ eventNames: all }),
     }).catch(() => undefined);
   }
 
@@ -89,7 +104,22 @@ export function useCopy(view: ScanView) {
     setRunning(days);
     setError(null);
     setProgress(null);
+    setAwake(null);
+    setStalled(false);
     await rememberDestination(destination.trim());
+    await rememberNames();
+    let lastMessageAt = Date.now();
+    let lastPhotoAt = Date.now();
+    let lastDone = -1;
+    let lost = false;
+    const watch = setInterval(() => {
+      const health = copyHealth(Date.now(), lastMessageAt, lastPhotoAt);
+      setStalled(health === "stalled");
+      if (health === "lost") {
+        lost = true;
+        controller.abort();
+      }
+    }, 2_000);
     try {
       const res = await fetch("/api/copy", {
         method: "POST",
@@ -119,7 +149,15 @@ export function useCopy(view: ScanView) {
           buffered = buffered.slice(nl + 1);
           if (line.trim() === "") continue;
           const m = JSON.parse(line) as CopyMessage;
-          if (m.type === "progress") setProgress(m);
+          lastMessageAt = Date.now();
+          if (m.type === "alive") continue;
+          if (m.type === "progress") {
+            if (m.done !== lastDone) {
+              lastDone = m.done;
+              lastPhotoAt = lastMessageAt;
+            }
+            setProgress(m);
+          } else if (m.type === "awake") setAwake(m.held);
           else if (m.type === "done")
             setResults((prev) => {
               const next = { ...prev };
@@ -129,17 +167,19 @@ export function useCopy(view: ScanView) {
           else setError(m.message);
         }
       }
-    } catch (e) {
-      if (controller.signal.aborted) {
+    } catch {
+      if (controller.signal.aborted && !lost) {
         setError(
           "Stopped. Everything copied so far is complete and checked; press the button again to finish the rest.",
         );
       } else {
         setError(
-          `The copy stopped: ${e instanceof Error ? e.message : String(e)}. Your originals were not touched.`,
+          "The copy was interrupted: DateSort lost touch with this page (this happens if the laptop went to sleep or DateSort's window was closed). Every photo copied so far is complete and checked, and your originals were not touched. Press the button again to finish the rest.",
         );
       }
     } finally {
+      clearInterval(watch);
+      setStalled(false);
       setRunning(null);
       setProgress(null);
     }
@@ -150,12 +190,15 @@ export function useCopy(view: ScanView) {
     setDestination,
     names,
     setName: (day: string, name: string) => setNames((n) => ({ ...n, [day]: name })),
+    saveNames: () => void rememberNames(),
     browse,
     browsing,
     note,
     run,
     running,
     progress,
+    awake,
+    stalled,
     results,
     error,
     cancel: () => abort.current?.abort(),
@@ -250,10 +293,16 @@ export function CopyPanel({ view, copy }: { view: ScanView; copy: CopyState }) {
       {copy.progress !== null ? (
         <div data-testid="copy-progress">
           <p className="text-sm">
-            Copying {longDate(copy.progress.day)}…{" "}
-            {copy.progress.done.toLocaleString("en-US")} of{" "}
+            Copying {longDate(copy.progress.day)} into{" "}
+            <span className="font-mono">
+              {copy.progress.folder.split(/[\\/]/).pop()}
+            </span>
+            … {copy.progress.done.toLocaleString("en-US")} of{" "}
             {count(copy.progress.total, "photo")} · {gb(copy.progress.bytesCopied)}{" "}
             copied
+            {copy.progress.alreadyThere > 0
+              ? ` · ${copy.progress.alreadyThere.toLocaleString("en-US")} already there, skipped`
+              : ""}
           </p>
           <div className="mt-2 h-2 overflow-hidden rounded bg-panel-2">
             <div
@@ -266,6 +315,20 @@ export function CopyPanel({ view, copy }: { view: ScanView; copy: CopyState }) {
         </div>
       ) : busy ? (
         <p className="text-sm">Checking the destination…</p>
+      ) : null}
+      {busy && copy.stalled ? (
+        <p className="text-sm text-estimate" data-testid="copy-stalled">
+          No photo has finished copying in the last 2 minutes. If the photo drive was
+          unplugged or the laptop went to sleep, press Stop copying, then Copy all
+          again: everything copied so far is kept and skipped.
+        </p>
+      ) : null}
+      {busy && copy.awake !== null ? (
+        <p className="text-xs text-muted" data-testid="copy-awake">
+          {copy.awake
+            ? "This laptop will not go to sleep until the copy finishes. Keep the lid open: closing it still puts Windows to sleep."
+            : "Windows could not be kept awake for this copy. Keep the laptop awake and the lid open until it finishes; if it does sleep, press the button again to finish the rest."}
+        </p>
       ) : null}
       {copy.error !== null ? (
         <p className="text-sm text-bad" data-testid="copy-error">
@@ -342,6 +405,7 @@ export function CardCopy({ day, copy }: { day: string; copy: CopyState }) {
         placeholder="Event name (optional), e.g. Caz vs Wheatfield"
         value={name}
         onChange={(e) => copy.setName(day, e.target.value)}
+        onBlur={copy.saveNames}
         disabled={busy}
       />
       <p

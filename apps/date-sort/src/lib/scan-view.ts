@@ -68,6 +68,7 @@ export type CopyMessage =
       readonly day: string;
       readonly folder: string;
       readonly done: number;
+      readonly alreadyThere: number;
       readonly total: number;
       readonly bytesCopied: number;
     }
@@ -76,4 +77,8 @@ export type CopyMessage =
       readonly days: readonly DayCopyView[];
       readonly seconds: number;
     }
-  | { readonly type: "error"; readonly message: string };
+  | { readonly type: "error"; readonly message: string }
+  /** Whether Windows agreed to stay awake for this copy (keep-awake.ts). */
+  | { readonly type: "awake"; readonly held: boolean }
+  /** Sent every few seconds while copying, even between photos (copy-watch.ts). */
+  | { readonly type: "alive" };

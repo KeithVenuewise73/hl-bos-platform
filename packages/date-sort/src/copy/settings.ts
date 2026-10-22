@@ -3,7 +3,10 @@
  * %LOCALAPPDATA%\DateSort\settings.json on Windows (outside every photo
  * folder and outside HL-BOS's own folder, so updates never touch it).
  *
- * Today it remembers one thing: where the date folders go.
+ * It remembers where the date folders go, and the event names typed on the
+ * date cards (by date), so a refreshed page or a restart does not forget
+ * them. A forgotten name once made a second, plain "<date>" folder beside
+ * the named one.
  */
 
 import { mkdir, readFile, writeFile } from "node:fs/promises";
@@ -12,6 +15,24 @@ import { join } from "node:path";
 
 export interface Settings {
   readonly destination: string | null;
+  /** Event name per date ("2026-10-04" -> "Caz vs Wheatfield"). */
+  readonly eventNames: Readonly<Record<string, string>>;
+}
+
+/** Only real dates and short names are kept from whatever is in the file. */
+export function cleanEventNames(raw: unknown): Record<string, string> {
+  const out: Record<string, string> = {};
+  if (raw === null || typeof raw !== "object") return out;
+  for (const [day, name] of Object.entries(raw as Record<string, unknown>)) {
+    if (
+      /^\d{4}-\d{2}-\d{2}$/.test(day) &&
+      typeof name === "string" &&
+      name.trim() !== ""
+    ) {
+      out[day] = name.slice(0, 200);
+    }
+  }
+  return out;
 }
 
 /** %LOCALAPPDATA%\DateSort on Windows; ~/.config/datesort elsewhere. */
@@ -25,12 +46,14 @@ export async function loadSettings(dir: string = settingsDir()): Promise<Setting
   try {
     const raw = JSON.parse(await readFile(join(dir, "settings.json"), "utf8")) as {
       destination?: unknown;
+      eventNames?: unknown;
     };
     return {
       destination: typeof raw.destination === "string" ? raw.destination : null,
+      eventNames: cleanEventNames(raw.eventNames),
     };
   } catch {
-    return { destination: null };
+    return { destination: null, eventNames: {} };
   }
 }
 

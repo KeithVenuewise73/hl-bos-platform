@@ -56,6 +56,13 @@ export function DateSortApp() {
       setFolder(r.folder);
       setIncludeSubfolders(r.includeSubfolders);
     }
+    // A reloaded page shows the last scan again, without scanning again.
+    void fetch("/api/scan", { headers: { "Content-Type": "application/json" } })
+      .then((res) => res.json())
+      .then((out: { view?: ScanView | null }) => {
+        if (out.view) setView((v) => v ?? out.view ?? null);
+      })
+      .catch(() => undefined);
   }, []);
 
   async function browse() {
