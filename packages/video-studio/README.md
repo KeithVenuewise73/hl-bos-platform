@@ -29,6 +29,10 @@ watching a video is a pipeline nobody tests. Here the camera moves, the crossfad
 timing, the clipping and the letterboxing are all plain data, checked by 62
 ordinary unit tests in under a second.
 
+Several separate photos of one scene work too: the host paints them onto one
+sheet with `layoutSequence`, and `sequenceDetection` hands back a panel per
+photo in the order chosen, so everything below runs unchanged.
+
 ```
 detectPanels(image)        ->  where the panels are
 buildStoryboard(detection) ->  the shot list
