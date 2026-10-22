@@ -149,6 +149,9 @@ vite.config.ts.timestamp-*
 # Remembers that the DateSort desktop icon was made once (scripts/desktop-shortcut.mjs).
 # Must stay ignored: the updater will not update a folder with stray files.
 .hlbos/desktop-shortcut.json
+# Left by scripts/update.mjs when it collects new code; control-center.bat
+# rebuilds the console and deletes it. Ignored for the same reason.
+.hlbos/console-needs-rebuild
 
 # ATS Resume Optimizer local store (personal career data, never committed).
 .data/

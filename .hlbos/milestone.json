@@ -367,7 +367,11 @@
     },
     {
       "title": "DateSort Step 3: Create Folder and copy photos (copy only, duplicates skipped safely)",
-      "done": false
+      "done": true
+    },
+    {
+      "title": "DateSort collects updates from GitHub every time it starts (desktop icon and DateSort.bat), and tells the Control Center to rebuild",
+      "done": true
     },
     {
       "title": "DateSort Step 4: possible second event (60+ minute gaps) and split on confirmation",

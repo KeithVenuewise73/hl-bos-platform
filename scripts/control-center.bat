@@ -92,6 +92,13 @@ if exist "%ROOT%\scripts\update.mjs" (
     )
   )
 )
+REM  DateSort's desktop icon collects updates too, and may have done so since
+REM  this console was last built. update.mjs leaves this note whenever it
+REM  collects code; it is deleted below once the console is rebuilt.
+REM  (Added AFTER the block above on purpose: this file can be replaced by the
+REM  update while it runs, and Windows carries on reading at the same place,
+REM  so nothing above this point may change length.)
+if exist "%ROOT%\.hlbos\console-needs-rebuild" set "FRESH_CODE=1"
 
 REM --- 5. Libraries -----------------------------------------------------------
 if exist "%ROOT%\node_modules" (
@@ -131,6 +138,7 @@ if defined NEED_BUILD (
   "%NODE_EXE%" "%PNPM_CJS%" --filter @hl-bos/control-center build
   if errorlevel 1 goto :build_failed
   echo   [ok]   Console built
+  if exist "%ROOT%\.hlbos\console-needs-rebuild" del "%ROOT%\.hlbos\console-needs-rebuild"
 ) else (
   echo   [ok]   Console ready
 )
