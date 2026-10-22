@@ -41,7 +41,7 @@ export interface Panel {
 }
 
 /** How the panels in an image were arrived at. */
-export type DetectionMethod = "grid" | "whole-image";
+export type DetectionMethod = "grid" | "whole-image" | "sequence";
 
 export interface PanelDetection {
   readonly panels: readonly Panel[];

@@ -44,3 +44,9 @@ export {
 export type { ShotTiming } from "./timeline";
 export { CAMERA_PROVIDER, hasWorkingProvider, listProviders } from "./providers";
 export type { ProviderKind, ProviderStatus, VideoProvider } from "./providers";
+export {
+  DEFAULT_SEQUENCE_OPTIONS,
+  layoutSequence,
+  sequenceDetection,
+} from "./sequence";
+export type { PhotoSize, SequenceLayout, SequenceOptions } from "./sequence";
