@@ -10,7 +10,7 @@ import {
   useCopy,
   type CopyState,
 } from "@/components/CopyPanel.tsx";
-import { clockTime, count, dateAndTime, longDate } from "@/lib/format.ts";
+import { clockTime, count, dateAndTime, longDate, number } from "@/lib/format.ts";
 import type { ScanMessage, ScanView } from "@/lib/scan-view.ts";
 
 type Progress = { phase: "listing" | "reading"; found: number; read: number };
@@ -224,7 +224,7 @@ export function DateSortApp() {
           <p className="text-sm">
             {progress.phase === "listing"
               ? `Finding files… ${count(progress.found, "file")} so far`
-              : `Reading dates… ${progress.read.toLocaleString("en-US")} of ${count(progress.found, "file")}`}
+              : `Reading dates… ${number(progress.read)} of ${count(progress.found, "file")}`}
           </p>
           {progress.phase === "reading" && progress.found > 0 ? (
             <div className="mt-3 h-2 overflow-hidden rounded bg-panel-2">
@@ -272,7 +272,7 @@ function Stat({
         {label}
       </div>
       <div className={`text-xl font-semibold ${colour}`} data-testid={`stat-${id}`}>
-        {typeof value === "number" ? value.toLocaleString("en-US") : value}
+        {typeof value === "number" ? number(value) : value}
       </div>
     </div>
   );
@@ -484,7 +484,7 @@ function DateCard({ day, copy }: { day: DayReport; copy: CopyState }) {
             <dd
               className={`text-sm font-semibold ${day.byFormat[f] > 0 ? "text-text" : "text-muted"}`}
             >
-              {day.byFormat[f].toLocaleString("en-US")}
+              {number(day.byFormat[f])}
             </dd>
           </div>
         ))}

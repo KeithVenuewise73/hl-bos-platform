@@ -11,9 +11,16 @@ import type { NextConfig } from "next";
  * local image worker, behind a fixed argument array (see src/lib/shell.ts).
  *
  * Reaching it from the network is still opt-in, and still behind an access
- * code — see src/lib/access.ts. `next start` binds to localhost; only
+ * code — see src/lib/access.ts. `start` binds to 127.0.0.1; only
  * `start:network` binds wider, and the launcher that calls it writes a code
  * first.
+ *
+ * That loopback bind is an explicit --hostname flag, NOT a default. `next
+ * start` binds every interface unless told otherwise, so the first version of
+ * this claim was simply false: both scripts were on the network. It was found
+ * in a screenshot of the CEO's own machine, where the console — which runs git
+ * and PowerShell — was advertising itself on his Tailscale address. There is
+ * now a test in packages/catalog that fails if any app drops the flag.
  */
 const config: NextConfig = {
   reactStrictMode: true,
