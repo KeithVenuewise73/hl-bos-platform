@@ -16,6 +16,7 @@ import {
   composeFrame,
   totalDurationMs,
   type Frame,
+  type SequenceLayout,
   type Storyboard,
 } from "@hl-bos/video-studio";
 
@@ -230,4 +231,47 @@ export async function loadImage(
   if (!ctx) throw new Error("Could not read the image's pixels.");
   ctx.drawImage(drawable, 0, 0);
   return { drawable, pixels: ctx.getImageData(0, 0, drawable.width, drawable.height) };
+}
+
+/**
+ * Decode one photo for a sequence, already scaled so its long edge is at most
+ * `maxEdge`. The full-size decode is closed straight away: a dozen camera
+ * photos held at full size would be over half a gigabyte of memory.
+ */
+export async function loadPhoto(file: Blob, maxEdge: number): Promise<ImageBitmap> {
+  const full = await createImageBitmap(file);
+  const scale = Math.min(1, maxEdge / Math.max(full.width, full.height));
+  if (scale === 1) return full;
+  try {
+    return await createImageBitmap(full, {
+      resizeWidth: Math.max(1, Math.round(full.width * scale)),
+      resizeHeight: Math.max(1, Math.round(full.height * scale)),
+      resizeQuality: "high",
+    });
+  } finally {
+    full.close();
+  }
+}
+
+/** Paint photos onto one sheet at the places `layoutSequence` chose. */
+export async function composeSheet(
+  photos: readonly ImageBitmap[],
+  layout: SequenceLayout,
+): Promise<ImageBitmap> {
+  const canvas = document.createElement("canvas");
+  canvas.width = layout.width;
+  canvas.height = layout.height;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) throw new Error("Could not get a 2D drawing context.");
+  ctx.imageSmoothingEnabled = true;
+  ctx.imageSmoothingQuality = "high";
+  photos.forEach((photo, i) => {
+    const place = layout.placements[i];
+    if (place) ctx.drawImage(photo, place.x, place.y, place.width, place.height);
+  });
+  const sheet = await createImageBitmap(canvas);
+  // Release the canvas's backing store now rather than whenever GC gets to it.
+  canvas.width = 0;
+  canvas.height = 0;
+  return sheet;
 }

@@ -2,23 +2,29 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
+  DEFAULT_SEQUENCE_OPTIONS,
   buildStoryboard,
   cameraAspect,
   composeFrame,
   detectPanels,
+  layoutSequence,
   resolveMove,
+  sequenceDetection,
   shotTimings,
   totalDurationMs,
   type CameraMove,
   type FitMode,
   type PanelDetection,
+  type SequenceLayout,
   type Storyboard,
 } from "@hl-bos/video-studio";
 
 import {
   canRecord,
+  composeSheet,
   drawFrame,
   loadImage,
+  loadPhoto,
   pickFormat,
   recordStoryboard,
   type DrawableImage,
@@ -77,7 +83,26 @@ const seconds = (ms: number): string => `${(ms / 1000).toFixed(1)}s`;
 export function VideoStudio() {
   const [fileName, setFileName] = useState<string | null>(null);
   const [drawable, setDrawable] = useState<DrawableImage | null>(null);
-  const [detection, setDetection] = useState<PanelDetection | null>(null);
+  // One picture: its panels are found in its pixels. Several photos: they are
+  // painted onto one sheet, and `order` says which plays when.
+  const [single, setSingle] = useState<PanelDetection | null>(null);
+  const [sequence, setSequence] = useState<{
+    layout: SequenceLayout;
+    photos: readonly { name: string; bitmap: ImageBitmap }[];
+  } | null>(null);
+  const [order, setOrder] = useState<readonly number[]>([]);
+  const detection: PanelDetection | null = useMemo(
+    () => (sequence ? sequenceDetection(sequence.layout, order) : single),
+    [sequence, order, single],
+  );
+  const isSequence = sequence !== null;
+  const photoName = useCallback(
+    (panelId: string): string | null => {
+      const n = /^panel-photo-(\d+)$/.exec(panelId)?.[1];
+      return n && sequence ? (sequence.photos[Number(n) - 1]?.name ?? null) : null;
+    },
+    [sequence],
+  );
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -135,8 +160,10 @@ export function VideoStudio() {
       zoom,
       fit,
       background,
-      openWithEstablishingShot: wides,
-      closeWithEstablishingShot: wides,
+      // A contact sheet of separate photos is not a picture anyone made, so a
+      // sequence never opens or closes on it.
+      openWithEstablishingShot: wides && !isSequence,
+      closeWithEstablishingShot: wides && !isSequence,
     });
     const frameAspect = shapeSpec.width / shapeSpec.height;
     return {
@@ -157,8 +184,10 @@ export function VideoStudio() {
                 zoom,
               )
             : null;
+        const name = panelId ? photoName(panelId) : null;
         return {
           ...shot,
+          ...(name ? { label: name } : {}),
           ...(framing ? { from: framing.from, to: framing.to } : {}),
           caption: captions[shot.id] ?? "",
         };
@@ -176,6 +205,8 @@ export function VideoStudio() {
     fit,
     background,
     wides,
+    isSequence,
+    photoName,
   ]);
 
   const duration = storyboard ? totalDurationMs(storyboard) : 0;
@@ -196,12 +227,19 @@ export function VideoStudio() {
   }, [storyboard]);
 
   // ---- Load ------------------------------------------------------------
-  const onFile = useCallback(async (file: File) => {
-    setBusy(true);
+  const reset = (): void => {
     setError(null);
     setResult(null);
     setPlaying(false);
     setPlayhead(0);
+    setExcluded(new Set());
+    setMoveOverrides({});
+    setCaptions({});
+  };
+
+  const onFile = useCallback(async (file: File) => {
+    setBusy(true);
+    reset();
     try {
       const { drawable: bitmap, pixels } = await loadImage(file);
       const found = detectPanels({
@@ -210,14 +248,14 @@ export function VideoStudio() {
         data: pixels.data,
       });
       setDrawable(bitmap);
-      setDetection(found);
+      setSingle(found);
+      setSequence(null);
+      setOrder([]);
       setFileName(file.name);
-      setExcluded(new Set());
-      setMoveOverrides({});
-      setCaptions({});
     } catch (cause) {
       setDrawable(null);
-      setDetection(null);
+      setSingle(null);
+      setSequence(null);
       setFileName(null);
       setError(
         cause instanceof Error ? cause.message : "That image could not be read.",
@@ -226,6 +264,96 @@ export function VideoStudio() {
       setBusy(false);
     }
   }, []);
+
+  /** Several photos, or more photos added to the ones already in the sequence. */
+  const onPhotos = useCallback(
+    async (
+      files: readonly File[],
+      keep: readonly { name: string; bitmap: ImageBitmap }[],
+    ) => {
+      setBusy(true);
+      setError(null);
+      setResult(null);
+      setPlaying(false);
+      setPlayhead(0);
+      try {
+        const room = DEFAULT_SEQUENCE_OPTIONS.maxPhotos - keep.length;
+        if (files.length > room)
+          throw new Error(
+            `Up to ${DEFAULT_SEQUENCE_OPTIONS.maxPhotos} photos can go into one video` +
+              (keep.length > 0 ? `, and ${keep.length} are already in.` : "."),
+          );
+        const added: { name: string; bitmap: ImageBitmap }[] = [];
+        for (const file of files) {
+          try {
+            added.push({
+              name: file.name,
+              bitmap: await loadPhoto(file, DEFAULT_SEQUENCE_OPTIONS.maxEdge),
+            });
+          } catch {
+            for (const photo of added) photo.bitmap.close();
+            throw new Error(`${file.name} could not be read as a picture.`);
+          }
+        }
+        const photos = [...keep, ...added];
+        const layout = layoutSequence(
+          photos.map((p) => ({ width: p.bitmap.width, height: p.bitmap.height })),
+        );
+        const sheet = await composeSheet(
+          photos.map((p) => p.bitmap),
+          layout,
+        );
+        setDrawable(sheet);
+        setSingle(null);
+        setSequence({ layout, photos });
+        // New photos go on the end; whatever order was already chosen stays.
+        setOrder((previous) => [
+          ...(keep.length > 0 ? previous : []),
+          ...added.map((_, i) => keep.length + i),
+        ]);
+        if (keep.length === 0) {
+          setExcluded(new Set());
+          setMoveOverrides({});
+          setCaptions({});
+        }
+        setFileName(`${photos.length} photos`);
+      } catch (cause) {
+        setError(
+          cause instanceof Error ? cause.message : "Those photos could not be read.",
+        );
+      } finally {
+        setBusy(false);
+      }
+    },
+    [],
+  );
+
+  const onChosen = useCallback(
+    (list: FileList | null | undefined) => {
+      const files = Array.from(list ?? []).filter((f) => f.type.startsWith("image/"));
+      if (files.length === 0) {
+        if (list && list.length > 0) setError("None of those files is a picture.");
+        return;
+      }
+      if (files.length === 1 && files[0]) void onFile(files[0]);
+      else void onPhotos(files, []);
+    },
+    [onFile, onPhotos],
+  );
+
+  const reorder = (position: number, by: -1 | 1): void => {
+    setPlaying(false);
+    setOrder((previous) => {
+      const next = [...previous];
+      const other = position + by;
+      const a = next[position];
+      const b = next[other];
+      if (a === undefined || b === undefined) return previous;
+      next[position] = b;
+      next[other] = a;
+      return next;
+    });
+  };
 
   // ---- Panel map -------------------------------------------------------
   useEffect(() => {
@@ -330,14 +458,14 @@ export function VideoStudio() {
     }
   }, [drawable, storyboard]);
 
-  const downloadName = `${(fileName ?? "video").replace(/\.[^.]+$/, "")}-video.${result?.format.extension ?? "webm"}`;
+  const downloadName = `${(isSequence ? "scene" : (fileName ?? "video")).replace(/\.[^.]+$/, "")}-video.${result?.format.extension ?? "webm"}`;
 
   return (
     <div>
       {/* ---- 1. The image ---- */}
       <Card
-        title="1. Pick a picture"
-        sub="Nothing leaves this machine. The image is read in the browser and never uploaded."
+        title="1. Pick a picture, or several"
+        sub="Nothing leaves this machine. Pictures are read in the browser and never uploaded."
       >
         <label
           style={{
@@ -352,28 +480,47 @@ export function VideoStudio() {
           onDragOver={(e) => e.preventDefault()}
           onDrop={(e) => {
             e.preventDefault();
-            const file = e.dataTransfer.files[0];
-            if (file) void onFile(file);
+            onChosen(e.dataTransfer.files);
           }}
         >
           <input
             type="file"
             accept="image/*"
+            multiple
             style={{ display: "none" }}
             onChange={(e) => {
-              const file = e.target.files?.[0];
-              if (file) void onFile(file);
+              onChosen(e.target.files);
+              e.target.value = "";
             }}
           />
           <strong style={{ fontSize: 14 }}>
-            {fileName ?? "Choose an image, or drag one here"}
+            {fileName ?? "Choose a picture or several photos, or drag them here"}
           </strong>
           <div style={{ color: "#8b949e", fontSize: 12.5, marginTop: 4 }}>
             {busy
               ? "Reading the image…"
-              : "PNG, JPEG or WebP. A comic page, a storyboard, a grid of screenshots."}
+              : `PNG, JPEG or WebP. One comic page or storyboard, or up to ${DEFAULT_SEQUENCE_OPTIONS.maxPhotos} photos of a scene played in order.`}
           </div>
         </label>
+
+        {sequence && sequence.photos.length < DEFAULT_SEQUENCE_OPTIONS.maxPhotos ? (
+          <label style={{ ...buttonStyle, display: "inline-block", marginTop: 12 }}>
+            <input
+              type="file"
+              accept="image/*"
+              multiple
+              style={{ display: "none" }}
+              onChange={(e) => {
+                const files = Array.from(e.target.files ?? []).filter((f) =>
+                  f.type.startsWith("image/"),
+                );
+                e.target.value = "";
+                if (files.length > 0) void onPhotos(files, sequence.photos);
+              }}
+            />
+            Add more photos
+          </label>
+        ) : null}
 
         {error ? (
           <p style={{ color: "#f85149", fontSize: 13, marginBottom: 0 }}>{error}</p>
@@ -394,12 +541,13 @@ export function VideoStudio() {
           />
           {detection.panels.length > 1 ? (
             <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 12 }}>
-              {detection.panels.map((panel) => {
+              {detection.panels.map((panel, position) => {
                 const on = !excluded.has(panel.id);
-                return (
+                const toggle = (
                   <button
                     key={panel.id}
                     type="button"
+                    title={on ? "Click to skip this one" : "Click to put it back"}
                     onClick={() =>
                       setExcluded((previous) => {
                         const next = new Set(previous);
@@ -418,9 +566,39 @@ export function VideoStudio() {
                       cursor: "pointer",
                     }}
                   >
-                    Panel {panel.index + 1}
+                    {isSequence
+                      ? `${position + 1}. ${photoName(panel.id) ?? "Photo"}`
+                      : `Panel ${panel.index + 1}`}
                     {on ? "" : " — skipped"}
                   </button>
+                );
+                if (!isSequence) return toggle;
+                const last = position === detection.panels.length - 1;
+                return (
+                  <span
+                    key={panel.id}
+                    style={{ display: "inline-flex", gap: 3, alignItems: "center" }}
+                  >
+                    <button
+                      type="button"
+                      aria-label="Play earlier"
+                      disabled={position === 0}
+                      onClick={() => reorder(position, -1)}
+                      style={arrowStyle(position === 0)}
+                    >
+                      ←
+                    </button>
+                    {toggle}
+                    <button
+                      type="button"
+                      aria-label="Play later"
+                      disabled={last}
+                      onClick={() => reorder(position, 1)}
+                      style={arrowStyle(last)}
+                    >
+                      →
+                    </button>
+                  </span>
                 );
               })}
             </div>
@@ -461,7 +639,9 @@ export function VideoStudio() {
                 onChange={(e) => setFit(e.target.value as FitMode)}
                 style={selectStyle}
               >
-                <option value="contain">Show the whole panel</option>
+                <option value="contain">
+                  Show the whole {isSequence ? "photo" : "panel"}
+                </option>
                 <option value="fill">Fill the frame (crops)</option>
               </select>
             </Field>
@@ -479,7 +659,7 @@ export function VideoStudio() {
               </select>
             </Field>
             <Slider
-              label={`Time per panel — ${seconds(shotDurationMs)}`}
+              label={`Time per ${isSequence ? "photo" : "panel"} — ${seconds(shotDurationMs)}`}
               min={800}
               max={6000}
               step={100}
@@ -502,16 +682,18 @@ export function VideoStudio() {
               value={Math.round(zoom * 100)}
               onChange={(v) => setZoom(v / 100)}
             />
-            <label
-              style={{ fontSize: 13, display: "flex", gap: 7, alignItems: "center" }}
-            >
-              <input
-                type="checkbox"
-                checked={wides}
-                onChange={(e) => setWides(e.target.checked)}
-              />
-              Open and close on the whole page
-            </label>
+            {isSequence ? null : (
+              <label
+                style={{ fontSize: 13, display: "flex", gap: 7, alignItems: "center" }}
+              >
+                <input
+                  type="checkbox"
+                  checked={wides}
+                  onChange={(e) => setWides(e.target.checked)}
+                />
+                Open and close on the whole page
+              </label>
+            )}
           </div>
         </Card>
       ) : null}
@@ -592,7 +774,19 @@ export function VideoStudio() {
                     padding: "8px 11px",
                   }}
                 >
-                  <span style={{ fontSize: 13, minWidth: 78 }}>{shot.label}</span>
+                  <span
+                    style={{
+                      fontSize: 13,
+                      minWidth: 78,
+                      maxWidth: 220,
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
+                      whiteSpace: "nowrap",
+                    }}
+                    title={shot.label}
+                  >
+                    {shot.label}
+                  </span>
                   <span style={{ fontSize: 12, color: "#8b949e", minWidth: 96 }}>
                     {timing
                       ? `${seconds(timing.startMs)} – ${seconds(timing.endMs)}`
@@ -768,6 +962,16 @@ const buttonStyle: React.CSSProperties = {
   fontSize: 13.5,
   cursor: "pointer",
 };
+
+const arrowStyle = (disabled: boolean): React.CSSProperties => ({
+  background: "#161b22",
+  border: "1px solid #30363d",
+  color: disabled ? "#30363d" : "#8b949e",
+  borderRadius: 6,
+  padding: "4px 7px",
+  fontSize: 12.5,
+  cursor: disabled ? "default" : "pointer",
+});
 
 const selectStyle: React.CSSProperties = {
   background: "#010409",

@@ -101,7 +101,7 @@ export const CAMERA_PROVIDER: VideoProvider = {
   kind: "camera",
   status: "ready",
   whatItDoes:
-    "Finds the panels in the image, plans a shot list with pans and zooms, and records it to a video file in the browser.",
+    "Finds the panels in one image, or plays several photos of a scene in the order you set, with pans and zooms, and records it to a video file in the browser. The camera moves; the people in the pictures do not.",
   cost: "Free. No account, no key, no per-clip charge, and the image never leaves this machine.",
   toEnable: "",
   credentialEnvVar: "",
