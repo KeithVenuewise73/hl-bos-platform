@@ -52,7 +52,13 @@ before extraction clears every file inside in one go.
 
 ## Start it
 
-Double-click **`scripts\control-center.bat`**. It opens at http://localhost:4000.
+Double-click the **HL-BOS Control Center** icon on your desktop. It opens at
+http://localhost:4000.
+
+The icon is put there the first time the console starts on a computer (made by
+`scripts/desktop-shortcut.mjs`, once). If you delete it, it stays deleted;
+delete `.hlbos\desktop-shortcut-control-center.json` to get it back on the next
+start. Before the icon exists, `scripts\control-center.bat` does the same job.
 
 Leave the black window open while you use the console; close it to shut down.
 

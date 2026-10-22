@@ -1,11 +1,11 @@
 /**
  * Runs once when the console's server starts.
  *
- * Puts the DateSort icon on the Windows desktop the first time HL-BOS starts
- * on a computer, so the CEO can open DateSort without first finding the
- * console. The work is scripts/desktop-shortcut.mjs (shared with
- * DateSort.bat); it makes the icon at most once, never throws, and is not
- * awaited, so it can never delay or break the console starting.
+ * Puts the Control Center and DateSort icons on the Windows desktop the
+ * first time HL-BOS starts on a computer, so the CEO never has to find a
+ * file in a folder to open either. The work is scripts/desktop-shortcut.mjs
+ * (shared with DateSort.bat); it makes each icon at most once, never throws,
+ * and is not awaited, so it can never delay or break the console starting.
  */
 export async function register(): Promise<void> {
   // NEXT_RUNTIME is set by Next itself (not configuration): this hook also

@@ -1,14 +1,17 @@
 #!/usr/bin/env node
-// Put a DateSort icon on the Windows desktop, ONCE.
+// Put the HL-BOS icons on the Windows desktop, each ONCE.
+//
+//   "HL-BOS Control Center"  double-click: the console starts and opens
+//   "DateSort"               double-click: DateSort starts and opens
 //
 // The first time HL-BOS starts on a computer (from the Control Center or
-// from DateSort.bat) this makes "DateSort" on the desktop: double-click it
-// and DateSort starts and opens. After that it never makes the icon again,
-// so deleting the icon is a choice that sticks.
+// from DateSort.bat) this makes both icons. After that it never makes an
+// icon again, so deleting one is a choice that sticks.
 //
-// "Once" is remembered in .hlbos/desktop-shortcut.json, which is gitignored
-// on purpose: the updater refuses to update a folder with stray files in it,
-// so a tracked-looking file here would silently stop updates arriving.
+// "Once" is remembered per icon in .hlbos/desktop-shortcut*.json, which are
+// gitignored on purpose: the updater refuses to update a folder with stray
+// files in it, so a tracked-looking file here would silently stop updates
+// arriving.
 //
 // It never blocks startup and never throws: any problem is one line of
 // output and startup carries on. Off Windows it does nothing.
@@ -16,7 +19,7 @@
 // Paths go to PowerShell as environment variables, never inside the script
 // text, so a folder name with quotes or spaces cannot change what runs.
 //
-// Usage: node scripts/desktop-shortcut.mjs   (prints one line, exits 0)
+// Usage: node scripts/desktop-shortcut.mjs   (prints one line per icon, exits 0)
 //   env DATESORT_DESKTOP  desktop folder to use instead of the real one (tests)
 import { execFile } from "node:child_process";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
@@ -24,10 +27,27 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-export const MARKER = path.join(ROOT, ".hlbos", "desktop-shortcut.json");
-export const TARGET = path.join(ROOT, "scripts", "DateSort.bat");
-export const ICON = path.join(ROOT, "scripts", "assets", "datesort.ico");
-export const NAME = "DateSort.lnk";
+
+/** Every icon this makes. The DateSort marker keeps its original name so a
+ *  computer that already has (or deleted) that icon is not asked again. */
+export const SHORTCUTS = {
+  dateSort: {
+    label: "DateSort",
+    marker: path.join(ROOT, ".hlbos", "desktop-shortcut.json"),
+    target: path.join(ROOT, "scripts", "DateSort.bat"),
+    icon: path.join(ROOT, "scripts", "assets", "datesort.ico"),
+    name: "DateSort.lnk",
+    description: "DateSort - organize camera photos by the day they were taken",
+  },
+  controlCenter: {
+    label: "Control Center",
+    marker: path.join(ROOT, ".hlbos", "desktop-shortcut-control-center.json"),
+    target: path.join(ROOT, "scripts", "control-center.bat"),
+    icon: path.join(ROOT, "scripts", "assets", "control-center.ico"),
+    name: "HL-BOS Control Center.lnk",
+    description: "HL-BOS Development Control Center",
+  },
+};
 
 /**
  * The PowerShell. It reads every path from the environment. Prints exactly
@@ -50,20 +70,20 @@ export const SCRIPT = [
   "$s.TargetPath = $env:DS_TARGET",
   "$s.WorkingDirectory = $env:DS_ROOT",
   '$s.IconLocation = "$($env:DS_ICON),0"',
-  "$s.Description = 'DateSort - organize camera photos by the day they were taken'",
+  "$s.Description = $env:DS_DESCRIPTION",
   "$s.Save()",
   '"created $lnk"',
 ].join("\n");
 
-function readMarker() {
+function readMarker(marker) {
   try {
-    return JSON.parse(readFileSync(MARKER, "utf8"));
+    return JSON.parse(readFileSync(marker, "utf8"));
   } catch {
     return null;
   }
 }
 
-function runPowerShell() {
+function runPowerShell(sc) {
   return new Promise((resolve) => {
     execFile(
       "powershell.exe",
@@ -81,10 +101,11 @@ function runPowerShell() {
         env: {
           ...process.env,
           DS_DESKTOP: process.env.DATESORT_DESKTOP ?? "",
-          DS_NAME: NAME,
-          DS_TARGET: TARGET,
+          DS_NAME: sc.name,
+          DS_TARGET: sc.target,
           DS_ROOT: ROOT,
-          DS_ICON: ICON,
+          DS_ICON: sc.icon,
+          DS_DESCRIPTION: sc.description,
         },
       },
       (error, stdout, stderr) =>
@@ -93,36 +114,44 @@ function runPowerShell() {
   });
 }
 
-/** Make the icon if it has never been made here. Never throws. */
-export async function ensureDateSortShortcut() {
+/** Make one icon if it has never been made here. Never throws. */
+async function ensureShortcut(sc) {
   try {
     if (process.platform !== "win32") return "skipped: not Windows";
-    if (readMarker() !== null)
-      return "skipped: the DateSort icon was already made once";
-    if (!existsSync(TARGET)) return "skipped: DateSort.bat is not in this folder";
-    const r = await runPowerShell();
+    if (readMarker(sc.marker) !== null)
+      return `skipped: the ${sc.label} icon was already made once`;
+    if (!existsSync(sc.target))
+      return `skipped: ${path.basename(sc.target)} is not in this folder`;
+    const r = await runPowerShell(sc);
     const line = r.out.split(/\r?\n/).pop() ?? "";
     if (!r.ok || !/^(created|exists|other) /.test(line)) {
-      return `skipped: could not make the desktop icon (${(r.err || r.out).split(/\r?\n/)[0]})`;
+      return `skipped: could not make the ${sc.label} desktop icon (${(r.err || r.out).split(/\r?\n/)[0]})`;
     }
-    mkdirSync(path.dirname(MARKER), { recursive: true });
+    mkdirSync(path.dirname(sc.marker), { recursive: true });
     writeFileSync(
-      MARKER,
+      sc.marker,
       `${JSON.stringify({ shortcut: line.replace(/^\w+ /, ""), result: line.split(" ")[0], at: new Date().toISOString() }, null, 2)}\n`,
     );
     return line.startsWith("created")
-      ? "made a DateSort icon on the desktop"
+      ? `made a ${sc.label} icon on the desktop`
       : line.startsWith("exists")
-        ? "the DateSort desktop icon is already there"
-        : "a different DateSort shortcut is already on the desktop; left it alone";
+        ? `the ${sc.label} desktop icon is already there`
+        : `a different ${sc.label} shortcut is already on the desktop; left it alone`;
   } catch (e) {
     return `skipped: ${e instanceof Error ? e.message : String(e)}`;
   }
 }
 
+export const ensureDateSortShortcut = () => ensureShortcut(SHORTCUTS.dateSort);
+export const ensureControlCenterShortcut = () =>
+  ensureShortcut(SHORTCUTS.controlCenter);
+
 if (
   process.argv[1] &&
   path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)
 ) {
+  // One after the other: two PowerShells writing the same desktop at once
+  // gain nothing and are harder to read when something goes wrong.
+  console.log(`  [ok]    Desktop icon: ${await ensureControlCenterShortcut()}`);
   console.log(`  [ok]    Desktop icon: ${await ensureDateSortShortcut()}`);
 }
