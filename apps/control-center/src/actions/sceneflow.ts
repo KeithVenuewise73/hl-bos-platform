@@ -1,6 +1,7 @@
 "use server";
 
 import { diagnosticReport } from "@/lib/diagnose";
+import { allowPhonesThroughFirewall, type RuleResult } from "@/lib/firewall";
 import {
   newSceneFlowCode,
   sceneflowStatus,
@@ -27,6 +28,16 @@ export async function rotateSceneFlowCode(): Promise<LaunchResult> {
 
 export async function readSceneFlowStatus(): Promise<SceneFlowStatus> {
   return sceneflowStatus();
+}
+
+/**
+ * Ask Windows to let phones on the home network through to SceneFlow.
+ *
+ * Raises the standard Windows permission prompt, because this console does not
+ * run as Administrator and should not. Declining it is reported as what it is.
+ */
+export async function allowPhones(): Promise<RuleResult> {
+  return allowPhonesThroughFirewall();
 }
 
 /**

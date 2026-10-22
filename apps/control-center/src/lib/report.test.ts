@@ -23,6 +23,12 @@ const facts: ReportFacts = {
     homeUrls: ["http://192.168.1.50:4100"],
     awayUrls: ["http://100.75.144.111:4100"],
     codeSet: true,
+    phoneAccessClear: true,
+    phoneAccess: "Running, listening on your home network, and the firewall allows it.",
+    firewall: [
+      "Inbound TCP 4100 firewall rules: read",
+      "This PC is on a Private network",
+    ],
   },
   gpu: { verdict: "no", headline: "No NVIDIA card." },
   lastLaunch: "SceneFlow is running.",
@@ -43,6 +49,23 @@ describe("formatReport", () => {
       sceneflow: { ...facts.sceneflow, codeSet: false },
     });
     expect(out).toContain("access code:  not set");
+  });
+
+  it("carries why a phone cannot reach it, which is what cost a round of questions", () => {
+    const out = formatReport({
+      ...facts,
+      sceneflow: {
+        ...facts.sceneflow,
+        phoneAccessClear: false,
+        phoneAccess: "Windows holds no firewall rule for port 4100.",
+        firewall: ["Inbound TCP 4100 firewall rules: read"],
+      },
+    });
+    expect(out).toContain("phone access: blocked or untested");
+    expect(out).toContain("no firewall rule for port 4100");
+    // The reading itself travels too, so the verdict can be checked and not
+    // just believed.
+    expect(out).toContain("Inbound TCP 4100 firewall rules: read");
   });
 
   it("reports the version and how far behind", () => {

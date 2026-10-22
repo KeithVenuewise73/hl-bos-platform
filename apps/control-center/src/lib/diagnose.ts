@@ -48,6 +48,12 @@ export async function diagnosticReport(): Promise<string> {
       awayUrls: sceneflow.awayUrls,
       // Whether, never what.
       codeSet: sceneflow.code !== "",
+      // "It did not work on my phone" cost a round of questions before this
+      // was here. The firewall reading is the answer to it, so it travels
+      // with the report rather than waiting to be asked for.
+      phoneAccessClear: sceneflow.clear,
+      phoneAccess: sceneflow.detail,
+      firewall: sceneflow.firewallEvidence,
     },
     gpu: { verdict: gpu.verdict, headline: gpu.headline },
     lastLaunch: lastLaunchMessage(),

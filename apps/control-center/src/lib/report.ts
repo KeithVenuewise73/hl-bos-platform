@@ -37,6 +37,12 @@ export interface ReportFacts {
     readonly awayUrls: readonly string[];
     /** Whether a code is set. NEVER the code itself. */
     readonly codeSet: boolean;
+    /** Nothing known is standing between a phone and the app. */
+    readonly phoneAccessClear: boolean;
+    /** The sentence the panel shows under the dot. */
+    readonly phoneAccess: string;
+    /** What Windows was actually asked about the firewall, and answered. */
+    readonly firewall: readonly string[];
   };
   readonly gpu: { readonly verdict: string; readonly headline: string };
   /** The last thing Start SceneFlow actually said, verbatim. "" if never pressed. */
@@ -72,6 +78,11 @@ export function formatReport(f: ReportFacts): string {
     `  from away:    ${list(f.sceneflow.awayUrls)}`,
     // Deliberately not the code. See the header.
     `  access code:  ${f.sceneflow.codeSet ? "set" : "not set"}`,
+    `  phone access: ${f.sceneflow.phoneAccessClear ? "nothing known in the way" : "blocked or untested"}`,
+    indent(f.sceneflow.phoneAccess),
+    ...(f.sceneflow.firewall.length === 0
+      ? []
+      : ["  firewall:", ...f.sceneflow.firewall.map((line) => `    ${line}`)]),
     "",
     "GRAPHICS",
     `  verdict:      ${f.gpu.verdict}`,
