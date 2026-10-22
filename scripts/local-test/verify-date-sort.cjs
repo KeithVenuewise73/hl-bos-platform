@@ -1047,10 +1047,20 @@ async function refusals() {
   if (restored) {
     fresh.on("dialog", (d) => void d.accept());
     // The request is sent and then nothing ever comes back: no error, no data.
-    await fresh.route("**/api/copy", () => undefined);
+    // The clock may only jump once the request is out: the page starts
+    // watching just before it sends, and a jump before that proves nothing.
+    // Saving settings is made slow, as on a slow machine, so this test cannot
+    // pass by luck (it once did on Linux and failed on Windows).
+    await fresh.route("**/api/settings", async (r) => {
+      await new Promise((res) => setTimeout(res, 2_000));
+      await r.continue();
+    });
+    let sent;
+    const requestSent = new Promise((r) => (sent = r));
+    await fresh.route("**/api/copy", () => sent());
     await fresh.fill("[data-testid=destination-input]", work);
     await fresh.click("[data-testid=copy-all]");
-    await fresh.waitForSelector("[data-testid=copy-cancel]", { timeout: 10_000 });
+    await requestSent;
     await fresh.clock.fastForward(40_000);
     const said = await fresh
       .waitForSelector("[data-testid=copy-error]", { timeout: 15_000 })
