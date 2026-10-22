@@ -65,13 +65,38 @@ creates anything in the source folder. Three things back this up:
 The API refuses requests from any other web page, so a website open in another tab
 can't make DateSort scan a folder or open a folder window.
 
+## Step 3: Create folders and copy photos (built)
+
+Under **Copy to dated folders**:
+
+1. Choose where the date folders go: **Browse…**, or type a path. DateSort remembers it in
+   `%LOCALAPPDATA%\DateSort\settings.json`.
+2. Optionally type an **event name** on a date card. The card shows the folder name it will use:
+   `2026-10-04`, or `2026-10-04 - Caz vs Wheatfield`.
+3. Press **Create folder & copy photos** on a card for one date, or **Copy all N dates**.
+
+The rules (`packages/date-sort/src/copy`):
+
+- **Copy only.** Originals are opened for reading, never moved, renamed, edited or deleted.
+- **Never overwrites.** If a file of that name is already in the folder, it is compared byte for byte.
+  The same photo counts as "already there"; a different file is **left alone** and listed.
+- **Checked.** Each copy is written under a temporary name, read back and compared with its original
+  (SHA-256), given the original's dates, and only then given its real name. A copy cut short (power
+  loss, unplugged drive) is never mistaken for a photo. Drives without hard links (exFAT) are handled.
+- **Same name, different photo.** Canon numbering restarts after IMG_9999, so one date can hold two
+  different `IMG_0001.JPG`. The second copy is named `IMG_0001 (2).JPG`, the same way every time.
+- **Safe to repeat.** Pressing it again only copies what is missing, so an interrupted copy is
+  finished by pressing the button again.
+- **Refused:** a destination inside the scanned folder, a destination that does not exist, or not
+  enough free space (checked before anything is written).
+
 ## Not built yet
 
 | Step | What                                                                                                 |
 | ---- | ---------------------------------------------------------------------------------------------------- |
-| 2    | View Gallery (thumbnails, made on demand, never in the source folder) and Name Event                 |
-| 3    | Create Folder: choose and remember a destination, **copy only**, skip duplicates safely              |
+| 2    | View Gallery (thumbnails, made on demand, never in the source folder)                                |
 | 4    | Two games on one day: show 60+ minute gaps as "Possible second event" and split only on confirmation |
+| —    | A camera clock correction ("this camera was N hours off"), if real scans show the clock was wrong    |
 
 ## Verifying it
 

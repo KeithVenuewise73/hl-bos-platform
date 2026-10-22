@@ -3,6 +3,7 @@ import "server-only";
 import { execFile } from "node:child_process";
 
 import {
+  DESTINATION_TITLE,
   encodeForPowerShell,
   parsePickerOutput,
   pickerScript,
@@ -22,9 +23,9 @@ let open = false;
 /** Long enough to find a folder; short enough that a forgotten window ends. */
 const PICK_TIMEOUT_MS = 15 * 60 * 1000;
 
-export async function browseForFolder(): Promise<
-  PickerOutcome | { kind: "busy" } | { kind: "unavailable"; reason: string }
-> {
+export async function browseForFolder(
+  purpose: "source" | "destination" = "source",
+): Promise<PickerOutcome | { kind: "busy" } | { kind: "unavailable"; reason: string }> {
   if (process.platform !== "win32") {
     return {
       kind: "unavailable",
@@ -45,7 +46,9 @@ export async function browseForFolder(): Promise<
           "-ExecutionPolicy",
           "Bypass",
           "-EncodedCommand",
-          encodeForPowerShell(pickerScript()),
+          encodeForPowerShell(
+            pickerScript(purpose === "destination" ? DESTINATION_TITLE : undefined),
+          ),
         ],
         { timeout: PICK_TIMEOUT_MS, windowsHide: true, maxBuffer: 1024 * 1024 },
         (error, out, err) => {
