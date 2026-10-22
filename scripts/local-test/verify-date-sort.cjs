@@ -52,6 +52,7 @@ const REAL = (process.env.DATESORT_REAL_FOLDERS || "")
   .map((s) => s.trim())
   .filter((s) => s.length > 0);
 const PICKER_TITLE = "DateSort - choose the folder with your photos";
+const DESTINATION_TITLE = "DateSort - choose where the date folders go";
 const WINDOWS = process.platform === "win32";
 const sharp = require(
   path.join(REPO, "packages", "date-sort", "node_modules", "sharp"),
@@ -278,6 +279,242 @@ async function buildCr3Only(root) {
 }
 
 // ---------------------------------------------------------------------------
+// Create folders and copy
+// ---------------------------------------------------------------------------
+
+function sha(file) {
+  return crypto.createHash("sha256").update(fs.readFileSync(file)).digest("hex");
+}
+
+async function waitForCopy(page) {
+  await page.waitForFunction(
+    () =>
+      document.querySelector("[data-testid=copy-cancel]") === null &&
+      document.querySelector("[data-testid=copy-progress]") === null &&
+      (document.querySelector("[data-testid=copy-summary]") !== null ||
+        document.querySelector("[data-testid=copy-error]") !== null),
+    null,
+    { timeout: 900_000 },
+  );
+  const n = async (id) =>
+    Number(
+      ((await page.textContent(`[data-testid=${id}]`).catch(() => "")) || "").replace(
+        /[^0-9]/g,
+        "",
+      ),
+    );
+  return {
+    error: await page.textContent("[data-testid=copy-error]").catch(() => null),
+    copied: await n("sum-copied"),
+    already: await n("sum-already"),
+    conflicts: await n("sum-conflicts"),
+    failed: await n("sum-failed"),
+  };
+}
+
+async function copyChecks(page, card, work) {
+  const sourceBefore = fingerprint(card);
+  const dest = path.join(work, "Games");
+  fs.mkdirSync(dest);
+  // Someone else's file already in a date folder, under a name DateSort wants.
+  fs.mkdirSync(path.join(dest, "2026-10-06"));
+  fs.writeFileSync(path.join(dest, "2026-10-06", "IMG_ROOT.JPG"), "not the same photo");
+
+  page.on("dialog", (d) => void d.accept());
+  const card4 = page.locator("[data-testid=date-card][data-day='2026-10-04']");
+
+  // 1. A destination inside the scanned folder is refused.
+  fs.mkdirSync(path.join(card, "Sorted"), { recursive: true });
+  await page.fill("[data-testid=destination-input]", path.join(card, "Sorted"));
+  await card4.locator("[data-testid=create-folder]").click();
+  const inside = await waitForCopy(page);
+  fs.rmSync(path.join(card, "Sorted"), { recursive: true });
+  check(
+    "a destination inside the scanned folder is refused, and nothing is copied",
+    /inside the folder you scanned/.test(inside.error || ""),
+    inside.error,
+  );
+
+  // 2. Choose the destination (the real Windows folder window on Windows).
+  let destOk;
+  if (WINDOWS) {
+    const { code, chosen } = await driveDialog(
+      page,
+      dest,
+      "[data-testid=destination-input]",
+      "[data-testid=destination-browse]",
+      DESTINATION_TITLE,
+    );
+    destOk = check(
+      `destination chosen with Browse ("${chosen}")`,
+      code === 0 && sameFolder(chosen, dest),
+    );
+  } else {
+    await page.fill("[data-testid=destination-input]", dest);
+    destOk = true;
+  }
+
+  // 3. One date, with an event name.
+  await card4.locator("[data-testid=event-name]").fill("Caz vs Wheatfield");
+  const preview = await card4.locator("[data-testid=folder-preview]").textContent();
+  check(
+    'the card shows the folder name "2026-10-04 - Caz vs Wheatfield"',
+    /2026-10-04 - Caz vs Wheatfield/.test(preview || ""),
+    preview,
+  );
+  await card4.locator("[data-testid=create-folder]").click();
+  const one = await waitForCopy(page);
+  await shot(page, "08-copied-one-date");
+  const oct4 = path.join(dest, "2026-10-04 - Caz vs Wheatfield");
+  const oct4Files = fs.existsSync(oct4) ? fs.readdirSync(oct4).sort() : [];
+  const oneOk =
+    check(
+      'Create folder made "2026-10-04 - Caz vs Wheatfield" and copied its 7 photos',
+      one.error === null && one.copied === 7 && oct4Files.length === 7,
+      JSON.stringify({ one, oct4Files }),
+    ) &
+    check(
+      "the card says what happened: 7 copied, 0 already there",
+      /7 copied · 0 already there/.test(
+        (await card4.locator("[data-testid=card-result]").textContent()) || "",
+      ),
+    );
+
+  // 4. Copy all dates.
+  await page.click("[data-testid=copy-all]");
+  const all = await waitForCopy(page);
+  await shot(page, "09-copied-all");
+  const folders = fs.readdirSync(dest).sort();
+  const want = [
+    "2018-02-21",
+    "2026-10-03",
+    "2026-10-04 - Caz vs Wheatfield",
+    "2026-10-05",
+    "2026-10-06",
+  ];
+  const allOk =
+    check(
+      `Copy all made one folder per date: ${want.join(", ")}`,
+      JSON.stringify(folders) === JSON.stringify(want),
+      JSON.stringify(folders),
+    ) &
+    check(
+      "Copy all: 10 more copied, the 7 from before already there, 1 different file left alone",
+      all.copied === 10 && all.already === 7 && all.conflicts === 1 && all.failed === 0,
+      JSON.stringify(all),
+    );
+
+  // Every copy is byte-for-byte its original, with the original's modified date.
+  let exact = 0;
+  const mismatched = [];
+  const byDay = {
+    "2018-02-21": ["DCIM/101CANON/IMG_0100.CR3"],
+    "2026-10-03": [
+      "DCIM/100CANON/IMG_0001.JPG",
+      "DCIM/100CANON/IMG_0002.JPG",
+      "DCIM/100CANON/IMG_0003.JPG",
+      "Edited/IMG_0010.CR3",
+    ],
+    "2026-10-04 - Caz vs Wheatfield": [
+      "DCIM/100CANON/IMG_0004.JPG",
+      "DCIM/100CANON/IMG_0004.CR3",
+      "DCIM/100CANON/IMG_0005.CR2",
+      "DCIM/100CANON/IMG_0006.JPG",
+      "DCIM/100CANON/IMG_0007.jpeg",
+      "Phone/IMG_7000.HEIC",
+      "Edited/team.png",
+    ],
+    "2026-10-05": [
+      "DCIM/100CANON/IMG_0008.JPG",
+      "DCIM/100CANON/IMG_0009.JPG",
+      "DCIM/100CANON/IMG_0009.CR3",
+      "Phone/IMG_7001.HEIC",
+      "Edited/crop.jpg",
+    ],
+  };
+  for (const [folder, sources] of Object.entries(byDay)) {
+    for (const rel of sources) {
+      const src = path.join(card, ...rel.split("/"));
+      const cp = path.join(dest, folder, path.basename(rel));
+      const ok =
+        fs.existsSync(cp) &&
+        sha(cp) === sha(src) &&
+        Math.abs(fs.statSync(cp).mtimeMs - fs.statSync(src).mtimeMs) < 2000;
+      if (ok) exact += 1;
+      else mismatched.push(`${folder}/${path.basename(rel)}`);
+    }
+  }
+  const exactOk = check(
+    `all ${exact} copies checked are identical to their originals, with the originals' dates`,
+    mismatched.length === 0 && exact === 17,
+    mismatched.join(", "),
+  );
+  const keptOk = check(
+    "the different file already in 2026-10-06 was left exactly as it was",
+    fs.readFileSync(path.join(dest, "2026-10-06", "IMG_ROOT.JPG"), "utf8") ===
+      "not the same photo",
+  );
+  const noPartials = check(
+    "no half-written files anywhere in the destination",
+    !walk(dest).some((f) => f.endsWith(".datesort-partial")),
+  );
+
+  // 5. Again: nothing to do, nothing changes.
+  const destBefore = fingerprint(dest);
+  await page.click("[data-testid=copy-all]");
+  const again = await waitForCopy(page);
+  const againOk =
+    check(
+      "copying again copies nothing: all 17 already there",
+      again.copied === 0 && again.already === 17,
+      JSON.stringify(again),
+    ) &
+    check(
+      "copying again changes nothing in the destination",
+      differences(destBefore, fingerprint(dest)).length === 0,
+    );
+
+  // 6. The originals.
+  const diff = differences(sourceBefore, fingerprint(card));
+  results.folders.push({
+    label: "Copy: source folder",
+    folder: card,
+    filesFingerprinted: sourceBefore.size,
+    filesAltered: diff.length,
+  });
+  const untouched = check(
+    `copying changed nothing in the source folder (${sourceBefore.size} files fingerprinted)`,
+    diff.length === 0,
+    diff.slice(0, 5).join("; "),
+  );
+
+  // 7. The destination is remembered.
+  await page.reload();
+  await page.fill("[data-testid=source-input]", card);
+  await page.click("[data-testid=scan-button]");
+  await page.waitForSelector("[data-testid=scan-report]", { timeout: 900_000 });
+  await page
+    .waitForFunction(
+      () => document.querySelector("[data-testid=destination-input]")?.value !== "",
+      null,
+      { timeout: 10_000 },
+    )
+    .catch(() => undefined);
+  const remembered = await page.inputValue("[data-testid=destination-input]");
+  const rememberedOk = check(
+    `the destination is remembered after a restart of the page ("${remembered}")`,
+    sameFolder(remembered, dest),
+  );
+
+  verdict("Create folder (one date, with event name)", oneOk, destOk);
+  verdict("Copy all dates", allOk);
+  verdict("Copies identical to originals", exactOk, noPartials);
+  verdict("Never overwrites", keptOk, againOk);
+  verdict("Originals untouched by copying", untouched);
+  verdict("Destination remembered", rememberedOk);
+}
+
+// ---------------------------------------------------------------------------
 // Driving the page
 // ---------------------------------------------------------------------------
 
@@ -452,6 +689,50 @@ async function startFromConsole(browser) {
 }
 
 /** Press Browse; on Windows, choose `folder` in the real Windows folder window. */
+function sameFolder(a, b) {
+  try {
+    return (
+      fs.realpathSync.native(a).toLowerCase() ===
+      fs.realpathSync.native(b).toLowerCase()
+    );
+  } catch {
+    return false;
+  }
+}
+
+/** Press a Browse button and choose `folder` in the real Windows folder window. */
+async function driveDialog(page, folder, inputSel, buttonSel, title) {
+  await page.fill(inputSel, "");
+  const driver = spawn(
+    "powershell.exe",
+    [
+      "-NoProfile",
+      "-ExecutionPolicy",
+      "Bypass",
+      "-File",
+      path.join(__dirname, "pick-folder-in-dialog.ps1"),
+      "-Title",
+      title,
+      "-Folder",
+      folder,
+    ],
+    { stdio: ["ignore", "pipe", "pipe"] },
+  );
+  let log = "";
+  driver.stdout.on("data", (d) => (log += d));
+  driver.stderr.on("data", (d) => (log += d));
+  const driven = new Promise((resolve) => driver.on("exit", resolve));
+  await page.click(buttonSel);
+  const code = await driven;
+  for (const line of log.trim().split(/\r?\n/)) console.log(`  ..    ${line}`);
+  await page
+    .waitForFunction((sel) => document.querySelector(sel)?.value !== "", inputSel, {
+      timeout: 30_000,
+    })
+    .catch(() => undefined);
+  return { code, chosen: await page.inputValue(inputSel) };
+}
+
 async function browse(page, folder) {
   if (!WINDOWS) {
     await page.click("[data-testid=browse-button]");
@@ -465,48 +746,14 @@ async function browse(page, folder) {
     results.browse = "not tested: not Windows";
     return false;
   }
-  await page.fill("[data-testid=source-input]", "");
-  const driver = spawn(
-    "powershell.exe",
-    [
-      "-NoProfile",
-      "-ExecutionPolicy",
-      "Bypass",
-      "-File",
-      path.join(__dirname, "pick-folder-in-dialog.ps1"),
-      "-Title",
-      PICKER_TITLE,
-      "-Folder",
-      folder,
-    ],
-    { stdio: ["ignore", "pipe", "pipe"] },
+  const { code, chosen } = await driveDialog(
+    page,
+    folder,
+    "[data-testid=source-input]",
+    "[data-testid=browse-button]",
+    PICKER_TITLE,
   );
-  let log = "";
-  driver.stdout.on("data", (d) => (log += d));
-  driver.stderr.on("data", (d) => (log += d));
-  const driven = new Promise((resolve) => driver.on("exit", resolve));
-  await page.click("[data-testid=browse-button]");
-  const code = await driven;
-  for (const line of log.trim().split(/\r?\n/)) console.log(`  ..    ${line}`);
-  await page
-    .waitForFunction(
-      () => document.querySelector("[data-testid=source-input]")?.value !== "",
-      null,
-      { timeout: 30_000 },
-    )
-    .catch(() => undefined);
-  const chosen = await page.inputValue("[data-testid=source-input]");
-  const same = (a, b) => {
-    try {
-      return (
-        fs.realpathSync.native(a).toLowerCase() ===
-        fs.realpathSync.native(b).toLowerCase()
-      );
-    } catch {
-      return false;
-    }
-  };
-  const ok = code === 0 && same(chosen, folder);
+  const ok = code === 0 && sameFolder(chosen, folder);
   check(
     `Browse: the Windows folder window opened and its choice filled the folder box ("${chosen}")`,
     ok,
@@ -717,6 +964,10 @@ async function refusals() {
     r.earliest,
   );
   await shot(page, "05-estimated");
+
+  // Create folders and copy (Step 3)
+  console.log("\nCreate folders and copy photos");
+  await copyChecks(page, card, work);
 
   // CR3 Date Taken
   console.log("\nCR3-only folder");

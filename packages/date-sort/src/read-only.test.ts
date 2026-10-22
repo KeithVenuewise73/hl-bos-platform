@@ -30,6 +30,19 @@ describe("DateSort's scanner is read-only", () => {
     expect(fsUsers).toEqual(["read-only-file.ts"]);
   });
 
+  it("never pulls in the copying code (src/copy), which can write", () => {
+    for (const { file, text } of sources) {
+      const imports = [...text.matchAll(/from\s+["'](\.\/copy[^"']*)["']/g)].map(
+        (m) => m[1],
+      );
+      // index.ts (the page's entry, not the scanner's) may re-export the pure
+      // folder-naming rules; nothing may import anything else from src/copy.
+      expect(imports, file).toEqual(file === "index.ts" ? ["./copy/plan"] : []);
+    }
+    const plan = readFileSync(join(SRC, "copy", "plan.ts"), "utf8");
+    expect(/from\s+["'](node:)?fs/.test(plan)).toBe(false);
+  });
+
   it("imports only reading functions there", () => {
     const text = sources.find((s) => s.file === "read-only-file.ts")!.text;
     const imports = [

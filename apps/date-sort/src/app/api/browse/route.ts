@@ -7,6 +7,9 @@ export const dynamic = "force-dynamic";
 export async function POST(request: Request): Promise<Response> {
   const refused = guard(request);
   if (refused !== null) return refused;
-  const outcome = await browseForFolder();
+  const body = (await request.json().catch(() => ({}))) as { purpose?: unknown };
+  const outcome = await browseForFolder(
+    body.purpose === "destination" ? "destination" : "source",
+  );
   return Response.json(outcome, { headers: { "Cache-Control": "no-store" } });
 }

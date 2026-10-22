@@ -15,6 +15,8 @@ export interface EstimatedPhoto {
 }
 
 export interface ScanView {
+  /** Which scan this is, for Create Folder (the server keeps the file list). */
+  readonly scanId: string;
   readonly root: string;
   readonly includeSubfolders: boolean;
   readonly seconds: number;
@@ -38,4 +40,40 @@ export type ScanMessage =
       readonly read: number;
     }
   | { readonly type: "done"; readonly view: ScanView }
+  | { readonly type: "error"; readonly message: string };
+
+/** One date's outcome after Create Folder, as the page shows it. */
+export interface DayCopyView {
+  readonly day: string;
+  readonly folder: string;
+  readonly photos: number;
+  readonly copied: number;
+  readonly alreadyThere: number;
+  readonly renamedCopies: number;
+  readonly conflicts: ReadonlyArray<{
+    readonly name: string;
+    readonly source: string;
+    readonly reason: string;
+  }>;
+  readonly failed: ReadonlyArray<{
+    readonly name: string;
+    readonly source: string;
+    readonly reason: string;
+  }>;
+}
+
+export type CopyMessage =
+  | {
+      readonly type: "progress";
+      readonly day: string;
+      readonly folder: string;
+      readonly done: number;
+      readonly total: number;
+      readonly bytesCopied: number;
+    }
+  | {
+      readonly type: "done";
+      readonly days: readonly DayCopyView[];
+      readonly seconds: number;
+    }
   | { readonly type: "error"; readonly message: string };
