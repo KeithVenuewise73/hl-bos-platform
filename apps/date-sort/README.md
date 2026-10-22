@@ -101,6 +101,13 @@ The rules (`packages/date-sort/src/copy`):
   heartbeat every 5 seconds. If the page hears nothing for 30 seconds it says DateSort lost touch
   and to press the button again. If heartbeats arrive but no photo finishes for 2 minutes (an
   unplugged drive), it says that and what to do (`src/lib/copy-watch.ts`).
+- **Event names are remembered, and a named folder is never duplicated.** Names typed on the date
+  cards are saved with the destination in `settings.json`. And when a date has no name on screen
+  but the destination already has exactly one folder for it under a name (`2025-11-08 - Zac K`),
+  DateSort copies into that folder instead of making a plain `2025-11-08` beside it. (A refreshed
+  page once forgot a name, and the next copy made that second folder with a second copy of every
+  photo.) While copying, the page shows which folder it is filling and how many photos were found
+  already there and skipped.
 - **Refreshing the page keeps the scan.** A reloaded page shows the last scan again, as long as
   DateSort has not been restarted, so it does not cost another full scan.
 - **Refused:** a destination inside the scanned folder, a destination that does not exist, or not

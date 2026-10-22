@@ -1029,6 +1029,21 @@ async function refusals() {
     .then(() => true)
     .catch(() => false);
   check("a refreshed page shows the last scan again, without scanning again", restored);
+  // The event name typed before the refresh must come back: a forgotten name
+  // once made a second, plain date folder holding a second copy of every photo.
+  const keptName = restored
+    ? await fresh
+        .locator(
+          "[data-testid=date-card][data-day='2026-10-04'] [data-testid=event-name]",
+        )
+        .inputValue()
+        .catch(() => "")
+    : "";
+  check(
+    "a refreshed page still has the event name typed on the card",
+    keptName === "Caz vs Wheatfield",
+    keptName,
+  );
   if (restored) {
     fresh.on("dialog", (d) => void d.accept());
     // The request is sent and then nothing ever comes back: no error, no data.

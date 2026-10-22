@@ -68,6 +68,7 @@ export type CopyMessage =
       readonly day: string;
       readonly folder: string;
       readonly done: number;
+      readonly alreadyThere: number;
       readonly total: number;
       readonly bytesCopied: number;
     }

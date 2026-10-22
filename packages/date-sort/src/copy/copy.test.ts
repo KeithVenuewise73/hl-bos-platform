@@ -25,9 +25,9 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import type { ScannedPhoto } from "../report";
 import { scanFolder } from "../scan";
-import { copyDays, CopyError } from "./copy-day";
+import { copyDays, CopyError, folderForDay } from "./copy-day";
 import { cleanEventName, folderName, isInside, planDay } from "./plan";
-import { loadSettings, saveSettings } from "./settings";
+import { cleanEventNames, loadSettings, saveSettings } from "./settings";
 import { copyOneFile, PARTIAL_SUFFIX } from "./write-file";
 
 let work: string;
@@ -155,6 +155,37 @@ describe("planning a date", () => {
   });
 });
 
+describe("which folder a date goes in", () => {
+  it("is the typed name when one is given", () => {
+    expect(folderForDay("2025-11-08", "Zac K", [])).toBe("2025-11-08 - Zac K");
+    expect(folderForDay("2025-11-08", "New name", ["2025-11-08 - Zac K"])).toBe(
+      "2025-11-08 - New name",
+    );
+  });
+
+  it("with no name, reuses the one folder already named for that date", () => {
+    expect(folderForDay("2025-11-08", "", ["2025-11-08 - Zac K", "2025-12-16"])).toBe(
+      "2025-11-08 - Zac K",
+    );
+  });
+
+  it("with no name, uses the plain date folder when there is one, or nothing to reuse", () => {
+    expect(folderForDay("2025-11-08", "", [])).toBe("2025-11-08");
+    expect(folderForDay("2025-11-08", "", ["2025-11-08", "2025-11-08 - Zac K"])).toBe(
+      "2025-11-08",
+    );
+    expect(folderForDay("2025-11-08", "", ["2025-11-09 - Other day"])).toBe(
+      "2025-11-08",
+    );
+  });
+
+  it("does not guess between two named folders for one date", () => {
+    expect(
+      folderForDay("2025-11-08", "", ["2025-11-08 - Zac K", "2025-11-08 - Game 2"]),
+    ).toBe("2025-11-08");
+  });
+});
+
 describe("copying dates into folders", () => {
   it("copies each date into its own folder, and changes nothing in the source", async () => {
     const before = fingerprint(card);
@@ -228,6 +259,30 @@ describe("copying dates into folders", () => {
     expect(again.map((r) => [r.copied, r.alreadyThere])).toEqual([
       [0, 2],
       [0, 3],
+    ]);
+  });
+
+  it("copying again without the event name (a refreshed page forgot it) makes no second folder", async () => {
+    const scanned = await scan();
+    await copyDays({
+      root: card,
+      files: scanned.files,
+      destination: dest,
+      days: [{ day: "2026-10-04", eventName: "Caz vs Wheatfield" }],
+    });
+    const again = await copyDays({
+      root: card,
+      files: scanned.files,
+      destination: dest,
+      days: [{ day: "2026-10-03" }, { day: "2026-10-04" }],
+    });
+    expect(readdirSync(dest).sort()).toEqual([
+      "2026-10-03",
+      "2026-10-04 - Caz vs Wheatfield",
+    ]);
+    expect(again.map((r) => [r.day, r.copied, r.alreadyThere])).toEqual([
+      ["2026-10-03", 2, 0],
+      ["2026-10-04", 0, 3],
     ]);
   });
 
@@ -371,13 +426,32 @@ describe("copying dates into folders", () => {
   });
 });
 
-describe("remembering the destination", () => {
-  it("saves and loads it from DateSort's own settings folder", async () => {
+describe("remembering the destination and event names", () => {
+  it("saves and loads them from DateSort's own settings folder", async () => {
     const dir = join(work, "settings");
-    expect(await loadSettings(dir)).toEqual({ destination: null });
-    await saveSettings({ destination: "D:\\5-Star Sports Media\\Games" }, dir);
+    expect(await loadSettings(dir)).toEqual({ destination: null, eventNames: {} });
+    await saveSettings(
+      {
+        destination: "D:\\5-Star Sports Media\\Games",
+        eventNames: { "2025-11-08": "Zac K" },
+      },
+      dir,
+    );
     expect(await loadSettings(dir)).toEqual({
       destination: "D:\\5-Star Sports Media\\Games",
+      eventNames: { "2025-11-08": "Zac K" },
     });
+  });
+
+  it("keeps only real dates and names from the file", () => {
+    expect(
+      cleanEventNames({
+        "2025-11-08": "Zac K",
+        nonsense: "x",
+        "2025-11-09": "",
+        "2025-11-10": 7,
+      }),
+    ).toEqual({ "2025-11-08": "Zac K" });
+    expect(cleanEventNames(null)).toEqual({});
   });
 });

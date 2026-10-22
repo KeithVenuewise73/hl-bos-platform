@@ -32,9 +32,13 @@ export function useCopy(view: ScanView) {
   useEffect(() => {
     void fetch("/api/settings", { headers: { "Content-Type": "application/json" } })
       .then((r) => r.json())
-      .then((s: { destination?: string | null }) => {
-        if (s.destination) setDestination(s.destination);
-      })
+      .then(
+        (s: { destination?: string | null; eventNames?: Record<string, string> }) => {
+          if (s.destination) setDestination(s.destination);
+          // Names typed before a refresh or restart (settings.ts).
+          if (s.eventNames) setNames((n) => ({ ...s.eventNames, ...n }));
+        },
+      )
       .catch(() => undefined);
   }, []);
 
@@ -43,6 +47,14 @@ export function useCopy(view: ScanView) {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ destination: path }),
+    }).catch(() => undefined);
+  }
+
+  async function rememberNames(all: Record<string, string> = names) {
+    await fetch("/api/settings", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ eventNames: all }),
     }).catch(() => undefined);
   }
 
@@ -95,6 +107,7 @@ export function useCopy(view: ScanView) {
     setAwake(null);
     setStalled(false);
     await rememberDestination(destination.trim());
+    await rememberNames();
     let lastMessageAt = Date.now();
     let lastPhotoAt = Date.now();
     let lastDone = -1;
@@ -177,6 +190,7 @@ export function useCopy(view: ScanView) {
     setDestination,
     names,
     setName: (day: string, name: string) => setNames((n) => ({ ...n, [day]: name })),
+    saveNames: () => void rememberNames(),
     browse,
     browsing,
     note,
@@ -279,10 +293,16 @@ export function CopyPanel({ view, copy }: { view: ScanView; copy: CopyState }) {
       {copy.progress !== null ? (
         <div data-testid="copy-progress">
           <p className="text-sm">
-            Copying {longDate(copy.progress.day)}…{" "}
-            {copy.progress.done.toLocaleString("en-US")} of{" "}
+            Copying {longDate(copy.progress.day)} into{" "}
+            <span className="font-mono">
+              {copy.progress.folder.split(/[\\/]/).pop()}
+            </span>
+            … {copy.progress.done.toLocaleString("en-US")} of{" "}
             {count(copy.progress.total, "photo")} · {gb(copy.progress.bytesCopied)}{" "}
             copied
+            {copy.progress.alreadyThere > 0
+              ? ` · ${copy.progress.alreadyThere.toLocaleString("en-US")} already there, skipped`
+              : ""}
           </p>
           <div className="mt-2 h-2 overflow-hidden rounded bg-panel-2">
             <div
@@ -385,6 +405,7 @@ export function CardCopy({ day, copy }: { day: string; copy: CopyState }) {
         placeholder="Event name (optional), e.g. Caz vs Wheatfield"
         value={name}
         onChange={(e) => copy.setName(day, e.target.value)}
+        onBlur={copy.saveNames}
         disabled={busy}
       />
       <p
