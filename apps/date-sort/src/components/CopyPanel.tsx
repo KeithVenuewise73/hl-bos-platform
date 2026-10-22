@@ -80,7 +80,7 @@ export function useCopy(view: ScanView) {
   async function run(days: string[]) {
     if (destination.trim() === "") {
       setError(
-        "Choose where the date folders should go first (Browse… under Copy to dated folders).",
+        "No folder is chosen yet. Click Browse… and pick one. To make a new folder (for example 5-Star Sports Media), click New folder in that window, name it, then select it.",
       );
       return;
     }
@@ -193,7 +193,9 @@ export function CopyPanel({ view, copy }: { view: ScanView; copy: CopyState }) {
           id="destination"
           data-testid="destination-input"
           className="input font-mono"
-          placeholder="D:\5-Star Sports Media\Games"
+          // Not an example path: an example that looks like a real folder was
+          // mistaken for a chosen one.
+          placeholder="No folder chosen yet. Click Browse…"
           value={copy.destination}
           onChange={(e) => copy.setDestination(e.target.value)}
           disabled={busy}
@@ -230,9 +232,11 @@ export function CopyPanel({ view, copy }: { view: ScanView; copy: CopyState }) {
             className="btn-primary"
             disabled={days.length === 0}
             onClick={() => {
-              if (
+              if (copy.destination.trim() === "") {
+                void copy.run([]); // shows the "no folder chosen" message
+              } else if (
                 window.confirm(
-                  `Copy ${count(photos, "photo")} into ${count(days.length, "dated folder")} in\n${copy.destination || "(no destination chosen)"}?\n\nYour originals are not moved or changed.`,
+                  `Copy ${count(photos, "photo")} into ${count(days.length, "dated folder")} in\n${copy.destination}?\n\nYour originals are not moved or changed.`,
                 )
               ) {
                 void copy.run(days.map((d) => d.day));
