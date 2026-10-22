@@ -1,6 +1,7 @@
 import { scanFolder, ScanError, type ScanResult } from "@hl-bos/date-sort/scan";
 
 import { guard } from "@/lib/guard.ts";
+import { rememberScan } from "@/lib/scan-store.ts";
 import type { ScanMessage, ScanView } from "@/lib/scan-view.ts";
 
 export const dynamic = "force-dynamic";
@@ -44,7 +45,7 @@ export async function POST(request: Request): Promise<Response> {
             send({ type: "progress", ...p });
           },
         });
-        send({ type: "done", view: toView(result) });
+        send({ type: "done", view: toView(result, rememberScan(result)) });
       } catch (e) {
         if (request.signal.aborted) return; // the page went away; nobody to tell
         send({
@@ -71,7 +72,7 @@ export async function POST(request: Request): Promise<Response> {
   });
 }
 
-function toView(result: ScanResult): ScanView {
+function toView(result: ScanResult, scanId: string): ScanView {
   const sources = { DateTimeOriginal: 0, CreateDate: 0, FileModified: 0 };
   const estimated = [];
   for (const f of result.files) {
@@ -82,6 +83,7 @@ function toView(result: ScanResult): ScanView {
     }
   }
   return {
+    scanId,
     root: result.root,
     includeSubfolders: result.includeSubfolders,
     seconds: result.seconds,

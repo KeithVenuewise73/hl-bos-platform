@@ -15,6 +15,8 @@
 
 /** The title the window shows. The Windows CI test finds the window by it. */
 export const PICKER_TITLE = "DateSort - choose the folder with your photos";
+/** The window for choosing where the date folders go. */
+export const DESTINATION_TITLE = "DateSort - choose where the date folders go";
 
 const CSHARP = String.raw`
 using System;

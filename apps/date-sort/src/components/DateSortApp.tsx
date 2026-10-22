@@ -4,6 +4,12 @@ import { useEffect, useRef, useState } from "react";
 
 import { FORMAT_LABEL, PHOTO_FORMATS, type DayReport } from "@hl-bos/date-sort";
 
+import {
+  CardCopy,
+  CopyPanel,
+  useCopy,
+  type CopyState,
+} from "@/components/CopyPanel.tsx";
 import { clockTime, count, dateAndTime, longDate } from "@/lib/format.ts";
 import type { ScanMessage, ScanView } from "@/lib/scan-view.ts";
 
@@ -235,7 +241,7 @@ export function DateSortApp() {
         </section>
       ) : null}
 
-      {view !== null ? <Report view={view} /> : null}
+      {view !== null ? <Report key={view.scanId} view={view} /> : null}
     </div>
   );
 }
@@ -267,6 +273,7 @@ function Stat({
 
 function Report({ view }: { view: ScanView }) {
   const r = view.report;
+  const copy = useCopy(view);
   const [showEstimated, setShowEstimated] = useState(false);
   const [showUnsupported, setShowUnsupported] = useState(false);
   return (
@@ -345,6 +352,8 @@ function Report({ view }: { view: ScanView }) {
         )}
       </div>
 
+      {r.days.length > 0 ? <CopyPanel view={view} copy={copy} /> : null}
+
       {r.days.length === 0 ? (
         <p className="card p-5 text-sm text-muted" data-testid="no-dates">
           No photos with a date were found in this folder
@@ -359,7 +368,7 @@ function Report({ view }: { view: ScanView }) {
           data-testid="date-cards"
         >
           {r.days.map((d) => (
-            <DateCard key={d.day} day={d} />
+            <DateCard key={d.day} day={d} copy={copy} />
           ))}
         </div>
       )}
@@ -448,7 +457,7 @@ function EstimateTag({ inline = false }: { inline?: boolean }) {
   );
 }
 
-function DateCard({ day }: { day: DayReport }) {
+function DateCard({ day, copy }: { day: DayReport; copy: CopyState }) {
   return (
     <article className="card space-y-3 p-5" data-testid="date-card" data-day={day.day}>
       <h3 className="display text-base text-brand">{longDate(day.day)}</h3>
@@ -499,6 +508,7 @@ function DateCard({ day }: { day: DayReport }) {
           {count(day.estimated, "estimated date")}
         </span>
       </p>
+      <CardCopy day={day.day} copy={copy} />
     </article>
   );
 }
