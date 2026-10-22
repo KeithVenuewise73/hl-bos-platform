@@ -13,6 +13,7 @@ import type { ScannedFile, ScannedPhoto } from "../report";
 import { folderName, isInside, planDay, type PlannedCopy } from "./plan";
 import {
   copyOneFile,
+  folderNames,
   freeBytes,
   makeFolder,
   pathKind,
@@ -32,6 +33,8 @@ export interface CopyProgress {
   readonly folder: string;
   /** Photos finished (copied, already there, conflict or failed) so far, all days. */
   readonly done: number;
+  /** Of those, photos found already copied and skipped. */
+  readonly alreadyThere: number;
   readonly total: number;
   readonly bytesCopied: number;
 }
@@ -114,11 +117,34 @@ export async function checkDestination(
   }
 }
 
+/**
+ * The folder a date's photos go in. Normally "<date>" or "<date> - <event>".
+ * But when no event name is given and the destination already holds exactly
+ * one folder for that date under an event name, that folder is used: the
+ * name was typed on an earlier copy and is simply not on screen now (a
+ * refreshed page once forgot it, and a second, plain "<date>" folder got a
+ * second copy of every photo). Two or more named folders for one date are
+ * not guessed between.
+ */
+export function folderForDay(
+  day: string,
+  eventName: string,
+  existing: readonly string[],
+): string {
+  const wanted = folderName(day, eventName);
+  if (wanted !== day) return wanted; // a name was given: use it
+  const lower = existing.map((n) => n.toLowerCase());
+  if (lower.includes(day)) return wanted;
+  const named = existing.filter((n) => n.toLowerCase().startsWith(`${day} - `));
+  return named.length === 1 ? named[0]! : wanted;
+}
+
 export async function copyDays(request: CopyRequest): Promise<DayResult[]> {
   const photos = request.files.filter((f): f is ScannedPhoto => f.kind === "photo");
+  const existing = await folderNames(request.destination);
   const plans = request.days.map((d) => ({
     day: d.day,
-    folder: join(request.destination, folderName(d.day, d.eventName ?? "")),
+    folder: join(request.destination, folderForDay(d.day, d.eventName ?? "", existing)),
     items: planDay(photos, d.day),
   }));
   const total = plans.reduce((n, p) => n + p.items.length, 0);
@@ -130,6 +156,7 @@ export async function copyDays(request: CopyRequest): Promise<DayResult[]> {
 
   const results: DayResult[] = [];
   let done = 0;
+  let skipped = 0;
   let bytesCopied = 0;
   for (const plan of plans) {
     request.signal?.throwIfAborted();
@@ -152,8 +179,10 @@ export async function copyDays(request: CopyRequest): Promise<DayResult[]> {
         if (outcome.result === "copied") {
           copied += 1;
           bytesCopied += outcome.bytes;
-        } else if (outcome.result === "already-there") alreadyThere += 1;
-        else
+        } else if (outcome.result === "already-there") {
+          alreadyThere += 1;
+          skipped += 1;
+        } else
           conflicts.push({
             name: item.name,
             source: item.source,
@@ -168,6 +197,7 @@ export async function copyDays(request: CopyRequest): Promise<DayResult[]> {
         day: plan.day,
         folder: plan.folder,
         done,
+        alreadyThere: skipped,
         total,
         bytesCopied,
       });

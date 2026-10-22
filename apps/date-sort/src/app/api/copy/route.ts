@@ -1,6 +1,8 @@
 import { copyDays, CopyError, type DayRequest } from "@hl-bos/date-sort/copy";
 
+import { HEARTBEAT_MS } from "@/lib/copy-watch.ts";
 import { guard } from "@/lib/guard.ts";
+import { keepAwake } from "@/lib/keep-awake.ts";
 import { findScan } from "@/lib/scan-store.ts";
 import type { CopyMessage } from "@/lib/scan-view.ts";
 
@@ -14,6 +16,8 @@ let busy = false;
  * as lines of JSON. Originals are only read; nothing is ever overwritten
  * (@hl-bos/date-sort's copy/write-file.ts). Closing the page cancels it,
  * leaving no half-written file; pressing the button again finishes the rest.
+ * While it runs, Windows is asked not to sleep (keep-awake.ts): a sleeping
+ * laptop drops the page's connection, which would stop the copy.
  */
 export async function POST(request: Request): Promise<Response> {
   const refused = guard(request);
@@ -51,7 +55,10 @@ export async function POST(request: Request): Promise<Response> {
     return Response.json({ error: "No dates chosen." }, { status: 400 });
   if (busy) {
     return Response.json(
-      { error: "A copy is already running. Wait for it to finish." },
+      {
+        error:
+          "A copy is already running (or the last one is still stopping). Try again in a minute; nothing is lost.",
+      },
       { status: 409 },
     );
   }
@@ -61,9 +68,18 @@ export async function POST(request: Request): Promise<Response> {
   const started = Date.now();
   const stream = new ReadableStream<Uint8Array>({
     async start(controller) {
-      const send = (m: CopyMessage) =>
-        controller.enqueue(encoder.encode(`${JSON.stringify(m)}\n`));
+      const send = (m: CopyMessage) => {
+        try {
+          controller.enqueue(encoder.encode(`${JSON.stringify(m)}\n`));
+        } catch {
+          // the page went away; the copy notices through request.signal
+        }
+      };
       let lastSent = 0;
+      const awake = await keepAwake();
+      send({ type: "awake", held: awake.held });
+      // Lets the page tell "busy" from "gone quiet" (copy-watch.ts).
+      const heartbeat = setInterval(() => send({ type: "alive" }), HEARTBEAT_MS);
       try {
         const results = await copyDays({
           root: scan.root,
@@ -89,6 +105,8 @@ export async function POST(request: Request): Promise<Response> {
               : `The copy stopped: ${e instanceof Error ? e.message : String(e)}. Your originals were not touched; press the button again to finish.`,
         });
       } finally {
+        clearInterval(heartbeat);
+        awake.release();
         busy = false;
         try {
           controller.close();

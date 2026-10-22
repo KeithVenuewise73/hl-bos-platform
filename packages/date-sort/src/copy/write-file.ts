@@ -30,6 +30,7 @@ import {
   lstat,
   mkdir,
   open,
+  readdir,
   realpath,
   stat,
   statfs,
@@ -243,5 +244,16 @@ export async function trueFolderName(path: string): Promise<string> {
     return await realpath(path); // the OS resolver: long names on Windows
   } catch {
     return path;
+  }
+}
+
+/** The names of the folders directly inside `path` (none if it cannot be read). */
+export async function folderNames(path: string): Promise<string[]> {
+  try {
+    return (await readdir(path, { withFileTypes: true }))
+      .filter((e) => e.isDirectory())
+      .map((e) => e.name);
+  } catch {
+    return [];
   }
 }

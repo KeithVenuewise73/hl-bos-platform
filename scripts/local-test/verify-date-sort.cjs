@@ -406,8 +406,28 @@ async function copyChecks(page, card, work) {
       ),
     );
 
+  // 3b. The page loses DateSort mid-copy (a laptop that went to sleep): it
+  //     must say so in plain words and say how to finish, not show jargon.
+  await page.route("**/api/copy", (r) => r.abort("connectionreset"));
+  await page.click("[data-testid=copy-all]");
+  const lost = await waitForCopy(page);
+  await page.unroute("**/api/copy");
+  check(
+    "a copy cut off (e.g. by sleep) says so plainly and to press the button again",
+    /lost touch with this page/.test(lost.error || "") &&
+      /Press the button again to finish the rest/.test(lost.error || ""),
+    lost.error,
+  );
+
   // 4. Copy all dates.
   await page.click("[data-testid=copy-all]");
+  // Do not read 3b's message as this copy's answer.
+  await page.waitForFunction(
+    () =>
+      !/lost touch/.test(
+        document.querySelector("[data-testid=copy-error]")?.textContent || "",
+      ),
+  );
   const all = await waitForCopy(page);
   await shot(page, "09-copied-all");
   const folders = fs.readdirSync(dest).sort();
@@ -994,6 +1014,66 @@ async function refusals() {
   // Create folders and copy (Step 3)
   console.log("\nCreate folders and copy photos");
   await copyChecks(page, card, work);
+
+  // A refreshed page, and a copy whose connection goes silent (as after the
+  // CEO's laptop slept: the bar froze with no message, and a refresh then
+  // cost a whole new scan).
+  console.log("\nRefreshing the page, and a copy that goes silent");
+  const fresh = await browser.newPage();
+  await fresh.clock.install();
+  await fresh.goto(BASE);
+  const restored = await fresh
+    .waitForSelector("[data-testid=date-card][data-day='2026-10-04']", {
+      timeout: 15_000,
+    })
+    .then(() => true)
+    .catch(() => false);
+  check("a refreshed page shows the last scan again, without scanning again", restored);
+  // The event name typed before the refresh must come back: a forgotten name
+  // once made a second, plain date folder holding a second copy of every photo.
+  const keptName = restored
+    ? await fresh
+        .locator(
+          "[data-testid=date-card][data-day='2026-10-04'] [data-testid=event-name]",
+        )
+        .inputValue()
+        .catch(() => "")
+    : "";
+  check(
+    "a refreshed page still has the event name typed on the card",
+    keptName === "Caz vs Wheatfield",
+    keptName,
+  );
+  if (restored) {
+    fresh.on("dialog", (d) => void d.accept());
+    // The request is sent and then nothing ever comes back: no error, no data.
+    // The clock may only jump once the request is out: the page starts
+    // watching just before it sends, and a jump before that proves nothing.
+    // Saving settings is made slow, as on a slow machine, so this test cannot
+    // pass by luck (it once did on Linux and failed on Windows).
+    await fresh.route("**/api/settings", async (r) => {
+      await new Promise((res) => setTimeout(res, 2_000));
+      await r.continue();
+    });
+    let sent;
+    const requestSent = new Promise((r) => (sent = r));
+    await fresh.route("**/api/copy", () => sent());
+    await fresh.fill("[data-testid=destination-input]", work);
+    await fresh.click("[data-testid=copy-all]");
+    await requestSent;
+    await fresh.clock.fastForward(40_000);
+    const said = await fresh
+      .waitForSelector("[data-testid=copy-error]", { timeout: 15_000 })
+      .then((e) => e.textContent())
+      .catch(() => null);
+    check(
+      "a copy that goes silent says DateSort lost touch, instead of freezing",
+      /lost touch with this page/.test(said || ""),
+      said,
+    );
+    await shot(fresh, "09b-copy-went-silent");
+  }
+  await fresh.close();
 
   // CR3 Date Taken
   console.log("\nCR3-only folder");

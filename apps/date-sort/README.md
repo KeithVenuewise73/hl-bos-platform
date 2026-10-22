@@ -89,6 +89,27 @@ The rules (`packages/date-sort/src/copy`):
   different `IMG_0001.JPG`. The second copy is named `IMG_0001 (2).JPG`, the same way every time.
 - **Safe to repeat.** Pressing it again only copies what is missing, so an interrupted copy is
   finished by pressing the button again.
+- **The laptop stays awake while it copies.** A laptop that goes to sleep cuts the page off from
+  DateSort, which stops the copy (cleanly). So while a copy runs, DateSort asks Windows not to
+  sleep (`src/lib/keep-awake.ts`, the same request a video player makes), and lets go when the copy
+  ends or DateSort closes. The screen can still turn off. Closing the lid still sleeps, so the page
+  says to keep it open. A Windows test checks with `powercfg /requests` that Windows really sees
+  the request, and that it is gone afterwards. If the copy is cut off anyway, the page says so in
+  plain words and says to press the button again.
+- **A frozen copy says so.** After a laptop sleeps, the connection can hang without ever reporting
+  an error, which once left a progress bar that looked busy but never moved. The copy now sends a
+  heartbeat every 5 seconds. If the page hears nothing for 30 seconds it says DateSort lost touch
+  and to press the button again. If heartbeats arrive but no photo finishes for 2 minutes (an
+  unplugged drive), it says that and what to do (`src/lib/copy-watch.ts`).
+- **Event names are remembered, and a named folder is never duplicated.** Names typed on the date
+  cards are saved with the destination in `settings.json`. And when a date has no name on screen
+  but the destination already has exactly one folder for it under a name (`2025-11-08 - Zac K`),
+  DateSort copies into that folder instead of making a plain `2025-11-08` beside it. (A refreshed
+  page once forgot a name, and the next copy made that second folder with a second copy of every
+  photo.) While copying, the page shows which folder it is filling and how many photos were found
+  already there and skipped.
+- **Refreshing the page keeps the scan.** A reloaded page shows the last scan again, as long as
+  DateSort has not been restarted, so it does not cost another full scan.
 - **Refused:** a destination inside the scanned folder, a destination that does not exist, or not
   enough free space (checked before anything is written).
 
