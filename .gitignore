@@ -146,6 +146,9 @@ vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
 .vite/
 .hlbos/toolchain/
+# Remembers that the DateSort desktop icon was made once (scripts/desktop-shortcut.mjs).
+# Must stay ignored: the updater will not update a folder with stray files.
+.hlbos/desktop-shortcut.json
 
 # ATS Resume Optimizer local store (personal career data, never committed).
 .data/
