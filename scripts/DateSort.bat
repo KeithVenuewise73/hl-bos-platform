@@ -57,14 +57,20 @@ if exist "%PNPM_CJS%" (
   echo   [ok]   Build tool installed
 )
 
-REM --- 4. Libraries, build, start, open (scripts\date-sort.mjs) ------------
-"%NODE_EXE%" "%ROOT%\scripts\date-sort.mjs"
-if errorlevel 1 (
-  echo.
-  pause
-  exit /b 1
+REM --- 4. Updates, libraries, build, start, open (scripts\date-sort.mjs) ---
+REM  date-sort.mjs collects new work from GitHub, which can replace THIS file
+REM  while it runs. Windows reads a batch file as it goes, so everything from
+REM  here on is one bracketed block: it is read whole before date-sort.mjs
+REM  starts, and nothing after it is ever read from the (possibly new) file.
+(
+  "%NODE_EXE%" "%ROOT%\scripts\date-sort.mjs"
+  if errorlevel 1 (
+    echo.
+    pause
+    exit /b 1
+  )
+  exit /b 0
 )
-goto :eof
 
 REM ===========================================================================
 REM  Problems. Each says what happened and the ONE next step.

@@ -4,22 +4,28 @@
 // this. It:
 //
 //   1. If DateSort is already running, just opens it.
-//   2. Downloads libraries if this copy has never had them, or the lockfile
+//   2. Collects any finished work from GitHub, with the same updater the
+//      Control Center uses (scripts/update.mjs: fast-forward only, never
+//      touches a folder with unsaved changes, never blocks starting). If new
+//      code arrived, it starts the NEW copy of this file, so a change to how
+//      DateSort starts is used on the same double-click that collected it.
+//   3. Downloads libraries if this copy has never had them, or the lockfile
 //      changed since they were installed.
-//   3. Builds DateSort if it was never built, or its code changed since the
-//      last build (so new work that arrived through the Control Center is
-//      picked up without anyone having to know it needs a rebuild).
-//   4. Starts it, waits until it actually answers, then opens the browser.
+//   4. Builds DateSort if it was never built, or its code changed since the
+//      last build (whichever launcher collected that code).
+//   5. Starts it, waits until it actually answers, then opens the browser.
 //      A link to a page that will not load is worse than no link, so the
 //      browser opens only after a real health check passes.
 //
-// It never touches photos, and it does not update from GitHub: the Control
-// Center owns updates, and two launchers pulling code into one folder would
-// leave the other one's build stale without it knowing.
+// It never touches photos. When it collects code, the updater leaves the
+// Control Center a note to rebuild itself on its next start, so neither
+// launcher is left running an old build without knowing it.
 //
 // Environment (for the Windows CI test; never needed by a person):
 //   PNPM_CJS             the build tool (DateSort.bat sets this)
 //   DATESORT_NO_BROWSER  1 = do not open a browser window
+//   DATESORT_UPDATED     1 = set by this file when it restarts itself after
+//                        collecting new code (so it does not update twice)
 /* global fetch, AbortSignal, setTimeout -- Node 22 globals */
 import { spawn, spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
@@ -37,6 +43,8 @@ export const PORT = 4604;
 const URL_ = `http://localhost:${PORT}`;
 const BUILD_STAMP = path.join(APP_DIR, ".next", "datesort-source.sha256");
 const INSTALL_STAMP = path.join(ROOT, "node_modules", ".datesort-lockfile.sha256");
+const UPDATER = path.join(ROOT, "scripts", "update.mjs");
+const CODE_CHANGED = 10; // update.mjs's exit code when it collected new code
 
 const say = (tag, text) =>
   console.log(`  [${tag}]${" ".repeat(Math.max(1, 6 - tag.length))}${text}`);
@@ -136,18 +144,36 @@ function fail(lines) {
   process.exit(1);
 }
 
-async function main() {
-  console.log("");
-  console.log("  DateSort");
-  console.log("  =================================================");
-  console.log("");
+/**
+ * Collect finished work from GitHub. True when new code arrived.
+ * Never blocks starting: any failure is reported by the updater in one line
+ * and DateSort starts with what is already here.
+ */
+function collectUpdates() {
+  if (!existsSync(UPDATER)) return false;
+  say("..", "Checking GitHub for a newer DateSort...");
+  const r = spawnSync(process.execPath, [UPDATER], { cwd: ROOT, stdio: "inherit" });
+  return r.status === CODE_CHANGED;
+}
 
-  // The desktop icon, the first time only (never blocks starting).
-  say("ok", `Desktop icon: ${await ensureDateSortShortcut()}`);
+async function main() {
+  const restarted = process.env.DATESORT_UPDATED === "1";
+  if (!restarted) {
+    console.log("");
+    console.log("  DateSort");
+    console.log("  =================================================");
+    console.log("");
+
+    // The desktop icon, the first time only (never blocks starting).
+    say("ok", `Desktop icon: ${await ensureDateSortShortcut()}`);
+  }
 
   const now = await healthy();
   if (now === "up") {
     say("ok", `DateSort is already running. Opening ${URL_}`);
+    console.log(
+      "         Updates are checked when it starts: to check now, close its window and start it again.",
+    );
     openBrowser();
     return;
   }
@@ -156,6 +182,19 @@ async function main() {
       `Something else is already using port ${PORT}, so DateSort cannot start there.`,
       "Close other HL-BOS windows and try again. If it keeps happening, tell Claude.",
     ]);
+  }
+
+  // Updates. Only while DateSort is not running, so code is never changed
+  // under a running copy. New code -> run the new launcher, which then
+  // installs and rebuilds as its fingerprints say.
+  if (!restarted && collectUpdates()) {
+    say("..", "Starting the new version...");
+    const again = spawnSync(process.execPath, [fileURLToPath(import.meta.url)], {
+      cwd: ROOT,
+      stdio: "inherit",
+      env: { ...process.env, DATESORT_UPDATED: "1" },
+    });
+    process.exit(again.status ?? 1);
   }
 
   // Libraries

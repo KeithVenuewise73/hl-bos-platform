@@ -21,7 +21,17 @@
 // Exit codes are the launcher's instructions, not error levels:
 //   0  nothing changed — start straight up
 //   10 code changed — reinstall if needed, rebuild, then start
+//
+// TWO LAUNCHERS, ONE FOLDER
+// The Control Center and DateSort's desktop icon both run this. Whenever it
+// collects new code it leaves a note, .hlbos/console-needs-rebuild, so that
+// if DateSort was the one that collected it, control-center.bat still knows
+// its console is out of date (its own run would otherwise find "already up
+// to date" and start the old build). control-center.bat deletes the note
+// once the console is rebuilt. DateSort needs no note: it fingerprints its
+// own code before every start.
 import { execFile } from "node:child_process";
+import { mkdirSync, writeFileSync } from "node:fs";
 import { promisify } from "node:util";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -31,6 +41,9 @@ const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
 const NOTHING_CHANGED = 0;
 const CODE_CHANGED = 10;
+
+/** Ignored by git (.gitignore): a stray file would stop the next update. */
+export const CONSOLE_NOTE = path.join(ROOT, ".hlbos", "console-needs-rebuild");
 
 /**
  * The whole decision, as a pure function of what we found.
@@ -153,6 +166,16 @@ async function main() {
         "   [..]   Could not apply the update cleanly. Starting with what is here.",
       );
       process.exit(NOTHING_CHANGED);
+    }
+    try {
+      mkdirSync(path.dirname(CONSOLE_NOTE), { recursive: true });
+      writeFileSync(
+        CONSOLE_NOTE,
+        "New code was collected from GitHub; control-center.bat rebuilds the console and deletes this.\n",
+      );
+    } catch {
+      // Never blocks starting. Worst case the console runs its old build
+      // until its own next update.
     }
   }
   console.log(`   [ok]   ${decision.message}`);
