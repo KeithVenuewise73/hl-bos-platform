@@ -13,6 +13,7 @@ import {
   readFileSync,
   rmSync,
   statSync,
+  symlinkSync,
   utimesSync,
   writeFileSync,
 } from "node:fs";
@@ -319,6 +320,23 @@ describe("copying dates into folders", () => {
     await expect(
       copyDays({ ...base, destination: join(card, "Thumbs.db") }),
     ).rejects.toThrow(/is a file/);
+    rmSync(join(card, "Sorted"), { recursive: true });
+  });
+
+  it("is not fooled by a second name for the scanned folder (a link, or a Windows short name)", async () => {
+    const scanned = await scan();
+    mkdirSync(join(card, "Sorted"));
+    const alias = join(work, "same-card");
+    symlinkSync(card, alias, "junction");
+    await expect(
+      copyDays({
+        root: card,
+        files: scanned.files,
+        days: [{ day: "2026-10-03" }],
+        destination: join(alias, "Sorted"),
+      }),
+    ).rejects.toThrow(/inside the folder you scanned/);
+    expect(readdirSync(join(card, "Sorted"))).toEqual([]);
     rmSync(join(card, "Sorted"), { recursive: true });
   });
 

@@ -30,6 +30,7 @@ import {
   lstat,
   mkdir,
   open,
+  realpath,
   stat,
   statfs,
   unlink,
@@ -228,5 +229,19 @@ export async function freeBytes(path: string): Promise<number | null> {
     return Number(s.bavail) * Number(s.bsize);
   } catch {
     return null;
+  }
+}
+
+/**
+ * A folder's one true name: links, junctions and old-style short names
+ * (C:\\USERS\\RUNNER~1) resolved. Two spellings of one folder give the same
+ * answer, so "is this inside that?" cannot be fooled. Unchanged if it
+ * cannot be resolved.
+ */
+export async function trueFolderName(path: string): Promise<string> {
+  try {
+    return await realpath(path); // the OS resolver: long names on Windows
+  } catch {
+    return path;
   }
 }

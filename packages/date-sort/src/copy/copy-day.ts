@@ -11,7 +11,14 @@ import { join } from "node:path";
 
 import type { ScannedFile, ScannedPhoto } from "../report";
 import { folderName, isInside, planDay, type PlannedCopy } from "./plan";
-import { copyOneFile, freeBytes, makeFolder, pathKind, type Fs } from "./write-file";
+import {
+  copyOneFile,
+  freeBytes,
+  makeFolder,
+  pathKind,
+  trueFolderName,
+  type Fs,
+} from "./write-file";
 
 export class CopyError extends Error {}
 
@@ -87,7 +94,13 @@ export async function checkDestination(
       `The destination "${destination}" does not exist. Choose an existing folder.`,
     );
   if (kind === "file") throw new CopyError(`"${destination}" is a file, not a folder.`);
-  if (isInside(destination, root)) {
+  // Compared by their true names: "C:\\Users\\RUNNER~1\\x" and
+  // "C:\\Users\\runneradmin\\x" are one folder, and so are a link and its target.
+  const [trueDest, trueRoot] = await Promise.all([
+    trueFolderName(destination),
+    trueFolderName(root),
+  ]);
+  if (isInside(destination, root) || isInside(trueDest, trueRoot)) {
     throw new CopyError(
       "The destination is inside the folder you scanned. Choose a folder outside it, so the copies are never mixed in with the originals.",
     );
