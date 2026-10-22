@@ -323,10 +323,36 @@ async function copyChecks(page, card, work) {
   page.on("dialog", (d) => void d.accept());
   const card4 = page.locator("[data-testid=date-card][data-day='2026-10-04']");
 
+  // 0. Nothing chosen: the box must not show anything that looks like a
+  //    folder (an example path there was once taken for a chosen folder),
+  //    and Copy all must say so instead of copying.
+  await page.fill("[data-testid=destination-input]", "");
+  const hint = await page.getAttribute(
+    "[data-testid=destination-input]",
+    "placeholder",
+  );
+  await page.click("[data-testid=copy-all]");
+  const none = await page
+    .waitForSelector("[data-testid=copy-error]", { timeout: 10_000 })
+    .then((e) => e.textContent())
+    .catch(() => null);
+  check(
+    "with no folder chosen, the box shows no folder path and Copy all says none is chosen",
+    !/[a-z]:\\/i.test(hint || "") && /No folder is chosen yet/.test(none || ""),
+    `placeholder: ${hint}; message: ${none}`,
+  );
+
   // 1. A destination inside the scanned folder is refused.
   fs.mkdirSync(path.join(card, "Sorted"), { recursive: true });
   await page.fill("[data-testid=destination-input]", path.join(card, "Sorted"));
   await card4.locator("[data-testid=create-folder]").click();
+  // Do not read check 0's message as this copy's answer.
+  await page.waitForFunction(
+    () =>
+      !/No folder is chosen yet/.test(
+        document.querySelector("[data-testid=copy-error]")?.textContent || "",
+      ),
+  );
   const inside = await waitForCopy(page);
   fs.rmSync(path.join(card, "Sorted"), { recursive: true });
   check(

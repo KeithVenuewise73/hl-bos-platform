@@ -48,9 +48,18 @@ out="$(node "$RUN" 2>&1)"; code=$?
 if [ "$code" -eq 10 ] && [ "$(cat file.txt | tail -1)" = "two" ]; then ok "exit 10, file updated"
 else bad "exit $code, out: $out"; fi
 
+step "1b. ...and leaves the console its rebuild note"
+# DateSort's icon runs this too; the note is how the console finds out.
+if [ -f .hlbos/console-needs-rebuild ]; then ok "note written"
+else bad "no .hlbos/console-needs-rebuild"; fi
+rm -f .hlbos/console-needs-rebuild
+# The real repository ignores the note (.gitignore); this one must as well,
+# or the note itself would make the folder "dirty" and stop the next update.
+echo ".hlbos/console-needs-rebuild" > .git/info/exclude
+
 step "2. already up to date -> no rebuild"
 out="$(node "$RUN" 2>&1)"; code=$?
-if [ "$code" -eq 0 ] && echo "$out" | grep -q "Already up to date"; then ok "exit 0"
+if [ "$code" -eq 0 ] && echo "$out" | grep -q "Already up to date" && [ ! -f .hlbos/console-needs-rebuild ]; then ok "exit 0, no note"
 else bad "exit $code, out: $out"; fi
 
 step "3. unsaved work -> refuses to touch anything"
@@ -147,24 +156,27 @@ echo
 echo "launcher rebuild decision (mirrors control-center.bat)"
 echo "---------------------------------------------------------------"
 
-need_build() { # $1 = .next exists (1/0), $2 = fresh code (1/0)
-  local need=""
+need_build() { # $1 = .next exists (1/0), $2 = fresh code (1/0), $3 = rebuild note (1/0)
+  local fresh="" need=""
+  [ "$2" = "1" ] && fresh=1
+  [ "$3" = "1" ] && fresh=1
   [ "$1" = "0" ] && need=1
-  [ "$2" = "1" ] && need=1
+  [ -n "$fresh" ] && need=1
   echo "${need:-}"
 }
 
-check() { # name, next_exists, fresh, expected
+check() { # name, next_exists, fresh, note, expected
   step "$1"
-  local got; got="$(need_build "$2" "$3")"
-  local want="$4"
+  local got; got="$(need_build "$2" "$3" "$4")"
+  local want="$5"
   if [ "${got:-no}" = "$want" ]; then ok "${got:-no build}"; else bad "got '${got:-no}', wanted '$want'"; fi
 }
 
-check "10. fresh clone, nothing built -> builds"        0 0 1
-check "11. fresh clone AND new code -> builds"          0 1 1
-check "12. built already, new code arrived -> rebuilds" 1 1 1
-check "13. built already, nothing new -> starts fast"   1 0 no
+check "10. fresh clone, nothing built -> builds"        0 0 0 1
+check "11. fresh clone AND new code -> builds"          0 1 0 1
+check "12. built already, new code arrived -> rebuilds" 1 1 0 1
+check "13. built already, nothing new -> starts fast"   1 0 0 no
+check "14. DateSort collected code earlier -> rebuilds" 1 0 1 1
 
 echo "---------------------------------------------------------------"
 [ "$fail" -eq 0 ] && echo "All checks passed." || echo "SOMETHING FAILED."

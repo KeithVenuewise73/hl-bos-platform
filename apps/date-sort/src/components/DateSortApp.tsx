@@ -165,7 +165,7 @@ export function DateSortApp() {
             id="source"
             data-testid="source-input"
             className="input font-mono"
-            placeholder="D:\Camera\Unsorted"
+            placeholder="No folder chosen yet. Click Browse…"
             value={folder}
             onChange={(e) => setFolder(e.target.value)}
             spellCheck={false}

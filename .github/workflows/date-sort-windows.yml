@@ -13,6 +13,9 @@ name: DateSort on Windows
 #     file fails
 #   - then DateSort is stopped and started again from the Development
 #     Control Center's Start DateSort button, and everything is checked again
+#   - DateSort.bat collects new work from GitHub when it starts: a change
+#     is put on a stand-in "GitHub" and DateSort.bat must fetch it, rebuild,
+#     come up, and leave the console its rebuild note
 #   - DateSort's and the console's unit tests, on Windows
 
 on:
@@ -24,6 +27,8 @@ on:
       - "scripts/DateSort.bat"
       - "scripts/date-sort.mjs"
       - "scripts/desktop-shortcut.mjs"
+      - "scripts/update.mjs"
+      - "scripts/control-center.bat"
       - "scripts/assets/**"
       - "scripts/local-test/verify-date-sort.cjs"
       - "scripts/local-test/pick-folder-in-dialog.ps1"
@@ -37,6 +42,8 @@ on:
       - "scripts/DateSort.bat"
       - "scripts/date-sort.mjs"
       - "scripts/desktop-shortcut.mjs"
+      - "scripts/update.mjs"
+      - "scripts/control-center.bat"
       - "scripts/assets/**"
       - "scripts/local-test/verify-date-sort.cjs"
       - "scripts/local-test/pick-folder-in-dialog.ps1"
@@ -196,6 +203,60 @@ jobs:
             if (-not $icon[$k]) { "Desktop icon check failed: $k"; exit 1 }
           }
 
+      - name: DateSort.bat collects new work from GitHub when it starts
+        # The checkout acts as its own stand-in GitHub: a change is committed
+        # to a branch there, the folder is put one change behind it, and the
+        # REAL DateSort.bat must collect it, rebuild and come up. (The real
+        # GitHub is never pulled from here: that would test main, not this PR.)
+        env:
+          DATESORT_NO_BROWSER: "1"
+        run: |
+          $T = $env:RUNNER_TEMP
+          function Up { try { (Invoke-WebRequest http://localhost:4604/api/health -UseBasicParsing -TimeoutSec 3).StatusCode -eq 200 } catch { $false } }
+          $r = @{ behind = $false; clean = $false; collected = $false; restarted = $false; rebuilt = $false; up = $false; atNewCode = $false; consoleNote = $false }
+
+          git config user.name "DateSort CI"
+          git config user.email "ci@localhost"
+          git checkout -q -B ci-start
+          Add-Content -LiteralPath apps\date-sort\README.md "`nProof line: collected from GitHub by DateSort.bat."
+          git commit -qam "A change waiting on GitHub"
+          git branch -f ci-github
+          git reset -q --hard HEAD~1
+          git remote set-url origin "$PWD"
+          git config remote.origin.fetch "+refs/heads/*:refs/remotes/origin/*"
+          git fetch -q origin
+          git branch -q -u origin/ci-github
+          $r.behind = (git rev-list --count HEAD..origin/ci-github) -eq "1"
+          $dirty = git status --porcelain
+          $r.clean = -not $dirty
+          "Behind the stand-in GitHub by one change: $($r.behind). Folder clean: $($r.clean) $dirty"
+          Remove-Item -LiteralPath '.hlbos\console-needs-rebuild' -ErrorAction SilentlyContinue
+          $stamp = Get-Content -LiteralPath apps\date-sort\.next\datesort-source.sha256 -ErrorAction SilentlyContinue
+
+          $bat = Start-Process -FilePath cmd.exe -ArgumentList '/c', 'scripts\DateSort.bat < NUL' `
+            -RedirectStandardOutput "$T\datesort-update.log" -RedirectStandardError "$T\datesort-update.err.log" `
+            -WindowStyle Hidden -PassThru
+          for ($i = 0; $i -lt 300; $i++) { if (Up) { $r.up = $true; break }; if ($bat.HasExited) { break }; Start-Sleep -Seconds 2 }
+          $log = (Get-Content "$T\datesort-update.log", "$T\datesort-update.err.log" -ErrorAction SilentlyContinue) -join "`n"
+          $log
+          $r.collected = $log -match 'Collected 1 new change from GitHub'
+          $r.restarted = $log -match 'Starting the new version'
+          $r.rebuilt = ($log -match 'DateSort built') -and ((Get-Content -LiteralPath apps\date-sort\.next\datesort-source.sha256) -ne $stamp)
+          $r.atNewCode = (git rev-parse HEAD) -eq (git rev-parse origin/ci-github)
+          $r.consoleNote = Test-Path -LiteralPath '.hlbos\console-needs-rebuild'
+          $r | ConvertTo-Json | Set-Content "$T\update.json"
+          $r | Format-Table -AutoSize | Out-String
+
+          foreach ($c in Get-NetTCPConnection -LocalPort 4604 -State Listen -ErrorAction SilentlyContinue) { taskkill /T /F /PID $c.OwningProcess 2>$null | Out-Null }
+          taskkill /T /F /PID $bat.Id 2>$null | Out-Null
+          foreach ($k in 'behind', 'clean', 'collected', 'restarted', 'rebuilt', 'up', 'atNewCode', 'consoleNote') {
+            if (-not $r[$k]) { "Update check failed: $k"; exit 1 }
+          }
+          # Every check passed. Said explicitly: the runner otherwise reports the
+          # exit code of the last program run, and taskkill above fails when
+          # DateSort had already stopped with its parent.
+          exit 0
+
       - name: Summary
         if: always()
         run: |
@@ -216,6 +277,12 @@ jobs:
             $lines += "| Double-clicking the icon starts DateSort | $(& $yn $ic.starts) |"
             $lines += "| A deleted icon stays deleted | $(& $yn $ic.staysDeleted) |"
             $lines += "| Control Center makes the icon on a new computer | $(& $yn $ic.consoleMakes) |"
+          }
+          $up = Load "$T\update.json"
+          if ($up) {
+            $lines += "| Starting DateSort collects new work from GitHub | $(& $yn ($up.collected -and $up.restarted -and $up.atNewCode)) |"
+            $lines += "| ...rebuilds with it and comes up | $(& $yn ($up.rebuilt -and $up.up)) |"
+            $lines += "| ...and tells the Control Center to rebuild too | $(& $yn $up.consoleNote) |"
           }
           $console = if ($b) { $b.checklist.'Control Center Start button' } else { 'FAIL' }
           $lines += "| Control Center Start DateSort | $console |"
