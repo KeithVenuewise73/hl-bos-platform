@@ -1,6 +1,8 @@
 import type { EventRow } from "@/lib/repo/events.ts";
 
-const SPORTS = [
+import { TeamJerseys } from "./TeamJerseys.tsx";
+
+export const SPORTS = [
   "Football",
   "Basketball",
   "Soccer",
@@ -36,7 +38,7 @@ export function EventForm({
           name="name"
           required
           defaultValue={event?.name}
-          placeholder="West Seneca vs Orchard Park"
+          placeholder="Caz vs Wheatfield"
         />
       </div>
       <div>
@@ -68,31 +70,12 @@ export function EventForm({
           defaultValue={event?.event_date}
         />
       </div>
-      <div>
-        <label className="label" htmlFor="team">
-          Team name
-        </label>
-        <input
-          className="input"
-          id="team"
-          name="team"
-          required
-          defaultValue={event?.team_name}
-          placeholder="West Seneca"
-        />
-      </div>
-      <div>
-        <label className="label" htmlFor="opponent">
-          Opponent
-        </label>
-        <input
-          className="input"
-          id="opponent"
-          name="opponent"
-          defaultValue={event?.opponent ?? ""}
-          placeholder="Orchard Park"
-        />
-      </div>
+      <TeamJerseys
+        {...(event ? { homeTeam: event.team_name } : {})}
+        {...(event?.opponent ? { awayTeam: event.opponent } : {})}
+        homeJersey={event?.home_jersey ?? null}
+        awayJersey={event?.away_jersey ?? null}
+      />
       <div>
         <label className="label" htmlFor="location">
           Location
