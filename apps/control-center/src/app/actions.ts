@@ -187,6 +187,10 @@ export async function saveConnection(form: FormData): Promise<ActionResult> {
   if (places) values["GOOGLE_PLACES_API_KEY"] = places;
   const anthropic = field(form, "anthropic");
   if (anthropic) values["ANTHROPIC_API_KEY"] = anthropic;
+  const runpod = field(form, "runpod");
+  if (runpod) values["RUNPOD_API_KEY"] = runpod;
+  const coolify = field(form, "coolify");
+  if (coolify) values["COOLIFY_API_TOKEN"] = coolify;
   if (sb) values["SUPABASE_ACCESS_TOKEN"] = sb;
   if (ref) values["HLBOS_SUPABASE_PROJECT_REF"] = ref;
 
@@ -202,6 +206,7 @@ export async function saveConnection(form: FormData): Promise<ActionResult> {
   revalidatePath("/");
   revalidatePath("/connect");
   revalidatePath("/presence");
+  revalidatePath("/lab-gpu");
   return ok(
     "Connected.",
     "The console can now see your builds. This is stored on this machine only and is never committed.",

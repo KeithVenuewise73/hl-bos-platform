@@ -56,6 +56,10 @@ export default async function Page() {
             Presence Scanner
           </a>{" "}
           ·{" "}
+          <a href="/lab-gpu" style={{ color: "#58a6ff" }}>
+            Lab GPU
+          </a>{" "}
+          ·{" "}
           <a href="/profiles" style={{ color: "#58a6ff" }}>
             Business Profiles
           </a>{" "}
