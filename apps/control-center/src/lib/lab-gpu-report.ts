@@ -77,6 +77,8 @@ export interface PodSummary {
   costPerHr: number | null;
   gpu: string | null;
   volumeInGb: number | null;
+  /** When RunPod last started it, in ms since 1970; null if it did not say. */
+  startedAt: number | null;
 }
 
 export interface AccountSummary {
@@ -85,7 +87,17 @@ export interface AccountSummary {
 }
 
 export type LabGpuState =
-  "not-connected" | "off" | "starting" | "not-pointed" | "ready" | "unknown";
+  "not-connected" | "off" | "starting" | "stuck" | "not-pointed" | "ready" | "unknown";
+
+/**
+ * How long a server may take to answer before the page calls it stuck. On
+ * 2026-10-24 two servers RunPod placed on one faulty machine never started at
+ * all, and the page said "starting" while they billed. A healthy start from
+ * the shared storage has not been timed yet; the first full setup, with every
+ * download, took about 25 minutes, so this is set above anything a start that
+ * only reads the storage should need.
+ */
+export const STUCK_AFTER_MINUTES = 20;
 
 export interface LabGpuStatus {
   state: LabGpuState;
@@ -118,7 +130,16 @@ export function toPodSummary(raw: unknown): PodSummary | null {
     costPerHr: typeof r["costPerHr"] === "number" ? r["costPerHr"] : null,
     gpu: gpuName,
     volumeInGb: typeof r["volumeInGb"] === "number" ? r["volumeInGb"] : null,
+    startedAt: parseRunpodTime(r["lastStartedAt"]),
   };
+}
+
+/** RunPod writes times as "2026-10-24 16:44:15.078 +0000 UTC". */
+export function parseRunpodTime(raw: unknown): number | null {
+  if (typeof raw !== "string") return null;
+  const m = /^(\d{4}-\d{2}-\d{2}) (\d{2}:\d{2}:\d{2}(?:\.\d+)?) \+0000/.exec(raw);
+  const ms = m ? Date.parse(`${m[1]}T${m[2]}Z`) : Date.parse(raw);
+  return Number.isNaN(ms) ? null : ms;
 }
 
 /** Every Lab server that still exists, running or stopped. */
@@ -155,6 +176,8 @@ export function decideStatus(input: {
   account: AccountSummary | null;
   serviceReady: boolean | null;
   labPointsHere: boolean | null;
+  /** The time now, in ms; passed in so the decision stays pure. */
+  now?: number;
   error?: string;
 }): LabGpuStatus {
   const base = { podId: null, costPerHr: null, account: input.account };
@@ -193,7 +216,7 @@ export function decideStatus(input: {
       state: "off",
       headline: "The Lab GPU is off.",
       meaning: input.coolifyConnected
-        ? `No card is billing; only the shared storage is (about $10 a month). Don't pick "Self-hosted GPU" in the Lab while it's off: that job would wait and fail. Turn on takes 3–5 minutes.${leftovers ? " A stopped server from before is still there; Turn on removes it." : ""}`
+        ? `No card is billing; only the shared storage is (about $10 a month). Don't pick "Self-hosted GPU" in the Lab while it's off: that job would wait and fail. After Turn on, allow up to ${String(STUCK_AFTER_MINUTES)} minutes before it is ready.${leftovers ? " A stopped server from before is still there; Turn on removes it." : ""}`
         : "No card is billing. To turn it on from here, paste your Coolify key on the Connect page too: each Turn on makes a new server, and the console has to point the Lab at it. Until then, ask Claude to turn it on.",
       canTurnOn: input.coolifyConnected,
       canTurnOff: leftovers,
@@ -203,12 +226,28 @@ export function decideStatus(input: {
   const withPod = { ...base, podId: pod.id, costPerHr: pod.costPerHr };
   const rate = pod.costPerHr !== null ? `${usd(pod.costPerHr)} an hour` : "by the hour";
 
+  const minutesOn =
+    pod.startedAt !== null && input.now !== undefined
+      ? Math.floor((input.now - pod.startedAt) / 60_000)
+      : null;
+
+  if (!input.serviceReady && minutesOn !== null && minutesOn >= STUCK_AFTER_MINUTES) {
+    return {
+      ...withPod,
+      state: "stuck",
+      headline: `The Lab GPU was switched on ${String(minutesOn)} minutes ago and has not started.`,
+      meaning: `It is billing ${rate} anyway. This usually means RunPod put it on a machine that is not working. Turn it off; nothing is lost, the model stays on the shared storage. Try again later, and if it happens again, tell Claude.`,
+      canTurnOn: false,
+      canTurnOff: true,
+    };
+  }
+
   if (!input.serviceReady) {
     return {
       ...withPod,
       state: "starting",
       headline: "The Lab GPU is on and starting up.",
-      meaning: `It is billing ${rate} already. It is usually ready 3–5 minutes after Turn on; refresh this page to check. If it still says starting after 20 minutes, tell Claude.`,
+      meaning: `It is billing ${rate} already. ${minutesOn !== null ? `It was switched on ${String(minutesOn)} minute${minutesOn === 1 ? "" : "s"} ago. ` : ""}Refresh this page to check; if it is not ready within ${String(STUCK_AFTER_MINUTES)} minutes, this page will say so.`,
       canTurnOn: false,
       canTurnOff: true,
     };

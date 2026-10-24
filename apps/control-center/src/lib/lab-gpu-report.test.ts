@@ -9,6 +9,8 @@ import {
   LAB_GPU_LAUNCH,
   LAB_POD_NAME,
   labPods,
+  parseRunpodTime,
+  STUCK_AFTER_MINUTES,
   toPodSummary,
   type PodSummary,
 } from "./lab-gpu-report";
@@ -20,6 +22,7 @@ const pod = (over: Partial<PodSummary> = {}): PodSummary => ({
   costPerHr: 0.59,
   gpu: "NVIDIA A40",
   volumeInGb: null,
+  startedAt: null,
   ...over,
 });
 
@@ -49,6 +52,28 @@ describe("toPodSummary", () => {
   it("returns nothing for something that is not a pod", () => {
     expect(toPodSummary(null)).toBeNull();
     expect(toPodSummary({ name: "x" })).toBeNull();
+  });
+});
+
+describe("parseRunpodTime", () => {
+  it("reads RunPod's own time format", () => {
+    expect(parseRunpodTime("2026-10-24 16:44:15.078 +0000 UTC")).toBe(
+      Date.parse("2026-10-24T16:44:15.078Z"),
+    );
+  });
+
+  it("returns nothing for what it cannot read", () => {
+    expect(parseRunpodTime(undefined)).toBeNull();
+    expect(parseRunpodTime("yesterday-ish")).toBeNull();
+  });
+
+  it("is carried into the summary", () => {
+    const summary = toPodSummary({
+      id: "abc123",
+      name: LAB_POD_NAME,
+      lastStartedAt: "2026-10-24 17:18:15.000 +0000 UTC",
+    });
+    expect(summary?.startedAt).toBe(Date.parse("2026-10-24T17:18:15Z"));
   });
 });
 
@@ -130,6 +155,53 @@ describe("decideStatus", () => {
     expect(s.state).toBe("starting");
     expect(s.meaning).toContain("billing");
     expect(s.canTurnOff).toBe(true);
+  });
+
+  it("says how long it has been starting", () => {
+    const startedAt = Date.parse("2026-10-24T17:18:00Z");
+    const s = decideStatus({
+      ...base,
+      pods: [pod({ startedAt })],
+      serviceReady: false,
+      now: startedAt + 7 * 60_000,
+    });
+    expect(s.state).toBe("starting");
+    expect(s.meaning).toContain("7 minutes ago");
+  });
+
+  it("calls a server stuck, not starting, once it is overdue -- and offers Turn off", () => {
+    // 2026-10-24: two servers on one faulty RunPod machine never started.
+    const startedAt = Date.parse("2026-10-24T17:18:00Z");
+    const s = decideStatus({
+      ...base,
+      pods: [pod({ startedAt })],
+      serviceReady: false,
+      now: startedAt + STUCK_AFTER_MINUTES * 60_000,
+    });
+    expect(s.state).toBe("stuck");
+    expect(s.meaning).toContain("billing");
+    expect([s.canTurnOn, s.canTurnOff]).toEqual([false, true]);
+  });
+
+  it("does not call a server stuck when it cannot tell how long it has been on", () => {
+    const s = decideStatus({
+      ...base,
+      pods: [pod()],
+      serviceReady: false,
+      now: Date.now(),
+    });
+    expect(s.state).toBe("starting");
+  });
+
+  it("a ready server is ready however long it has been on", () => {
+    const s = decideStatus({
+      ...base,
+      pods: [pod({ startedAt: 0 })],
+      serviceReady: true,
+      labPointsHere: true,
+      now: Date.now(),
+    });
+    expect(s.state).toBe("ready");
   });
 
   it("never says ready while the Lab points somewhere else", () => {

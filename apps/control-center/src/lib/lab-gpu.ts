@@ -9,6 +9,7 @@ import {
   labPods,
   LAB_GPU_LAUNCH,
   toPodSummary,
+  STUCK_AFTER_MINUTES,
   type AccountSummary,
   type LabGpuStatus,
   type PodSummary,
@@ -204,6 +205,7 @@ export async function labGpuStatus(): Promise<LabGpuStatus> {
     account: acct,
     serviceReady: ready,
     labPointsHere: pod && url !== null ? url === inferenceUrl(pod.id) : null,
+    now: Date.now(),
   });
 }
 
@@ -299,6 +301,6 @@ export async function switchLabGpu(to: "on" | "off"): Promise<SwitchResult> {
   const rate = (created.body as { costPerHr?: unknown }).costPerHr;
   return {
     ok: true,
-    message: `Switched on${typeof rate === "number" ? ` at $${rate.toFixed(2)} an hour` : ""}, and the Lab is being pointed at it. Ready in about 3–5 minutes; refresh this page to see when.`,
+    message: `Switched on${typeof rate === "number" ? ` at $${rate.toFixed(2)} an hour` : ""}, and the Lab is being pointed at it. Refresh this page to see when it is ready; allow up to ${String(STUCK_AFTER_MINUTES)} minutes.`,
   };
 }
