@@ -59,6 +59,7 @@ export async function connectionStatus(): Promise<{
   supabaseRef: string | null;
   googlePlaces: boolean;
   anthropic: boolean;
+  runpod: boolean;
 }> {
   const e = await readEnvFile();
   return {
@@ -67,5 +68,6 @@ export async function connectionStatus(): Promise<{
     supabaseRef: e["HLBOS_SUPABASE_PROJECT_REF"] ?? null,
     googlePlaces: Boolean(e["GOOGLE_PLACES_API_KEY"]),
     anthropic: Boolean(e["ANTHROPIC_API_KEY"]),
+    runpod: Boolean(e["RUNPOD_API_KEY"]),
   };
 }
