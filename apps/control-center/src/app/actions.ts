@@ -189,6 +189,8 @@ export async function saveConnection(form: FormData): Promise<ActionResult> {
   if (anthropic) values["ANTHROPIC_API_KEY"] = anthropic;
   const runpod = field(form, "runpod");
   if (runpod) values["RUNPOD_API_KEY"] = runpod;
+  const coolify = field(form, "coolify");
+  if (coolify) values["COOLIFY_API_TOKEN"] = coolify;
   if (sb) values["SUPABASE_ACCESS_TOKEN"] = sb;
   if (ref) values["HLBOS_SUPABASE_PROJECT_REF"] = ref;
 

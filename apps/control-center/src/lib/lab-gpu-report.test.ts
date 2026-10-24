@@ -1,10 +1,14 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  createPodBody,
   decideStatus,
   explainRunpodError,
   findLabPod,
+  inferenceUrl,
+  LAB_GPU_LAUNCH,
   LAB_POD_NAME,
+  labPods,
   toPodSummary,
   type PodSummary,
 } from "./lab-gpu-report";
@@ -15,11 +19,18 @@ const pod = (over: Partial<PodSummary> = {}): PodSummary => ({
   desiredStatus: "RUNNING",
   costPerHr: 0.59,
   gpu: "NVIDIA A40",
-  volumeInGb: 100,
+  volumeInGb: null,
   ...over,
 });
 
-const account = { balanceUsd: 24.1, spendPerHrUsd: 0.6 };
+const account = { balanceUsd: 19.4, spendPerHrUsd: 0.6 };
+const base = {
+  connected: true,
+  coolifyConnected: true,
+  account,
+  serviceReady: null,
+  labPointsHere: null,
+} as const;
 
 describe("toPodSummary", () => {
   it("keeps only what the page uses, and never the environment", () => {
@@ -28,7 +39,6 @@ describe("toPodSummary", () => {
       name: LAB_POD_NAME,
       desiredStatus: "RUNNING",
       costPerHr: 0.59,
-      volumeInGb: 100,
       machine: { gpuTypeId: "NVIDIA A40" },
       env: { INFERENCE_API_TOKEN: "secret-value" },
     });
@@ -42,100 +52,121 @@ describe("toPodSummary", () => {
   });
 });
 
-describe("findLabPod", () => {
-  it("finds the Lab pod by name and ignores other pods", () => {
-    expect(findLabPod([pod({ id: "other", name: "something-else" }), pod()])?.id).toBe(
-      "abc123",
-    );
+describe("finding the Lab server", () => {
+  it("finds the running one by name and ignores other pods and stopped ones", () => {
+    const pods = [
+      pod({ id: "other", name: "something-else" }),
+      pod({ id: "old", desiredStatus: "EXITED" }),
+      pod(),
+    ];
+    expect(findLabPod(pods)?.id).toBe("abc123");
+    expect(labPods(pods).map((p) => p.id)).toEqual(["old", "abc123"]);
   });
 
-  it("ignores a terminated Lab pod", () => {
-    expect(findLabPod([pod({ desiredStatus: "TERMINATED" })])).toBeNull();
+  it("treats a stopped server as not running", () => {
+    expect(findLabPod([pod({ desiredStatus: "EXITED" })])).toBeNull();
+  });
+});
+
+describe("Turn on's request", () => {
+  it("uses the saved template, the shared storage and its data centre", () => {
+    const body = createPodBody();
+    expect(body).toMatchObject({
+      name: LAB_POD_NAME,
+      templateId: LAB_GPU_LAUNCH.templateId,
+      networkVolumeId: LAB_GPU_LAUNCH.networkVolumeId,
+      dataCenterIds: [LAB_GPU_LAUNCH.dataCenterId],
+      cloudType: "SECURE",
+      gpuCount: 1,
+    });
+    expect(body).not.toHaveProperty("env");
+  });
+
+  it("asks only for 48 GB cards, cheapest first", () => {
+    expect(createPodBody()["gpuTypeIds"]).toEqual([...LAB_GPU_LAUNCH.gpuTypeIds]);
+    expect(LAB_GPU_LAUNCH.gpuTypeIds[0]).toBe("NVIDIA A40");
+  });
+
+  it("knows the address the Lab must use", () => {
+    expect(inferenceUrl("abc123")).toBe("https://abc123-8000.proxy.runpod.net");
   });
 });
 
 describe("decideStatus", () => {
   it("offers nothing until RunPod is connected", () => {
-    const s = decideStatus({
-      connected: false,
-      pods: [],
-      account: null,
-      serviceReady: null,
-    });
+    const s = decideStatus({ ...base, connected: false, pods: [] });
     expect(s.state).toBe("not-connected");
     expect(s.canTurnOn || s.canTurnOff).toBe(false);
   });
 
   it("does not guess when RunPod does not answer", () => {
-    const s = decideStatus({
-      connected: true,
-      pods: null,
-      account: null,
-      serviceReady: null,
-    });
+    const s = decideStatus({ ...base, pods: null });
     expect(s.state).toBe("unknown");
     expect(s.canTurnOn || s.canTurnOff).toBe(false);
   });
 
-  it("says plainly when there is no Lab GPU at all", () => {
-    const s = decideStatus({ connected: true, pods: [], account, serviceReady: null });
-    expect(s.state).toBe("missing");
-    expect(s.canTurnOn).toBe(false);
-  });
-
-  it("off: can only turn on, and warns against picking it in the Lab", () => {
-    const s = decideStatus({
-      connected: true,
-      pods: [pod({ desiredStatus: "EXITED" })],
-      account,
-      serviceReady: null,
-    });
+  it("off: no server, so only Turn on, and a warning against picking it in the Lab", () => {
+    const s = decideStatus({ ...base, pods: [] });
     expect(s.state).toBe("off");
     expect([s.canTurnOn, s.canTurnOff]).toEqual([true, false]);
     expect(s.meaning).toContain("Self-hosted GPU");
   });
 
-  it("never says ready until the model service itself answers", () => {
-    const starting = decideStatus({
-      connected: true,
-      pods: [pod()],
-      account,
-      serviceReady: false,
-    });
-    expect(starting.state).toBe("starting");
-    expect(starting.meaning).toContain("billing");
-    expect(starting.canTurnOff).toBe(true);
-
-    const ready = decideStatus({
-      connected: true,
-      pods: [pod()],
-      account,
-      serviceReady: true,
-    });
-    expect(ready.state).toBe("ready");
-    expect(ready.meaning).toContain("$0.59 an hour");
-    expect([ready.canTurnOn, ready.canTurnOff]).toEqual([false, true]);
+  it("will not offer Turn on without Coolify, which it needs to point the Lab", () => {
+    const s = decideStatus({ ...base, coolifyConnected: false, pods: [] });
+    expect(s.state).toBe("off");
+    expect(s.canTurnOn).toBe(false);
+    expect(s.meaning).toContain("Coolify");
   });
 
-  it("an unfamiliar state still allows turning off, so a card cannot be stuck billing", () => {
-    const s = decideStatus({
-      connected: true,
-      pods: [pod({ desiredStatus: "RESTARTING" })],
-      account,
-      serviceReady: null,
-    });
-    expect(s.state).toBe("unknown");
+  it("a leftover stopped server can still be removed", () => {
+    const s = decideStatus({ ...base, pods: [pod({ desiredStatus: "EXITED" })] });
+    expect(s.state).toBe("off");
     expect(s.canTurnOff).toBe(true);
+  });
+
+  it("never says ready until the model service answers", () => {
+    const s = decideStatus({ ...base, pods: [pod()], serviceReady: false });
+    expect(s.state).toBe("starting");
+    expect(s.meaning).toContain("billing");
+    expect(s.canTurnOff).toBe(true);
+  });
+
+  it("never says ready while the Lab points somewhere else", () => {
+    const s = decideStatus({
+      ...base,
+      pods: [pod()],
+      serviceReady: true,
+      labPointsHere: false,
+    });
+    expect(s.state).toBe("not-pointed");
+    expect(s.canTurnOff).toBe(true);
+  });
+
+  it("ready: running, answering, and the Lab points at it", () => {
+    const s = decideStatus({
+      ...base,
+      pods: [pod()],
+      serviceReady: true,
+      labPointsHere: true,
+    });
+    expect(s.state).toBe("ready");
+    expect(s.meaning).toContain("$0.59 an hour");
+    expect([s.canTurnOn, s.canTurnOff]).toEqual([false, true]);
+  });
+
+  it("says so when it could not confirm the Lab's address", () => {
+    const s = decideStatus({ ...base, pods: [pod()], serviceReady: true });
+    expect(s.state).toBe("ready");
+    expect(s.meaning).toContain("could not confirm");
   });
 });
 
 describe("explainRunpodError", () => {
-  it("names the no-free-card case, which is RunPod's, not ours", () => {
-    expect(
-      explainRunpodError(
-        "There are not enough free GPUs on the host machine to start this pod.",
-      ),
-    ).toMatch(/no free card/);
+  it("names the no-free-card case, and that nothing bills", () => {
+    expect(explainRunpodError("There are no instances currently available")).toMatch(
+      /No 48 GB card is free.*Nothing is billing/,
+    );
   });
 
   it("names a refused key", () => {

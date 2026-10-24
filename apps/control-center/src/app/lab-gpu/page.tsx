@@ -42,11 +42,12 @@ export default async function LabGpuPage() {
           lineHeight: 1.7,
         }}
       >
-        <strong>Turn off</strong> stops the card, not the server: the model stays saved,
-        so <strong>Turn on</strong>&nbsp;takes about 2 minutes instead of a fresh
-        download. Deleting the server altogether (RunPod calls it
-        &ldquo;terminate&rdquo;) is not on this page on purpose — that is a decision for
-        Claude to carry out, not a button.
+        <strong>Turn on</strong>&nbsp;makes a fresh server on whichever 48&nbsp;GB card
+        is free and points the Lab at it; the model, software and add-ons are already on
+        the shared storage, so it is ready in a few minutes. <strong>Turn off</strong>
+        &nbsp;deletes the server; only the shared storage keeps billing. The shared
+        storage itself is not on this page on purpose: deleting it loses the model and
+        every add-on, and that is a decision for Claude to carry out, not a button.
       </p>
     </main>
   );

@@ -60,6 +60,7 @@ export async function connectionStatus(): Promise<{
   googlePlaces: boolean;
   anthropic: boolean;
   runpod: boolean;
+  coolify: boolean;
 }> {
   const e = await readEnvFile();
   return {
@@ -69,5 +70,6 @@ export async function connectionStatus(): Promise<{
     googlePlaces: Boolean(e["GOOGLE_PLACES_API_KEY"]),
     anthropic: Boolean(e["ANTHROPIC_API_KEY"]),
     runpod: Boolean(e["RUNPOD_API_KEY"]),
+    coolify: Boolean(e["COOLIFY_API_TOKEN"]),
   };
 }

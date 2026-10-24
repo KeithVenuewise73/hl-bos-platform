@@ -9,7 +9,7 @@ const COLOR: Record<LabGpuState, string> = {
   ready: "#3fb950",
   starting: "#d29922",
   off: "#6e7681",
-  missing: "#6e7681",
+  "not-pointed": "#f85149",
   "not-connected": "#d29922",
   unknown: "#f85149",
 };
