@@ -191,6 +191,12 @@ export function useCopy(view: ScanView) {
     names,
     setName: (day: string, name: string) => setNames((n) => ({ ...n, [day]: name })),
     saveNames: () => void rememberNames(),
+    /** Set several event names at once and remember them (sport suggestions). */
+    applyNames: (changes: Record<string, string>) => {
+      const next = { ...names, ...changes };
+      setNames(next);
+      void rememberNames(next);
+    },
     browse,
     browsing,
     note,
@@ -349,6 +355,8 @@ function CopySummary({ results }: { results: Record<string, DayCopyView> }) {
     r.conflicts.map((c) => ({ ...c, folder: r.folder })),
   );
   const failed = all.flatMap((r) => r.failed.map((c) => ({ ...c, folder: r.folder })));
+  const problems = all.filter((r) => r.problem !== null);
+  const renamed = all.filter((r) => r.renamedFrom !== null);
   return (
     <div
       className="space-y-2 border-t border-line pt-3 text-sm"
@@ -372,6 +380,20 @@ function CopySummary({ results }: { results: Record<string, DayCopyView> }) {
           {failed.length.toLocaleString("en-US")} could not be copied
         </span>
       </p>
+      {renamed.length > 0 ? (
+        <p className="text-muted" data-testid="sum-renamed">
+          {count(renamed.length, "date folder")} renamed to match the event name.
+        </p>
+      ) : null}
+      {problems.length > 0 ? (
+        <ul className="space-y-1 text-bad" data-testid="sum-problems">
+          {problems.map((r) => (
+            <li key={r.day}>
+              {longDate(r.day)}: {r.problem}
+            </li>
+          ))}
+        </ul>
+      ) : null}
       {conflicts.length + failed.length > 0 ? (
         <ul className="space-y-1">
           {[...conflicts, ...failed].slice(0, 50).map((c) => (
@@ -443,6 +465,16 @@ export function CardCopy({ day, copy }: { day: string; copy: CopyState }) {
           <span className="block truncate font-mono text-muted" title={result.folder}>
             → {result.folder}
           </span>
+          {result.renamedFrom !== null ? (
+            <span className="block text-muted" data-testid="card-renamed">
+              Folder renamed from “{result.renamedFrom}”.
+            </span>
+          ) : null}
+          {result.problem !== null ? (
+            <span className="block text-bad" data-testid="card-problem">
+              {result.problem}
+            </span>
+          ) : null}
         </p>
       ) : null}
     </div>

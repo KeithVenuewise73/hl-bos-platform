@@ -4,8 +4,9 @@
 
 You copy a Canon card to the laptop and get hundreds or thousands of loose
 photos. DateSort reads each photo's camera date and shows them as one card per
-shooting day, ready to become a game folder. It runs on this computer only. It
-has no account, no database, no internet connection and no AI.
+shooting day, ready to become a game folder. It runs on this computer only, with
+no account and no database. It uses the internet for one thing, and only when you
+ask: suggesting each date's sport with Claude (see **Sports** below).
 
 DateSort and JerseySort are separate apps. DateSort organizes the master library
 (camera photos → date → event folder). JerseySort analyzes one event (event folder →
@@ -112,6 +113,41 @@ The rules (`packages/date-sort/src/copy`):
   DateSort has not been restarted, so it does not cost another full scan.
 - **Refused:** a destination inside the scanned folder, a destination that does not exist, or not
   enough free space (checked before anything is written).
+
+## Sports: suggested by Claude (built)
+
+Under **Sports**, once a Claude API key is saved, **Suggest sports for all dates**
+asks Claude which sport each date shows. The choices are football, hockey,
+baseball, basketball, soccer and volleyball.
+
+- **What is sent.** About 8 JPGs per date, spread across the day, as small copies:
+  768 px on the long edge, with no camera details and no GPS location. A test checks
+  both, and also checks that the original is unchanged. Nothing else leaves the laptop.
+  The CEO chose this (Option 2: cloud AI) knowing the photos show young athletes.
+- **What comes back.** Claude labels each photo. A date's sport is suggested only
+  when **more than half** of its photos agree, for example "Looks like Basketball
+  (7 of 8 photos)". Anything less is shown as the split, such as "Basketball 2,
+  Volleyball 2", with no suggestion, so a guess is never presented as an answer.
+- **Nothing is applied by itself.** **Use** on a card, or **Use all N suggestions**,
+  puts the sport in front of the event name ("Basketball - Zac K"). The next copy
+  then renames that date's folder (see below).
+- **Cost.** One request per date (model `claude-opus-5-5`, low effort). Answers are
+  saved with the photos they were based on (`sport-guesses.json`), so asking again
+  for the same photos costs nothing.
+- **The key.** Pasted once into the page and saved in `%LOCALAPPDATA%\DateSort\claude-key.txt`,
+  outside HL-BOS's folder, so an update can never collect or publish it. Before it
+  is saved, DateSort asks Anthropic whether it accepts the key, without sending any
+  photo. The page is only ever told whether a key is saved, never what it is.
+  **Remove the Claude key** deletes it.
+- **Only the two sport routes can reach the internet** (`api/sport`, `api/claude-key`),
+  through `packages/date-sort/src/sport`. A test fails the build if any other part
+  of the app imports it.
+
+**One folder per date, always.** When a name or sport is added to a date that is
+already copied, DateSort **renames that date's folder** (only in the destination,
+and only to a name nothing else has). The copy then finishes in it, and no photo is
+copied twice. If a date already has two or more folders, DateSort copies nothing
+for that date and lists them, so you can keep one.
 
 ## Not built yet
 

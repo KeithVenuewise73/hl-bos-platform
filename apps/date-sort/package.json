@@ -2,7 +2,7 @@
   "name": "@hl-bos/date-sort-app",
   "version": "0.1.0",
   "private": true,
-  "description": "DateSort — organize loose camera photos by the day they were taken. Choose a folder, scan it (read only: nothing in it is moved, renamed, changed or deleted, and nothing is created there), and see every photo grouped by shooting date from its camera EXIF, with estimated dates labelled as estimates. Runs on this computer only; no account, no database, no internet, no AI.",
+  "description": "DateSort \u2014 organize loose camera photos by the day they were taken. Choose a folder, scan it (read only: nothing in it is moved, renamed, changed or deleted, and nothing is created there), and see every photo grouped by shooting date from its camera EXIF, with estimated dates labelled as estimates. Runs on this computer only; no account, no database. Copies each date's photos into a dated folder (copy only). Optionally suggests each date's sport with Claude: only then, small previews of a few photos per date are sent to Anthropic.",
   "type": "module",
   "scripts": {
     "dev": "next dev --port 4604 --hostname 127.0.0.1",
@@ -19,7 +19,8 @@
     "next": "catalog:",
     "react": "catalog:",
     "react-dom": "catalog:",
-    "server-only": "catalog:"
+    "server-only": "catalog:",
+    "sharp": "catalog:"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "catalog:",
