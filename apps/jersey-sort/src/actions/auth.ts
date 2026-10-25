@@ -14,12 +14,19 @@ import {
   SESSION_MAX_AGE_SECONDS,
 } from "@/lib/auth-core.ts";
 import { db } from "@/lib/db.ts";
+import { safeNext } from "@/lib/next-path.ts";
 import { cookieOptions, requireUser, SESSION_COOKIE } from "@/lib/session.ts";
 
 const text = (f: FormData, k: string) => {
   const v = f.get(k);
   return typeof v === "string" ? v : "";
 };
+
+/** "&next=..." to keep the way back through a failed attempt. */
+function keepNext(form: FormData): string {
+  const next = safeNext(form.get("next"));
+  return next === null ? "" : `&next=${encodeURIComponent(next)}`;
+}
 
 async function startSession(email: string, password: string): Promise<void> {
   const token = signIn(db(), email, password);
@@ -40,9 +47,9 @@ export async function signUpAction(form: FormData): Promise<void> {
   } catch (e) {
     const message =
       e instanceof AuthError ? e.message : "Could not create the account.";
-    redirect(`/signup?error=${encodeURIComponent(message)}`);
+    redirect(`/signup?error=${encodeURIComponent(message)}${keepNext(form)}`);
   }
-  redirect("/");
+  redirect(safeNext(form.get("next")) ?? "/");
 }
 
 export async function signInAction(form: FormData): Promise<void> {
@@ -57,9 +64,9 @@ export async function signInAction(form: FormData): Promise<void> {
   } catch (e) {
     recordFailure(email);
     const message = e instanceof AuthError ? e.message : "Could not sign in.";
-    redirect(`/login?error=${encodeURIComponent(message)}`);
+    redirect(`/login?error=${encodeURIComponent(message)}${keepNext(form)}`);
   }
-  redirect("/");
+  redirect(safeNext(form.get("next")) ?? "/");
 }
 
 export async function signOutAction(): Promise<void> {

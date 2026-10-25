@@ -18,14 +18,23 @@ export function EventForm({
   action,
   event,
   submit,
+  hidden,
 }: {
   action: (f: FormData) => Promise<void>;
+  /** An event to edit, or (with an empty id) values to start a new one with. */
   event?: EventRow;
   submit: string;
+  /** Extra fields sent with the form (the folder, on the import page). */
+  hidden?: Readonly<Record<string, string>>;
 }) {
   return (
     <form action={action} className="card grid gap-4 p-5 sm:grid-cols-2">
-      {event ? <input type="hidden" name="id" value={event.id} /> : null}
+      {event && event.id !== "" ? (
+        <input type="hidden" name="id" value={event.id} />
+      ) : null}
+      {Object.entries(hidden ?? {}).map(([k, v]) => (
+        <input key={k} type="hidden" name={k} value={v} />
+      ))}
       <div className="sm:col-span-2">
         <label className="label" htmlFor="name">
           Event name

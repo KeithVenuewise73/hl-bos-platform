@@ -7,5 +7,5 @@ export { cleanEventName, folderName, isInside, planDay } from "./plan";
 export type { PlannedCopy } from "./plan";
 export { cleanEventNames, loadSettings, saveSettings, settingsDir } from "./settings";
 export type { Settings } from "./settings";
-export { copyOneFile, PARTIAL_SUFFIX } from "./write-file";
+export { copyOneFile, folderNames, PARTIAL_SUFFIX } from "./write-file";
 export type { CopyOutcome } from "./write-file";

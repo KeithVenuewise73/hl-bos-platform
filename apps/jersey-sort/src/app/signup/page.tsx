@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { signUpAction } from "@/actions/auth.ts";
 import { Brand } from "@/components/Brand.tsx";
 import { Notice, param, type SearchParams } from "@/components/Notice.tsx";
+import { safeNext } from "@/lib/next-path.ts";
 import { currentUser } from "@/lib/session.ts";
 
 export const dynamic = "force-dynamic";
@@ -13,8 +14,9 @@ export default async function SignupPage({
 }: {
   searchParams: SearchParams;
 }) {
-  if ((await currentUser()) !== null) redirect("/");
   const sp = await searchParams;
+  const next = safeNext(param(sp, "next"));
+  if ((await currentUser()) !== null) redirect(next ?? "/");
   return (
     <div className="mx-auto mt-10 max-w-sm px-4">
       <Brand large />
@@ -22,6 +24,7 @@ export default async function SignupPage({
         AI-powered sports photo organization by player, jersey number, event, and date.
       </p>
       <form action={signUpAction} className="card mt-6 space-y-4 p-5">
+        {next !== null ? <input type="hidden" name="next" value={next} /> : null}
         <h1 className="display text-xl">Create your account</h1>
         <Notice error={param(sp, "error")} />
         <div>
@@ -78,7 +81,10 @@ export default async function SignupPage({
         </button>
         <p className="text-sm text-muted">
           Have an account?{" "}
-          <Link className="text-brand-2 underline" href="/login">
+          <Link
+            className="text-brand-2 underline"
+            href={next === null ? "/login" : `/login?next=${encodeURIComponent(next)}`}
+          >
             Sign in
           </Link>
         </p>
