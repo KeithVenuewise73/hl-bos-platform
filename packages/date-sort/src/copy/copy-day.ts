@@ -17,6 +17,7 @@ import {
   freeBytes,
   makeFolder,
   pathKind,
+  renameDateFolder,
   trueFolderName,
   type Fs,
 } from "./write-file";
@@ -59,6 +60,10 @@ export interface DayResult {
   }>;
   /** Copies given "(2)" names because another photo that day had the same name. */
   readonly renamedCopies: number;
+  /** The date's folder had this name and was renamed to `folder` (a name was added). */
+  readonly renamedFrom: string | null;
+  /** Why nothing was copied for this date, when that happened. */
+  readonly problem: string | null;
 }
 
 export interface CopyRequest {
@@ -117,36 +122,64 @@ export async function checkDestination(
   }
 }
 
+export type FolderPlan =
+  | { readonly kind: "use"; readonly name: string }
+  | { readonly kind: "rename"; readonly from: string; readonly name: string }
+  | { readonly kind: "refuse"; readonly reason: string };
+
 /**
- * The folder a date's photos go in. Normally "<date>" or "<date> - <event>".
- * But when no event name is given and the destination already holds exactly
- * one folder for that date under an event name, that folder is used: the
- * name was typed on an earlier copy and is simply not on screen now (a
- * refreshed page once forgot it, and a second, plain "<date>" folder got a
- * second copy of every photo). Two or more named folders for one date are
- * not guessed between.
+ * Where a date's photos go, given the folders already in the destination.
+ * ONE folder per date, always:
+ *
+ *   - A folder for the date with exactly the wanted name: use it.
+ *   - No name typed, and one folder for the date under some name: use that
+ *     one. (A refreshed page once forgot a name, and a plain "<date>" folder
+ *     beside the named one got a second copy of every photo.)
+ *   - A name typed, and one folder for the date under another name (an event
+ *     name or a sport was added after copying): rename that folder, then
+ *     finish the copy in it. Nothing is copied twice.
+ *   - Two or more folders already for the date: copy nothing for it and say
+ *     which they are. Guessing would mean a third copy.
  */
-export function folderForDay(
+export function folderPlanForDay(
   day: string,
   eventName: string,
   existing: readonly string[],
-): string {
+): FolderPlan {
   const wanted = folderName(day, eventName);
-  if (wanted !== day) return wanted; // a name was given: use it
-  const lower = existing.map((n) => n.toLowerCase());
-  if (lower.includes(day)) return wanted;
-  const named = existing.filter((n) => n.toLowerCase().startsWith(`${day} - `));
-  return named.length === 1 ? named[0]! : wanted;
+  const forDay = existing.filter((n) => {
+    const l = n.toLowerCase();
+    return l === day || l.startsWith(`${day} - `);
+  });
+  const same = forDay.find((n) => n.toLowerCase() === wanted.toLowerCase());
+  if (same !== undefined) return { kind: "use", name: same };
+  if (forDay.length === 0) return { kind: "use", name: wanted };
+  if (forDay.length === 1) {
+    return wanted === day
+      ? { kind: "use", name: forDay[0]! }
+      : { kind: "rename", from: forDay[0]!, name: wanted };
+  }
+  return {
+    kind: "refuse",
+    reason: `This date already has ${forDay.length} folders (${forDay.map((n) => `"${n}"`).join(", ")}), so nothing was copied for it. Keep the one you want, delete the others in File Explorer, then copy again.`,
+  };
 }
 
 export async function copyDays(request: CopyRequest): Promise<DayResult[]> {
   const photos = request.files.filter((f): f is ScannedPhoto => f.kind === "photo");
   const existing = await folderNames(request.destination);
-  const plans = request.days.map((d) => ({
-    day: d.day,
-    folder: join(request.destination, folderForDay(d.day, d.eventName ?? "", existing)),
-    items: planDay(photos, d.day),
-  }));
+  const plans = request.days.map((d) => {
+    const where = folderPlanForDay(d.day, d.eventName ?? "", existing);
+    return {
+      day: d.day,
+      where,
+      folder: join(
+        request.destination,
+        where.kind === "refuse" ? folderName(d.day, d.eventName ?? "") : where.name,
+      ),
+      items: planDay(photos, d.day),
+    };
+  });
   const total = plans.reduce((n, p) => n + p.items.length, 0);
   const bytesNeeded = plans.reduce(
     (n, p) => n + p.items.reduce((m, i) => m + i.size, 0),
@@ -160,6 +193,38 @@ export async function copyDays(request: CopyRequest): Promise<DayResult[]> {
   let bytesCopied = 0;
   for (const plan of plans) {
     request.signal?.throwIfAborted();
+    const nothing = (problem: string): DayResult => ({
+      day: plan.day,
+      folder: plan.folder,
+      photos: plan.items.length,
+      copied: 0,
+      alreadyThere: 0,
+      conflicts: [],
+      failed: [],
+      renamedCopies: 0,
+      renamedFrom: null,
+      problem,
+    });
+    if (plan.where.kind === "refuse") {
+      results.push(nothing(plan.where.reason));
+      done += plan.items.length;
+      continue;
+    }
+    let renamedFrom: string | null = null;
+    if (plan.where.kind === "rename") {
+      try {
+        await renameDateFolder(join(request.destination, plan.where.from), plan.folder);
+        renamedFrom = plan.where.from;
+      } catch (e) {
+        results.push(
+          nothing(
+            `The folder "${plan.where.from}" could not be renamed to "${plan.where.name}" (${plain(e)}; close any File Explorer window showing it), so nothing was copied for this date.`,
+          ),
+        );
+        done += plan.items.length;
+        continue;
+      }
+    }
     await makeFolder(plan.folder);
     let copied = 0;
     let alreadyThere = 0;
@@ -218,6 +283,8 @@ export async function copyDays(request: CopyRequest): Promise<DayResult[]> {
       failed,
       renamedCopies: plan.items.filter((i) => i.name !== i.source.split(/[\\/]/).pop())
         .length,
+      renamedFrom,
+      problem: null,
     });
   }
   return results;

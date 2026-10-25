@@ -43,6 +43,23 @@ describe("the DateSort app", () => {
     }
   });
 
+  it("reaches the internet only through the sport routes (Claude, when asked)", () => {
+    const rel = (f: string) => f.replace(/\\/g, "/").split("/src/")[1];
+    const online = files.filter((f) =>
+      /from\s+["']@hl-bos\/date-sort\/sport["']|@anthropic-ai\/sdk/.test(
+        readFileSync(f, "utf8"),
+      ),
+    );
+    expect(online.map(rel).sort()).toEqual([
+      "app/api/claude-key/route.ts",
+      "app/api/sport/route.ts",
+    ]);
+    // The page gets the plain rules only, never the code that calls Claude.
+    for (const f of files.filter((f) => /components\//.test(rel(f) ?? ""))) {
+      expect(readFileSync(f, "utf8"), f).not.toMatch(/@hl-bos\/date-sort\/sport["']/);
+    }
+  });
+
   it("makes no request to the internet", () => {
     for (const f of files) {
       expect(

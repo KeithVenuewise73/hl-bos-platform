@@ -386,6 +386,14 @@
       "done": true
     },
     {
+      "title": "DateSort: sport suggestions by Claude (football, hockey, baseball, basketball, soccer, volleyball), applied only on Use; adding a name renames the date's folder, never a second copy",
+      "done": true
+    },
+    {
+      "title": "DateSort: first real sport suggestions on the CEO's library (needs his Claude key)",
+      "done": false
+    },
+    {
       "title": "DateSort Step 4: possible second event (60+ minute gaps) and split on confirmation",
       "done": false
     },

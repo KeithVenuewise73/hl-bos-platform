@@ -4,8 +4,10 @@ import type { NextConfig } from "next";
 //
 //   * Listens on 127.0.0.1 only (package.json): it reads folders on this
 //     computer, so nothing else on the network may ask it to.
-//   * No account, no database, no outbound calls. connect-src 'self': the
-//     page talks to this app and nothing else.
+//   * No account, no database. One kind of outbound call, made by the server
+//     and only when the person asks for sport suggestions: small previews of
+//     a few photos per date go to Anthropic's Claude (src/app/api/sport). The
+//     browser never talks to anything but this app: connect-src 'self'.
 //   * The API routes refuse requests from any other web page (lib/guard.ts),
 //     so a website open in another tab cannot make DateSort scan a folder or
 //     open a folder window.
@@ -14,7 +16,8 @@ const config: NextConfig = {
   poweredByHeader: false,
   productionBrowserSourceMaps: false,
   transpilePackages: ["@hl-bos/date-sort"],
-  serverExternalPackages: ["exifr"],
+  // sharp is native: kept out of the bundler, loaded from node_modules.
+  serverExternalPackages: ["exifr", "sharp"],
   headers() {
     return Promise.resolve([
       {
