@@ -17,6 +17,8 @@
  *     links such as exFAT, an exclusive copy). A copy that was cut short
  *     (power loss, unplugged drive) is therefore never mistaken for a photo.
  *   - The only thing it ever deletes is its own ".datesort-partial" file.
+ *   - The only thing it ever renames is a date folder in the destination,
+ *     and only to a name that is free (renameDateFolder).
  *
  * Nothing here knows about dates or folders: copy-day.ts decides what to
  * copy where; this decides how to copy one file without risk.
@@ -32,6 +34,7 @@ import {
   open,
   readdir,
   realpath,
+  rename,
   stat,
   statfs,
   unlink,
@@ -256,4 +259,17 @@ export async function folderNames(path: string): Promise<string[]> {
   } catch {
     return [];
   }
+}
+
+/**
+ * Give a date folder in the destination a new name (an event name or sport
+ * was added after it was first copied). Only when nothing has the new name
+ * already: never merges, never replaces. Throws if the name is taken or
+ * Windows refuses (a File Explorer window showing it, for example).
+ */
+export async function renameDateFolder(from: string, to: string): Promise<void> {
+  if ((await pathKind(to)) !== "none") {
+    throw new Error(`"${to}" already exists, so the folder was not renamed.`);
+  }
+  await rename(from, to);
 }

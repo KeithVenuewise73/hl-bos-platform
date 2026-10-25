@@ -337,7 +337,7 @@ jobs:
           }
           $console = if ($b) { $b.checklist.'Control Center Start button' } else { 'FAIL' }
           $lines += "| Control Center Start DateSort | $console |"
-          $keys = "Folder Browse", "Include subfolders", "JPG/JPEG detection", "HEIC detection", "CR2 detection", "CR3 detection", "CR3 Date Taken reading", "Date grouping", "Estimated-date labeling", "Create folder (one date, with event name)", "Copy all dates", "Copies identical to originals", "Never overwrites", "Originals untouched by copying", "Destination remembered"
+          $keys = "Folder Browse", "Include subfolders", "JPG/JPEG detection", "HEIC detection", "CR2 detection", "CR3 detection", "CR3 Date Taken reading", "Date grouping", "Estimated-date labeling", "Create folder (one date, with event name)", "Copy all dates", "Copies identical to originals", "Never overwrites", "Originals untouched by copying", "Destination remembered", "Name added after copying renames the folder", "Sport key handling", "Sport suggestions on the page"
           foreach ($k in $keys) {
             $va = if ($a) { $a.checklist.$k } else { $null }
             $vb = if ($b) { $b.checklist.$k } else { $null }

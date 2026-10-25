@@ -25,7 +25,7 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import type { ScannedPhoto } from "../report";
 import { scanFolder } from "../scan";
-import { copyDays, CopyError, folderForDay } from "./copy-day";
+import { copyDays, CopyError, folderPlanForDay } from "./copy-day";
 import { cleanEventName, folderName, isInside, planDay } from "./plan";
 import { cleanEventNames, loadSettings, saveSettings } from "./settings";
 import { copyOneFile, PARTIAL_SUFFIX } from "./write-file";
@@ -156,33 +156,58 @@ describe("planning a date", () => {
 });
 
 describe("which folder a date goes in", () => {
-  it("is the typed name when one is given", () => {
-    expect(folderForDay("2025-11-08", "Zac K", [])).toBe("2025-11-08 - Zac K");
-    expect(folderForDay("2025-11-08", "New name", ["2025-11-08 - Zac K"])).toBe(
-      "2025-11-08 - New name",
+  const use = (name: string) => ({ kind: "use", name });
+
+  it("makes the named folder when the date has none", () => {
+    expect(folderPlanForDay("2025-11-08", "Zac K", [])).toEqual(
+      use("2025-11-08 - Zac K"),
+    );
+    expect(folderPlanForDay("2025-11-08", "", ["2025-11-09 - Other day"])).toEqual(
+      use("2025-11-08"),
     );
   });
 
-  it("with no name, reuses the one folder already named for that date", () => {
-    expect(folderForDay("2025-11-08", "", ["2025-11-08 - Zac K", "2025-12-16"])).toBe(
-      "2025-11-08 - Zac K",
+  it("uses the folder that already has the wanted name (any capitals)", () => {
+    expect(folderPlanForDay("2025-11-08", "zac k", ["2025-11-08 - Zac K"])).toEqual(
+      use("2025-11-08 - Zac K"),
     );
-  });
-
-  it("with no name, uses the plain date folder when there is one, or nothing to reuse", () => {
-    expect(folderForDay("2025-11-08", "", [])).toBe("2025-11-08");
-    expect(folderForDay("2025-11-08", "", ["2025-11-08", "2025-11-08 - Zac K"])).toBe(
-      "2025-11-08",
-    );
-    expect(folderForDay("2025-11-08", "", ["2025-11-09 - Other day"])).toBe(
-      "2025-11-08",
-    );
-  });
-
-  it("does not guess between two named folders for one date", () => {
     expect(
-      folderForDay("2025-11-08", "", ["2025-11-08 - Zac K", "2025-11-08 - Game 2"]),
-    ).toBe("2025-11-08");
+      folderPlanForDay("2025-11-08", "", ["2025-11-08", "2025-11-08 - Zac K"]),
+    ).toEqual(use("2025-11-08"));
+  });
+
+  it("with no name, uses the one folder already named for that date", () => {
+    expect(
+      folderPlanForDay("2025-11-08", "", ["2025-11-08 - Zac K", "2025-12-16"]),
+    ).toEqual(use("2025-11-08 - Zac K"));
+  });
+
+  it("when a name or sport is added after copying, renames the date's folder instead of making another", () => {
+    expect(folderPlanForDay("2026-01-13", "Basketball", ["2026-01-13"])).toEqual({
+      kind: "rename",
+      from: "2026-01-13",
+      name: "2026-01-13 - Basketball",
+    });
+    expect(
+      folderPlanForDay("2025-11-08", "Basketball - Zac K", ["2025-11-08 - Zac K"]),
+    ).toEqual({
+      kind: "rename",
+      from: "2025-11-08 - Zac K",
+      name: "2025-11-08 - Basketball - Zac K",
+    });
+  });
+
+  it("refuses to guess when a date already has two folders", () => {
+    const plan = folderPlanForDay("2025-11-08", "Basketball - Zac K", [
+      "2025-11-08",
+      "2025-11-08 - Zac K",
+    ]);
+    expect(plan.kind).toBe("refuse");
+    expect(plan.kind === "refuse" && plan.reason).toMatch(/already has 2 folders/);
+    expect(
+      folderPlanForDay("2025-11-08", "", ["2025-11-08 - Zac K", "2025-11-08 - Game 2"])
+        .kind,
+    ).toBe("refuse");
   });
 });
 
@@ -284,6 +309,55 @@ describe("copying dates into folders", () => {
       ["2026-10-03", 2, 0],
       ["2026-10-04", 0, 3],
     ]);
+  });
+
+  it("adding a sport after copying renames the folder and copies nothing twice", async () => {
+    const scanned = await scan();
+    await copyDays({
+      root: card,
+      files: scanned.files,
+      destination: dest,
+      days: [{ day: "2026-10-04" }],
+    });
+    const again = await copyDays({
+      root: card,
+      files: scanned.files,
+      destination: dest,
+      days: [{ day: "2026-10-04", eventName: "Basketball" }],
+    });
+    expect(readdirSync(dest)).toEqual(["2026-10-04 - Basketball"]);
+    expect(readdirSync(join(dest, "2026-10-04 - Basketball")).sort()).toEqual([
+      "IMG_0001.JPG",
+      "IMG_0003.JPG",
+      "IMG_0004.JPG",
+    ]);
+    expect(again[0]).toMatchObject({
+      copied: 0,
+      alreadyThere: 3,
+      renamedFrom: "2026-10-04",
+      problem: null,
+    });
+  });
+
+  it("copies nothing for a date that already has two folders, and says why", async () => {
+    const scanned = await scan();
+    mkdirSync(join(dest, "2026-10-04"));
+    mkdirSync(join(dest, "2026-10-04 - Zac K"));
+    const results = await copyDays({
+      root: card,
+      files: scanned.files,
+      destination: dest,
+      days: [{ day: "2026-10-04", eventName: "Basketball" }, { day: "2026-10-03" }],
+    });
+    expect(readdirSync(dest).sort()).toEqual([
+      "2026-10-03",
+      "2026-10-04",
+      "2026-10-04 - Zac K",
+    ]);
+    expect(readdirSync(join(dest, "2026-10-04"))).toEqual([]);
+    expect(results[0]).toMatchObject({ copied: 0, renamedFrom: null });
+    expect(results[0]!.problem).toMatch(/already has 2 folders/);
+    expect(results[1]).toMatchObject({ copied: 2, problem: null });
   });
 
   it("never overwrites a different file that has the same name: it is left as it is and reported", async () => {

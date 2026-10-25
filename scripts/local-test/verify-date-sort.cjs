@@ -312,6 +312,172 @@ async function waitForCopy(page) {
   };
 }
 
+// ---------------------------------------------------------------------------
+// Sport suggestions: the Claude key. No real key is used in a test (it would
+// spend money), so this proves the parts around it: the panel says what is
+// sent, a non-key is refused before anything is sent, and a key Anthropic
+// does not accept is refused in plain words and NOT saved. The Claude call
+// itself is tested with a fake in packages/date-sort/src/sport/sport.test.ts.
+// ---------------------------------------------------------------------------
+async function sportChecks(page, browser) {
+  const panel = await page
+    .waitForSelector("[data-testid=sport-panel]", { timeout: 10_000 })
+    .then((e) => e.textContent())
+    .catch(() => "");
+  const explained = check(
+    "the Sports panel says exactly what would be sent to Claude",
+    /768 px/.test(panel || "") && /Nothing else leaves this laptop/.test(panel || ""),
+    panel,
+  );
+  const form = await page
+    .waitForSelector("[data-testid=claude-key-form]", { timeout: 10_000 })
+    .then(() => true)
+    .catch(() => false);
+  if (!form) {
+    check(
+      "with no key saved, the panel asks for one",
+      false,
+      "no key form (is a key saved on this machine?)",
+    );
+    return verdict("Sport key handling", false);
+  }
+  const errorAfter = async (key) => {
+    await page.fill("[data-testid=claude-key-input]", key);
+    await page.click("[data-testid=claude-key-save]");
+    return page
+      .waitForFunction(
+        () =>
+          document.querySelector("[data-testid=claude-key-error]")?.textContent || null,
+        null,
+        { timeout: 60_000 },
+      )
+      .then((h) => h.jsonValue())
+      .catch(() => null);
+  };
+  const notAKey = await errorAfter("hello");
+  const refusedShape = check(
+    "something that is not a key is refused before anything is sent",
+    /does not look like a Claude API key/.test(notAKey || ""),
+    notAKey,
+  );
+  const fake = await errorAfter(`sk-ant-api03-${"datesortTestNotARealKey".repeat(3)}`);
+  const stillAsks = await page
+    .$("[data-testid=claude-key-form]")
+    .then((e) => e !== null)
+    .catch(() => false);
+  const refusedByAnthropic = check(
+    "a key Anthropic does not accept is refused in plain words, and not saved",
+    /did not accept|Could not reach Claude/.test(fake || "") && stillAsks,
+    fake,
+  );
+  await shot(page, "10-sport-key");
+  verdict("Sport key handling", explained, refusedShape, refusedByAnthropic);
+
+  // The page's side of suggestions, with Claude's answers played by a stand-in
+  // at the page's connection (a real key would spend money). Nothing this page
+  // does reaches the real settings: its saves are answered here too.
+  const p2 = await browser.newPage();
+  await p2.route("**/api/claude-key", (r) =>
+    r.fulfill({
+      contentType: "application/json",
+      body: JSON.stringify({ saved: true }),
+    }),
+  );
+  await p2.route("**/api/settings", (r) =>
+    r.request().method() === "POST"
+      ? r.fulfill({ contentType: "application/json", body: '{"ok":true}' })
+      : r.continue(),
+  );
+  const lines = [
+    {
+      type: "guess",
+      cached: false,
+      guess: {
+        day: "2026-10-04",
+        sport: "basketball",
+        agreeing: 7,
+        looked: 8,
+        tally: [
+          { verdict: "basketball", count: 7 },
+          { verdict: "unclear", count: 1 },
+        ],
+        notes: "",
+      },
+    },
+    {
+      type: "guess",
+      cached: false,
+      guess: {
+        day: "2026-10-05",
+        sport: null,
+        agreeing: 0,
+        looked: 4,
+        tally: [
+          { verdict: "basketball", count: 2 },
+          { verdict: "volleyball", count: 2 },
+        ],
+        notes: "",
+      },
+    },
+    {
+      type: "failed",
+      day: "2026-10-06",
+      message: "Claude is busy for this key right now.",
+    },
+    { type: "done" },
+  ];
+  await p2.route("**/api/sport", (r) =>
+    r.fulfill({
+      contentType: "application/x-ndjson",
+      body: lines.map((l) => JSON.stringify(l)).join("\n") + "\n",
+    }),
+  );
+  await p2.goto(BASE);
+  await p2.waitForSelector("[data-testid=suggest-sports]", { timeout: 15_000 });
+  await p2.click("[data-testid=suggest-sports]");
+  const cardOf = (day) => p2.locator(`[data-testid=date-card][data-day='${day}']`);
+  await cardOf("2026-10-04")
+    .locator("[data-testid=card-sport]")
+    .waitFor({ timeout: 10_000 });
+  const t4 = await cardOf("2026-10-04")
+    .locator("[data-testid=card-sport]")
+    .textContent();
+  const t5 = await cardOf("2026-10-05")
+    .locator("[data-testid=card-sport]")
+    .textContent();
+  const t6 = await cardOf("2026-10-06")
+    .locator("[data-testid=card-sport]")
+    .textContent();
+  const shown = check(
+    "each card shows its answer: a clear sport, a split shown as a split, a failure in plain words",
+    /Looks like Basketball \(7 of 8 photos\)/.test(t4 || "") &&
+      /not clear/.test(t5 || "") &&
+      /Basketball 2, Volleyball 2/.test(t5 || "") &&
+      /busy/.test(t6 || ""),
+    JSON.stringify([t4, t5, t6]),
+  );
+  await cardOf("2026-10-04").locator("[data-testid=use-sport]").click();
+  const nameNow = await cardOf("2026-10-04")
+    .locator("[data-testid=event-name]")
+    .inputValue();
+  const folderNow = await cardOf("2026-10-04")
+    .locator("[data-testid=folder-preview]")
+    .textContent();
+  const used = check(
+    "Use puts the sport in front of the event name, and the folder name follows",
+    nameNow === "Basketball - Caz vs Wheatfield" &&
+      /2026-10-04 - Basketball - Caz vs Wheatfield/.test(folderNow || ""),
+    JSON.stringify({ nameNow, folderNow }),
+  );
+  const nothingForSplit = check(
+    "a split date offers nothing to apply",
+    (await cardOf("2026-10-05").locator("[data-testid=use-sport]").count()) === 0,
+  );
+  await shot(p2, "11-sport-suggestions");
+  await p2.close();
+  verdict("Sport suggestions on the page", shown, used, nothingForSplit);
+}
+
 async function copyChecks(page, card, work) {
   const sourceBefore = fingerprint(card);
   const dest = path.join(work, "Games");
@@ -552,7 +718,35 @@ async function copyChecks(page, card, work) {
     sameFolder(remembered, dest),
   );
 
+  // 8. A name (or a sport) added to a date that is already copied renames
+  //    its folder; it never makes a second folder with a second copy.
+  const card3 = page.locator("[data-testid=date-card][data-day='2026-10-03']");
+  await card3.locator("[data-testid=event-name]").fill("Basketball");
+  await card3.locator("[data-testid=create-folder]").click();
+  const named = await waitForCopy(page);
+  const renamedNote = await card3
+    .locator("[data-testid=card-renamed]")
+    .textContent()
+    .catch(() => "");
+  const renameOk = check(
+    'adding "Basketball" to a copied date renames its folder; nothing is copied twice',
+    named.error === null &&
+      named.copied === 0 &&
+      fs.existsSync(path.join(dest, "2026-10-03 - Basketball")) &&
+      named.already > 0 &&
+      named.already ===
+        fs.readdirSync(path.join(dest, "2026-10-03 - Basketball")).length &&
+      !fs.existsSync(path.join(dest, "2026-10-03")) &&
+      /renamed from .2026-10-03./.test(renamedNote || ""),
+    JSON.stringify({ named, renamedNote, folders: fs.readdirSync(dest) }),
+  );
+  // Leave no remembered name behind for the next run.
+  await card3.locator("[data-testid=event-name]").fill("");
+  await card3.locator("[data-testid=event-name]").blur();
+  await page.waitForTimeout(500);
+
   verdict("Create folder (one date, with event name)", oneOk, destOk);
+  verdict("Name added after copying renames the folder", renameOk);
   verdict("Copy all dates", allOk);
   verdict("Copies identical to originals", exactOk, noPartials);
   verdict("Never overwrites", keptOk, againOk);
@@ -1015,6 +1209,9 @@ async function refusals() {
   console.log("\nCreate folders and copy photos");
   await copyChecks(page, card, work);
 
+  console.log("\nSport suggestions (Claude key)");
+  await sportChecks(page, browser);
+
   // A refreshed page, and a copy whose connection goes silent (as after the
   // CEO's laptop slept: the bar froze with no message, and a refresh then
   // cost a whole new scan).
@@ -1031,6 +1228,19 @@ async function refusals() {
   check("a refreshed page shows the last scan again, without scanning again", restored);
   // The event name typed before the refresh must come back: a forgotten name
   // once made a second, plain date folder holding a second copy of every photo.
+  // The names arrive from the settings a moment after the cards: wait for them.
+  if (restored) {
+    await fresh
+      .waitForFunction(
+        () =>
+          document.querySelector(
+            "[data-testid=date-card][data-day='2026-10-04'] [data-testid=event-name]",
+          )?.value !== "",
+        null,
+        { timeout: 5_000 },
+      )
+      .catch(() => undefined);
+  }
   const keptName = restored
     ? await fresh
         .locator(

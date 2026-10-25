@@ -1,6 +1,7 @@
 // Creating date folders and copying photos into them. Node only:
 // "@hl-bos/date-sort/copy". The scanner never imports anything from here.
-export { copyDays, checkDestination, CopyError, folderForDay } from "./copy-day";
+export { copyDays, checkDestination, CopyError, folderPlanForDay } from "./copy-day";
+export type { FolderPlan } from "./copy-day";
 export type { CopyProgress, CopyRequest, DayRequest, DayResult } from "./copy-day";
 export { cleanEventName, folderName, isInside, planDay } from "./plan";
 export type { PlannedCopy } from "./plan";

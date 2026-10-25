@@ -10,6 +10,12 @@ import {
   useCopy,
   type CopyState,
 } from "@/components/CopyPanel.tsx";
+import {
+  CardSport,
+  SportPanel,
+  useSport,
+  type SportState,
+} from "@/components/SportPanel.tsx";
 import { clockTime, count, dateAndTime, longDate } from "@/lib/format.ts";
 import type { ScanMessage, ScanView } from "@/lib/scan-view.ts";
 
@@ -281,6 +287,7 @@ function Stat({
 function Report({ view }: { view: ScanView }) {
   const r = view.report;
   const copy = useCopy(view);
+  const sport = useSport(view);
   const [showEstimated, setShowEstimated] = useState(false);
   const [showUnsupported, setShowUnsupported] = useState(false);
   return (
@@ -359,6 +366,7 @@ function Report({ view }: { view: ScanView }) {
         )}
       </div>
 
+      {r.days.length > 0 ? <SportPanel view={view} sport={sport} copy={copy} /> : null}
       {r.days.length > 0 ? <CopyPanel view={view} copy={copy} /> : null}
 
       {r.days.length === 0 ? (
@@ -375,7 +383,7 @@ function Report({ view }: { view: ScanView }) {
           data-testid="date-cards"
         >
           {r.days.map((d) => (
-            <DateCard key={d.day} day={d} copy={copy} />
+            <DateCard key={d.day} day={d} copy={copy} sport={sport} />
           ))}
         </div>
       )}
@@ -464,7 +472,15 @@ function EstimateTag({ inline = false }: { inline?: boolean }) {
   );
 }
 
-function DateCard({ day, copy }: { day: DayReport; copy: CopyState }) {
+function DateCard({
+  day,
+  copy,
+  sport,
+}: {
+  day: DayReport;
+  copy: CopyState;
+  sport: SportState;
+}) {
   return (
     <article className="card space-y-3 p-5" data-testid="date-card" data-day={day.day}>
       <h3 className="display text-base text-brand">{longDate(day.day)}</h3>
@@ -515,6 +531,7 @@ function DateCard({ day, copy }: { day: DayReport; copy: CopyState }) {
           {count(day.estimated, "estimated date")}
         </span>
       </p>
+      <CardSport day={day.day} sport={sport} copy={copy} />
       <CardCopy day={day.day} copy={copy} />
     </article>
   );

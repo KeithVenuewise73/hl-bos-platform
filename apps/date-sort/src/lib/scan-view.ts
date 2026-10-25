@@ -6,6 +6,7 @@
  * Shared by the scan route (which builds it) and the page (which shows it),
  * so it must stay free of anything Node-only.
  */
+import type { SportGuess } from "@hl-bos/date-sort/sport-rules";
 import type { DateSource, PhotoFormat, ScanReport } from "@hl-bos/date-sort";
 
 export interface EstimatedPhoto {
@@ -50,6 +51,10 @@ export interface DayCopyView {
   readonly copied: number;
   readonly alreadyThere: number;
   readonly renamedCopies: number;
+  /** The date's folder was renamed from this (a name or sport was added). */
+  readonly renamedFrom: string | null;
+  /** Why nothing was copied for this date, when that happened. */
+  readonly problem: string | null;
   readonly conflicts: ReadonlyArray<{
     readonly name: string;
     readonly source: string;
@@ -82,3 +87,8 @@ export type CopyMessage =
   | { readonly type: "awake"; readonly held: boolean }
   /** Sent every few seconds while copying, even between photos (copy-watch.ts). */
   | { readonly type: "alive" };
+
+export type SportMessage =
+  | { readonly type: "guess"; readonly guess: SportGuess; readonly cached: boolean }
+  | { readonly type: "failed"; readonly day: string; readonly message: string }
+  | { readonly type: "done" };
