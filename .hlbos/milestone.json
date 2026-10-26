@@ -390,6 +390,14 @@
       "done": true
     },
     {
+      "title": "Date, sport, then jersey numbers: DateSort's Find jersey numbers hands a chosen game's folder to JerseySort (started if needed, key shared, photos brought in, folder unchanged), player galleries in JerseySort",
+      "done": true
+    },
+    {
+      "title": "First real jersey-number reading of a CEO game with Claude, and its measured cost per photo",
+      "done": false
+    },
+    {
       "title": "DateSort: first real sport suggestions on the CEO's library (needs his Claude key)",
       "done": false
     },

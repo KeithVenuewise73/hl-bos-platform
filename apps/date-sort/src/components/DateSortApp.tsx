@@ -10,6 +10,7 @@ import {
   useCopy,
   type CopyState,
 } from "@/components/CopyPanel.tsx";
+import { CardJersey } from "@/components/JerseyButton.tsx";
 import {
   CardSport,
   SportPanel,
@@ -533,6 +534,7 @@ function DateCard({
       </p>
       <CardSport day={day.day} sport={sport} copy={copy} />
       <CardCopy day={day.day} copy={copy} />
+      <CardJersey day={day.day} copy={copy} />
     </article>
   );
 }

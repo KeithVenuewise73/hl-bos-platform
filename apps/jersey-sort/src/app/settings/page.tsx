@@ -125,9 +125,8 @@ export default async function SettingsPage({
         ) : null}
         {!current.claudeKeyPresent ? (
           <p className="mt-3 text-xs text-muted">
-            Claude vision needs an Anthropic API key, set as{" "}
-            <code>ANTHROPIC_API_KEY</code> where this app runs. Until then, Local OCR is
-            used.
+            Claude vision needs a Claude key. Paste it once in DateSort (the Sports
+            panel); JerseySort uses the same key. Until then, Local OCR is used.
           </p>
         ) : null}
         <p className="mt-2 text-xs text-muted">

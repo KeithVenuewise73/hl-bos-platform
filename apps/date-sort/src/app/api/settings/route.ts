@@ -4,6 +4,19 @@ import { guard } from "@/lib/guard.ts";
 
 export const dynamic = "force-dynamic";
 
+/**
+ * Saves take turns. Each one reads the settings, changes its part and writes
+ * them back; two at once (typing an event name, then pressing Copy, saves the
+ * name and the destination together) would let the second write undo the
+ * first. That happened: the destination was lost.
+ */
+let queue: Promise<void> = Promise.resolve();
+function oneAtATime(work: () => Promise<void>): Promise<void> {
+  const next = queue.then(work, work);
+  queue = next.catch(() => undefined);
+  return next;
+}
+
 /** The remembered destination for date folders. */
 export async function GET(request: Request): Promise<Response> {
   const refused = guard(request);
@@ -34,11 +47,15 @@ export async function POST(request: Request): Promise<Response> {
       { status: 400 },
     );
   }
-  const now = await loadSettings();
-  await saveSettings({
-    destination: destination ?? now.destination,
-    eventNames:
-      body.eventNames === undefined ? now.eventNames : cleanEventNames(body.eventNames),
+  await oneAtATime(async () => {
+    const now = await loadSettings();
+    await saveSettings({
+      destination: destination ?? now.destination,
+      eventNames:
+        body.eventNames === undefined
+          ? now.eventNames
+          : cleanEventNames(body.eventNames),
+    });
   });
   return Response.json({ ok: true });
 }

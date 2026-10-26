@@ -29,12 +29,21 @@ describe("the DateSort app", () => {
     }
   });
 
-  it("runs no program but PowerShell (the folder window, and keeping Windows awake)", () => {
+  it("runs only PowerShell (folder window, keeping Windows awake) and JerseySort's starter", () => {
     const spawners = files.filter((f) => /child_process/.test(readFileSync(f, "utf8")));
     expect(spawners.map((f) => f.replace(/\\/g, "/").split("/src/")[1]).sort()).toEqual(
-      ["lib/browse.ts", "lib/keep-awake.ts"],
+      ["lib/browse.ts", "lib/jersey-sort.ts", "lib/keep-awake.ts"],
     );
-    for (const f of spawners) {
+    // Starting JerseySort runs node, with only its starter script.
+    const js = readFileSync(
+      spawners.find((f) => f.endsWith("jersey-sort.ts"))!,
+      "utf8",
+    );
+    expect([...js.matchAll(/spawn\(\s*([^,]+),/g)].map((m) => m[1]!.trim())).toEqual([
+      "process.execPath",
+    ]);
+    expect(js).toMatch(/"scripts",\s*"jersey-sort\.mjs"/);
+    for (const f of spawners.filter((f) => !f.endsWith("jersey-sort.ts"))) {
       const src = readFileSync(f, "utf8");
       expect(
         [...src.matchAll(/(?:execFile|spawn)\(\s*"([^"]+)"/g)].map((m) => m[1]),
