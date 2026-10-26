@@ -837,7 +837,7 @@ async function buildFixtures(dir) {
   await page.goto(`${BASE}/photos/${lateId}`);
   check(
     "the photo says exactly why",
-    (await page.textContent("aside")).includes("no Anthropic API key is set"),
+    (await page.textContent("aside")).includes("no Claude key is saved"),
   );
   await page.goto(`${BASE}/settings`);
   await page.check("input[value=local-ocr]");

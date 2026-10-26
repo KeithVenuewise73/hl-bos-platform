@@ -10,6 +10,15 @@ interface P {
   processing: number;
   failed: number;
   needsReview: number;
+  /** A folder import from DateSort, while this server has one for the event. */
+  importing?: {
+    done: number;
+    total: number;
+    alreadyIn: number;
+    failed: number;
+    finished: boolean;
+    reasons: string[];
+  } | null;
 }
 
 /**
@@ -28,7 +37,8 @@ export function ProgressPanel({
   const [p, setP] = useState<P>(initial);
   const router = useRouter();
   const wasBusy = useRef(initial.queued + initial.processing > 0);
-  const busy = p.queued + p.processing > 0;
+  const arriving = p.importing != null && !p.importing.finished;
+  const busy = p.queued + p.processing > 0 || arriving;
 
   useEffect(() => {
     if (!busy) return;
@@ -52,7 +62,24 @@ export function ProgressPanel({
     return () => clearInterval(timer);
   }, [busy, eventId, router]);
 
-  if (p.total === 0 || (!busy && p.failed === 0)) return null;
+  const imp = p.importing ?? null;
+  const importNote =
+    imp === null ? null : (
+      <p className="mt-1 text-sm" data-testid="import-progress">
+        {imp.finished
+          ? `All ${imp.total.toLocaleString()} photos from the folder are in`
+          : `Bringing in photos from the folder: ${imp.done.toLocaleString()} of ${imp.total.toLocaleString()}`}
+        {imp.alreadyIn > 0
+          ? ` · ${imp.alreadyIn.toLocaleString()} were already here`
+          : ""}
+        {imp.failed > 0
+          ? ` · ${imp.failed} could not be brought in (${imp.reasons.join("; ")})`
+          : ""}
+        .
+      </p>
+    );
+  if (p.total === 0 && imp === null) return null;
+  if (!busy && p.failed === 0 && imp === null) return null;
   const pct = p.total === 0 ? 0 : Math.floor((p.done / p.total) * 100);
   return (
     <section className="card mb-5 p-4" aria-live="polite">
@@ -64,6 +91,7 @@ export function ProgressPanel({
           {p.done.toLocaleString()} / {p.total.toLocaleString()} complete · {pct}%
         </span>
       </div>
+      {importNote}
       <div className="mt-2 h-2 overflow-hidden rounded bg-panel-2">
         <div className="h-full bg-brand transition-all" style={{ width: `${pct}%` }} />
       </div>

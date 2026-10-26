@@ -14,6 +14,7 @@ export function GET(): Response {
     return NextResponse.json(
       {
         status: "ok",
+        app: "jersey-sort",
         storage: "local-sqlite",
         photos: row?.photos ?? 0,
         analyzing: row?.queued ?? 0,

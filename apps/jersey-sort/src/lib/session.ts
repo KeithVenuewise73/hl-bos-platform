@@ -15,9 +15,12 @@ export async function currentUser(): Promise<SessionUser | null> {
 }
 
 /** For pages and actions: the signed-in user, or a redirect to sign in. */
-export async function requireUser(): Promise<SessionUser> {
+/** The signed-in user, or off to sign in (and back to `next` afterwards). */
+export async function requireUser(next?: string): Promise<SessionUser> {
   const user = await currentUser();
-  if (user === null) redirect("/login");
+  if (user === null) {
+    redirect(next === undefined ? "/login" : `/login?next=${encodeURIComponent(next)}`);
+  }
   return user;
 }
 

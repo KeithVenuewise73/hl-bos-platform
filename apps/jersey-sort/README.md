@@ -52,6 +52,25 @@ studio (that becomes your organization), an email and a password.
     number, assign a player, add to an album, favorite, remove a tag,
     download (ZIP of the untouched originals), mark reviewed.
 
+## Bring a game in from DateSort
+
+DateSort's **Find jersey numbers** button opens
+`/import?folder=…&date=…&sport=…&name=…`. That page shows how many JPG, PNG and
+HEIC photos are directly in the game's folder. Canon RAW files are counted and
+left out: they are the same shots, and reading both would double the cost. It
+also shows who will read the numbers, with the event filled in. **Create event**
+creates it and brings the photos in, in the background, through the same
+`ingestPhoto()` as an upload. The event page shows "Bringing in photos from the
+folder: n of N". Photos already in JerseySort are recognised by their bytes and
+skipped, so starting again finishes an interrupted import. The folder is only
+read (`src/lib/folder-import.ts`, tested with a fingerprint before and after).
+
+**Claude key.** `ANTHROPIC_API_KEY` if it is set. Otherwise, the key the CEO
+saved in DateSort's Sports panel (`src/lib/shared-key.ts`, read fresh each time).
+
+Signing in now returns to the page you were going to (`?next=`), and only to
+a page of this app (`src/lib/next-path.ts`).
+
 ## Who reads the numbers
 
 | Provider                | When                                          | What it can do                                                                                                                                                                                                    |

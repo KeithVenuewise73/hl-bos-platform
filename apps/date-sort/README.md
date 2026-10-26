@@ -149,6 +149,28 @@ and only to a name nothing else has). The copy then finishes in it, and no photo
 copied twice. If a date already has two or more folders, DateSort copies nothing
 for that date and lists them, so you can keep one.
 
+## Jersey numbers: hand a game to JerseySort (built)
+
+The order is date, then sport, then jersey number. Every copied date card has
+**Find jersey numbers**. It is only for the games you choose, because reading
+numbers means Claude looks at **every** photo of the game:
+
+1. DateSort finds the date's folder in the destination. The date must be copied
+   first, and its folder must have the current name.
+2. It starts JerseySort if JerseySort isn't running (`scripts/jersey-sort.mjs`).
+   That script builds JerseySort if its code changed, starts it hidden in the
+   background, and waits until it answers. Its output goes to `jersey-sort.log`
+   in DateSort's settings folder. JerseySort keeps running after DateSort
+   closes, so the next game opens at once.
+3. It gives the link **Open this game in JerseySort**. JerseySort's import page
+   shows the date, sport (taken from "Basketball - …") and event name already
+   filled in, and how many photos will come in. Nothing happens until
+   **Create event** is pressed. If you are not signed in to JerseySort, sign-in
+   (or first-time sign-up) brings you back to that page.
+
+JerseySort uses the Claude key saved here, so it is pasted once. The game
+folder is only read: a test fingerprints every file before and after.
+
 ## Not built yet
 
 | Step | What                                                                                                 |

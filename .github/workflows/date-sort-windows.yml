@@ -18,6 +18,10 @@ name: DateSort on Windows
 #   - DateSort.bat collects new work from GitHub when it starts: a change
 #     is put on a stand-in "GitHub" and DateSort.bat must fetch it, rebuild,
 #     come up, and leave the console its rebuild note
+#   - date -> sport -> jersey number: a game copied and named in DateSort,
+#     "Find jersey numbers" starting JerseySort, the import link surviving
+#     sign-up, and the game's photos arriving in a JerseySort event, with the
+#     game folder unchanged (scripts/local-test/verify-date-to-jersey.cjs)
 #   - DateSort's and the console's unit tests, on Windows
 
 on:
@@ -29,6 +33,10 @@ on:
       - "scripts/DateSort.bat"
       - "scripts/date-sort.mjs"
       - "scripts/desktop-shortcut.mjs"
+      - "scripts/jersey-sort.mjs"
+      - "apps/jersey-sort/**"
+      - "packages/jersey-sort/**"
+      - "scripts/local-test/verify-date-to-jersey.cjs"
       - "scripts/update.mjs"
       - "scripts/control-center.bat"
       - "scripts/assets/**"
@@ -44,6 +52,10 @@ on:
       - "scripts/DateSort.bat"
       - "scripts/date-sort.mjs"
       - "scripts/desktop-shortcut.mjs"
+      - "scripts/jersey-sort.mjs"
+      - "apps/jersey-sort/**"
+      - "packages/jersey-sort/**"
+      - "scripts/local-test/verify-date-to-jersey.cjs"
       - "scripts/update.mjs"
       - "scripts/control-center.bat"
       - "scripts/assets/**"
@@ -246,6 +258,29 @@ jobs:
             if (-not $cc[$k]) { "Control Center desktop icon check failed: $k"; exit 1 }
           }
 
+      - name: Date, sport, then jersey numbers (DateSort hands a game to JerseySort)
+        env:
+          DATESORT_NO_BROWSER: "1"
+        run: |
+          $T = $env:RUNNER_TEMP
+          function Up($port) { try { (Invoke-WebRequest "http://localhost:$port/api/health" -UseBasicParsing -TimeoutSec 3).StatusCode -eq 200 } catch { $false } }
+          $bat = Start-Process -FilePath cmd.exe -ArgumentList '/c', 'scripts\DateSort.bat < NUL' `
+            -RedirectStandardOutput "$T\datesort-jersey.log" -RedirectStandardError "$T\datesort-jersey.err.log" `
+            -WindowStyle Hidden -PassThru
+          for ($i = 0; $i -lt 300 -and -not (Up 4604); $i++) { if ($bat.HasExited) { break }; Start-Sleep -Seconds 2 }
+          if (-not (Up 4604)) { Get-Content "$T\datesort-jersey.log", "$T\datesort-jersey.err.log" -ErrorAction SilentlyContinue; "DateSort did not start"; exit 1 }
+          "JerseySort running before the button: $(Up 4603)"
+          $env:DATESORT_REPORT = "$T\run-jersey.json"
+          $env:DATESORT_SCREENSHOTS = "$T\shots-jersey"
+          node scripts/local-test/verify-date-to-jersey.cjs http://127.0.0.1:4604
+          $result = $LASTEXITCODE
+          Get-Content (Join-Path $env:LOCALAPPDATA 'DateSort\jersey-sort.log') -Tail 40 -ErrorAction SilentlyContinue
+          foreach ($port in 4604, 4603) {
+            foreach ($c in Get-NetTCPConnection -LocalPort $port -State Listen -ErrorAction SilentlyContinue) { taskkill /T /F /PID $c.OwningProcess 2>$null | Out-Null }
+          }
+          taskkill /T /F /PID $bat.Id 2>$null | Out-Null
+          exit $result
+
       - name: DateSort.bat collects new work from GitHub when it starts
         # The checkout acts as its own stand-in GitHub: a change is committed
         # to a branch there, the folder is put one change behind it, and the
@@ -329,6 +364,10 @@ jobs:
             $lines += "| A deleted Control Center icon stays deleted | $(& $yn $cci.staysDeleted) |"
             $lines += "| The console makes its own icon on a new computer | $(& $yn $cci.consoleMakes) |"
           }
+          $dj = Load "$T\run-jersey.json"
+          if ($dj) {
+            $lines += "| Date, sport, then jersey numbers (DateSort hands a game to JerseySort) | $(if ($dj.failures -eq 0) { "PASS ($($dj.checks) checks)" } else { "FAIL ($($dj.failures) of $($dj.checks))" }) |"
+          }
           $up = Load "$T\update.json"
           if ($up) {
             $lines += "| Starting DateSort collects new work from GitHub | $(& $yn ($up.collected -and $up.restarted -and $up.atNewCode)) |"
@@ -358,6 +397,7 @@ jobs:
           path: |
             ${{ runner.temp }}\shots-bat
             ${{ runner.temp }}\shots-console
+            ${{ runner.temp }}\shots-jersey
             ${{ runner.temp }}\*.json
             ${{ runner.temp }}\*.log
           if-no-files-found: ignore

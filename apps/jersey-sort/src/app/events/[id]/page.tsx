@@ -6,6 +6,7 @@ import { Notice, param, type SearchParams } from "@/components/Notice.tsx";
 import { NumberCards } from "@/components/NumberCards.tsx";
 import { Pager } from "@/components/Pager.tsx";
 import { PhotoGrid } from "@/components/PhotoGrid.tsx";
+import { importStatus } from "@/lib/imports.ts";
 import { ProgressPanel } from "@/components/Progress.tsx";
 import { Tabs } from "@/components/Tabs.tsx";
 import { Uploader } from "@/components/Uploader.tsx";
@@ -102,7 +103,7 @@ export default async function EventPage({
 
       <Notice error={param(sp, "error")} notice={param(sp, "notice")} />
       <Uploader eventId={id} />
-      <ProgressPanel eventId={id} initial={p} />
+      <ProgressPanel eventId={id} initial={{ ...p, importing: importStatus(id) }} />
       {p.failed > 0 ? (
         <form
           action={retryFailedAction}

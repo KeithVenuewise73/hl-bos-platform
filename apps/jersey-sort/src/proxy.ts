@@ -18,6 +18,9 @@ export function proxy(request: NextRequest): NextResponse {
   if (request.cookies.has("jerseysort_session")) return NextResponse.next();
   const url = request.nextUrl.clone();
   url.pathname = "/login";
-  url.search = "";
+  // Keep the way back (DateSort's import link must survive signing in).
+  // Only this app's own path is kept; sign-in checks it again (safeNext).
+  const wanted = request.nextUrl.pathname + request.nextUrl.search;
+  url.search = wanted === "/" ? "" : `?next=${encodeURIComponent(wanted)}`;
   return NextResponse.redirect(url, 307);
 }
