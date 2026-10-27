@@ -39,7 +39,8 @@ const FORMAT_FOR: Record<string, string> = {
 
 describe("ExifTool's readings are the reference", () => {
   it("covers every fixture", () => {
-    const files = readdirSync(FIXTURES).filter((f) => !/\.(json|md)$/.test(f));
+    // Videos are checked against ffprobe instead (video.test.ts).
+    const files = readdirSync(FIXTURES).filter((f) => !/\.(json|md|mov|mp4)$/i.test(f));
     expect(Object.keys(exiftool).sort()).toEqual(files.sort());
   });
 

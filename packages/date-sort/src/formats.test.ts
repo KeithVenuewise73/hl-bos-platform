@@ -26,9 +26,23 @@ describe("identifying a file by its bytes", () => {
     expect(sniff(CR2)).toBe("cr2");
   });
 
-  it("does not mistake a plain TIFF or an MP4 for a photo it reads", () => {
+  it("does not mistake a plain TIFF for a photo it reads", () => {
     expect(sniff(PLAIN_TIFF)).toBeNull();
-    expect(sniff(MP4)).toBeNull();
+  });
+
+  it("knows videos: iPhone MOV, MP4, and old QuickTime files without ftyp", () => {
+    expect(sniff(MP4)).toBe("mp4");
+    expect(sniff(b(0, 0, 0, 0x14, "ftypqt  ", 0, 0, 0, 0))).toBe("mov");
+    expect(sniff(b(0, 0, 0, 0x08, "wide", 0, 0, 0, 0))).toBe("mov");
+    // HEIC and CR3 are the same family of file, but not videos.
+    expect(sniff(IPHONE_HEIC)).toBe("heic");
+    expect(sniff(CR3)).toBe("cr3");
+    expect(
+      classify("IMG_0042.MOV", 1000, b(0, 0, 0, 0x14, "ftypqt  ", 0, 0, 0, 0)),
+    ).toEqual({
+      kind: "photo",
+      format: "mov",
+    });
   });
 
   it("counts .JPG and .jpeg the same, in any case", () => {
@@ -58,9 +72,13 @@ describe("identifying a file by its bytes", () => {
       kind: "unsupported",
       reason: "Named .cr3 but is not a CR3 file",
     });
-    expect(classify("MVI_0011.MP4", 1000, MP4)).toEqual({
+    expect(classify("fake.MP4", 20, b("not a video........"))).toEqual({
       kind: "unsupported",
-      reason: ".mp4 files are not photos DateSort reads",
+      reason: "Named .mp4 but is not an MP4 file",
+    });
+    expect(classify("clip.avi", 1000, b("RIFF....AVI LIST..."))).toEqual({
+      kind: "unsupported",
+      reason: ".avi files are not photos DateSort reads",
     });
     expect(classify("Thumbs.db", 1000, JPEG)).toEqual({
       kind: "unsupported",

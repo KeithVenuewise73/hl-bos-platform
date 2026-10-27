@@ -2,7 +2,13 @@
 
 import { useEffect, useRef, useState } from "react";
 
-import { FORMAT_LABEL, PHOTO_FORMATS, type DayReport } from "@hl-bos/date-sort";
+import {
+  FORMAT_LABEL,
+  isVideo,
+  PHOTO_FORMATS,
+  type DayReport,
+  type PhotoFormat,
+} from "@hl-bos/date-sort";
 
 import {
   CardCopy,
@@ -287,6 +293,9 @@ function Stat({
 
 function Report({ view }: { view: ScanView }) {
   const r = view.report;
+  const videos = r.byFormat.mov + r.byFormat.mp4;
+  // Video columns only when there are videos: camera cards look as before.
+  const formats: PhotoFormat[] = PHOTO_FORMATS.filter((f) => !isVideo(f) || videos > 0);
   const copy = useCopy(view);
   const sport = useSport(view);
   const [showEstimated, setShowEstimated] = useState(false);
@@ -305,10 +314,14 @@ function Report({ view }: { view: ScanView }) {
           </p>
         </div>
         <p className="text-2xl font-semibold" data-testid="headline">
-          {count(r.photos, "photo")} · {count(r.days.length, "shooting date")}
+          {videos > 0
+            ? `${count(r.photos - videos, "photo")} · ${count(videos, "video")} · ${count(r.days.length, "shooting date")}`
+            : `${count(r.photos, "photo")} · ${count(r.days.length, "shooting date")}`}
         </p>
 
-        <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 lg:grid-cols-8">
+        <div
+          className={`grid grid-cols-2 gap-2 sm:grid-cols-4 ${videos > 0 ? "lg:grid-cols-5" : "lg:grid-cols-8"}`}
+        >
           <Stat id="total" label="Files scanned" value={r.totalFiles} />
           <Stat id="photos" label="Photos" value={r.photos} />
           <Stat id="jpeg" label="JPG / JPEG" value={r.byFormat.jpeg} />
@@ -316,6 +329,12 @@ function Report({ view }: { view: ScanView }) {
           <Stat id="heic" label="HEIC" value={r.byFormat.heic} />
           <Stat id="cr2" label="Canon CR2" value={r.byFormat.cr2} />
           <Stat id="cr3" label="Canon CR3" value={r.byFormat.cr3} />
+          {videos > 0 ? (
+            <Stat id="mov" label="Videos MOV" value={r.byFormat.mov} />
+          ) : null}
+          {videos > 0 ? (
+            <Stat id="mp4" label="Videos MP4" value={r.byFormat.mp4} />
+          ) : null}
           <Stat
             id="unsupported"
             label="Not photos"
@@ -325,7 +344,11 @@ function Report({ view }: { view: ScanView }) {
         </div>
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
           <Stat id="dates" label="Shooting dates" value={r.days.length} />
-          <Stat id="camera" label="Camera (EXIF) dates" value={r.cameraDated} />
+          <Stat
+            id="camera"
+            label={videos > 0 ? "Camera / phone dates" : "Camera (EXIF) dates"}
+            value={r.cameraDated}
+          />
           <Stat
             id="estimated"
             label="Estimated dates"
@@ -384,7 +407,7 @@ function Report({ view }: { view: ScanView }) {
           data-testid="date-cards"
         >
           {r.days.map((d) => (
-            <DateCard key={d.day} day={d} copy={copy} sport={sport} />
+            <DateCard key={d.day} day={d} copy={copy} sport={sport} formats={formats} />
           ))}
         </div>
       )}
@@ -477,10 +500,12 @@ function DateCard({
   day,
   copy,
   sport,
+  formats,
 }: {
   day: DayReport;
   copy: CopyState;
   sport: SportState;
+  formats: readonly PhotoFormat[];
 }) {
   return (
     <article className="card space-y-3 p-5" data-testid="date-card" data-day={day.day}>
@@ -488,8 +513,11 @@ function DateCard({
       <p className="text-2xl font-semibold" data-col="photos">
         {count(day.photos, "photo")}
       </p>
-      <dl className="grid grid-cols-5 gap-1 text-center" data-col="formats">
-        {PHOTO_FORMATS.map((f) => (
+      <dl
+        className={`grid ${formats.length > 5 ? "grid-cols-7" : "grid-cols-5"} gap-1 text-center`}
+        data-col="formats"
+      >
+        {formats.map((f) => (
           <div
             key={f}
             className="rounded border border-line bg-panel-2 px-1 py-1"

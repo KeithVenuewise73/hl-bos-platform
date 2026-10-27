@@ -149,6 +149,25 @@ and only to a name nothing else has). The copy then finishes in it, and no photo
 copied twice. If a date already has two or more folders, DateSort copies nothing
 for that date and lists them, so you can keep one.
 
+## Videos: iPhone MOV and MP4 (built)
+
+Videos are sorted by date just like photos.
+
+- **How a video's date is found.** iPhone videos carry Apple's creation date: the
+  local time the phone showed, plus its time zone. DateSort keeps that clock, so a
+  game filmed at 11:41 pm stays on that day even though it is already the next
+  day in UTC. Other videos use the time in the movie header, shown in this
+  computer's time zone. A video with neither is dated by its file and labelled
+  **estimated**.
+- **Read-only, and fast.** `src/quicktime.ts` walks the boxes that describe the
+  video and skips the video data itself; a test proves no byte of it is read. The
+  reader is checked against ffprobe on real MOV and MP4 files
+  (`fixtures/ffprobe-says.json`), with the computer set to New York and to Tokyo.
+- **What to copy.** When a scan has videos, the copy panel offers **Photos and
+  videos**, **Photos only** or **Videos only**. With **Videos only**, choose the
+  video folder (for example `Hockey Videos` on the Seagate) and only videos go
+  there, into date folders. A date with no videos gets no folder.
+
 ## Jersey numbers: hand a game to JerseySort (built)
 
 The order is date, then sport, then jersey number. Every copied date card has

@@ -14,6 +14,7 @@ import exifr from "exifr";
 
 import { cameraDate, estimateFromFileTime, type CaptureDate } from "./capture-date";
 import { readCr3Dates } from "./cr3";
+import { readVideoDates } from "./quicktime";
 import { readHeifDates } from "./heif";
 import { classify, SNIFF_BYTES, type PhotoFormat } from "./formats";
 import {
@@ -171,6 +172,19 @@ export async function cameraDateOf(
   format: PhotoFormat,
 ): Promise<CaptureDate | null> {
   if (format === "cr3") return ownReader(() => readCr3Dates(file));
+  if (format === "mov" || format === "mp4") {
+    try {
+      const v = await readVideoDates(file);
+      if (v.appleCreationDate !== undefined) {
+        return { takenAt: v.appleCreationDate, source: "VideoCreationDate" };
+      }
+      if (v.movieHeader !== undefined)
+        return { takenAt: v.movieHeader, source: "VideoHeader" };
+      return null;
+    } catch {
+      return null; // a damaged box: the caller estimates, and says so
+    }
+  }
   if (format === "heic") {
     // Our own reader first; the EXIF library as a second opinion.
     const own = await ownReader(() => readHeifDates(file));

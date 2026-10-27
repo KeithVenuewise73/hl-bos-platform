@@ -382,6 +382,14 @@
       "done": true
     },
     {
+      "title": "DateSort sorts videos too (iPhone MOV, MP4), dated by the phone's own clock; Photos only / Videos only, so hockey videos go to their own folder",
+      "done": true
+    },
+    {
+      "title": "DateSort reads an iPhone plugged in by USB (no drive letter on Windows); first real test on the CEO's phone",
+      "done": false
+    },
+    {
       "title": "First real jersey-number reading of a CEO game with Claude, and its measured cost per photo",
       "done": false
     },

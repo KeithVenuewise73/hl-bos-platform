@@ -132,12 +132,20 @@ describe("scanning a camera card copied to the laptop", () => {
   it("with subfolders: finds and identifies every file", async () => {
     const { report: r } = await scanFolder(root, { includeSubfolders: true });
     expect(r.totalFiles).toBe(14);
-    expect(r.byFormat).toEqual({ jpeg: 6, png: 0, heic: 1, cr2: 1, cr3: 3 });
+    expect(r.byFormat).toEqual({
+      jpeg: 6,
+      png: 0,
+      heic: 1,
+      cr2: 1,
+      cr3: 3,
+      mov: 0,
+      mp4: 0,
+    });
     expect(r.photos).toBe(11);
     expect(r.unsupported.map((u) => u.reason).sort()).toEqual(
       [
-        ".mp4 files are not photos DateSort reads",
         "Named .jpg but is not a JPG file",
+        "Named .mp4 but is not an MP4 file",
         "System file, not a photo",
       ].sort(),
     );
@@ -177,7 +185,15 @@ describe("scanning a camera card copied to the laptop", () => {
       ["2026-10-04", 5, 5, 0, "2026-10-04T13:03:00", "2026-10-04T15:47:00"],
       ["2026-10-05", 3, 2, 1, "2026-10-05T09:15:00", "2026-10-05T21:30:00"],
     ]);
-    expect(r.days[1]!.byFormat).toEqual({ jpeg: 2, png: 0, heic: 1, cr2: 1, cr3: 1 });
+    expect(r.days[1]!.byFormat).toEqual({
+      jpeg: 2,
+      png: 0,
+      heic: 1,
+      cr2: 1,
+      cr3: 1,
+      mov: 0,
+      mp4: 0,
+    });
     expect(r.days[2]!.lastIsEstimate).toBe(true);
   });
 

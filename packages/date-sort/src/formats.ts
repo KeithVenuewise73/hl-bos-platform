@@ -6,7 +6,12 @@
  * a mismatch ("named .jpg but is not a JPEG image").
  */
 
-export type PhotoFormat = "jpeg" | "png" | "heic" | "cr2" | "cr3";
+/**
+ * Every kind of file DateSort sorts. "mov" and "mp4" are videos (iPhones
+ * film MOV); the code calls them all "photos" where the difference does not
+ * matter, and asks isVideo() where it does.
+ */
+export type PhotoFormat = "jpeg" | "png" | "heic" | "cr2" | "cr3" | "mov" | "mp4";
 
 /** Every format DateSort counts, in the order the report lists them. */
 export const PHOTO_FORMATS: readonly PhotoFormat[] = [
@@ -15,6 +20,8 @@ export const PHOTO_FORMATS: readonly PhotoFormat[] = [
   "heic",
   "cr2",
   "cr3",
+  "mov",
+  "mp4",
 ];
 
 /** How each format is named on screen. */
@@ -24,10 +31,16 @@ export const FORMAT_LABEL: Readonly<Record<PhotoFormat, string>> = {
   heic: "HEIC",
   cr2: "CR2",
   cr3: "CR3",
+  mov: "MOV",
+  mp4: "MP4",
 };
 
 export function isRaw(format: PhotoFormat): boolean {
   return format === "cr2" || format === "cr3";
+}
+
+export function isVideo(format: PhotoFormat): boolean {
+  return format === "mov" || format === "mp4";
 }
 
 /** How many leading bytes `sniff` needs. */
@@ -50,6 +63,26 @@ const HEIF_BRANDS = new Set([
   "msf1",
 ]);
 
+/** MP4 brands from phones, cameras and editors. */
+const MP4_BRANDS = new Set([
+  "isom",
+  "iso2",
+  "iso4",
+  "iso5",
+  "iso6",
+  "mp41",
+  "mp42",
+  "avc1",
+  "M4V ",
+  "M4VP",
+  "MSNV",
+  "XAVC",
+  "3gp4",
+  "3gp5",
+  "3gp6",
+  "3g2a",
+]);
+
 /** The format these bytes are, or null when they are none of ours. */
 export function sniff(head: Uint8Array): PhotoFormat | null {
   // Canon RAW first: a CR2 is also a TIFF, and a CR3 is also an ISO media file.
@@ -70,6 +103,11 @@ export function sniff(head: Uint8Array): PhotoFormat | null {
     return "png";
   }
   if (box === "ftyp" && HEIF_BRANDS.has(brand)) return "heic";
+  // Videos. QuickTime (iPhone) says "qt  "; MP4 has many brands.
+  if (box === "ftyp" && brand === "qt  ") return "mov";
+  if (box === "ftyp" && MP4_BRANDS.has(brand)) return "mp4";
+  // Older QuickTime files start straight with a movie box, no ftyp.
+  if (box === "moov" || box === "wide" || box === "mdat") return "mov";
   return null;
 }
 
@@ -92,6 +130,9 @@ const EXTENSION_FORMAT: Readonly<Record<string, PhotoFormat>> = {
   heif: "heic",
   cr2: "cr2",
   cr3: "cr3",
+  mov: "mov",
+  mp4: "mp4",
+  m4v: "mp4",
 };
 
 /** Files Windows, macOS and cameras leave in folders; never photos. */
@@ -115,7 +156,7 @@ export function classify(name: string, size: number, head: Uint8Array): Classifi
   if (promised !== undefined) {
     return {
       kind: "unsupported",
-      reason: `Named .${ext} but is not a ${FORMAT_LABEL[promised]} file`,
+      reason: `Named .${ext} but is not ${/^M/.test(FORMAT_LABEL[promised]) ? "an" : "a"} ${FORMAT_LABEL[promised]} file`,
     };
   }
   return {
