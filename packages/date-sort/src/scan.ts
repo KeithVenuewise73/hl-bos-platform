@@ -26,6 +26,8 @@ import {
 import { buildReport, type ScannedFile, type ScanReport } from "./report";
 import type { TiffDates } from "./tiff";
 
+/** Where files from an iPhone wait until complete (apps/date-sort iphone-script). */
+export const INCOMING = ".datesort-incoming";
 export interface ScanOptions {
   readonly includeSubfolders: boolean;
   /** Files read at once. A laptop disk is happiest with a handful. */
@@ -97,6 +99,9 @@ export async function scanFolder(
       const childRel = rel === "" ? e.name : join(rel, e.name);
       if (e.isLink) skippedLinks.push(childRel);
       else if (e.isDirectory) {
+        // DateSort's own staging for files still arriving from an iPhone
+        // (never a finished photo): not part of what was taken.
+        if (e.name === INCOMING) continue;
         if (options.includeSubfolders) queue.push(childRel);
       } else if (e.isFile) paths.push(childRel);
     }

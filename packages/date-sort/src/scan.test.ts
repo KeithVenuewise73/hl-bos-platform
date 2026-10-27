@@ -227,3 +227,23 @@ describe("scanning a camera card copied to the laptop", () => {
     ).rejects.toThrow("is a file, not a folder");
   });
 });
+
+describe("files still arriving from an iPhone", () => {
+  it("are not counted: DateSort's own .datesort-incoming folder is skipped", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "datesort-incoming-"));
+    mkdirSync(join(dir, "100APPLE"));
+    mkdirSync(join(dir, ".datesort-incoming"));
+    writeFileSync(
+      join(dir, "100APPLE", "IMG_0001.JPG"),
+      readFileSync(join(FIXTURES, "jpg-all-three-differ.jpg")),
+    );
+    writeFileSync(
+      join(dir, ".datesort-incoming", "IMG_0002.JPG"),
+      readFileSync(join(FIXTURES, "jpg-all-three-differ.jpg")).subarray(0, 500),
+    );
+    const { files } = await scanFolder(dir, { includeSubfolders: true });
+    expect(files.map((f) => f.path.replace(/\\/g, "/"))).toEqual([
+      "100APPLE/IMG_0001.JPG",
+    ]);
+  });
+});

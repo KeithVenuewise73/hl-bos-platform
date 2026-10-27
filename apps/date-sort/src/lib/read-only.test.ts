@@ -29,10 +29,10 @@ describe("the DateSort app", () => {
     }
   });
 
-  it("runs only PowerShell (folder window, keeping Windows awake) and JerseySort's starter", () => {
+  it("runs only PowerShell (folder window, keeping Windows awake, reading an iPhone) and JerseySort's starter", () => {
     const spawners = files.filter((f) => /child_process/.test(readFileSync(f, "utf8")));
     expect(spawners.map((f) => f.replace(/\\/g, "/").split("/src/")[1]).sort()).toEqual(
-      ["lib/browse.ts", "lib/jersey-sort.ts", "lib/keep-awake.ts"],
+      ["lib/browse.ts", "lib/iphone.ts", "lib/jersey-sort.ts", "lib/keep-awake.ts"],
     );
     // Starting JerseySort runs node, with only its starter script.
     const js = readFileSync(

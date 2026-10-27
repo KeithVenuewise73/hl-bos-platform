@@ -540,7 +540,11 @@ describe("copying dates into folders", () => {
 describe("remembering the destination and event names", () => {
   it("saves and loads them from DateSort's own settings folder", async () => {
     const dir = join(work, "settings");
-    expect(await loadSettings(dir)).toEqual({ destination: null, eventNames: {} });
+    expect(await loadSettings(dir)).toEqual({
+      destination: null,
+      eventNames: {},
+      iphoneFolder: null,
+    });
     await saveSettings(
       {
         destination: "D:\\5-Star Sports Media\\Games",
@@ -551,6 +555,7 @@ describe("remembering the destination and event names", () => {
     expect(await loadSettings(dir)).toEqual({
       destination: "D:\\5-Star Sports Media\\Games",
       eventNames: { "2025-11-08": "Zac K" },
+      iphoneFolder: null,
     });
   });
 

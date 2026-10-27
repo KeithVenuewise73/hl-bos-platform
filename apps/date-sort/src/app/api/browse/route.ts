@@ -9,7 +9,9 @@ export async function POST(request: Request): Promise<Response> {
   if (refused !== null) return refused;
   const body = (await request.json().catch(() => ({}))) as { purpose?: unknown };
   const outcome = await browseForFolder(
-    body.purpose === "destination" ? "destination" : "source",
+    body.purpose === "destination" || body.purpose === "iphone"
+      ? body.purpose
+      : "source",
   );
   return Response.json(outcome, { headers: { "Cache-Control": "no-store" } });
 }

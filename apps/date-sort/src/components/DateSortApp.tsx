@@ -16,6 +16,7 @@ import {
   useCopy,
   type CopyState,
 } from "@/components/CopyPanel.tsx";
+import { IphoneButton } from "@/components/IphoneButton.tsx";
 import { CardJersey } from "@/components/JerseyButton.tsx";
 import {
   CardSport,
@@ -110,7 +111,8 @@ export function DateSortApp() {
     }
   }
 
-  async function scan() {
+  async function scan(target?: string) {
+    const folder_ = target ?? folder;
     abort.current?.abort();
     const controller = new AbortController();
     abort.current = controller;
@@ -118,12 +120,12 @@ export function DateSortApp() {
     setError(null);
     setView(null);
     setProgress({ phase: "listing", found: 0, read: 0 });
-    remember(folder, includeSubfolders);
+    remember(folder_, includeSubfolders);
     try {
       const res = await fetch("/api/scan", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ folder, includeSubfolders }),
+        body: JSON.stringify({ folder: folder_, includeSubfolders }),
         signal: controller.signal,
       });
       if (!res.ok || res.body === null) {
@@ -230,6 +232,14 @@ export function DateSortApp() {
           Scanning only reads. Nothing in this folder is moved, renamed, edited or
           deleted, and nothing is created inside it.
         </p>
+        <IphoneButton
+          disabled={scanning}
+          onReady={(f) => {
+            setFolder(f);
+            setIncludeSubfolders(true);
+            void scan(f);
+          }}
+        />
       </section>
 
       {progress !== null ? (

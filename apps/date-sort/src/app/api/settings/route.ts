@@ -36,12 +36,17 @@ export async function POST(request: Request): Promise<Response> {
   const body = (await request.json().catch(() => ({}))) as {
     destination?: unknown;
     eventNames?: unknown;
+    iphoneFolder?: unknown;
   };
   const destination =
     typeof body.destination === "string" && body.destination.trim() !== ""
       ? body.destination.trim()
       : null;
-  if (destination === null && body.eventNames === undefined) {
+  const iphoneFolder =
+    typeof body.iphoneFolder === "string" && body.iphoneFolder.trim() !== ""
+      ? body.iphoneFolder.trim()
+      : null;
+  if (destination === null && body.eventNames === undefined && iphoneFolder === null) {
     return Response.json(
       { error: "Expected a folder or event names." },
       { status: 400 },

@@ -478,6 +478,116 @@ async function sportChecks(page, browser) {
   verdict("Sport suggestions on the page", shown, used, nothingForSplit);
 }
 
+// ---------------------------------------------------------------------------
+// Bring in from iPhone. No CI machine has an iPhone, so the workflow starts
+// DateSort with DATESORT_IPHONE_TEST_SOURCE pointing at a folder laid out like
+// an iPhone's DCIM, and the copy goes through the same Windows Shell calls it
+// makes on a real phone. Finding "Apple iPhone" in This PC is the one part
+// only a real phone can prove.
+// ---------------------------------------------------------------------------
+async function iphoneChecks(page, work) {
+  const source = process.env.DATESORT_IPHONE_TEST_SOURCE;
+  if (!WINDOWS || !source) {
+    console.log("  (skipped: needs Windows and DATESORT_IPHONE_TEST_SOURCE)");
+    return;
+  }
+  for (const [sub, from, to] of [
+    ["100APPLE", "iphone-style.mov", "IMG_0042.MOV"],
+    ["100APPLE", "header-only.mp4", "IMG_0043.MP4"],
+    ["100APPLE", "heic-all-three-differ.heic", "IMG_0044.HEIC"],
+    ["101APPLE", "jpg-all-three-differ.jpg", "IMG_0050.JPG"],
+  ]) {
+    fs.mkdirSync(path.join(source, sub), { recursive: true });
+    fs.copyFileSync(path.join(FIXTURES, from), path.join(source, sub, to));
+  }
+  const phoneBefore = fingerprint(source);
+  const kept = path.join(work, "Seagate", "iPhone Photos");
+  fs.mkdirSync(kept, { recursive: true });
+  await fetch(`${BASE}/api/settings`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Origin: BASE },
+    body: JSON.stringify({ iphoneFolder: kept }),
+  });
+  await page.reload();
+  const run = async () => {
+    await page.click("[data-testid=iphone-button]");
+    return page
+      .waitForFunction(
+        () => {
+          const t =
+            document.querySelector("[data-testid=iphone-progress]")?.textContent || "";
+          const p =
+            document.querySelector("[data-testid=iphone-problem]")?.textContent || "";
+          return /^Done/.test(t) || p !== "" ? t || p : null;
+        },
+        null,
+        { timeout: 300_000 },
+      )
+      .then((h) => h.jsonValue())
+      .catch(() => "no answer");
+  };
+  const first = await run();
+  const keptFiles = walk(kept)
+    .map((f) => path.relative(kept, f).replace(/\\/g, "/"))
+    .sort();
+  const copied = check(
+    "every photo and video comes across into the kept folder, in the phone's own folders",
+    /4 copied · 0 already there/.test(first) &&
+      JSON.stringify(keptFiles) ===
+        JSON.stringify([
+          "100APPLE/IMG_0042.MOV",
+          "100APPLE/IMG_0043.MP4",
+          "100APPLE/IMG_0044.HEIC",
+          "101APPLE/IMG_0050.JPG",
+        ]),
+    JSON.stringify({ first, keptFiles }),
+  );
+  const same = check(
+    "each copy is byte for byte the original",
+    sha(path.join(kept, "100APPLE", "IMG_0042.MOV")) ===
+      sha(path.join(source, "100APPLE", "IMG_0042.MOV")) &&
+      sha(path.join(kept, "101APPLE", "IMG_0050.JPG")) ===
+        sha(path.join(source, "101APPLE", "IMG_0050.JPG")),
+  );
+  const scanned = await page
+    .waitForFunction(
+      () =>
+        /2 videos/.test(
+          document.querySelector("[data-testid=headline]")?.textContent || "",
+        ),
+      null,
+      {
+        timeout: 120_000,
+      },
+    )
+    .then(() => true)
+    .catch(() => false);
+  const autoScan = check(
+    "then it scans the kept folder by itself (the report shows the 2 videos)",
+    scanned && (await page.inputValue("[data-testid=source-input]")) === kept,
+    await page.textContent("[data-testid=headline]").catch(() => ""),
+  );
+  await shot(page, "12-iphone");
+  const second = await run();
+  const again = check(
+    "pressing it again brings nothing twice: all 4 already there",
+    /0 copied · 4 already there/.test(second),
+    second,
+  );
+  const untouched = check(
+    "nothing on the phone side changed (every file fingerprinted)",
+    differences(phoneBefore, fingerprint(source)).length === 0,
+  );
+  verdict(
+    "Bring in from iPhone (same Windows calls, iPhone-like folder)",
+    copied,
+    same,
+    autoScan,
+    again,
+    untouched,
+  );
+}
+
 async function copyChecks(page, card, work) {
   const sourceBefore = fingerprint(card);
   const dest = path.join(work, "Games");
@@ -1332,6 +1442,11 @@ async function refusals() {
     JSON.stringify({ vc, copiedVideos }),
   );
   verdict("Videos (iPhone MOV, MP4)", videoDates, onlyVideos);
+
+  console.log(
+    "\nBring in from iPhone (an iPhone-like folder through the same Windows calls)",
+  );
+  await iphoneChecks(page, work);
 
   console.log("\nCR3-only folder");
   const cr3Dir = path.join(work, "CR3 only");

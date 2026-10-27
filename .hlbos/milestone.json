@@ -386,7 +386,11 @@
       "done": true
     },
     {
-      "title": "DateSort reads an iPhone plugged in by USB (no drive letter on Windows); first real test on the CEO's phone",
+      "title": "DateSort: Bring in from iPhone (copies the phone's photos and videos to a kept folder through Windows' Shell, then scans it); proven on Windows with an iPhone-like folder",
+      "done": true
+    },
+    {
+      "title": "Bring in from iPhone: first real test on the CEO's phone",
       "done": false
     },
     {
