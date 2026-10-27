@@ -24,6 +24,10 @@ describe("the iPhone copy script", () => {
     expect(IPHONE_SCRIPT).toContain("[System.IO.File]::Move($part, $target)");
     // The phone is only ever read through CopyHere into our own folder.
     expect(IPHONE_SCRIPT.match(/CopyHere\(/g)).toHaveLength(1);
+    // Windows hides known extensions by default, and the Shell's .Name follows
+    // that ("IMG_0042" for IMG_0042.MOV): the real name must come from
+    // System.FileName, or the script waits for a file that never appears.
+    expect(IPHONE_SCRIPT).toContain("ExtendedProperty('System.FileName')");
   });
 
   it("takes paths only from the environment, never pasted into the script", () => {

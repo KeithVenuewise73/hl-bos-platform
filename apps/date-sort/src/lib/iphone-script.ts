@@ -51,7 +51,12 @@ try {
     if (-not $sub.IsFolder) { continue }
     foreach ($f in @($sub.GetFolder.Items())) {
       if ($f.IsFolder) { continue }
-      [void]$files.Add([pscustomobject]@{ folder = $sub.Name; item = $f; name = $f.Name; size = [int64]$f.Size })
+      # The Shell's .Name hides the extension when Windows hides known
+      # extensions (its default); System.FileName is the real file name.
+      $name = $null
+      try { $name = [string]$f.ExtendedProperty('System.FileName') } catch { }
+      if (-not $name) { $name = $f.Name }
+      [void]$files.Add([pscustomobject]@{ folder = $sub.Name; item = $f; name = $name; size = [int64]$f.Size })
     }
   }
   $bytes = [int64]0
@@ -64,10 +69,18 @@ try {
   foreach ($x in $files) {
     $dir = Join-Path $dest $x.folder
     $target = Join-Path $dir $x.name
+    # An iPhone set to "Transfer to Mac or PC: Automatic" hands over its HEIC
+    # photos already converted: IMG_0044.HEIC arrives as IMG_0044.JPG.
+    $converted = $null
+    if ($x.name -match '^(.*)\.heic$') { $converted = $Matches[1] + '.JPG' }
     if (Test-Path -LiteralPath $target) {
       $len = (Get-Item -LiteralPath $target).Length
       $same = ($x.size -le 0) -or ($len -eq $x.size)
       Say @{ type = 'file'; folder = $x.folder; name = $x.name; result = $(if ($same) { 'already' } else { 'conflict' }) }
+      continue
+    }
+    if ($converted -and (Test-Path -LiteralPath (Join-Path $dir $converted))) {
+      Say @{ type = 'file'; folder = $x.folder; name = $converted; result = 'already' }
       continue
     }
     $part = Join-Path $incoming $x.name
@@ -78,7 +91,12 @@ try {
     $last = -1; $steady = 0; $ok = $false
     while ((Get-Date) -lt $limit) {
       Start-Sleep -Milliseconds 300
-      if (-not (Test-Path -LiteralPath $part)) { continue }
+      if (-not (Test-Path -LiteralPath $part)) {
+        if (-not $converted) { continue }
+        $alt = Join-Path $incoming $converted
+        if (-not (Test-Path -LiteralPath $alt)) { continue }
+        $part = $alt; $target = Join-Path $dir $converted; $last = -1; $steady = 0
+      }
       $len = (Get-Item -LiteralPath $part).Length
       if ($x.size -gt 0 -and $len -eq $x.size) { $steady += 1 } elseif ($len -gt 0 -and $len -eq $last) { $steady += 1 } else { $steady = 0 }
       $last = $len
@@ -89,7 +107,7 @@ try {
     if (-not $ok) { Say @{ type = 'file'; folder = $x.folder; name = $x.name; result = 'failed' }; continue }
     New-Item -ItemType Directory -Force -Path $dir | Out-Null
     [System.IO.File]::Move($part, $target)
-    Say @{ type = 'file'; folder = $x.folder; name = $x.name; result = 'copied'; bytes = (Get-Item -LiteralPath $target).Length }
+    Say @{ type = 'file'; folder = $x.folder; name = (Split-Path -Leaf $target); result = 'copied'; bytes = (Get-Item -LiteralPath $target).Length }
   }
   Say @{ type = 'done' }
 } catch {
