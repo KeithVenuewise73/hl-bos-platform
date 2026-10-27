@@ -283,6 +283,7 @@ async function buildCr3Only(root) {
 // ---------------------------------------------------------------------------
 
 function sha(file) {
+  if (!fs.existsSync(file)) return `missing: ${file}`;
   return crypto.createHash("sha256").update(fs.readFileSync(file)).digest("hex");
 }
 
@@ -524,7 +525,20 @@ async function iphoneChecks(page, work) {
         { timeout: 300_000 },
       )
       .then((h) => h.jsonValue())
-      .catch(() => "no answer");
+      .catch(async () => {
+        // Say what the page was showing when it gave up, not just "no answer".
+        const seen = await page
+          .evaluate(() =>
+            ["iphone-button", "iphone-progress", "iphone-problem", "iphone-folder"]
+              .map((id) => {
+                const el = document.querySelector(`[data-testid=${id}]`);
+                return `${id}=${el ? JSON.stringify(el.textContent) : "absent"}`;
+              })
+              .join(" "),
+          )
+          .catch((e) => String(e));
+        return `no answer (${seen})`;
+      });
   };
   const first = await run();
   const keptFiles = walk(kept)
