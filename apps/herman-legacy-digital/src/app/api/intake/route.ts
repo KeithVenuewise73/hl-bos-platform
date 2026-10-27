@@ -1,16 +1,11 @@
 import { NextResponse } from "next/server";
-import {
-  validateIntake,
-  nextStepFor,
-  referenceFor,
-  type IntakeInput,
-} from "@/lib/intake";
-import { persistLead } from "@/lib/persist";
+import { handleIntake } from "@/lib/intake-handler";
+import { deliverLead } from "@/lib/persist";
 
-// The commercial front door. Validates the submission, builds the lead record,
-// preserves source attribution, delivers it into the customer lifecycle (when the
-// delivery endpoint is configured), and returns an HONEST confirmation. It NEVER
-// claims a completed AI assessment.
+// The commercial front door. Validates the submission, delivers it to the
+// configured destination, and answers HONESTLY: "received" only when the
+// destination accepted it, otherwise "not_delivered" so the visitor can retry.
+// It NEVER claims a completed AI assessment. See src/lib/intake-handler.ts.
 export const dynamic = "force-dynamic";
 
 export async function POST(req: Request) {
@@ -24,20 +19,8 @@ export async function POST(req: Request) {
     );
   }
 
-  const input = (body ?? {}) as IntakeInput;
-  const result = validateIntake(input);
-  if (!result.ok || !result.lead) {
-    return NextResponse.json(
-      { status: "invalid", errors: result.errors },
-      { status: 422 },
-    );
-  }
-
-  const delivery = await persistLead(result.lead);
-  return NextResponse.json({
-    status: "received",
-    ref: referenceFor(result.lead),
-    nextStep: nextStepFor(result.lead.kind),
-    persisted: delivery.persisted,
-  });
+  const { httpStatus, json } = await handleIntake(body, deliverLead, (msg, fields) =>
+    console.info(msg, fields),
+  );
+  return NextResponse.json(json, { status: httpStatus });
 }

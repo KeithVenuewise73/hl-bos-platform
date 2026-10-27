@@ -6,10 +6,12 @@ import {
   type BtdiInput,
 } from "@/lib/btdi";
 import { persistBtdi } from "@/lib/btdi-persist";
+import { NOT_DELIVERED_MESSAGE } from "@/lib/intake-handler";
 
 // The Business Transformation intake front door. Validates server-side, builds
-// the normalized record, stores it via the canonical RPC when configured, and
-// returns an HONEST confirmation. It NEVER claims a completed assessment.
+// the normalized record, stores it via the canonical RPC (or the delivery
+// destination), and answers HONESTLY: "received" only when something stored
+// it, otherwise "not_delivered". It NEVER claims a completed assessment.
 export const dynamic = "force-dynamic";
 
 // Best-effort in-process rate limit: blunt protection against duplicate rapid
@@ -72,11 +74,17 @@ export async function POST(req: Request) {
       : "/business-transformation-intake";
 
   const delivery = await persistBtdi(result.record, sourcePage);
+  if (!delivery.persisted) {
+    // Never tell the visitor it was received when nothing stored it.
+    return NextResponse.json(
+      { status: "not_delivered", message: NOT_DELIVERED_MESSAGE },
+      { status: 503 },
+    );
+  }
 
   return NextResponse.json({
     status: "received",
     ref: delivery.ref ?? referenceFor(result.record),
     nextStep: confirmationMessage(),
-    persisted: delivery.persisted,
   });
 }
