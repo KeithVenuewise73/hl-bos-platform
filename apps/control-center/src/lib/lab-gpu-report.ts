@@ -90,14 +90,35 @@ export type LabGpuState =
   "not-connected" | "off" | "starting" | "stuck" | "not-pointed" | "ready" | "unknown";
 
 /**
- * How long a server may take to answer before the page calls it stuck. On
- * 2026-10-24 two servers RunPod placed on one faulty machine never started at
- * all, and the page said "starting" while they billed. A healthy start from
- * the shared storage has not been timed yet; the first full setup, with every
- * download, took about 25 minutes, so this is set above anything a start that
- * only reads the storage should need.
+ * How long a server may take to become ready before the page calls it stuck.
+ * On 2026-10-24 two servers RunPod placed on one faulty machine never started
+ * at all, and the page said "starting" while they billed.
+ *
+ * "Ready" now includes loading the model (the server warms it at switch-on,
+ * so the first picture is not the slow one). Measured 2026-10-26 on the
+ * shared storage: about 1 minute to boot, then 6 to load the model and 7 more
+ * before its first step -- roughly 15 in all. 30 leaves room for a slow day.
  */
-export const STUCK_AFTER_MINUTES = 20;
+export const STUCK_AFTER_MINUTES = 30;
+
+/** Minutes without a job before the server deletes itself (its own watchdog). */
+export const AUTO_OFF_MINUTES = 30;
+
+/**
+ * Whether the model service says it can take a job right now: it can
+ * generate, the model is in memory, and it is not still warming up. A server
+ * that can generate but has not loaded the model would make the first job
+ * wait 15 minutes, and the Lab gives up on a picture after 20.
+ */
+export function healthSaysReady(health: unknown): boolean {
+  if (!health || typeof health !== "object") return false;
+  const h = health as Record<string, unknown>;
+  return (
+    h["generates_images"] === true &&
+    h["model_loaded"] === true &&
+    h["warming"] !== true
+  );
+}
 
 export interface LabGpuStatus {
   state: LabGpuState;
@@ -216,7 +237,7 @@ export function decideStatus(input: {
       state: "off",
       headline: "The Lab GPU is off.",
       meaning: input.coolifyConnected
-        ? `No card is billing; only the shared storage is (about $10 a month). Don't pick "Self-hosted GPU" in the Lab while it's off: that job would wait and fail. After Turn on, allow up to ${String(STUCK_AFTER_MINUTES)} minutes before it is ready.${leftovers ? " A stopped server from before is still there; Turn on removes it." : ""}`
+        ? `No card is billing; only the shared storage is (about $10 a month). Don't pick "Self-hosted GPU" in the Lab while it's off: that job would wait and fail. Turn on takes about 15 minutes: the server loads the model before it says ready, so your first picture is quick.${leftovers ? " A stopped server from before is still there; Turn on removes it." : ""}`
         : "No card is billing. To turn it on from here, paste your Coolify key on the Connect page too: each Turn on makes a new server, and the console has to point the Lab at it. Until then, ask Claude to turn it on.",
       canTurnOn: input.coolifyConnected,
       canTurnOff: leftovers,
@@ -247,7 +268,7 @@ export function decideStatus(input: {
       ...withPod,
       state: "starting",
       headline: "The Lab GPU is on and starting up.",
-      meaning: `It is billing ${rate} already. ${minutesOn !== null ? `It was switched on ${String(minutesOn)} minute${minutesOn === 1 ? "" : "s"} ago. ` : ""}Refresh this page to check; if it is not ready within ${String(STUCK_AFTER_MINUTES)} minutes, this page will say so.`,
+      meaning: `It is billing ${rate} already. ${minutesOn !== null ? `It was switched on ${String(minutesOn)} minute${minutesOn === 1 ? "" : "s"} ago. ` : ""}It loads the model before it is ready, about 15 minutes in all. Refresh this page to check; if it is not ready within ${String(STUCK_AFTER_MINUTES)} minutes, this page will say so.`,
       canTurnOn: false,
       canTurnOff: true,
     };
@@ -268,7 +289,7 @@ export function decideStatus(input: {
     ...withPod,
     state: "ready",
     headline: "The Lab GPU is on and ready.",
-    meaning: `"Self-hosted GPU — reference images" works in the Lab now${input.labPointsHere === null ? " (the console could not confirm the Lab's address)" : ""}. It is billing ${rate} whether or not you use it, so turn it off when you are done.`,
+    meaning: `"Self-hosted GPU — reference images" works in the Lab now${input.labPointsHere === null ? " (the console could not confirm the Lab's address)" : ""}. It is billing ${rate} while on. Turn it off when you are done; if you forget, it switches itself off after ${String(AUTO_OFF_MINUTES)} minutes without a picture.`,
     canTurnOn: false,
     canTurnOff: true,
   };

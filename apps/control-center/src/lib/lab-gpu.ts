@@ -9,7 +9,7 @@ import {
   labPods,
   LAB_GPU_LAUNCH,
   toPodSummary,
-  STUCK_AFTER_MINUTES,
+  healthSaysReady,
   type AccountSummary,
   type LabGpuStatus,
   type PodSummary,
@@ -105,7 +105,7 @@ async function account(apiKey: string): Promise<AccountSummary | null> {
   }
 }
 
-/** Whether the model service on the server says it can generate. No token needed. */
+/** Whether the model service says it can take a job now (see healthSaysReady). No token needed. */
 async function serviceReady(podId: string): Promise<boolean> {
   try {
     const res = await fetch(`${inferenceUrl(podId)}/health`, {
@@ -113,8 +113,7 @@ async function serviceReady(podId: string): Promise<boolean> {
       cache: "no-store",
     });
     if (!res.ok) return false;
-    const json = (await res.json()) as { generates_images?: unknown };
-    return json.generates_images === true;
+    return healthSaysReady(await res.json());
   } catch {
     return false;
   }
@@ -301,6 +300,6 @@ export async function switchLabGpu(to: "on" | "off"): Promise<SwitchResult> {
   const rate = (created.body as { costPerHr?: unknown }).costPerHr;
   return {
     ok: true,
-    message: `Switched on${typeof rate === "number" ? ` at $${rate.toFixed(2)} an hour` : ""}, and the Lab is being pointed at it. Refresh this page to see when it is ready; allow up to ${String(STUCK_AFTER_MINUTES)} minutes.`,
+    message: `Switched on${typeof rate === "number" ? ` at $${rate.toFixed(2)} an hour` : ""}, and the Lab is being pointed at it. It loads the model first, about 15 minutes; refresh this page to see when it is ready.`,
   };
 }

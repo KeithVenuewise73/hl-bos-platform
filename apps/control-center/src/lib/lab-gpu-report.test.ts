@@ -5,6 +5,7 @@ import {
   decideStatus,
   explainRunpodError,
   findLabPod,
+  healthSaysReady,
   inferenceUrl,
   LAB_GPU_LAUNCH,
   LAB_POD_NAME,
@@ -224,6 +225,7 @@ describe("decideStatus", () => {
     });
     expect(s.state).toBe("ready");
     expect(s.meaning).toContain("$0.59 an hour");
+    expect(s.meaning).toContain("switches itself off after 30 minutes");
     expect([s.canTurnOn, s.canTurnOff]).toEqual([false, true]);
   });
 
@@ -231,6 +233,30 @@ describe("decideStatus", () => {
     const s = decideStatus({ ...base, pods: [pod()], serviceReady: true });
     expect(s.state).toBe("ready");
     expect(s.meaning).toContain("could not confirm");
+  });
+});
+
+describe("healthSaysReady", () => {
+  const warm = { generates_images: true, model_loaded: true, warming: false };
+
+  it("is ready only when the model is loaded and warmed", () => {
+    expect(healthSaysReady(warm)).toBe(true);
+  });
+
+  it("is not ready while the model loads -- the first job would wait 15 minutes", () => {
+    // 2026-10-26: a first job that loaded the model took 20 minutes and missed
+    // the Lab's limit for a picture.
+    expect(healthSaysReady({ ...warm, model_loaded: false })).toBe(false);
+    expect(healthSaysReady({ ...warm, warming: true })).toBe(false);
+  });
+
+  it("is not ready without a GPU", () => {
+    expect(healthSaysReady({ ...warm, generates_images: false })).toBe(false);
+  });
+
+  it("is not ready when the answer is not health at all", () => {
+    expect(healthSaysReady(null)).toBe(false);
+    expect(healthSaysReady("<html>")).toBe(false);
   });
 });
 
