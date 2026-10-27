@@ -60,7 +60,7 @@ export function BusinessTransformationIntakeForm() {
   const [busy, setBusy] = useState(false);
   const [errors, setErrors] = useState<string[]>([]);
   const [started, setStarted] = useState(false);
-  const [done, setDone] = useState<{ ref: string; persisted: boolean } | null>(null);
+  const [done, setDone] = useState<{ ref: string } | null>(null);
 
   const sections = BTDI_SECTIONS;
   const total = sections.length;
@@ -136,20 +136,23 @@ export function BusinessTransformationIntakeForm() {
         body: JSON.stringify(payload),
       });
       const data = (await res.json()) as
-        | { status: "received"; ref: string; nextStep: string; persisted: boolean }
+        | { status: "received"; ref: string; nextStep: string }
+        | { status: "not_delivered"; message: string }
         | { status: "invalid"; errors: string[] };
       setBusy(false);
       if (data.status === "received") {
         track("transformation_intake_submit");
-        setDone({ ref: data.ref, persisted: data.persisted });
+        setDone({ ref: data.ref });
         window.scrollTo({ top: 0, behavior: "smooth" });
       } else {
-        setErrors(data.errors);
+        setErrors(data.status === "not_delivered" ? [data.message] : data.errors);
         window.scrollTo({ top: 0, behavior: "smooth" });
       }
     } catch {
       setBusy(false);
-      setErrors(["Something went wrong. Please try again or use the Contact page."]);
+      setErrors([
+        "We could not send your intake, so it has not been received. Your answers are still here; please try again in a few minutes.",
+      ]);
     }
   }
 
@@ -172,12 +175,6 @@ export function BusinessTransformationIntakeForm() {
         <p style={{ fontSize: 13, color: "#5b6672", marginTop: 12 }}>
           Your reference: <strong>{done.ref}</strong>
         </p>
-        {!done.persisted ? (
-          <p style={{ fontSize: 12.5, color: "#8a6d1a", marginTop: 8 }}>
-            Your intake is captured and a Herman Legacy Digital advisor will confirm it
-            directly.
-          </p>
-        ) : null}
       </div>
     );
   }
