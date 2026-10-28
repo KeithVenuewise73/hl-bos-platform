@@ -3,17 +3,14 @@
 import { useRouter } from "next/navigation";
 import { useRef, useState } from "react";
 
-interface Result {
-  name: string;
-  ok: boolean;
-  reason?: string;
-  status?: string;
-  dateSource?: "exif" | "upload";
-}
+import {
+  isDuplicate,
+  uploadPhotos,
+  type UploadResult as Result,
+} from "@/lib/upload-client.ts";
+import { useHydrated } from "@/lib/use-hydrated.ts";
 
 const ACCEPT = /\.(jpe?g|png|heic|heif)$/i;
-const PER_REQUEST = 3;
-const PARALLEL = 3;
 
 /**
  * Drag and drop, pick files, or pick a whole folder. Hundreds of photos are
@@ -28,6 +25,7 @@ export function Uploader({ eventId }: { eventId: string }) {
   const [results, setResults] = useState<Result[]>([]);
   const [over, setOver] = useState(false);
   const files = useRef<HTMLInputElement>(null);
+  const ready = useHydrated();
   const folder = useRef<HTMLInputElement>(null);
 
   async function upload(list: File[]) {
@@ -47,53 +45,17 @@ export function Uploader({ eventId }: { eventId: string }) {
     setSent(0);
     setTotal(photos.length);
     setResults(skipped);
-    const batches: File[][] = [];
-    for (let i = 0; i < photos.length; i += PER_REQUEST)
-      batches.push(photos.slice(i, i + PER_REQUEST));
-    let next = 0;
-    const worker = async () => {
-      for (;;) {
-        const batch = batches[next++];
-        if (batch === undefined) return;
-        const body = new FormData();
-        for (const f of batch) body.append("file", f, f.name);
-        let out: Result[];
-        try {
-          const res = await fetch(`/api/events/${eventId}/photos`, {
-            method: "POST",
-            body,
-          });
-          const json = (await res.json()) as { results?: Result[]; error?: string };
-          out =
-            json.results ??
-            batch.map((f) => ({
-              name: f.name,
-              ok: false,
-              reason: json.error ?? "Upload failed.",
-            }));
-        } catch {
-          out = batch.map((f) => ({
-            name: f.name,
-            ok: false,
-            reason: "The connection dropped. Try these again.",
-          }));
-        }
-        setResults((r) => [...r, ...out]);
-        setSent((n) => n + batch.length);
-      }
-    };
-    await Promise.all(Array.from({ length: PARALLEL }, worker));
+    await uploadPhotos(eventId, photos, (batch, sent) => {
+      setResults((r) => [...r, ...batch]);
+      setSent(sent);
+    });
     setBusy(false);
     router.refresh();
   }
 
   const ok = results.filter((r) => r.ok);
-  const dupes = results.filter(
-    (r) => !r.ok && (r.reason ?? "").startsWith("Already uploaded"),
-  );
-  const refused = results.filter(
-    (r) => !r.ok && !(r.reason ?? "").startsWith("Already uploaded"),
-  );
+  const dupes = results.filter(isDuplicate);
+  const refused = results.filter((r) => !r.ok && !isDuplicate(r));
   const inferred = ok.filter((r) => r.dateSource === "upload").length;
 
   return (
@@ -141,6 +103,7 @@ export function Uploader({ eventId }: { eventId: string }) {
           className="hidden"
           aria-label="Choose photos"
           data-testid="file-input"
+          data-ready={ready ? "true" : undefined}
           onChange={(e) => {
             void upload([...(e.target.files ?? [])]);
             e.target.value = "";

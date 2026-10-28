@@ -221,6 +221,9 @@ async function checkFolder(page, folder, label) {
   const before = fingerprint(folder);
   page.on("request", onRequest);
   const started = Date.now();
+  await page.waitForSelector("[data-testid=check-folder-input][data-ready=true]", {
+    state: "attached",
+  });
   await page.setInputFiles("[data-testid=check-folder-input]", folder);
   await page.waitForSelector("[data-testid=check-report]", { timeout: 600_000 });
   const seconds = (Date.now() - started) / 1000;
@@ -495,6 +498,164 @@ async function startFromConsole(browser) {
   );
   await shot(page, "02-camera-card-unsupported");
   results.cameraCard = r;
+
+  // -------------------------------------------------------------------------
+  console.log("\nDate galleries: name a game, create it, import (copy) its photos");
+  const cardBefore = fingerprint(card);
+  const storedBeforeImport = storedPhotos();
+  const day = (d) => page.locator(`[data-testid=date-card-${d}]`);
+  const count = async (d, id) =>
+    Number(
+      ((await day(d).locator(`[data-testid=count-${id}]`).textContent()) || "").replace(
+        /[^0-9].*$/,
+        "",
+      ),
+    );
+  const counts4 = {};
+  for (const k of ["jpeg", "png", "heic", "raw", "camera", "estimated"])
+    counts4[k] = await count("2026-10-04", k);
+  check(
+    "October 4 shows its counts: 3 JPG, 1 PNG, 0 HEIC, 1 RAW, 3 camera-dated, 1 estimated",
+    JSON.stringify(counts4) ===
+      JSON.stringify({ jpeg: 3, png: 1, heic: 0, raw: 1, camera: 3, estimated: 1 }),
+    JSON.stringify(counts4),
+  );
+  check(
+    "(the same counts, read one by one)",
+    (await count("2026-10-04", "jpeg")) === 3 &&
+      (await count("2026-10-04", "png")) === 1 &&
+      (await count("2026-10-04", "heic")) === 0 &&
+      (await count("2026-10-04", "raw")) === 1 &&
+      (await count("2026-10-04", "camera")) === 3 &&
+      (await count("2026-10-04", "estimated")) === 1,
+  );
+  check(
+    "and its first and last shot",
+    ((await day("2026-10-04").locator("[data-testid=first]").textContent()) || "") ===
+      "10:00 AM" &&
+      ((await day("2026-10-04").locator("[data-testid=last]").textContent()) || "") ===
+        "3:00 PM",
+  );
+  check(
+    "the suggested event name is 'October 4, 2026 Game'",
+    (await day("2026-10-04").locator("[data-testid=event-name]").textContent()) ===
+      "October 4, 2026 Game",
+  );
+
+  check(
+    "a date with a file-dated photo says so, in a readable sentence",
+    (
+      (await day("2026-10-05")
+        .locator("[data-testid=estimated-warning]")
+        .textContent()) || ""
+    ).startsWith(
+      "1 photo has no camera date and is placed on this day by the file's date. Review",
+    ),
+    await day("2026-10-05").locator("[data-testid=estimated-warning]").textContent(),
+  );
+
+  // Review photos: the file list narrows to that date.
+  await day("2026-10-03").locator("[data-testid=review]").click();
+  const rowsOn3 = await page.locator("[data-testid=files] tbody tr").count();
+  check(
+    "Review photos lists only that date's files (4 JPG + 2 CR3)",
+    rowsOn3 === 6,
+    `${rowsOn3}`,
+  );
+  await page.click("[data-testid=day-filter]");
+
+  // Skip: nothing happens to that date.
+  await day("2026-10-05").locator("[data-testid=skip]").click();
+  check(
+    "Skip sets the date aside and creates nothing",
+    (await day("2026-10-05").getAttribute("data-mode")) === "skipped",
+  );
+
+  // Rename, then create with teams and jerseys.
+  await day("2026-10-04").locator("[data-testid=rename]").click();
+  await day("2026-10-04")
+    .locator("[data-testid=rename-input]")
+    .fill("Caz vs Wheatfield");
+  await day("2026-10-04").locator("[data-testid=rename-input]").press("Enter");
+  await day("2026-10-04").locator("[data-testid=create]").click();
+  const form = day("2026-10-04").locator("[data-testid=create-form]");
+  check(
+    "the create form carries the new name",
+    (await form.locator("#name-2026-10-04").inputValue()) === "Caz vs Wheatfield",
+  );
+  await form.locator("#day-2026-10-04-team").fill("Caz");
+  await form.locator("#day-2026-10-04-opponent").fill("Wheatfield");
+  await form.locator("input[name=home_jersey][value=dark]").check();
+  check(
+    "Dark for Caz suggests Light for Wheatfield",
+    await form.locator("input[name=away_jersey][value=light]").isChecked(),
+  );
+  await form.locator("[data-testid=create-import]").click();
+  await day("2026-10-04")
+    .locator("[data-testid=import-done]")
+    .waitFor({ timeout: 120_000 });
+  check(
+    "it imports the date's 4 photos (RAW files are reported, not imported)",
+    (
+      (await day("2026-10-04").locator("[data-testid=imported]").textContent()) || ""
+    ).startsWith("4 imported"),
+    await day("2026-10-04").locator("[data-testid=import-done]").textContent(),
+  );
+  check(
+    "4 photos were copied into JerseySort, no more",
+    storedPhotos() - storedBeforeImport >= 4 &&
+      walk(path.join(DATA_DIR, "originals")).length >= 4,
+  );
+  const eventHref = await day("2026-10-04")
+    .locator("[data-testid=open-event]")
+    .getAttribute("href");
+  await page.goto(`${BASE}${eventHref}`);
+  const eh = await page.textContent("header.mb-5");
+  check(
+    "the event exists, named, dated October 4, with its 4 photos",
+    eh.includes("Caz vs Wheatfield") &&
+      eh.includes("October 4, 2026") &&
+      eh.includes("4 photos"),
+    eh.replace(/\s+/g, " ").slice(0, 200),
+  );
+  check(
+    "and both teams with their jerseys",
+    ((await page.textContent("[data-testid=event-teams]")) || "").replace(
+      /\s+/g,
+      " ",
+    ) === "Caz (home, dark) vs Wheatfield (away, light)",
+  );
+
+  // The same photos again: refused as duplicates, not copied twice.
+  await page.goto(`${BASE}/check`);
+  await page.waitForSelector("[data-testid=check-folder-input][data-ready=true]", {
+    state: "attached",
+  });
+  await page.setInputFiles("[data-testid=check-folder-input]", card);
+  await page.waitForSelector("[data-testid=check-report]", { timeout: 600_000 });
+  await day("2026-10-04").locator("[data-testid=import-existing]").click();
+  await day("2026-10-04")
+    .locator("[data-testid=import-done]")
+    .waitFor({ timeout: 120_000 });
+  const again =
+    (await day("2026-10-04").locator("[data-testid=import-done]").textContent()) || "";
+  check(
+    "importing the same photos again copies none of them: 4 already in JerseySort",
+    again.includes("0 imported") && again.includes("4 already in JerseySort"),
+    again,
+  );
+  const cardAfter = fingerprint(card);
+  const changed = differences(cardBefore, cardAfter);
+  check(
+    `after creating, importing and re-importing, no file in the folder changed (${cardBefore.size} fingerprinted)`,
+    changed.length === 0,
+    changed.slice(0, 5).join("; "),
+  );
+  results.importFlow = {
+    filesAltered: changed.length,
+    filesFingerprinted: cardBefore.size,
+  };
+  await shot(page, "04-import-done");
 
   results.realFolders = [];
   for (const folder of REAL) {

@@ -314,6 +314,14 @@
       "done": true
     },
     {
+      "title": "JerseySort AI: date galleries \u2014 each shooting date in a checked folder becomes a proposed game (counts, camera vs estimated dates, first/last shot); Create event / Rename / Skip / Review photos; import COPIES the date's photos and refuses duplicates; the folder is fingerprint-identical afterwards",
+      "done": true
+    },
+    {
+      "title": "JerseySort AI: home and away teams with Light/Dark jerseys; athletes are TEAM + NUMBER (Caz #22 and Wheatfield #22 are two athletes); numbers whose jersey was not seen are never guessed onto a team, and one click assigns them; migration 0053 written and tested locally, NOT applied",
+      "done": true
+    },
+    {
       "title": "JerseySort AI: check one real folder of Canon game photos on the CEO's PC",
       "done": false
     },

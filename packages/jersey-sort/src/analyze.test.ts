@@ -109,9 +109,16 @@ describe("Claude vision provider (SDK client injected)", () => {
                 text: "24",
                 confidence: 0.93,
                 printed_on: "jersey_back",
+                jersey: "dark",
                 box: { x: 0.4, y: 0.3, width: 0.1, height: 1.4 },
               },
-              { text: "30", confidence: 0.97, printed_on: "yard_marker", box: null },
+              {
+                text: "30",
+                confidence: 0.97,
+                printed_on: "yard_marker",
+                jersey: "unknown",
+                box: null,
+              },
             ],
             notes: "",
           },
@@ -125,6 +132,7 @@ describe("Claude vision provider (SDK client injected)", () => {
       text: "24",
       confidence: 0.93,
       location: "jersey_back",
+      jersey: "dark",
       box: { x: 0.4, y: 0.3, width: 0.1, height: 1 },
     });
     const body = seen[0] as {

@@ -1,13 +1,21 @@
 import { isEmptySearch, parseSearch, type ParsedSearch } from "@hl-bos/jersey-sort";
 
 import type { Db, Params } from "../db-core.ts";
-import { CAPTURE_DAY, IN_GALLERY, PHOTO_OF_PLAYER, PHOTOS_OF_PLAYERS } from "./sql.ts";
+import {
+  CAPTURE_DAY,
+  DETECTION_TEAM,
+  IN_GALLERY,
+  PHOTO_OF_PLAYER,
+  PHOTOS_OF_PLAYERS,
+} from "./sql.ts";
 
 export interface PhotoFilters {
   readonly eventId?: string | undefined;
   readonly teamId?: string | undefined;
   readonly sport?: string | undefined;
   readonly number?: string | undefined;
+  /** With `number`: only that team's athlete (a team id), or "none" for team not known. */
+  readonly numberTeam?: string | undefined;
   readonly playerId?: string | undefined;
   /** high | medium | low | unidentified | nojersey */
   readonly confidence?: string | undefined;
@@ -76,10 +84,18 @@ export function buildPhotoWhere(
     params["sport"] = f.sport;
   }
   if (f.number) {
+    const team =
+      f.numberTeam === undefined
+        ? ""
+        : f.numberTeam === "none"
+          ? ` and ${DETECTION_TEAM("d", "e")} is null`
+          : ` and ${DETECTION_TEAM("d", "e")} = :numberTeam`;
     clauses.push(
-      `p.unusable = 0 and exists (select 1 from photo_detections d where d.photo_id = p.id and d.detected_value = :number and ${IN_GALLERY("d")})`,
+      `p.unusable = 0 and exists (select 1 from photo_detections d where d.photo_id = p.id and d.detected_value = :number and ${IN_GALLERY("d")}${team})`,
     );
     params["number"] = f.number;
+    if (f.numberTeam !== undefined && f.numberTeam !== "none")
+      params["numberTeam"] = f.numberTeam;
   }
   if (f.playerId) {
     clauses.push(PHOTO_OF_PLAYER("p", ":playerId"));
@@ -179,7 +195,8 @@ const FROM = `
   from photos p
   join events e on e.id = p.event_id
   join teams t on t.id = e.team_id
-  join seasons s on s.id = e.season_id`;
+  join seasons s on s.id = e.season_id
+  left join teams a on a.id = e.away_team_id`;
 
 export const PAGE_SIZE = 120;
 
@@ -280,6 +297,9 @@ export interface PhotoDetail extends PhotoTile {
   season_name: string;
   sport: string;
   opponent: string | null;
+  away_team_id: string | null;
+  home_jersey: "light" | "dark" | null;
+  away_jersey: "light" | "dark" | null;
   camera_make: string | null;
   camera_model: string | null;
   lens: string | null;
@@ -297,7 +317,8 @@ export function getPhoto(
 ): PhotoDetail | undefined {
   return db.get<PhotoDetail>(
     `select p.*, e.name as event_name, e.event_date, e.team_id, t.name as team_name, e.season_id, s.name as season_name,
-            e.sport, e.opponent, u.display_name as uploaded_by_name,
+            e.sport, coalesce(a.name, e.opponent) as opponent, e.away_team_id, e.home_jersey, e.away_jersey,
+            u.display_name as uploaded_by_name,
             m.camera_make, m.camera_model, m.lens, m.iso, m.exposure_time, m.f_number, m.focal_length,
             exists (select 1 from favorites fv where fv.photo_id = p.id and fv.user_id = :user) as favorite,
             (p.thumbnail_path is not null) as has_thumbnail
@@ -316,14 +337,22 @@ export interface FullDetection extends TileDetection {
   bounding_box: string | null;
   user_confirmed: number;
   created_at: string;
+  /** Light or dark jersey; null when not seen. */
+  jersey: "light" | "dark" | null;
+  /** The team that follows from the jersey and the event; null when it cannot be known. */
+  team_name: string | null;
 }
 
 export function photoDetections(db: Db, org: string, photoId: string): FullDetection[] {
   return db.all<FullDetection>(
-    `select photo_id, id, detected_value, confidence, status, method, location, provider, provider_model,
-            bounding_box, user_confirmed, created_at
-       from photo_detections where organization_id = :org and photo_id = :photoId
-      order by status = 'rejected', confidence desc`,
+    `select d.photo_id, d.id, d.detected_value, d.confidence, d.status, d.method, d.location, d.provider,
+            d.provider_model, d.bounding_box, d.user_confirmed, d.created_at, d.jersey, tm.name as team_name
+       from photo_detections d
+       join photos p on p.id = d.photo_id
+       join events e on e.id = p.event_id
+       left join teams tm on tm.id = ${DETECTION_TEAM("d", "e")}
+      where d.organization_id = :org and d.photo_id = :photoId
+      order by d.status = 'rejected', d.confidence desc`,
     { org, photoId },
   );
 }
@@ -349,7 +378,7 @@ export function photoPlayers(
        from photos p
        join events e on e.id = p.event_id
        join photo_detections d on d.photo_id = p.id
-       join player_numbers pn on pn.team_id = e.team_id and pn.season_id = e.season_id and pn.jersey_number = d.detected_value
+       join player_numbers pn on pn.team_id = ${DETECTION_TEAM("d", "e")} and pn.season_id = e.season_id and pn.jersey_number = d.detected_value
        join players pl on pl.id = pn.player_id
       where p.id = :photoId and p.organization_id = :org and p.unusable = 0 and ${IN_GALLERY("d")}`,
     { photoId, org, medium },

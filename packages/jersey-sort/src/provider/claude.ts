@@ -46,6 +46,7 @@ const ResultSchema = z.object({
       text: z.string(),
       confidence: z.number(),
       printed_on: z.enum(LOCATIONS),
+      jersey: z.enum(["light", "dark", "unknown"]),
       box: z
         .object({
           x: z.number(),
@@ -70,6 +71,7 @@ Rules:
 - Report what you actually see. Do not guess a number from a partial digit; if only part of it is visible, lower your confidence or leave it out.
 - confidence is your probability (0 to 1) that you read the digits correctly AND that they are what you say they are printed on.
 - If the same athlete's number is visible twice (front and sleeve), report it once.
+- jersey: for a number worn by an athlete, whether that athlete's jersey is light (white, cream, silver, pale colours) or dark (navy, black, maroon, deep colours). The two teams wear one of each, so this says which team the athlete plays for. Use unknown when you cannot tell, and for numbers not worn by an athlete.
 - box is the number's position as fractions of the image width and height (x, y = top-left corner), or null.
 - athletes_present: whether at least one athlete is visible. athlete_count: how many.
 - notes: one short sentence about anything that limited what you could read (motion blur, the athlete is facing away, a pile-up). Empty if nothing did.`;
@@ -137,6 +139,7 @@ export function createClaudeVisionProvider(
           text: n.text,
           confidence: n.confidence,
           location: n.printed_on,
+          jersey: n.jersey,
           box: n.box === null ? null : normaliseBox(n.box),
         })),
         notes: parsed.notes,

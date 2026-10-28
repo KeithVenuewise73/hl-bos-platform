@@ -312,6 +312,12 @@ async function buildFixtures(dir) {
   await page.fill("#date", "2026-10-03");
   await page.fill("#team", "West Seneca");
   await page.fill("#opponent", "Orchard Park");
+  // Home in dark: the form suggests light for the away team.
+  await page.check("input[name=home_jersey][value=dark]");
+  check(
+    "choosing Dark for the home team suggests Light for the away team",
+    await page.isChecked("input[name=away_jersey][value=light]"),
+  );
   await page.fill("#location", "West Seneca West HS");
   await page.click("main button[type=submit]");
   await page.waitForURL(/\/events\/[0-9a-f-]{36}/);
@@ -324,9 +330,20 @@ async function buildFixtures(dir) {
       header.includes("October 3, 2026"),
   );
   check("the season defaulted to the event's year", header.includes("2026 season"));
+  check(
+    "the event shows both teams and their jerseys",
+    ((await page.textContent("[data-testid=event-teams]")) || "").replace(
+      /\s+/g,
+      " ",
+    ) === "West Seneca (home, dark) vs Orchard Park (away, light)",
+    await page.textContent("[data-testid=event-teams]").catch(() => "none"),
+  );
 
   console.log("\n3. Upload photos");
   const t0 = Date.now();
+  await page.waitForSelector("[data-testid=file-input][data-ready=true]", {
+    state: "attached",
+  });
   await page.setInputFiles("[data-testid=file-input]", [
     ...photos.map((p) => p.file),
     dup,
@@ -554,7 +571,24 @@ async function buildFixtures(dir) {
     })(),
   );
 
-  console.log("\n8. Create a player and connect #24");
+  console.log("\n8. Say which team #24 plays for, then create the player");
+  // Local OCR reads digits, not jerseys: its #24 has no team until a person
+  // says which. One click covers every #24 of the game.
+  await page.goto(`${eventUrl}?tab=numbers`);
+  check(
+    "local OCR's #24 starts as 'team not known', never guessed",
+    (await page.locator("[data-testid='gallery-unknown-team-24']").count()) === 1,
+  );
+  await page.click("[data-testid='gallery-unknown-team-24']");
+  await act(page, () => page.click("[data-testid=assign-team-dark]"));
+  check(
+    "one click files every #24 of the game under West Seneca #24",
+    (await page.locator("[data-testid='gallery-West Seneca-24']").count()) === 1 &&
+      (await page.locator("[data-testid='gallery-unknown-team-24']").count()) === 0,
+  );
+  await shot(page, "04b-team-assigned");
+
+  console.log("\n8b. Create a player and connect #24");
   await page.goto(`${BASE}/players/new`);
   check(
     "the player form is pre-filled with the latest event's team and season",
@@ -820,8 +854,15 @@ async function buildFixtures(dir) {
     ),
   );
   await page.goto(eventUrl);
+  const tUp = Date.now();
+  await page.waitForSelector("[data-testid=file-input][data-ready=true]", {
+    state: "attached",
+  });
   await page.setInputFiles("[data-testid=file-input]", [extra]);
-  await page.waitForSelector("text=Upload finished.");
+  await page.waitForSelector("text=Upload finished.", { timeout: 120_000 });
+  console.log(
+    `  ..    one-photo upload finished in ${((Date.now() - tUp) / 1000).toFixed(1)} s`,
+  );
   let q = await (
     await page.request.get(`${BASE}/api/progress?event=${eventId}`)
   ).json();
