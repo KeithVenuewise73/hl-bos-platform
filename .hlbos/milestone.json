@@ -382,6 +382,18 @@
       "done": true
     },
     {
+      "title": "DateSort sorts videos too (iPhone MOV, MP4), dated by the phone's own clock; Photos only / Videos only, so hockey videos go to their own folder",
+      "done": true
+    },
+    {
+      "title": "DateSort: Bring in from iPhone (copies the phone's photos and videos to a kept folder through Windows' Shell, then scans it); proven on Windows with an iPhone-like folder",
+      "done": true
+    },
+    {
+      "title": "Bring in from iPhone: first real test on the CEO's phone",
+      "done": false
+    },
+    {
       "title": "First real jersey-number reading of a CEO game with Claude, and its measured cost per photo",
       "done": false
     },

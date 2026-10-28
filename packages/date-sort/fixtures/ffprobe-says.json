@@ -1,0 +1,17 @@
+{
+  "iphone-style.mov": {
+    "majorBrand": "qt",
+    "appleCreationDate": "2026-10-24T23:41:07-0400",
+    "creationTime": "2026-10-25T03:41:07Z"
+  },
+  "header-only.mp4": {
+    "majorBrand": "isom",
+    "appleCreationDate": null,
+    "creationTime": "2026-09-11T19:23:00.000000Z"
+  },
+  "no-date.mp4": {
+    "majorBrand": "isom",
+    "appleCreationDate": null,
+    "creationTime": null
+  }
+}

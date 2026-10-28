@@ -2,7 +2,7 @@
   "name": "@hl-bos/date-sort",
   "version": "0.1.0",
   "private": true,
-  "description": "DateSort engine. Reads a folder of loose camera photos WITHOUT CHANGING ANYTHING in it: identifies each file by its bytes (JPG/JPEG, PNG, HEIC, Canon RAW CR2 and CR3), reads when it was taken (EXIF DateTimeOriginal, then CreateDate, then the file's modified time labelled as an estimate; never EXIF DateTime, which is an edit time), and groups the photos into shooting days. Includes a read-only Canon CR3 metadata reader. Separately (\"./copy\"), copies a shooting date's photos into a dated folder: copy only, never overwriting, every copy checked against its original. No database. Separately (\"./sport\"), and only when asked, suggests each date's sport with Claude: small previews of a few photos per date are sent to Anthropic. Nothing else uses the network.",
+  "description": "DateSort engine. Reads a folder of loose camera photos WITHOUT CHANGING ANYTHING in it: identifies each file by its bytes (JPG/JPEG, PNG, HEIC, Canon RAW CR2 and CR3, and MOV/MP4 videos, dated by the phone's own clock), reads when it was taken (EXIF DateTimeOriginal, then CreateDate, then the file's modified time labelled as an estimate; never EXIF DateTime, which is an edit time), and groups the photos into shooting days. Includes a read-only Canon CR3 metadata reader. Separately (\"./copy\"), copies a shooting date's photos into a dated folder: copy only, never overwriting, every copy checked against its original. No database. Separately (\"./sport\"), and only when asked, suggests each date's sport with Claude: small previews of a few photos per date are sent to Anthropic. Nothing else uses the network.",
   "type": "module",
   "exports": {
     ".": {

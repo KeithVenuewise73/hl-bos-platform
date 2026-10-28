@@ -86,7 +86,13 @@ export async function POST(request: Request): Promise<Response> {
 }
 
 function toView(result: ScanResult, scanId: string): ScanView {
-  const sources = { DateTimeOriginal: 0, CreateDate: 0, FileModified: 0 };
+  const sources = {
+    DateTimeOriginal: 0,
+    CreateDate: 0,
+    VideoCreationDate: 0,
+    VideoHeader: 0,
+    FileModified: 0,
+  };
   const estimated = [];
   for (const f of result.files) {
     if (f.kind !== "photo" || f.dateSource === null || f.takenAt === null) continue;

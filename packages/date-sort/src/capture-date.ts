@@ -17,7 +17,13 @@
  * game shot at 11:30 pm stays on the day the camera showed.
  */
 
-export type DateSource = "DateTimeOriginal" | "CreateDate" | "FileModified";
+export type DateSource =
+  | "DateTimeOriginal"
+  | "CreateDate"
+  /** A video: the phone's own creation date (iPhone), or its movie header. */
+  | "VideoCreationDate"
+  | "VideoHeader"
+  | "FileModified";
 
 export interface CaptureDate {
   /** "YYYY-MM-DDTHH:MM:SS", wall clock, no zone. */

@@ -149,6 +149,59 @@ and only to a name nothing else has). The copy then finishes in it, and no photo
 copied twice. If a date already has two or more folders, DateSort copies nothing
 for that date and lists them, so you can keep one.
 
+## Videos: iPhone MOV and MP4 (built)
+
+Videos are sorted by date just like photos.
+
+- **How a video's date is found.** iPhone videos carry Apple's creation date: the
+  local time the phone showed, plus its time zone. DateSort keeps that clock, so a
+  game filmed at 11:41 pm stays on that day even though it is already the next
+  day in UTC. Other videos use the time in the movie header, shown in this
+  computer's time zone. A video with neither is dated by its file and labelled
+  **estimated**.
+- **Read-only, and fast.** `src/quicktime.ts` walks the boxes that describe the
+  video and skips the video data itself; a test proves no byte of it is read. The
+  reader is checked against ffprobe on real MOV and MP4 files
+  (`fixtures/ffprobe-says.json`), with the computer set to New York and to Tokyo.
+- **What to copy.** When a scan has videos, the copy panel offers **Photos and
+  videos**, **Photos only** or **Videos only**. With **Videos only**, choose the
+  video folder (for example `Hockey Videos` on the Seagate) and only videos go
+  there, into date folders. A date with no videos gets no folder.
+
+## Bring in from iPhone (built; first real test is the CEO's phone)
+
+On Windows, an iPhone plugged in by USB shows up as "Apple iPhone", not as a
+drive letter, so DateSort cannot read it the way it reads a camera card.
+**Bring in from iPhone** (under the folder box) reads it through Windows' own
+Shell (`src/lib/iphone-script.ts`):
+
+1. The first time, you choose the folder that keeps the phone's photos and
+   videos (for example `iPhone Photos` on the Seagate). DateSort remembers it.
+2. DateSort copies everything in the phone's DCIM folders into that folder, in
+   the phone's own subfolders (`100APPLE`, ...), skipping what is already there.
+   It runs again whenever you like and only brings what is new. Each file
+   arrives in `.datesort-incoming` and gets its real name only once complete.
+   The scanner ignores `.datesort-incoming`.
+3. Then it scans that folder by itself. From there it works as usual: date
+   cards, **Videos only** to `Hockey Videos`, and so on.
+
+**The phone is only read.** The script contains no delete or move call; a test
+checks that. Delete photos on the phone yourself, after checking them. If the
+iPhone is locked or hasn't trusted this computer, DateSort says so in plain
+words. Set **Settings → Photos → Transfer to Mac or PC → Keep Originals** on the
+phone to get the original HEIC files with their dates.
+
+**What is proven where.** On the Windows test machine the copy runs through
+the same Shell calls against a folder laid out like an iPhone's DCIM:
+
+- everything comes across, byte for byte;
+- a second run brings nothing twice;
+- the source is unchanged;
+- the scan follows by itself.
+
+Only finding "Apple iPhone" in This PC needs a real phone. That first test is
+the CEO's.
+
 ## Jersey numbers: hand a game to JerseySort (built)
 
 The order is date, then sport, then jersey number. Every copied date card has

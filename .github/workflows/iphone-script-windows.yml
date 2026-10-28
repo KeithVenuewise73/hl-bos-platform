@@ -1,0 +1,35 @@
+name: DateSort iPhone script on Windows
+
+# The fast check of DateSort's "Bring in from iPhone" script (about a
+# minute): it runs the real script, through the same Windows Shell calls a
+# phone uses, against a folder laid out like an iPhone's DCIM, and prints
+# every line it says. No runner has an iPhone; finding "Apple iPhone" in This
+# PC is the one part only a real phone can prove.
+
+on:
+  pull_request:
+    paths:
+      - "apps/date-sort/src/lib/iphone-script.ts"
+      - "scripts/local-test/run-iphone-script.ps1"
+      - ".github/workflows/iphone-script-windows.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  windows:
+    name: iPhone script (Shell copy, iPhone-like folder)
+    runs-on: windows-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        shell: pwsh
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "22"
+          package-manager-cache: false
+      - name: Run the script against an iPhone-like folder, twice
+        run: scripts/local-test/run-iphone-script.ps1

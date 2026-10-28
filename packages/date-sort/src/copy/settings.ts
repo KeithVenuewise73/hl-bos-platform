@@ -17,6 +17,8 @@ export interface Settings {
   readonly destination: string | null;
   /** Event name per date ("2026-10-04" -> "Caz vs Wheatfield"). */
   readonly eventNames: Readonly<Record<string, string>>;
+  /** Where the iPhone's photos and videos are kept (copied from the phone). */
+  readonly iphoneFolder?: string | null;
 }
 
 /** Only real dates and short names are kept from whatever is in the file. */
@@ -47,13 +49,15 @@ export async function loadSettings(dir: string = settingsDir()): Promise<Setting
     const raw = JSON.parse(await readFile(join(dir, "settings.json"), "utf8")) as {
       destination?: unknown;
       eventNames?: unknown;
+      iphoneFolder?: unknown;
     };
     return {
       destination: typeof raw.destination === "string" ? raw.destination : null,
       eventNames: cleanEventNames(raw.eventNames),
+      iphoneFolder: typeof raw.iphoneFolder === "string" ? raw.iphoneFolder : null,
     };
   } catch {
-    return { destination: null, eventNames: {} };
+    return { destination: null, eventNames: {}, iphoneFolder: null };
   }
 }
 

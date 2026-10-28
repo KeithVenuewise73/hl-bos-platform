@@ -339,6 +339,43 @@ describe("copying dates into folders", () => {
     });
   });
 
+  it("copies only the videos, or only the photos, when asked", async () => {
+    // An iPhone-style video filmed on Oct 4 at 23:41 (its own clock).
+    const video = join(import.meta.dirname, "..", "..", "fixtures", "iphone-style.mov");
+    const mov = readFileSync(video);
+    writeFileSync(join(card, "101CANON", "IMG_0005.MOV"), mov);
+    // The fixture says Oct 24; re-date nothing: just copy the bytes and use its day.
+    const scanned = await scan();
+    const videoDay = scanned.files.find((f) => f.path.endsWith("IMG_0005.MOV"));
+    expect(videoDay).toMatchObject({ kind: "photo", format: "mov" });
+    const day = (videoDay as ScannedPhoto).takenAt!.slice(0, 10);
+
+    const videosDest = join(work, "Hockey Videos");
+    mkdirSync(videosDest);
+    await copyDays({
+      root: card,
+      files: scanned.files,
+      destination: videosDest,
+      days: [{ day }, { day: "2026-10-04" }],
+      only: "videos",
+    });
+    expect(
+      walk(videosDest).map((f) => relative(videosDest, f).replace(/\\/g, "/")),
+    ).toEqual([`${day}/IMG_0005.MOV`]);
+    // Date folders are made only where something was copied.
+    expect(readdirSync(videosDest)).toEqual([day]);
+
+    await copyDays({
+      root: card,
+      files: scanned.files,
+      destination: dest,
+      days: [{ day }, { day: "2026-10-04" }],
+      only: "photos",
+    });
+    expect(walk(dest).some((f) => f.endsWith(".MOV"))).toBe(false);
+    expect(readdirSync(join(dest, "2026-10-04")).length).toBe(3);
+  });
+
   it("copies nothing for a date that already has two folders, and says why", async () => {
     const scanned = await scan();
     mkdirSync(join(dest, "2026-10-04"));
@@ -503,7 +540,11 @@ describe("copying dates into folders", () => {
 describe("remembering the destination and event names", () => {
   it("saves and loads them from DateSort's own settings folder", async () => {
     const dir = join(work, "settings");
-    expect(await loadSettings(dir)).toEqual({ destination: null, eventNames: {} });
+    expect(await loadSettings(dir)).toEqual({
+      destination: null,
+      eventNames: {},
+      iphoneFolder: null,
+    });
     await saveSettings(
       {
         destination: "D:\\5-Star Sports Media\\Games",
@@ -514,6 +555,7 @@ describe("remembering the destination and event names", () => {
     expect(await loadSettings(dir)).toEqual({
       destination: "D:\\5-Star Sports Media\\Games",
       eventNames: { "2025-11-08": "Zac K" },
+      iphoneFolder: null,
     });
   });
 

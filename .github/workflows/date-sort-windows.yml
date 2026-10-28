@@ -22,6 +22,8 @@ name: DateSort on Windows
 #     "Find jersey numbers" starting JerseySort, the import link surviving
 #     sign-up, and the game's photos arriving in a JerseySort event, with the
 #     game folder unchanged (scripts/local-test/verify-date-to-jersey.cjs)
+#   - Bring in from iPhone, through the same Windows Shell calls as a real
+#     phone, against a folder laid out like an iPhone's DCIM
 #   - DateSort's and the console's unit tests, on Windows
 
 on:
@@ -122,6 +124,9 @@ jobs:
         env:
           DATESORT_NO_BROWSER: "1"
           DATESORT_REAL_FOLDERS: C:\Windows\Web
+          # A folder laid out like an iPhone's DCIM, read through the same
+          # Windows Shell calls as a real phone (no runner has an iPhone).
+          DATESORT_IPHONE_TEST_SOURCE: ${{ runner.temp }}\fake-iphone\DCIM
         run: |
           $T = $env:RUNNER_TEMP
           function Up { try { (Invoke-WebRequest http://localhost:4604/api/health -UseBasicParsing -TimeoutSec 3).StatusCode -eq 200 } catch { $false } }
@@ -376,7 +381,7 @@ jobs:
           }
           $console = if ($b) { $b.checklist.'Control Center Start button' } else { 'FAIL' }
           $lines += "| Control Center Start DateSort | $console |"
-          $keys = "Folder Browse", "Include subfolders", "JPG/JPEG detection", "HEIC detection", "CR2 detection", "CR3 detection", "CR3 Date Taken reading", "Date grouping", "Estimated-date labeling", "Create folder (one date, with event name)", "Copy all dates", "Copies identical to originals", "Never overwrites", "Originals untouched by copying", "Destination remembered", "Name added after copying renames the folder", "Sport key handling", "Sport suggestions on the page"
+          $keys = "Folder Browse", "Include subfolders", "JPG/JPEG detection", "HEIC detection", "CR2 detection", "CR3 detection", "CR3 Date Taken reading", "Date grouping", "Estimated-date labeling", "Create folder (one date, with event name)", "Copy all dates", "Copies identical to originals", "Never overwrites", "Originals untouched by copying", "Destination remembered", "Name added after copying renames the folder", "Sport key handling", "Sport suggestions on the page", "Videos (iPhone MOV, MP4)", "Bring in from iPhone (same Windows calls, iPhone-like folder)"
           foreach ($k in $keys) {
             $va = if ($a) { $a.checklist.$k } else { $null }
             $vb = if ($b) { $b.checklist.$k } else { $null }
