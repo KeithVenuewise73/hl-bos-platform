@@ -1,0 +1,28 @@
+{
+  "name": "@hl-bos/hld-transformation-pipeline",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Herman Legacy Digital Business Transformation Pipeline — the workflow that surrounds BTI and turns analysis into a client transformation. Eleven stages (Business Discovery → Continuous Transformation) that reuse @hl-bos/bti-venuewise (Client #1) and @hl-bos/bti-cycle, and turn every recommendation into executable implementation tasks mapped to Herman Legacy Digital capabilities. Deterministic and DB-agnostic; no dashboards, no UI, no execution — it plans, it does not run the tasks; nothing is fabricated.",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "default": "./src/index.ts"
+    }
+  },
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run",
+    "pipeline": "node --experimental-strip-types --experimental-transform-types src/cli.ts",
+    "clean": "rm -rf dist *.tsbuildinfo"
+  },
+  "dependencies": {
+    "@hl-bos/bti-cycle": "workspace:*",
+    "@hl-bos/bti-venuewise": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  }
+}
