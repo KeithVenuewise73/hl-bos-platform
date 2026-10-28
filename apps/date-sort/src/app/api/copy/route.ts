@@ -27,6 +27,7 @@ export async function POST(request: Request): Promise<Response> {
     scanId?: unknown;
     destination?: unknown;
     days?: unknown;
+    only?: unknown;
   };
   const scan = typeof body.scanId === "string" ? findScan(body.scanId) : undefined;
   if (scan === undefined) {
@@ -86,6 +87,9 @@ export async function POST(request: Request): Promise<Response> {
           files: scan.files,
           destination,
           days,
+          ...(body.only === "photos" || body.only === "videos"
+            ? { only: body.only }
+            : {}),
           signal: request.signal,
           onProgress: (p) => {
             const now = Date.now();

@@ -283,6 +283,7 @@ async function buildCr3Only(root) {
 // ---------------------------------------------------------------------------
 
 function sha(file) {
+  if (!fs.existsSync(file)) return `missing: ${file}`;
   return crypto.createHash("sha256").update(fs.readFileSync(file)).digest("hex");
 }
 
@@ -476,6 +477,129 @@ async function sportChecks(page, browser) {
   await shot(p2, "11-sport-suggestions");
   await p2.close();
   verdict("Sport suggestions on the page", shown, used, nothingForSplit);
+}
+
+// ---------------------------------------------------------------------------
+// Bring in from iPhone. No CI machine has an iPhone, so the workflow starts
+// DateSort with DATESORT_IPHONE_TEST_SOURCE pointing at a folder laid out like
+// an iPhone's DCIM, and the copy goes through the same Windows Shell calls it
+// makes on a real phone. Finding "Apple iPhone" in This PC is the one part
+// only a real phone can prove.
+// ---------------------------------------------------------------------------
+async function iphoneChecks(page, work) {
+  const source = process.env.DATESORT_IPHONE_TEST_SOURCE;
+  if (!WINDOWS || !source) {
+    console.log("  (skipped: needs Windows and DATESORT_IPHONE_TEST_SOURCE)");
+    return;
+  }
+  for (const [sub, from, to] of [
+    ["100APPLE", "iphone-style.mov", "IMG_0042.MOV"],
+    ["100APPLE", "header-only.mp4", "IMG_0043.MP4"],
+    ["100APPLE", "heic-all-three-differ.heic", "IMG_0044.HEIC"],
+    ["101APPLE", "jpg-all-three-differ.jpg", "IMG_0050.JPG"],
+  ]) {
+    fs.mkdirSync(path.join(source, sub), { recursive: true });
+    fs.copyFileSync(path.join(FIXTURES, from), path.join(source, sub, to));
+  }
+  const phoneBefore = fingerprint(source);
+  const kept = path.join(work, "Seagate", "iPhone Photos");
+  fs.mkdirSync(kept, { recursive: true });
+  await fetch(`${BASE}/api/settings`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Origin: BASE },
+    body: JSON.stringify({ iphoneFolder: kept }),
+  });
+  await page.reload();
+  const run = async () => {
+    await page.click("[data-testid=iphone-button]");
+    return page
+      .waitForFunction(
+        () => {
+          const t =
+            document.querySelector("[data-testid=iphone-progress]")?.textContent || "";
+          const p =
+            document.querySelector("[data-testid=iphone-problem]")?.textContent || "";
+          return /^Done/.test(t) || p !== "" ? t || p : null;
+        },
+        null,
+        { timeout: 300_000 },
+      )
+      .then((h) => h.jsonValue())
+      .catch(async () => {
+        // Say what the page was showing when it gave up, not just "no answer".
+        const seen = await page
+          .evaluate(() =>
+            ["iphone-button", "iphone-progress", "iphone-problem", "iphone-folder"]
+              .map((id) => {
+                const el = document.querySelector(`[data-testid=${id}]`);
+                return `${id}=${el ? JSON.stringify(el.textContent) : "absent"}`;
+              })
+              .join(" "),
+          )
+          .catch((e) => String(e));
+        return `no answer (${seen})`;
+      });
+  };
+  const first = await run();
+  const keptFiles = walk(kept)
+    .map((f) => path.relative(kept, f).replace(/\\/g, "/"))
+    .sort();
+  const copied = check(
+    "every photo and video comes across into the kept folder, in the phone's own folders",
+    /4 copied · 0 already there/.test(first) &&
+      JSON.stringify(keptFiles) ===
+        JSON.stringify([
+          "100APPLE/IMG_0042.MOV",
+          "100APPLE/IMG_0043.MP4",
+          "100APPLE/IMG_0044.HEIC",
+          "101APPLE/IMG_0050.JPG",
+        ]),
+    JSON.stringify({ first, keptFiles }),
+  );
+  const same = check(
+    "each copy is byte for byte the original",
+    sha(path.join(kept, "100APPLE", "IMG_0042.MOV")) ===
+      sha(path.join(source, "100APPLE", "IMG_0042.MOV")) &&
+      sha(path.join(kept, "101APPLE", "IMG_0050.JPG")) ===
+        sha(path.join(source, "101APPLE", "IMG_0050.JPG")),
+  );
+  const scanned = await page
+    .waitForFunction(
+      () =>
+        /2 videos/.test(
+          document.querySelector("[data-testid=headline]")?.textContent || "",
+        ),
+      null,
+      {
+        timeout: 120_000,
+      },
+    )
+    .then(() => true)
+    .catch(() => false);
+  const autoScan = check(
+    "then it scans the kept folder by itself (the report shows the 2 videos)",
+    scanned && (await page.inputValue("[data-testid=source-input]")) === kept,
+    await page.textContent("[data-testid=headline]").catch(() => ""),
+  );
+  await shot(page, "12-iphone");
+  const second = await run();
+  const again = check(
+    "pressing it again brings nothing twice: all 4 already there",
+    /0 copied · 4 already there/.test(second),
+    second,
+  );
+  const untouched = check(
+    "nothing on the phone side changed (every file fingerprinted)",
+    differences(phoneBefore, fingerprint(source)).length === 0,
+  );
+  verdict(
+    "Bring in from iPhone (same Windows calls, iPhone-like folder)",
+    copied,
+    same,
+    autoScan,
+    again,
+    untouched,
+  );
 }
 
 async function copyChecks(page, card, work) {
@@ -1286,6 +1410,58 @@ async function refusals() {
   await fresh.close();
 
   // CR3 Date Taken
+  // An iPhone-style folder: videos (MOV, MP4) and a HEIC photo. Videos are
+  // dated by the phone's own clock and can be copied on their own.
+  console.log("\niPhone-style folder: videos");
+  const phone = path.join(work, "iPhone", "DCIM", "100APPLE");
+  fs.mkdirSync(phone, { recursive: true });
+  for (const [from, to] of [
+    ["iphone-style.mov", "IMG_0042.MOV"],
+    ["header-only.mp4", "IMG_0043.MP4"],
+    ["heic-all-three-differ.heic", "IMG_0044.HEIC"],
+  ]) {
+    fs.copyFileSync(path.join(FIXTURES, from), path.join(phone, to));
+  }
+  const phoneScan = (
+    await scanWatched(page, path.join(work, "iPhone"), true, "iPhone-style folder")
+  ).report;
+  const headline = await page.textContent("[data-testid=headline]");
+  const oct24 = phoneScan.days.find((d) => d.day === "2026-10-24");
+  const videoDates = check(
+    "videos are counted and put on the day the phone filmed them (23:41 on Oct 24, not the next day in UTC)",
+    /1 photo · 2 videos/.test(headline || "") &&
+      oct24 !== undefined &&
+      oct24.first === "11:41 PM",
+    JSON.stringify({
+      headline,
+      days: phoneScan.days.map((d) => `${d.day} ${d.first}`),
+    }),
+  );
+  const hockey = path.join(work, "Seagate", "Hockey Videos");
+  fs.mkdirSync(hockey, { recursive: true });
+  await page.click("[data-testid=copy-only-videos]");
+  await page.fill("[data-testid=destination-input]", hockey);
+  await page.click("[data-testid=copy-all]");
+  const vc = await waitForCopy(page);
+  const copiedVideos = walk(hockey)
+    .map((f) => path.relative(hockey, f).replace(/\\/g, "/"))
+    .sort();
+  const onlyVideos = check(
+    "Videos only copies just the videos, each into its date folder in Hockey Videos",
+    vc.error === null &&
+      copiedVideos.length === 2 &&
+      copiedVideos.every((f) => /\.(MOV|MP4)$/.test(f)) &&
+      copiedVideos.includes("2026-10-24/IMG_0042.MOV") &&
+      !copiedVideos.some((f) => f.endsWith(".HEIC")),
+    JSON.stringify({ vc, copiedVideos }),
+  );
+  verdict("Videos (iPhone MOV, MP4)", videoDates, onlyVideos);
+
+  console.log(
+    "\nBring in from iPhone (an iPhone-like folder through the same Windows calls)",
+  );
+  await iphoneChecks(page, work);
+
   console.log("\nCR3-only folder");
   const cr3Dir = path.join(work, "CR3 only");
   fs.mkdirSync(cr3Dir);

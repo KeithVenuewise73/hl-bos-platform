@@ -39,7 +39,15 @@ describe("the scan report", () => {
   it("counts every file, every photo and every format", () => {
     expect(r.totalFiles).toBe(10);
     expect(r.photos).toBe(8);
-    expect(r.byFormat).toEqual({ jpeg: 4, png: 1, heic: 1, cr2: 1, cr3: 1 });
+    expect(r.byFormat).toEqual({
+      jpeg: 4,
+      png: 1,
+      heic: 1,
+      cr2: 1,
+      cr3: 1,
+      mov: 0,
+      mp4: 0,
+    });
     expect(r.unsupported.map((u) => u.path)).toEqual(["Thumbs.db", "MVI.MP4"]);
   });
 
@@ -57,7 +65,15 @@ describe("the scan report", () => {
     ]);
     const oct4 = r.days[1]!;
     expect(oct4.photos).toBe(4);
-    expect(oct4.byFormat).toEqual({ jpeg: 2, png: 0, heic: 1, cr2: 0, cr3: 1 });
+    expect(oct4.byFormat).toEqual({
+      jpeg: 2,
+      png: 0,
+      heic: 1,
+      cr2: 0,
+      cr3: 1,
+      mov: 0,
+      mp4: 0,
+    });
     expect(oct4.cameraDated).toBe(3);
     expect(oct4.estimated).toBe(1);
     expect(oct4.first).toBe("2026-10-04T10:15:00");

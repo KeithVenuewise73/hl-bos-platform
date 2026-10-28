@@ -27,7 +27,7 @@ export async function GET(request: Request): Promise<Response> {
 }
 
 /**
- * Remember the destination and/or the event names. Only text is stored;
+ * Remember the destination, the event names and/or the iPhone's folder. Only text is stored;
  * nothing is created.
  */
 export async function POST(request: Request): Promise<Response> {
@@ -36,12 +36,17 @@ export async function POST(request: Request): Promise<Response> {
   const body = (await request.json().catch(() => ({}))) as {
     destination?: unknown;
     eventNames?: unknown;
+    iphoneFolder?: unknown;
   };
   const destination =
     typeof body.destination === "string" && body.destination.trim() !== ""
       ? body.destination.trim()
       : null;
-  if (destination === null && body.eventNames === undefined) {
+  const iphoneFolder =
+    typeof body.iphoneFolder === "string" && body.iphoneFolder.trim() !== ""
+      ? body.iphoneFolder.trim()
+      : null;
+  if (destination === null && body.eventNames === undefined && iphoneFolder === null) {
     return Response.json(
       { error: "Expected a folder or event names." },
       { status: 400 },
@@ -55,6 +60,8 @@ export async function POST(request: Request): Promise<Response> {
         body.eventNames === undefined
           ? now.eventNames
           : cleanEventNames(body.eventNames),
+      // Every save keeps the iPhone folder, or a destination save would forget it.
+      iphoneFolder: iphoneFolder ?? now.iphoneFolder ?? null,
     });
   });
   return Response.json({ ok: true });

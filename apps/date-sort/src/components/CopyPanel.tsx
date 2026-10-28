@@ -26,6 +26,8 @@ export function useCopy(view: ScanView) {
   const [note, setNote] = useState<string | null>(null);
   const [browsing, setBrowsing] = useState(false);
   const [awake, setAwake] = useState<boolean | null>(null);
+  /** What to copy: hockey videos can go to their own folder. */
+  const [only, setOnly] = useState<"both" | "photos" | "videos">("both");
   const [stalled, setStalled] = useState(false);
   const abort = useRef<AbortController | null>(null);
 
@@ -128,6 +130,7 @@ export function useCopy(view: ScanView) {
           scanId: view.scanId,
           destination: destination.trim(),
           days: days.map((day) => ({ day, eventName: names[day] ?? "" })),
+          ...(only === "both" ? {} : { only }),
         }),
         signal: controller.signal,
       });
@@ -204,6 +207,8 @@ export function useCopy(view: ScanView) {
     running,
     progress,
     awake,
+    only,
+    setOnly,
     stalled,
     results,
     error,
@@ -231,6 +236,39 @@ export function CopyPanel({ view, copy }: { view: ScanView; copy: CopyState }) {
           where they are, untouched, and nothing in the destination is ever overwritten.
         </p>
       </div>
+      {view.report.byFormat.mov + view.report.byFormat.mp4 > 0 ? (
+        <fieldset className="space-y-1" data-testid="copy-only">
+          <legend className="text-xs font-semibold uppercase tracking-wide text-muted">
+            What to copy
+          </legend>
+          <div className="flex flex-wrap gap-4 text-sm">
+            {(
+              [
+                ["both", "Photos and videos"],
+                ["photos", "Photos only"],
+                ["videos", "Videos only"],
+              ] as const
+            ).map(([value, label]) => (
+              <label key={value} className="flex items-center gap-2">
+                <input
+                  type="radio"
+                  name="copy-only"
+                  value={value}
+                  data-testid={`copy-only-${value}`}
+                  checked={copy.only === value}
+                  disabled={busy}
+                  onChange={() => copy.setOnly(value)}
+                />
+                {label}
+              </label>
+            ))}
+          </div>
+          <p className="text-xs text-muted">
+            Videos only: choose your video folder below (Hockey Videos, say). Dates with
+            nothing of that kind get no folder.
+          </p>
+        </fieldset>
+      ) : null}
       <label
         className="block text-xs font-semibold uppercase tracking-wide text-muted"
         htmlFor="destination"

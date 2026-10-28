@@ -31,7 +31,7 @@ export type ScannedFile = ScannedPhoto | UnsupportedFile;
 export type FormatCounts = Record<PhotoFormat, number>;
 
 export function zeroCounts(): FormatCounts {
-  return { jpeg: 0, png: 0, heic: 0, cr2: 0, cr3: 0 };
+  return { jpeg: 0, png: 0, heic: 0, cr2: 0, cr3: 0, mov: 0, mp4: 0 };
 }
 
 export interface DayReport {

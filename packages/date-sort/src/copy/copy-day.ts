@@ -9,6 +9,7 @@
 
 import { join } from "node:path";
 
+import { isVideo } from "../formats";
 import type { ScannedFile, ScannedPhoto } from "../report";
 import { folderName, isInside, planDay, type PlannedCopy } from "./plan";
 import {
@@ -73,6 +74,8 @@ export interface CopyRequest {
   readonly files: readonly ScannedFile[];
   readonly destination: string;
   readonly days: readonly DayRequest[];
+  /** What to copy: everything (default), only photos, or only videos. */
+  readonly only?: "photos" | "videos";
   readonly onProgress?: (p: CopyProgress) => void;
   readonly signal?: AbortSignal;
   /** Tests only. */
@@ -166,7 +169,11 @@ export function folderPlanForDay(
 }
 
 export async function copyDays(request: CopyRequest): Promise<DayResult[]> {
-  const photos = request.files.filter((f): f is ScannedPhoto => f.kind === "photo");
+  const photos = request.files.filter(
+    (f): f is ScannedPhoto =>
+      f.kind === "photo" &&
+      (request.only === undefined || (request.only === "videos") === isVideo(f.format)),
+  );
   const existing = await folderNames(request.destination);
   const plans = request.days.map((d) => {
     const where = folderPlanForDay(d.day, d.eventName ?? "", existing);
@@ -205,6 +212,12 @@ export async function copyDays(request: CopyRequest): Promise<DayResult[]> {
       renamedFrom: null,
       problem,
     });
+    // Nothing of the chosen kind on this date (no videos, say): no folder,
+    // no rename, nothing to report but that.
+    if (plan.items.length === 0) {
+      results.push({ ...nothing(""), problem: null });
+      continue;
+    }
     if (plan.where.kind === "refuse") {
       results.push(nothing(plan.where.reason));
       done += plan.items.length;

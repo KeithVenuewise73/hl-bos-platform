@@ -46,3 +46,15 @@ exiftool -ExifIFD:DateTimeOriginal="2026:10:04 13:03:00" \
 
 What these do **not** prove: that every Canon body writes its CR3 the same way the M50
 does. The first scan of a real card from the camera in use is the test for that.
+
+## Videos (made with ffmpeg 6.1, checked with ffprobe)
+
+`ffprobe-says.json` is what ffprobe reads from each one, the independent
+reference for the video date reader (`src/quicktime.ts`):
+
+- `iphone-style.mov`: a QuickTime file the way an iPhone writes it, with
+  Apple's `com.apple.quicktime.creationdate` of 2026-10-24 23:41:07 at
+  UTC-4. In UTC that is already October 25: the video must stay on the 24th,
+  the day it was filmed.
+- `header-only.mp4`: an MP4 with only the movie header's creation time.
+- `no-date.mp4`: no date at all; DateSort must estimate, and say so.

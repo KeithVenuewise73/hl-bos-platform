@@ -5,6 +5,7 @@ import { execFile } from "node:child_process";
 import {
   DESTINATION_TITLE,
   encodeForPowerShell,
+  IPHONE_TITLE,
   parsePickerOutput,
   pickerScript,
   type PickerOutcome,
@@ -24,7 +25,7 @@ let open = false;
 const PICK_TIMEOUT_MS = 15 * 60 * 1000;
 
 export async function browseForFolder(
-  purpose: "source" | "destination" = "source",
+  purpose: "source" | "destination" | "iphone" = "source",
 ): Promise<PickerOutcome | { kind: "busy" } | { kind: "unavailable"; reason: string }> {
   if (process.platform !== "win32") {
     return {
@@ -47,7 +48,13 @@ export async function browseForFolder(
           "Bypass",
           "-EncodedCommand",
           encodeForPowerShell(
-            pickerScript(purpose === "destination" ? DESTINATION_TITLE : undefined),
+            pickerScript(
+              purpose === "destination"
+                ? DESTINATION_TITLE
+                : purpose === "iphone"
+                  ? IPHONE_TITLE
+                  : undefined,
+            ),
           ),
         ],
         { timeout: PICK_TIMEOUT_MS, windowsHide: true, maxBuffer: 1024 * 1024 },
