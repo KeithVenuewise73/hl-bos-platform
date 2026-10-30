@@ -90,7 +90,21 @@ try {
   $incoming = Join-Path $dest '.datesort-incoming'
   New-Item -ItemType Directory -Force -Path $incoming | Out-Null
   $inNs = $shell.NameSpace($incoming)
+  # Files that failed on an earlier run (a big video Windows could not read
+  # off the phone, say) go last, so one bad file cannot hold up the rest.
+  # The list lives in DateSort's own .datesort-incoming folder.
+  $failedList = Join-Path $incoming 'failed-before.txt'
+  $pending = @{}
+  if (Test-Path -LiteralPath $failedList) {
+    foreach ($l in @(Get-Content -LiteralPath $failedList)) { if ($l) { $pending[$l] = $true } }
+  }
+  $files = @($files | Where-Object { -not $pending.ContainsKey($_.folder + '\' + $_.name) }) + @($files | Where-Object { $pending.ContainsKey($_.folder + '\' + $_.name) })
+  # After a failed video, an iPhone can stop answering for every file that
+  # follows. Three failures in a row end the run with a plain message,
+  # rather than a Windows error box for each remaining file.
+  $inARow = 0; $stuck = $false
   foreach ($x in $files) {
+    $key = $x.folder + '\' + $x.name
     $dir = Join-Path $dest $x.folder
     $target = Join-Path $dir $x.name
     # An iPhone set to "Transfer to Mac or PC: Automatic" hands over its HEIC
@@ -102,10 +116,12 @@ try {
       # Smaller than the phone's file: an earlier copy cut short (before
       # copies were held to the promised size). Reported by name, left alone.
       $result = if ($x.size -le 0 -or $len -eq $x.size) { 'already' } elseif ($len -lt $x.size) { 'short' } else { 'conflict' }
+      if ($result -eq 'already') { $pending.Remove($key) }
       Say @{ type = 'file'; folder = $x.folder; name = $x.name; result = $result }
       continue
     }
     if ($converted -and (Test-Path -LiteralPath (Join-Path $dir $converted))) {
+      $pending.Remove($key)
       Say @{ type = 'file'; folder = $x.folder; name = $converted; result = 'already' }
       continue
     }
@@ -136,15 +152,26 @@ try {
       if ($sure -and $len -eq $x.size -and $steady -ge 2) { $ok = $true; break }
       if (-not $sure -and $len -gt 0 -and $steady -ge 10) { $ok = $true; break }
     }
-    if (-not $ok) { Say @{ type = 'file'; folder = $x.folder; name = $x.name; result = 'failed' }; continue }
+    if (-not $ok) {
+      Say @{ type = 'file'; folder = $x.folder; name = $x.name; result = 'failed' }
+      $pending[$key] = $true; $inARow += 1
+      if ($inARow -ge 3) { $stuck = $true; break }
+      continue
+    }
     New-Item -ItemType Directory -Force -Path $dir | Out-Null
     # Windows may still hold the file for a moment; one file that cannot be
     # named yet is reported, not the end of the whole run.
     try { [System.IO.File]::Move($part, $target) } catch {
-      Say @{ type = 'file'; folder = $x.folder; name = $x.name; result = 'failed' }; continue
+      Say @{ type = 'file'; folder = $x.folder; name = $x.name; result = 'failed' }
+      $pending[$key] = $true; $inARow += 1
+      if ($inARow -ge 3) { $stuck = $true; break }
+      continue
     }
+    $pending.Remove($key); $inARow = 0
     Say @{ type = 'file'; folder = $x.folder; name = (Split-Path -Leaf $target); result = 'copied'; bytes = (Get-Item -LiteralPath $target).Length }
   }
+  if ($pending.Count -gt 0 -or (Test-Path -LiteralPath $failedList)) { Set-Content -LiteralPath $failedList -Value @($pending.Keys) }
+  if ($stuck) { Say @{ type = 'stuck' }; exit 0 }
   Say @{ type = 'done' }
 } catch {
   Say @{ type = 'error'; message = $_.Exception.Message }
@@ -175,6 +202,8 @@ export type IphoneLine =
       readonly bytes?: number;
     }
   | { readonly type: "done" }
+  /** Several files in a row failed: the phone has stopped answering. */
+  | { readonly type: "stuck" }
   | { readonly type: "error"; readonly message: string };
 
 /** One line of the script's output, or null for anything else it printed. */
@@ -188,6 +217,7 @@ export function parseIphoneLine(line: string): IphoneLine | null {
       case "found":
       case "file":
       case "done":
+      case "stuck":
       case "error":
         return o as IphoneLine;
       default:

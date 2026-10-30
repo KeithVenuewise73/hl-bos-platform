@@ -46,6 +46,9 @@ $empty = Run 'empty-storage' $emptyPhone
 New-Item -ItemType Directory -Force (Join-Path $dest '202609_a') | Out-Null
 $whole = [IO.File]::ReadAllBytes((Join-Path $months '202609_a\IMG_0900.MP4'))
 [IO.File]::WriteAllBytes((Join-Path $dest '202609_a\IMG_0900.MP4'), $whole[0..999])
+# A file that failed on an earlier run is tried last.
+New-Item -ItemType Directory -Force (Join-Path $dest '.datesort-incoming') | Out-Null
+Set-Content -LiteralPath (Join-Path $dest '.datesort-incoming\failed-before.txt') -Value '202609_a\IMG_0900.MP4'
 $month = Run 'month-folders' $monthPhone
 
 $ok = $true
@@ -63,5 +66,6 @@ foreach ($f in '202610_a\IMG_1000.JPG') {
   if (-not (Test-Path $b) -or (Get-FileHash $a).Hash -ne (Get-FileHash $b).Hash) { Write-Host "MONTH LAYOUT, MISSING OR DIFFERENT: $f"; $ok = $false }
 }
 if ($month -notmatch '"result":"short","name":"IMG_0900.MP4"' -and $month -notmatch '"name":"IMG_0900.MP4"[^}]*"result":"short"') { Write-Host "a copy cut short earlier was not reported as short"; $ok = $false }
+if ($month.IndexOf('IMG_1000.JPG') -lt 0 -or $month.IndexOf('"name":"IMG_0900.MP4"') -lt $month.IndexOf('"name":"IMG_1000.JPG"')) { Write-Host "a file that failed before was not tried last"; $ok = $false }
 if ($month -notmatch '"type":"done"') { Write-Host "the month-folder phone never said done"; $ok = $false }
 if ($ok) { Write-Host "ALL GOOD"; exit 0 } else { exit 1 }
