@@ -28,6 +28,15 @@ describe("the iPhone copy script", () => {
     // that ("IMG_0042" for IMG_0042.MOV): the real name must come from
     // System.FileName, or the script waits for a file that never appears.
     expect(IPHONE_SCRIPT).toContain("ExtendedProperty('System.FileName')");
+    // A copy that stops part-way must never be kept as whole: when the phone
+    // gave a size, only that exact size counts as complete. (On Keith's
+    // iPhone, a video copy failed at about 60%.)
+    expect(IPHONE_SCRIPT).toContain(
+      "if ($sure -and $len -eq $x.size -and $steady -ge 2)",
+    );
+    expect(IPHONE_SCRIPT).toContain(
+      "if (-not $sure -and $len -gt 0 -and $steady -ge 10)",
+    );
   });
 
   it("takes paths only from the environment, never pasted into the script", () => {
