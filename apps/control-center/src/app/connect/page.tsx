@@ -186,6 +186,58 @@ export default async function ConnectPage() {
       </Card>
 
       <Card
+        title="RunPod (optional)"
+        sub="Lets the Lab GPU page switch the rented graphics card on and off."
+      >
+        <div
+          style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}
+        >
+          <Dot health={status.runpod ? "green" : "yellow"} />
+          <span style={{ fontSize: 13 }}>
+            {status.runpod ? "Connected." : "Not connected."}
+          </span>
+        </div>
+        <p style={{ margin: 0, fontSize: 13, color: "#c9d1d9", lineHeight: 1.7 }}>
+          Use the key named <strong>Claude</strong> in your password manager, or make a
+          new one at{" "}
+          <a
+            href="https://console.runpod.io/user/settings"
+            target="_blank"
+            rel="noreferrer"
+            style={{ color: "#58a6ff" }}
+          >
+            RunPod&rsquo;s settings
+          </a>{" "}
+          with <strong>All</strong> access (Restricted cannot start and stop servers).
+          It stays on this machine and is sent only to RunPod. Your RunPod balance, with
+          auto-pay off, is the most it can ever spend.
+        </p>
+      </Card>
+
+      <Card
+        title="Coolify (optional)"
+        sub="Lets Lab GPU Turn on point the Lab at each new server."
+      >
+        <div
+          style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}
+        >
+          <Dot health={status.coolify ? "green" : "yellow"} />
+          <span style={{ fontSize: 13 }}>
+            {status.coolify ? "Connected." : "Not connected."}
+          </span>
+        </div>
+        <p style={{ margin: 0, fontSize: 13, color: "#c9d1d9", lineHeight: 1.7 }}>
+          Each <strong>Turn on</strong> makes a fresh server with a new address, and the
+          Lab has to be told it. In Coolify, open{" "}
+          <strong>Keys &amp; Tokens → API tokens</strong> and create one named{" "}
+          <strong>Control Center</strong> with <strong>read</strong>,{" "}
+          <strong>write</strong> and <strong>deploy</strong> permission. It stays on
+          this machine and is sent only to coolify.aipersonax.com. The console changes
+          one Lab setting with it — the GPU address — and redeploys the Lab.
+        </p>
+      </Card>
+
+      <Card
         title="Paste them here"
         sub="Stored on this machine only. Never committed, never sent anywhere else."
       >
@@ -195,6 +247,8 @@ export default async function ConnectPage() {
           supabaseRef={status.supabaseRef}
           hasPlaces={status.googlePlaces}
           hasAnthropic={status.anthropic}
+          hasRunpod={status.runpod}
+          hasCoolify={status.coolify}
         />
       </Card>
     </main>

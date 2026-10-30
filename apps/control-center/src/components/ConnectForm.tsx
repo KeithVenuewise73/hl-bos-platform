@@ -22,12 +22,16 @@ export function ConnectForm({
   supabaseRef,
   hasPlaces,
   hasAnthropic,
+  hasRunpod,
+  hasCoolify,
 }: {
   hasGithub: boolean;
   hasSupabase: boolean;
   supabaseRef: string | null;
   hasPlaces: boolean;
   hasAnthropic: boolean;
+  hasRunpod: boolean;
+  hasCoolify: boolean;
 }) {
   const [pending, start] = useTransition();
   const [result, setResult] = useState<ActionResult | null>(null);
@@ -100,6 +104,36 @@ export function ConnectForm({
           hasAnthropic
             ? "Already connected — paste a new one to replace it"
             : "sk-ant-..."
+        }
+        autoComplete="off"
+      />
+
+      <label style={{ fontSize: 12.5, color: "#8b949e" }}>
+        RunPod API key (Lab GPU on/off — optional)
+      </label>
+      <input
+        name="runpod"
+        type="password"
+        style={input}
+        placeholder={
+          hasRunpod
+            ? "Already connected — paste a new one to replace it"
+            : "Your RunPod key"
+        }
+        autoComplete="off"
+      />
+
+      <label style={{ fontSize: 12.5, color: "#8b949e" }}>
+        Coolify API key (Lab GPU Turn on — optional)
+      </label>
+      <input
+        name="coolify"
+        type="password"
+        style={input}
+        placeholder={
+          hasCoolify
+            ? "Already connected — paste a new one to replace it"
+            : "Your Coolify key"
         }
         autoComplete="off"
       />
