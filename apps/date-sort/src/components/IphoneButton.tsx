@@ -12,6 +12,8 @@ interface Tally {
   copied: number;
   already: number;
   conflicts: number;
+  /** Already in the folder but smaller than on the phone: cut short earlier. */
+  short: string[];
   failed: string[];
 }
 
@@ -144,6 +146,7 @@ export function IphoneButton({
               copied: 0,
               already: 0,
               conflicts: 0,
+              short: [],
               failed: [],
             };
             setState({ kind: "copying", tally: { ...tally } });
@@ -152,10 +155,11 @@ export function IphoneButton({
             if (m.result === "copied") tally.copied += 1;
             else if (m.result === "already") tally.already += 1;
             else if (m.result === "conflict") tally.conflicts += 1;
+            else if (m.result === "short") tally.short.push(`${m.folder}\\${m.name}`);
             else tally.failed.push(`${m.folder}\\${m.name}`);
             setState({
               kind: "copying",
-              tally: { ...tally, failed: [...tally.failed] },
+              tally: { ...tally, short: [...tally.short], failed: [...tally.failed] },
             });
           } else if (m.type === "done" && tally !== null) {
             ended = true;
@@ -229,7 +233,10 @@ export function IphoneButton({
             ? ` · ${t.conflicts} with the same name as a different file (left alone)`
             : ""}
           {t.failed.length > 0
-            ? ` · ${t.failed.length} could not be copied (${t.failed.slice(0, 3).join(", ")})`
+            ? ` · ${t.failed.length} could not be copied this time (${t.failed.slice(0, 3).join(", ")}${t.failed.length > 3 ? "…" : ""}); press the button again to retry them`
+            : ""}
+          {t.short.length > 0
+            ? ` · ${t.short.length} already in the folder but smaller than on the phone, probably cut short by an earlier copy (${t.short.slice(0, 3).join(", ")}${t.short.length > 3 ? "…" : ""})`
             : ""}
           {state.kind === "done" ? ". Scanning them now." : ""}
         </p>

@@ -23,8 +23,8 @@
  * DS_TEST_SOURCE (Windows CI only) stands an ordinary folder in for the
  * phone (<folder>\Internal Storage\DCIM\100APPLE\... or
  * <folder>\Internal Storage\202610_a\...) and walks it with the
- * same Shell calls, because no CI machine has an iPhone. Finding "Apple iPhone" in This PC is the one part only a real
- * phone can prove.
+ * same Shell calls, because no CI machine has an iPhone. Finding "Apple
+ * iPhone" in This PC is the one part only a real phone can prove.
  */
 
 export const IPHONE_SCRIPT = String.raw`
@@ -99,8 +99,10 @@ try {
     if ($x.name -match '^(.*)\.heic$') { $converted = $Matches[1] + '.JPG' }
     if (Test-Path -LiteralPath $target) {
       $len = (Get-Item -LiteralPath $target).Length
-      $same = ($x.size -le 0) -or ($len -eq $x.size)
-      Say @{ type = 'file'; folder = $x.folder; name = $x.name; result = $(if ($same) { 'already' } else { 'conflict' }) }
+      # Smaller than the phone's file: an earlier copy cut short (before
+      # copies were held to the promised size). Reported by name, left alone.
+      $result = if ($x.size -le 0 -or $len -eq $x.size) { 'already' } elseif ($len -lt $x.size) { 'short' } else { 'conflict' }
+      Say @{ type = 'file'; folder = $x.folder; name = $x.name; result = $result }
       continue
     }
     if ($converted -and (Test-Path -LiteralPath (Join-Path $dir $converted))) {
@@ -111,26 +113,36 @@ try {
     # 4 no progress window, 16 yes to all (replaces only our own leftover
     # partial in .datesort-incoming), 512 no folder prompt, 1024 no error UI.
     $inNs.CopyHere($x.item, 1556)
-    $limit = (Get-Date).AddSeconds([math]::Max(300, $x.size / 1MB))
-    $last = -1; $steady = 0; $ok = $false
-    while ((Get-Date) -lt $limit) {
+    # Wait for the copy. It is complete only at the size the phone promised.
+    # Only when the phone gave no size, or handed a HEIC over as JPG (sizes
+    # then differ), is "unchanged for 3 seconds" taken as complete. A copy
+    # that stops part-way (Windows' "requested value cannot be determined",
+    # an unplugged cable) is never kept as if whole: once nothing has grown
+    # for 2 minutes the file is reported as not copied, and the next run
+    # tries it again.
+    $last = -1; $steady = 0; $ok = $false; $sure = ($x.size -gt 0)
+    $moved = Get-Date
+    while (((Get-Date) - $moved).TotalSeconds -lt 120) {
       Start-Sleep -Milliseconds 300
       if (-not (Test-Path -LiteralPath $part)) {
         if (-not $converted) { continue }
         $alt = Join-Path $incoming $converted
         if (-not (Test-Path -LiteralPath $alt)) { continue }
-        $part = $alt; $target = Join-Path $dir $converted; $last = -1; $steady = 0
+        $part = $alt; $target = Join-Path $dir $converted; $last = -1; $steady = 0; $sure = $false
       }
       $len = (Get-Item -LiteralPath $part).Length
-      if ($x.size -gt 0 -and $len -eq $x.size) { $steady += 1 } elseif ($len -gt 0 -and $len -eq $last) { $steady += 1 } else { $steady = 0 }
+      if ($len -ne $last) { $moved = Get-Date; $steady = 0 } else { $steady += 1 }
       $last = $len
-      # Complete: the size the phone promised, or (phones that convert HEIC
-      # to JPG on the way, so sizes differ) unchanged for 3 seconds.
-      if (($x.size -gt 0 -and $len -eq $x.size -and $steady -ge 2) -or ($steady -ge 10)) { $ok = $true; break }
+      if ($sure -and $len -eq $x.size -and $steady -ge 2) { $ok = $true; break }
+      if (-not $sure -and $len -gt 0 -and $steady -ge 10) { $ok = $true; break }
     }
     if (-not $ok) { Say @{ type = 'file'; folder = $x.folder; name = $x.name; result = 'failed' }; continue }
     New-Item -ItemType Directory -Force -Path $dir | Out-Null
-    [System.IO.File]::Move($part, $target)
+    # Windows may still hold the file for a moment; one file that cannot be
+    # named yet is reported, not the end of the whole run.
+    try { [System.IO.File]::Move($part, $target) } catch {
+      Say @{ type = 'file'; folder = $x.folder; name = $x.name; result = 'failed' }; continue
+    }
     Say @{ type = 'file'; folder = $x.folder; name = (Split-Path -Leaf $target); result = 'copied'; bytes = (Get-Item -LiteralPath $target).Length }
   }
   Say @{ type = 'done' }
@@ -159,7 +171,7 @@ export type IphoneLine =
       readonly type: "file";
       readonly folder: string;
       readonly name: string;
-      readonly result: "copied" | "already" | "conflict" | "failed";
+      readonly result: "copied" | "already" | "conflict" | "short" | "failed";
       readonly bytes?: number;
     }
   | { readonly type: "done" }
