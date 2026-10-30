@@ -41,6 +41,11 @@ Write-Host "kept folder now holds:"
 Get-ChildItem -Recurse -File $dest | ForEach-Object { Write-Host $_.FullName.Substring($dest.Length + 1) }
 $second = Run 'second' $phone
 $empty = Run 'empty-storage' $emptyPhone
+# A copy cut short by an earlier run sits in the folder: it must be reported,
+# never counted as already there.
+New-Item -ItemType Directory -Force (Join-Path $dest '202609_a') | Out-Null
+$whole = [IO.File]::ReadAllBytes((Join-Path $months '202609_a\IMG_0900.MP4'))
+[IO.File]::WriteAllBytes((Join-Path $dest '202609_a\IMG_0900.MP4'), $whole[0..999])
 $month = Run 'month-folders' $monthPhone
 
 $ok = $true
@@ -53,9 +58,10 @@ if ($first -notmatch '"type":"looking"') { Write-Host "first run never said whic
 if ($second -notmatch '"result":"already"') { Write-Host "second run did not find them already there"; $ok = $false }
 if ($second -match '"result":"copied"') { Write-Host "second run copied again"; $ok = $false }
 if ($empty -notmatch '"type":"locked"' -or $empty -notmatch 'Internal Storage: \(nothing\)') { Write-Host "a phone showing nothing was not reported with what Windows saw"; $ok = $false }
-foreach ($f in '202609_a\IMG_0900.MP4', '202610_a\IMG_1000.JPG') {
+foreach ($f in '202610_a\IMG_1000.JPG') {
   $a = Join-Path $months $f; $b = Join-Path $dest $f
   if (-not (Test-Path $b) -or (Get-FileHash $a).Hash -ne (Get-FileHash $b).Hash) { Write-Host "MONTH LAYOUT, MISSING OR DIFFERENT: $f"; $ok = $false }
 }
+if ($month -notmatch '"result":"short","name":"IMG_0900.MP4"' -and $month -notmatch '"name":"IMG_0900.MP4"[^}]*"result":"short"') { Write-Host "a copy cut short earlier was not reported as short"; $ok = $false }
 if ($month -notmatch '"type":"done"') { Write-Host "the month-folder phone never said done"; $ok = $false }
 if ($ok) { Write-Host "ALL GOOD"; exit 0 } else { exit 1 }
