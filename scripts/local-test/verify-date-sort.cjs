@@ -482,16 +482,17 @@ async function sportChecks(page, browser) {
 // ---------------------------------------------------------------------------
 // Bring in from iPhone. No CI machine has an iPhone, so the workflow starts
 // DateSort with DATESORT_IPHONE_TEST_SOURCE pointing at a folder laid out like
-// an iPhone's DCIM, and the copy goes through the same Windows Shell calls it
-// makes on a real phone. Finding "Apple iPhone" in This PC is the one part
+// an iPhone ("Apple iPhone\Internal Storage\DCIM\100APPLE"), and the walk
+// and copy go through the same Windows Shell calls they make on a real phone. Finding "Apple iPhone" in This PC is the one part
 // only a real phone can prove.
 // ---------------------------------------------------------------------------
 async function iphoneChecks(page, work) {
-  const source = process.env.DATESORT_IPHONE_TEST_SOURCE;
-  if (!WINDOWS || !source) {
+  const phone = process.env.DATESORT_IPHONE_TEST_SOURCE;
+  if (!WINDOWS || !phone) {
     console.log("  (skipped: needs Windows and DATESORT_IPHONE_TEST_SOURCE)");
     return;
   }
+  const source = path.join(phone, "Internal Storage", "DCIM");
   for (const [sub, from, to] of [
     ["100APPLE", "iphone-style.mov", "IMG_0042.MOV"],
     ["100APPLE", "header-only.mp4", "IMG_0043.MP4"],
@@ -501,7 +502,7 @@ async function iphoneChecks(page, work) {
     fs.mkdirSync(path.join(source, sub), { recursive: true });
     fs.copyFileSync(path.join(FIXTURES, from), path.join(source, sub, to));
   }
-  const phoneBefore = fingerprint(source);
+  const phoneBefore = fingerprint(phone);
   const kept = path.join(work, "Seagate", "iPhone Photos");
   fs.mkdirSync(kept, { recursive: true });
   await fetch(`${BASE}/api/settings`, {
@@ -590,7 +591,7 @@ async function iphoneChecks(page, work) {
   );
   const untouched = check(
     "nothing on the phone side changed (every file fingerprinted)",
-    differences(phoneBefore, fingerprint(source)).length === 0,
+    differences(phoneBefore, fingerprint(phone)).length === 0,
   );
   verdict(
     "Bring in from iPhone (same Windows calls, iPhone-like folder)",

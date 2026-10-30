@@ -19,9 +19,9 @@
  * Output: one line of JSON per event (see IphoneLine). Paths come in through
  * environment variables, never pasted into the script.
  *
- * DS_TEST_SOURCE (Windows CI only) points the same walk at an ordinary
- * folder, through the same Shell calls, because no CI machine has an
- * iPhone. Finding "Apple iPhone" in This PC is the one part only a real
+ * DS_TEST_SOURCE (Windows CI only) stands an ordinary folder in for the
+ * phone (<folder>\Internal Storage\DCIM\100APPLE\...) and walks it with the
+ * same Shell calls, because no CI machine has an iPhone. Finding "Apple iPhone" in This PC is the one part only a real
  * phone can prove.
  */
 
@@ -32,24 +32,43 @@ try {
   $shell = New-Object -ComObject Shell.Application
   $dest = $env:DS_DEST
   if ($env:DS_TEST_SOURCE) {
-    $root = $shell.NameSpace($env:DS_TEST_SOURCE)
-    $device = 'Test folder'
+    # A folder standing in for the phone: <it>\Internal Storage\DCIM\...
+    $dev = $shell.NameSpace($env:DS_TEST_SOURCE).Self
   } else {
     $pc = $shell.NameSpace(17)
     $dev = @($pc.Items() | Where-Object { $_.Name -match 'iPhone|iPad' }) | Select-Object -First 1
-    if (-not $dev) { Say @{ type = 'none' }; exit 0 }
-    $device = $dev.Name
-    $storage = @($dev.GetFolder.Items()) | Select-Object -First 1
-    if (-not $storage) { Say @{ type = 'locked'; device = $device }; exit 0 }
-    $dcim = @($storage.GetFolder.Items() | Where-Object { $_.Name -eq 'DCIM' }) | Select-Object -First 1
-    if (-not $dcim) { Say @{ type = 'locked'; device = $device }; exit 0 }
-    $root = $dcim.GetFolder
   }
+  if (-not $dev) { Say @{ type = 'none' }; exit 0 }
+  $device = $dev.Name
+  # Apple iPhone\Internal Storage\DCIM. A phone just unlocked or just
+  # trusted can show its storage empty for a moment, so look a few times.
+  # What Windows showed is reported back, so a phone laid out differently
+  # can be seen (and fixed) rather than guessed at.
+  $dcim = $null; $seen = @()
+  for ($try = 0; $try -lt 5 -and -not $dcim; $try++) {
+    if ($try -gt 0) { Start-Sleep -Seconds 2 }
+    $seen = @()
+    $top = @($dev.GetFolder.Items())
+    if ($top.Count -eq 0) { $seen += '(nothing)' }
+    foreach ($s in $top) {
+      if ($s.Name -eq 'DCIM') { $dcim = $s; break }
+      $g = $s.GetFolder
+      $inside = if ($g) { @($g.Items()) } else { @() }
+      $seen += ($s.Name + ': ' + $(if ($inside.Count -eq 0) { '(nothing)' } else { (@($inside | Select-Object -First 5 | ForEach-Object { $_.Name }) -join ', ') }))
+      $d = @($inside | Where-Object { $_.Name -eq 'DCIM' }) | Select-Object -First 1
+      if ($d) { $dcim = $d; break }
+    }
+  }
+  if (-not $dcim) { Say @{ type = 'locked'; device = $device; seen = ($seen -join '; ') }; exit 0 }
+  $root = $dcim.GetFolder
 
   $files = New-Object System.Collections.ArrayList
   foreach ($sub in @($root.Items())) {
-    if (-not $sub.IsFolder) { continue }
-    foreach ($f in @($sub.GetFolder.Items())) {
+    # A phone's folders do not always say IsFolder; one that opens is one.
+    $subFolder = $sub.GetFolder
+    if (-not $subFolder) { continue }
+    Say @{ type = 'looking'; folder = $sub.Name; sofar = $files.Count }
+    foreach ($f in @($subFolder.Items())) {
       if ($f.IsFolder) { continue }
       # The Shell's .Name hides the extension when Windows hides known
       # extensions (its default); System.FileName is the real file name.
@@ -118,7 +137,13 @@ try {
 
 export type IphoneLine =
   | { readonly type: "none" }
-  | { readonly type: "locked"; readonly device: string }
+  | {
+      readonly type: "locked";
+      readonly device: string;
+      /** What Windows showed inside the phone, e.g. "Internal Storage: (nothing)". */
+      readonly seen?: string;
+    }
+  | { readonly type: "looking"; readonly folder: string; readonly sofar: number }
   | {
       readonly type: "found";
       readonly device: string;
@@ -142,6 +167,7 @@ export function parseIphoneLine(line: string): IphoneLine | null {
     switch (o.type) {
       case "none":
       case "locked":
+      case "looking":
       case "found":
       case "file":
       case "done":

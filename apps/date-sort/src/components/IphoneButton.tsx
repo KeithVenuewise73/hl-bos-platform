@@ -17,9 +17,14 @@ interface Tally {
 
 type State =
   | { readonly kind: "idle" }
-  | { readonly kind: "copying"; readonly tally: Tally | null }
+  | {
+      readonly kind: "copying";
+      readonly tally: Tally | null;
+      /** While the phone is being listed: the folder, and files found so far. */
+      readonly looking?: { readonly folder: string; readonly sofar: number };
+    }
   | { readonly kind: "done"; readonly tally: Tally }
-  | { readonly kind: "problem"; readonly message: string };
+  | { readonly kind: "problem"; readonly message: string; readonly detail?: string };
 
 /**
  * "Bring in from iPhone": copies the plugged-in iPhone's photos and videos
@@ -118,6 +123,15 @@ export function IphoneButton({
             setState({
               kind: "problem",
               message: `${m.device} is connected but its photos can't be seen yet. Unlock it and tap Trust (then enter its passcode), then press the button again.`,
+              ...(m.seen
+                ? { detail: `What Windows sees inside the phone: ${m.seen}` }
+                : {}),
+            });
+          } else if (m.type === "looking") {
+            setState({
+              kind: "copying",
+              tally: null,
+              looking: { folder: m.folder, sofar: m.sofar },
             });
           } else if (m.type === "error") {
             ended = true;
@@ -198,7 +212,13 @@ export function IphoneButton({
           )}
         </span>
       </div>
-      {busy && t === null ? <p className="text-sm">Looking for the iPhone…</p> : null}
+      {busy && t === null ? (
+        <p className="text-sm" data-testid="iphone-looking">
+          {state.looking
+            ? `Reading the iPhone's ${state.looking.folder} folder… ${count(state.looking.sofar, "file")} found so far. A full phone takes a few minutes.`
+            : "Looking for the iPhone…"}
+        </p>
+      ) : null}
       {t !== null ? (
         <p className="text-sm" data-testid="iphone-progress">
           {state.kind === "done" ? "Done: " : `Copying from ${t.device}: `}
@@ -217,6 +237,11 @@ export function IphoneButton({
       {state.kind === "problem" ? (
         <p className="text-sm text-estimate" data-testid="iphone-problem">
           {state.message}
+        </p>
+      ) : null}
+      {state.kind === "problem" && state.detail ? (
+        <p className="font-mono text-xs text-muted" data-testid="iphone-detail">
+          {state.detail}
         </p>
       ) : null}
       <p className="text-xs text-muted">

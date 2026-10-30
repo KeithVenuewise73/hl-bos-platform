@@ -126,7 +126,7 @@ jobs:
           DATESORT_REAL_FOLDERS: C:\Windows\Web
           # A folder laid out like an iPhone's DCIM, read through the same
           # Windows Shell calls as a real phone (no runner has an iPhone).
-          DATESORT_IPHONE_TEST_SOURCE: ${{ runner.temp }}\fake-iphone\DCIM
+          DATESORT_IPHONE_TEST_SOURCE: ${{ runner.temp }}\fake-iphone\Apple iPhone
         run: |
           $T = $env:RUNNER_TEMP
           function Up { try { (Invoke-WebRequest http://localhost:4604/api/health -UseBasicParsing -TimeoutSec 3).StatusCode -eq 200 } catch { $false } }
