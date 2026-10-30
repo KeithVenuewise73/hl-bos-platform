@@ -98,6 +98,11 @@ try {
   if (Test-Path -LiteralPath $failedList) {
     foreach ($l in @(Get-Content -LiteralPath $failedList)) { if ($l) { $pending[$l] = $true } }
   }
+  # A part-copied file left in .datesort-incoming is also an earlier failure
+  # (from before this list was kept, or a run cut off).
+  foreach ($x in $files) {
+    if (Test-Path -LiteralPath (Join-Path $incoming $x.name)) { $pending[$x.folder + '\' + $x.name] = $true }
+  }
   $files = @($files | Where-Object { -not $pending.ContainsKey($_.folder + '\' + $_.name) }) + @($files | Where-Object { $pending.ContainsKey($_.folder + '\' + $_.name) })
   # After a failed video, an iPhone can stop answering for every file that
   # follows. Three failures in a row end the run with a plain message,

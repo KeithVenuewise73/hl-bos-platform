@@ -49,6 +49,9 @@ $whole = [IO.File]::ReadAllBytes((Join-Path $months '202609_a\IMG_0900.MP4'))
 # A file that failed on an earlier run is tried last.
 New-Item -ItemType Directory -Force (Join-Path $dest '.datesort-incoming') | Out-Null
 Set-Content -LiteralPath (Join-Path $dest '.datesort-incoming\failed-before.txt') -Value '202609_a\IMG_0900.MP4'
+# ...and so is one whose part-copy was left behind by an earlier failure.
+Copy-Item "$fx\jpg-all-three-differ.jpg" (Join-Path $months '202610_a\IMG_1001.JPG')
+[IO.File]::WriteAllBytes((Join-Path $dest '.datesort-incoming\IMG_1001.JPG'), [byte[]](1..50))
 $month = Run 'month-folders' $monthPhone
 
 $ok = $true
@@ -67,5 +70,7 @@ foreach ($f in '202610_a\IMG_1000.JPG') {
 }
 if ($month -notmatch '"result":"short","name":"IMG_0900.MP4"' -and $month -notmatch '"name":"IMG_0900.MP4"[^}]*"result":"short"') { Write-Host "a copy cut short earlier was not reported as short"; $ok = $false }
 if ($month.IndexOf('IMG_1000.JPG') -lt 0 -or $month.IndexOf('"name":"IMG_0900.MP4"') -lt $month.IndexOf('"name":"IMG_1000.JPG"')) { Write-Host "a file that failed before was not tried last"; $ok = $false }
+if ($month.IndexOf('"name":"IMG_1001.JPG"') -lt $month.IndexOf('"name":"IMG_1000.JPG"')) { Write-Host "a file with a part-copy left behind was not tried last"; $ok = $false }
+if (-not (Test-Path (Join-Path $dest '202610_a\IMG_1001.JPG')) -or (Get-FileHash (Join-Path $months '202610_a\IMG_1001.JPG')).Hash -ne (Get-FileHash (Join-Path $dest '202610_a\IMG_1001.JPG')).Hash) { Write-Host "the file with a part-copy left behind was not copied whole on retry"; $ok = $false }
 if ($month -notmatch '"type":"done"') { Write-Host "the month-folder phone never said done"; $ok = $false }
 if ($ok) { Write-Host "ALL GOOD"; exit 0 } else { exit 1 }
