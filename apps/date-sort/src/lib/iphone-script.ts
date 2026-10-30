@@ -3,7 +3,8 @@
  *
  * An iPhone plugged in by USB has no drive letter on Windows: it appears in
  * This PC as "Apple iPhone", reachable only through Windows' Shell. This
- * script asks the Shell for it, walks Internal Storage\DCIM\<folders>, and
+ * script asks the Shell for it, walks Internal Storage\DCIM\<folders> (or the
+ * month folders newer iPhones show straight inside Internal Storage), and
  * copies each file the folder does not have yet:
  *
  *   - It only READS the phone. Nothing on the phone is moved, renamed or
@@ -20,7 +21,8 @@
  * environment variables, never pasted into the script.
  *
  * DS_TEST_SOURCE (Windows CI only) stands an ordinary folder in for the
- * phone (<folder>\Internal Storage\DCIM\100APPLE\...) and walks it with the
+ * phone (<folder>\Internal Storage\DCIM\100APPLE\... or
+ * <folder>\Internal Storage\202610_a\...) and walks it with the
  * same Shell calls, because no CI machine has an iPhone. Finding "Apple iPhone" in This PC is the one part only a real
  * phone can prove.
  */
@@ -40,27 +42,30 @@ try {
   }
   if (-not $dev) { Say @{ type = 'none' }; exit 0 }
   $device = $dev.Name
-  # Apple iPhone\Internal Storage\DCIM. A phone just unlocked or just
-  # trusted can show its storage empty for a moment, so look a few times.
-  # What Windows showed is reported back, so a phone laid out differently
-  # can be seen (and fixed) rather than guessed at.
-  $dcim = $null; $seen = @()
-  for ($try = 0; $try -lt 5 -and -not $dcim; $try++) {
+  # Where the photos are: Apple iPhone\Internal Storage\DCIM\100APPLE on
+  # some phones; on newer ones Windows shows month folders (202610_a)
+  # straight inside Internal Storage, with no DCIM. A phone just unlocked or
+  # just trusted can show its storage empty for a moment, so look a few
+  # times. What Windows showed is reported back, so a phone laid out
+  # differently can be seen (and fixed) rather than guessed at.
+  $root = $null; $seen = @()
+  for ($try = 0; $try -lt 5 -and -not $root; $try++) {
     if ($try -gt 0) { Start-Sleep -Seconds 2 }
-    $seen = @()
+    $seen = @(); $months = $null
     $top = @($dev.GetFolder.Items())
     if ($top.Count -eq 0) { $seen += '(nothing)' }
     foreach ($s in $top) {
-      if ($s.Name -eq 'DCIM') { $dcim = $s; break }
+      if ($s.Name -eq 'DCIM') { $root = $s.GetFolder; break }
       $g = $s.GetFolder
       $inside = if ($g) { @($g.Items()) } else { @() }
       $seen += ($s.Name + ': ' + $(if ($inside.Count -eq 0) { '(nothing)' } else { (@($inside | Select-Object -First 5 | ForEach-Object { $_.Name }) -join ', ') }))
       $d = @($inside | Where-Object { $_.Name -eq 'DCIM' }) | Select-Object -First 1
-      if ($d) { $dcim = $d; break }
+      if ($d) { $root = $d.GetFolder; break }
+      if (-not $months -and (@($inside | Where-Object { $_.GetFolder } | Select-Object -First 1)).Count -gt 0) { $months = $g }
     }
+    if (-not $root -and $months) { $root = $months }
   }
-  if (-not $dcim) { Say @{ type = 'locked'; device = $device; seen = ($seen -join '; ') }; exit 0 }
-  $root = $dcim.GetFolder
+  if (-not $root) { Say @{ type = 'locked'; device = $device; seen = ($seen -join '; ') }; exit 0 }
 
   $files = New-Object System.Collections.ArrayList
   foreach ($sub in @($root.Items())) {
