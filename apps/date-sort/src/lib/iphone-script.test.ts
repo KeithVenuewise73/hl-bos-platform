@@ -37,6 +37,11 @@ describe("the iPhone copy script", () => {
     expect(IPHONE_SCRIPT).toContain(
       "if (-not $sure -and $len -gt 0 -and $steady -ge 10)",
     );
+    // On Keith's iPhone, one big video failed every time and the phone then
+    // stopped answering: earlier failures go last, and three in a row end
+    // the run with a plain message instead of an error box per file.
+    expect(IPHONE_SCRIPT).toContain("failed-before.txt");
+    expect(IPHONE_SCRIPT).toContain("if ($inARow -ge 3) { $stuck = $true; break }");
   });
 
   it("takes paths only from the environment, never pasted into the script", () => {

@@ -161,6 +161,12 @@ export function IphoneButton({
               kind: "copying",
               tally: { ...tally, short: [...tally.short], failed: [...tally.failed] },
             });
+          } else if (m.type === "stuck") {
+            ended = true;
+            setState({
+              kind: "problem",
+              message: `The iPhone stopped answering after ${tally !== null ? `${tally.copied.toLocaleString("en-US")} files were copied and ` : ""}several files in a row could not be read. Unplug it, plug it back in and unlock it, then press the button again. What is copied is kept; the files that failed are tried last next time.`,
+            });
           } else if (m.type === "done" && tally !== null) {
             ended = true;
             setState({ kind: "done", tally });
