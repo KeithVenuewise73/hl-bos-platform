@@ -5,6 +5,8 @@ import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { networkInterfaces } from "node:os";
 import { dirname, join } from "node:path";
 
+import { describeAccess } from "./firewall-report";
+import { readFirewall } from "./firewall";
 import {
   awayAddresses,
   codeFromBytes,
@@ -30,6 +32,22 @@ import { explain } from "./translate";
  */
 
 const FILTER = "@hl-bos/sceneflow-app";
+
+/**
+ * What Start SceneFlow said last time, so the report can carry it without the
+ * operator having to transcribe it. In memory: it describes this run of the
+ * console, and a stale answer from a previous run would be worse than none.
+ */
+let lastLaunch = "";
+
+export function lastLaunchMessage(): string {
+  return lastLaunch;
+}
+
+function remember(result: LaunchResult): LaunchResult {
+  lastLaunch = result.detail ? `${result.message}\n${result.detail}` : result.message;
+  return result;
+}
 const CODE_FILE = join(REPO_ROOT, ".sceneflow", "access-code.txt");
 
 export interface SceneFlowStatus {
@@ -47,6 +65,16 @@ export interface SceneFlowStatus {
   readonly code: string;
   /** Plain English. Never a stack trace. */
   readonly detail: string;
+  /**
+   * Nothing known is standing between a phone and the app. Not a promise that
+   * the phone will load -- see describeAccess -- but the strongest thing this
+   * machine can establish about itself.
+   */
+  readonly clear: boolean;
+  /** Show the firewall button: adding the rule is what would help. */
+  readonly offerRule: boolean;
+  /** What was actually read from Windows, for the panel to show in full. */
+  readonly firewallEvidence: readonly string[];
 }
 
 /** 24 random bits, as a number, for codeFromBytes to shape into six digits. */
@@ -68,9 +96,9 @@ async function writeCode(code: string): Promise<void> {
 }
 
 /** Ask SceneFlow whether it is up. Short timeout: this runs during a render. */
-async function healthy(): Promise<boolean> {
+async function healthy(host = "127.0.0.1"): Promise<boolean> {
   try {
-    const response = await fetch(`http://127.0.0.1:${SCENEFLOW_PORT}/api/health`, {
+    const response = await fetch(`http://${host}:${SCENEFLOW_PORT}/api/health`, {
       cache: "no-store",
       signal: AbortSignal.timeout(1500),
     });
@@ -83,26 +111,44 @@ async function healthy(): Promise<boolean> {
 export async function sceneflowStatus(): Promise<SceneFlowStatus> {
   const [running, code] = await Promise.all([healthy(), readCode()]);
   const interfaces = networkInterfaces();
-  const phone = phoneAddresses(interfaces).map((a) => phoneUrl(a));
+  const addresses = phoneAddresses(interfaces);
+  const phone = addresses.map((a) => phoneUrl(a));
   const away = awayAddresses(interfaces).map((a) => phoneUrl(a));
+
+  // Asking the app on the home-network address rather than on loopback. It is
+  // the difference between "the process is up" and "the process is listening
+  // where a phone would knock", and the old panel never drew it.
+  const first = addresses[0];
+  const listeningOnNetwork =
+    running && first !== undefined ? await healthy(first) : false;
+
+  const firewall = running ? await readFirewall() : EMPTY_FIREWALL;
+  const verdict = describeAccess({
+    running,
+    hasHomeAddress: phone.length > 0,
+    listeningOnNetwork,
+    firewall,
+  });
+
   return {
     running,
     phoneUrls: phone,
     awayUrls: away,
     code,
-    detail: describe(running, phone.length > 0),
+    detail: verdict.message,
+    clear: verdict.clear,
+    offerRule: verdict.offerRule,
+    firewallEvidence: firewall.evidence,
   };
 }
 
-function describe(running: boolean, reachable: boolean): string {
-  if (!running) return "Not running. Start it below.";
-  if (!reachable) {
-    // Honest rather than convenient: it is up, and this machine has no address
-    // a phone could use, so saying "open it on your phone" would be a lie.
-    return "Running on this PC. No home-network address was found, so a phone cannot reach it — the PC is probably on a VPN, or not on Wi-Fi.";
-  }
-  return "Running. Open the address below on your phone and type the code.";
-}
+/** Nothing was asked, because the app is down and the answer would not matter. */
+const EMPTY_FIREWALL = {
+  rule: "unknown",
+  profile: "unknown",
+  applicable: true,
+  evidence: [] as readonly string[],
+} as const;
 
 export interface LaunchResult {
   readonly ok: boolean;
@@ -126,16 +172,16 @@ export async function startSceneFlow(): Promise<LaunchResult> {
     // Writing the code is the first thing that touches the disk, so it is the
     // first thing that can fail on a machine with an unusual profile path or a
     // read-only folder. Say so rather than dying before the panel hears back.
-    return {
+    return remember({
       ok: false,
       message: `Could not save the access code, so SceneFlow was not started. ${
         error instanceof Error ? error.message : String(error)
       }`,
-    };
+    });
   }
 
   if (await healthy()) {
-    return { ok: true, message: "SceneFlow was already running." };
+    return remember({ ok: true, message: "SceneFlow was already running." });
   }
 
   const build = await pnpm(["--filter", FILTER, "build"], {
@@ -146,11 +192,11 @@ export async function startSceneFlow(): Promise<LaunchResult> {
     // operator the tail of a Node stack trace as the reason his button did
     // nothing, which is the exact failure translate.ts exists to prevent.
     const why = explain(build.output);
-    return {
+    return remember({
       ok: false,
       message: `${why.headline} ${why.meaning}`,
       detail: build.output.slice(-1200),
-    };
+    });
   }
 
   const spawned = spawnPnpm(["--filter", FILTER, "start:network"], {
@@ -158,22 +204,23 @@ export async function startSceneFlow(): Promise<LaunchResult> {
   });
   if (!spawned.ok) {
     const why = explain(spawned.error ?? "");
-    return {
+    return remember({
       ok: false,
       message: `${why.headline} ${why.meaning}`,
       detail: spawned.error ?? "",
-    };
+    });
   }
 
   const deadline = Date.now() + 60_000;
   while (Date.now() < deadline) {
-    if (await healthy()) return { ok: true, message: "SceneFlow is running." };
+    if (await healthy())
+      return remember({ ok: true, message: "SceneFlow is running." });
     await new Promise((resolve) => setTimeout(resolve, 1000));
   }
-  return {
+  return remember({
     ok: false,
     message: `SceneFlow was started but never answered on port ${SCENEFLOW_PORT}. Nothing was opened, because an address that will not load is worse than none.`,
-  };
+  });
 }
 
 /**

@@ -5,9 +5,9 @@
   "description": "HighlightAI Football \u2014 upload the game, pick the player, HighlightAI does the rest. Assembled on HL-BOS: reuses HL-BOS identity/tenancy/permissions and the `highlight` schema, and runs @hl-bos/highlight-football for every decision it displays. Ships with demo adapters so the whole workflow is walkable before the GPU models are complete; demo output is labelled as demo everywhere it appears.",
   "type": "module",
   "scripts": {
-    "dev": "next dev --port 4601",
+    "dev": "next dev --port 4601 --hostname 127.0.0.1",
     "build": "next build",
-    "start": "next start --port 4601",
+    "start": "next start --port 4601 --hostname 127.0.0.1",
     "typecheck": "tsc --noEmit",
     "lint": "eslint .",
     "test": "vitest run",
