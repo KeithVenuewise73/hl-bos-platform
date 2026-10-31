@@ -31,6 +31,27 @@ describe("extractRequirements", () => {
     expect(texts).not.toContain("Sunrise Distribution Partners");
   });
 
+  it("does not turn a stated pay range into a requirement", () => {
+    // Regression, found by the career-platform end-to-end run: "Salary range:
+    // $82,000 - $95,000 per year." was scored as an unmet requirement and shown
+    // to the candidate as a gap. Pay is a facet of the posting, not a skill.
+    const posting = parseJobPosting({
+      rawText:
+        "Operations Manager\nAcme\nSalary range: $82,000 - $95,000 per year.\nPay rate: $28/hour\n\nRequirements\n- 5+ years of warehouse leadership",
+    });
+    const texts = posting.requirements.map((r) => r.text);
+    expect(texts.some((t) => /salary|pay rate/i.test(t))).toBe(false);
+    expect(posting.facets.compensation).toContain("82,000");
+    expect(texts).toContain("5+ years of warehouse leadership");
+
+    // The same label in the middle of a paragraph.
+    const inline = parseJobPosting({
+      rawText:
+        "Operations Manager\nAcme\n\nAcme is hiring a full-time Operations Manager to lead our site. Salary range: $82,000 - $95,000 per year.\n\nRequirements\n- 5+ years of warehouse leadership",
+    });
+    expect(inline.requirements.some((r) => /salary/i.test(r.text))).toBe(false);
+  });
+
   it("reads years of experience off the requirement that states it", () => {
     const years = requirements.find((r) => r.yearsRequired !== undefined);
     expect(years?.yearsRequired).toBe(10);

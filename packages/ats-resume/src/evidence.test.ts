@@ -4,7 +4,9 @@ import {
   rewriteWithTerminology,
   shouldRewrite,
 } from "./evidence.ts";
-import { makeFact } from "./career-facts.ts";
+import { factsFromResume, makeFact } from "./career-facts.ts";
+import { parseJobPosting } from "./job-parser.ts";
+import { parseResume } from "./resume-parser.ts";
 import { newId } from "./text.ts";
 import { TERMINOLOGY_GROUPS } from "./vocabulary.ts";
 import type {
@@ -138,5 +140,50 @@ describe("rewriteWithTerminology", () => {
     const original = "Ran fleet and transportation operations for the region.";
     expect(shouldRewrite(original, fleet!)).toBe(false);
     expect(rewriteWithTerminology(original, fleet!)).toBe(`${original}`);
+  });
+});
+
+describe("degree levels are credentials, not word overlap", () => {
+  const job = (text: string) =>
+    parseJobPosting({ rawText: `Operations Manager\nAcme\n\nRequirements\n- ${text}` });
+  const factsFor = (education: string) =>
+    factsFromResume(
+      "p",
+      parseResume(
+        `Pat Doe\nEXPERIENCE\nSupervisor | Acme | 2019 - Present\n- Led a team\nEDUCATION\n${education} | Columbus State | 2016`,
+      ),
+    );
+  const verdict = (requirement: string, education: string) => {
+    const posting = job(requirement);
+    const { matches } = matchRequirements(posting.requirements, factsFor(education));
+    return matches.find((m) => /degree/i.test(m.requirement));
+  };
+
+  it("does not let an associate degree satisfy a bachelor's requirement", () => {
+    // Regression from the career-platform end-to-end run.
+    const m = verdict(
+      "Bachelor's degree in supply chain or related field required",
+      "Associate of Applied Science, Supply Chain Management",
+    );
+    expect(m?.status).toBe("partial_match");
+    expect(m?.recommendedAction).toMatch(
+      /asks for a bachelor's degree; your highest degree on record is an associate degree/,
+    );
+  });
+
+  it("still credits a bachelor's degree against a bachelor's requirement", () => {
+    const m = verdict(
+      "Bachelor's degree in supply chain or related field required",
+      "B.S. Supply Chain Management",
+    );
+    expect(m?.status).toBe("strong_match");
+  });
+
+  it("does not let a bachelor's satisfy a master's requirement", () => {
+    const m = verdict(
+      "Master's degree in logistics required",
+      "Bachelor of Science, Logistics",
+    );
+    expect(m?.status).not.toBe("strong_match");
   });
 });

@@ -17,8 +17,7 @@ const OWNER = "66666666-6666-4666-8666-666666666666";
 function workspaceFromDemo(): Workspace {
   const demo = buildDemoDataset(OWNER);
   return {
-    version: 1,
-    userId: OWNER,
+    ...emptyWorkspace(OWNER),
     profiles: [demo.profile],
     facts: [...demo.facts],
     resumes: [demo.resume],
@@ -26,8 +25,6 @@ function workspaceFromDemo(): Workspace {
     analyses: [demo.analysis],
     generated: [demo.generated],
     applications: [...demo.applications],
-    coverLetters: [],
-    interviewPreps: [],
   };
 }
 
@@ -251,3 +248,44 @@ function lineCount(workspace: Workspace): number {
     0,
   );
 }
+
+describe("career platform records", () => {
+  it("writes each career record to ats.career_records under its kind, after every parent table", async () => {
+    const { newOpportunity, usageEvent } = await import("@hl-bos/ats-resume");
+    const before = workspaceFromDemo();
+    const after = clone(before);
+    const profileId = before.profiles[0]!.id;
+    after.opportunities.push(
+      newOpportunity({
+        profileId,
+        source: "manual",
+        employer: "Acme",
+        title: "Dispatcher",
+        description: "x",
+      }),
+    );
+    after.usageEvents.push(usageEvent(profileId, "job_import", "rules-engine"));
+    after.facts.push(
+      makeFact(profileId, { category: "other", text: "Drove a forklift" }),
+    );
+    const plans = planWorkspaceWrites(before, after, OWNER);
+    const career = plans.filter((p) => p.table === "career_records");
+    expect(career.map((p) => p.upserts[0]?.["kind"]).sort()).toEqual([
+      "opportunity",
+      "usage_event",
+    ]);
+    for (const p of career) {
+      const row = p.upserts[0]!;
+      expect(row["owner_id"]).toBe(OWNER);
+      expect((row["data"] as { id: string }).id).toBe(row["id"]);
+    }
+    expect(plans.findIndex((p) => p.table === "career_facts")).toBeLessThan(
+      plans.findIndex((p) => p.table === "career_records"),
+    );
+  });
+
+  it("plans nothing for career records when nothing changed", () => {
+    const before = workspaceFromDemo();
+    expect(planWorkspaceWrites(before, clone(before), OWNER)).toEqual([]);
+  });
+});

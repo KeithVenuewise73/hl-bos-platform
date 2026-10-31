@@ -11,7 +11,12 @@ import {
 
 export const dynamic = "force-dynamic";
 
-export default async function ApplicationsPage() {
+export default async function ApplicationsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ error?: string }>;
+}) {
+  const { error } = await searchParams;
   const workspace = await loadWorkspace();
   const profile = await currentProfile();
   const applications = workspace.applications
@@ -29,6 +34,12 @@ export default async function ApplicationsPage() {
           </Link>
         }
       />
+
+      {error === undefined ? null : (
+        <Notice tone="danger">
+          <strong>Not saved.</strong> {error}
+        </Notice>
+      )}
 
       {applications.length === 0 ? (
         <Empty>
@@ -49,6 +60,7 @@ export default async function ApplicationsPage() {
           return (
             <Card
               key={application.id}
+              id={application.id}
               title={`${application.role} — ${application.company}`}
               sub={`Analyzed ${formatDate(application.dateAnalyzed)}`}
               right={application.isSample === true ? <SampleTag /> : undefined}

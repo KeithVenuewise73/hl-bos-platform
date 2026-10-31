@@ -1,4 +1,6 @@
-# ATS Resume Optimizer
+# ATS Resume Optimizer — and the HLG Career Platform
+
+> This app is now the shell for the **HLG Career Platform**: intake, experience bank, approved base resume, job discovery, application pipeline with a frozen submission archive, interview practice, LinkedIn drafts and account/data controls. Start at `/start`. The product record — what is built, how it was verified, what is not done — is [docs/products/hlg-career-platform](../../docs/products/hlg-career-platform/README.md).
 
 Compare a job posting against your resume, see every requirement matched against evidence you actually have, and generate a tailored, ATS-friendly resume in which **every sentence is traceable to a source fact**.
 
@@ -39,12 +41,13 @@ See [DEPLOYMENT.md](./DEPLOYMENT.md) for the Coolify configuration. Note the per
 
 All optional. All server-side; none of them is browser-visible.
 
-| Variable            | Default         | What it does                                                                                                                                   |
-| ------------------- | --------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
-| `ANTHROPIC_API_KEY` | unset           | Enables Claude for two jobs: re-reading a job posting, and proposing bullet phrasing. Without it the built-in rules engine runs every feature. |
-| `ATS_AI_MODEL`      | `claude-opus-5` | Which model, when a key is set.                                                                                                                |
-| `ATS_DATA_DIR`      | `.data`         | Where the JSON store is written, relative to the app directory unless absolute.                                                                |
-| `ATS_SEED_DEMO`     | `true`          | Set to `false` to start with an empty workspace.                                                                                               |
+| Variable               | Default         | What it does                                                                                                                                   |
+| ---------------------- | --------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
+| `ANTHROPIC_API_KEY`    | unset           | Enables Claude for two jobs: re-reading a job posting, and proposing bullet phrasing. Without it the built-in rules engine runs every feature. |
+| `ATS_AI_MODEL`         | `claude-opus-5` | Which model, when a key is set.                                                                                                                |
+| `ATS_DATA_DIR`         | `.data`         | Where the JSON store is written, relative to the app directory unless absolute.                                                                |
+| `ATS_SEED_DEMO`        | `true`          | Set to `false` to start with an empty workspace. **Set `false` for any subscriber deployment.**                                                |
+| `CAREER_SUPPORT_EMAIL` | unset           | Support address shown on the Account page. Unset means the page says none is configured.                                                       |
 
 `src/lib/config.ts` is the only file in this app that reads `process.env`, and it carries the matching ESLint exemption in the repository config. The API key is read on the server, used on the server, and never returned to a page.
 

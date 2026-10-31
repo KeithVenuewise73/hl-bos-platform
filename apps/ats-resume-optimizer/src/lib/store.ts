@@ -187,6 +187,43 @@ async function persist(before: Workspace, after: Workspace): Promise<void> {
   await saveWorkspaceToSupabase(client, before, after, viewer.userId);
 }
 
+/**
+ * Delete everything the signed-in account holds.
+ *
+ * Local mode: the account's store file is replaced with an empty workspace
+ * (no sample data re-seeded). Signed-in mode: `ats.erase_my_career_data()`
+ * (migration 0053) deletes every row the caller owns, under their own RLS —
+ * a diff-driven delete would be refused for usage records, by design.
+ * Returns the number of records removed.
+ */
+export async function eraseAccountData(): Promise<number> {
+  const viewer = await getViewer();
+  if (viewer.userId === null) throw new Error("No signed-in user.");
+  if (currentMode() === "authenticated") {
+    const client = await serverSupabase();
+    if (client === null)
+      throw new Error(
+        "Signed-in mode is active but no database client could be built.",
+      );
+    // No generated database types in this app, so the RPC result is typed here.
+    const { data, error } = (await client
+      .schema("ats")
+      .rpc("erase_my_career_data")) as {
+      data: unknown;
+      error: { message: string } | null;
+    };
+    if (error !== null) throw new Error(`Could not delete your data: ${error.message}`);
+    return typeof data === "number" ? data : 0;
+  }
+  const before = await loadWorkspace();
+  const count = (Object.values(before) as unknown[]).reduce<number>(
+    (n, v) => n + (Array.isArray(v) ? v.length : 0),
+    0,
+  );
+  await saveWorkspace(emptyWorkspace(viewer.userId));
+  return count;
+}
+
 /** Testing hook: forget every cached workspace. */
 export function resetWorkspaceCache(): void {
   memo.clear();

@@ -18,6 +18,17 @@ import type {
   JobPosting,
   MasterResume,
 } from "@hl-bos/ats-resume";
+import type {
+  BaseResume,
+  EmployerBoard,
+  Interpretation,
+  LinkedInItem,
+  Opportunity,
+  PracticeSession,
+  SearchProfile,
+  Submission,
+  UsageEvent,
+} from "@hl-bos/ats-resume";
 
 export interface Workspace {
   readonly version: 1;
@@ -33,7 +44,33 @@ export interface Workspace {
   applications: Application[];
   coverLetters: CoverLetter[];
   interviewPreps: InterviewPrep[];
+  // HLG Career Platform. Persisted in PostgreSQL as `ats.career_records`
+  // (migration 0053), one row per record, discriminated by kind.
+  searchProfiles: SearchProfile[];
+  interpretations: Interpretation[];
+  baseResumes: BaseResume[];
+  employerBoards: EmployerBoard[];
+  opportunities: Opportunity[];
+  /** Frozen. Created once on confirmed submission; never updated. */
+  submissions: Submission[];
+  practiceSessions: PracticeSession[];
+  linkedinItems: LinkedInItem[];
+  usageEvents: UsageEvent[];
 }
+
+/** Career collections and the `kind` each is stored under. */
+export const CAREER_KINDS = {
+  searchProfiles: "search_profile",
+  interpretations: "interpretation",
+  baseResumes: "base_resume",
+  employerBoards: "employer_board",
+  opportunities: "opportunity",
+  submissions: "submission",
+  practiceSessions: "practice_session",
+  linkedinItems: "linkedin_item",
+  usageEvents: "usage_event",
+} as const;
+export type CareerCollection = keyof typeof CAREER_KINDS;
 
 export function emptyWorkspace(userId: string): Workspace {
   return {
@@ -48,5 +85,14 @@ export function emptyWorkspace(userId: string): Workspace {
     applications: [],
     coverLetters: [],
     interviewPreps: [],
+    searchProfiles: [],
+    interpretations: [],
+    baseResumes: [],
+    employerBoards: [],
+    opportunities: [],
+    submissions: [],
+    practiceSessions: [],
+    linkedinItems: [],
+    usageEvents: [],
   };
 }
