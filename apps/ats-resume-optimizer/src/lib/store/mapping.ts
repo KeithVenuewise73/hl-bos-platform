@@ -811,3 +811,27 @@ export function rebuildExperience(
     relevance: shell.relevance,
   }));
 }
+
+// ---------------------------------------------------------------------------
+// Career platform records (migration 0053: ats.career_records)
+// ---------------------------------------------------------------------------
+
+export function careerRecordToRow(
+  item: { readonly id: string; readonly createdAt: string; readonly updatedAt: string },
+  kind: string,
+  ownerId: string,
+): Row {
+  return {
+    id: item.id,
+    owner_id: ownerId,
+    kind,
+    data: item,
+    created_at: item.createdAt,
+    updated_at: item.updatedAt,
+  };
+}
+
+/** The stored record, as written. `data` is the whole record, so it round-trips exactly. */
+export function rowToCareerRecord<T>(row: Row): T {
+  return row["data"] as T;
+}

@@ -17,10 +17,11 @@
 
 import type { GeneratedLine, GeneratedResume } from "@hl-bos/ats-resume";
 
-import type { Workspace } from "./workspace.ts";
+import { CAREER_KINDS, type CareerCollection, type Workspace } from "./workspace.ts";
 import {
   analysisToRow,
   applicationToRow,
+  careerRecordToRow,
   claimEvidenceToRow,
   coverLetterToRow,
   factToRow,
@@ -55,6 +56,7 @@ const ORDER = [
   "applications",
   "cover_letters",
   "interview_preps",
+  "career_records",
 ] as const;
 
 export interface TablePlan {
@@ -84,6 +86,12 @@ interface LineChild extends Identified {
   readonly parentId: string;
   readonly position: number;
   readonly item: GeneratedLine;
+}
+
+/** What every career record has in common: enough to diff and store it. */
+interface CareerRow extends Identified {
+  readonly createdAt: string;
+  readonly updatedAt: string;
 }
 
 /** Build every table's write plan from the before/after pair. */
@@ -185,6 +193,17 @@ export function planWorkspaceWrites(
     after.interviewPreps,
     interviewPrepToRow,
   );
+
+  // Career platform records share one table, discriminated by kind. A
+  // submission or usage row that the planner tried to UPDATE would be refused
+  // by the table's trigger — the app never does, and the database makes sure.
+  for (const collection of Object.keys(CAREER_KINDS) as CareerCollection[]) {
+    const kind = CAREER_KINDS[collection];
+    const rows = (w: Workspace): readonly CareerRow[] => w[collection];
+    add("career_records", rows(before), rows(after), (item, owner) =>
+      careerRecordToRow(item, kind, owner),
+    );
+  }
 
   // Inserts must run parents-first; deletes run in reverse.
   return plans.sort(

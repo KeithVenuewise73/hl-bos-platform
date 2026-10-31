@@ -2,7 +2,7 @@ import "server-only";
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 
-import type { Workspace } from "./workspace.ts";
+import { CAREER_KINDS, type CareerCollection, type Workspace } from "./workspace.ts";
 import { planWorkspaceWrites } from "./write-plan.ts";
 import {
   rowToAnalysis,
@@ -11,6 +11,7 @@ import {
   rowToMatch,
   rowToRequirement,
   rowToApplication,
+  rowToCareerRecord,
   rowToCoverLetter,
   rowToFact,
   rowToGenerated,
@@ -64,6 +65,7 @@ export async function loadWorkspaceFromSupabase(
     applications,
     coverLetters,
     interviewPreps,
+    careerRecords,
   ] = await Promise.all([
     selectAll(client, "candidate_profiles"),
     selectAll(client, "career_facts"),
@@ -80,7 +82,13 @@ export async function loadWorkspaceFromSupabase(
     selectAll(client, "applications"),
     selectAll(client, "cover_letters"),
     selectAll(client, "interview_preps"),
+    selectAll(client, "career_records"),
   ]);
+
+  const career = <C extends CareerCollection>(collection: C): Workspace[C] =>
+    careerRecords
+      .filter((row) => row["kind"] === CAREER_KINDS[collection])
+      .map((row) => rowToCareerRecord(row)) as Workspace[C];
 
   const parsedByResume = new Map<string, unknown>();
   for (const version of versions) {
@@ -165,6 +173,15 @@ export async function loadWorkspaceFromSupabase(
     applications: applications.map(rowToApplication),
     coverLetters: coverLetters.map(rowToCoverLetter),
     interviewPreps: interviewPreps.map(rowToInterviewPrep),
+    searchProfiles: career("searchProfiles"),
+    interpretations: career("interpretations"),
+    baseResumes: career("baseResumes"),
+    employerBoards: career("employerBoards"),
+    opportunities: career("opportunities"),
+    submissions: career("submissions"),
+    practiceSessions: career("practiceSessions"),
+    linkedinItems: career("linkedinItems"),
+    usageEvents: career("usageEvents"),
   };
 }
 

@@ -29,6 +29,7 @@ import {
   generateCoverLetter,
   generateInterviewPrep,
   generateTailoredResume,
+  isIsoDate,
   makeFact,
   newId,
   now,
@@ -48,7 +49,7 @@ import {
 } from "@hl-bos/ats-resume";
 
 import { currentProfile, loadWorkspace, updateWorkspace } from "./store.ts";
-import { licensedTermsFor } from "./analysis-helpers.ts";
+import { APPLICATION_STATUSES, licensedTermsFor } from "./analysis-helpers.ts";
 
 function text(form: FormData, key: string): string {
   const value = form.get(key);
@@ -372,7 +373,9 @@ export async function generateResume(form: FormData): Promise<void> {
       (a) => a.analysisId === analysis.id,
     );
     const application = ws.applications[applicationIndex];
-    if (application !== undefined) {
+    // A new version must not silently replace the resume an application was
+    // submitted with. Only pre-submission applications follow the newest draft.
+    if (application !== undefined && isPreSubmission(application.status)) {
       ws.applications[applicationIndex] = {
         ...application,
         generatedResumeId: generated.id,
@@ -527,15 +530,16 @@ export async function createCoverLetter(form: FormData): Promise<void> {
         ? {}
         : { recipientName: text(form, "recipient") }),
     });
-    const existing = ws.coverLetters.findIndex((l) => l.analysisId === analysisId);
-    if (existing >= 0) ws.coverLetters[existing] = letter;
-    else ws.coverLetters.push(letter);
+    // Every version is kept. Replacing the previous letter would destroy the
+    // one a user may already have sent.
+    ws.coverLetters.push(letter);
 
     const applicationIndex = ws.applications.findIndex(
       (a) => a.analysisId === analysisId,
     );
     const application = ws.applications[applicationIndex];
-    if (application !== undefined) {
+    // Once applied, the application keeps pointing at what was actually sent.
+    if (application !== undefined && isPreSubmission(application.status)) {
       ws.applications[applicationIndex] = {
         ...application,
         coverLetterId: letter.id,
@@ -572,8 +576,45 @@ export async function createInterviewPrep(form: FormData): Promise<void> {
 // Applications
 // ---------------------------------------------------------------------------
 
+function isPreSubmission(status: ApplicationStatus): boolean {
+  return status === "researching" || status === "resume_created";
+}
+
+/**
+ * Server-side validation for the application tracker. The form's select box
+ * and date inputs are conveniences; this is the check. Returns a message, or
+ * null when the submission is acceptable.
+ */
+function applicationFormError(form: FormData): string | null {
+  const status = text(form, "status");
+  if (
+    status.length > 0 &&
+    !(APPLICATION_STATUSES as readonly string[]).includes(status)
+  )
+    return "That status is not one the tracker recognises.";
+  const applied = text(form, "dateApplied");
+  if (applied.length > 0) {
+    if (!isIsoDate(applied)) return "The application date is not a real calendar date.";
+    if (applied > now().slice(0, 10))
+      return "The application date cannot be in the future.";
+  }
+  for (const d of text(form, "interviewDates")
+    .split(/[,\n]/)
+    .map((x) => x.trim())) {
+    if (d.length > 0 && !isIsoDate(d)) return `"${d}" is not a date. Use YYYY-MM-DD.`;
+  }
+  const url = text(form, "jobUrl");
+  if (url.length > 0 && !/^https?:\/\//i.test(url))
+    return "The job URL must start with http:// or https://.";
+  return null;
+}
+
 export async function saveApplication(form: FormData): Promise<void> {
   const id = text(form, "applicationId");
+  const problem = applicationFormError(form);
+  if (problem !== null) {
+    redirect(`/applications?error=${encodeURIComponent(problem)}#${id}`);
+  }
   await updateWorkspace((workspace) => {
     const index = workspace.applications.findIndex((a) => a.id === id);
     const existing = workspace.applications[index];

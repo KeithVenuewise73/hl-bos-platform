@@ -15,15 +15,17 @@ export function Card({
   title,
   sub,
   right,
+  id,
   children,
 }: {
   title?: string;
   sub?: string;
   right?: ReactNode;
+  id?: string;
   children: ReactNode;
 }) {
   return (
-    <section className="card">
+    <section className="card" id={id}>
       {title === undefined && right === undefined ? null : (
         <div className="card-head">
           <div>
@@ -177,5 +179,52 @@ export function Audit({ summary, children }: { summary: string; children: ReactN
       <summary>{summary}</summary>
       <div className="audit-body">{children}</div>
     </details>
+  );
+}
+
+/** The result of the last action, from the redirect's query string. */
+export function Flash({
+  error,
+  ok,
+}: {
+  error?: string | undefined;
+  ok?: string | undefined;
+}) {
+  if (error !== undefined && error.length > 0) {
+    return (
+      <Notice tone="danger">
+        <strong>Not saved.</strong> {error}
+      </Notice>
+    );
+  }
+  if (ok !== undefined && ok.length > 0) return <Notice>{ok}</Notice>;
+  return null;
+}
+
+/** A labelled field with its validation error underneath. */
+export function Field({
+  id,
+  label,
+  error,
+  hint,
+  children,
+}: {
+  id: string;
+  label: string;
+  error?: string | undefined;
+  hint?: string;
+  children: ReactNode;
+}) {
+  return (
+    <div className="field">
+      <label htmlFor={id}>{label}</label>
+      {children}
+      {hint === undefined ? null : <div className="small muted">{hint}</div>}
+      {error === undefined ? null : (
+        <div className="field-error" role="alert">
+          {error}
+        </div>
+      )}
+    </div>
   );
 }

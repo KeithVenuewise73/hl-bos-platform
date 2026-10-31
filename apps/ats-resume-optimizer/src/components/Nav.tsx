@@ -4,7 +4,14 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 const LINKS: readonly { readonly href: string; readonly label: string }[] = [
-  { href: "/", label: "Dashboard" },
+  { href: "/start", label: "Your job search" },
+  { href: "/intake", label: "1 · Search profile" },
+  { href: "/experience", label: "2 · Experience & resume" },
+  { href: "/jobs", label: "3 · Find jobs" },
+  { href: "/pipeline", label: "4 · Applications" },
+  { href: "/linkedin", label: "5 · LinkedIn" },
+  { href: "/account", label: "Account & data" },
+  { href: "/", label: "Optimizer dashboard" },
   { href: "/profile", label: "Candidate Profile" },
   { href: "/master-resume", label: "Master Resume" },
   { href: "/analyze", label: "New Job Analysis" },
@@ -23,7 +30,7 @@ export function Nav({ signedInAs }: { signedInAs?: string | null }) {
   return (
     <aside className="sidebar">
       <Link className="brand" href="/">
-        <div className="brand-name">ATS Resume Optimizer</div>
+        <div className="brand-name">HLG Career Platform</div>
         <div className="brand-tag">Optimize aggressively. Fabricate nothing.</div>
       </Link>
       <nav className="nav" aria-label="Main">

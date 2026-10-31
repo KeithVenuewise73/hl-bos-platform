@@ -24,7 +24,11 @@ export default async function CoverLetterPage({
   const analysis = workspace.analyses.find((a) => a.id === id);
   if (analysis === undefined) notFound();
   const job = workspace.jobs.find((j) => j.id === analysis.jobPostingId);
-  const letter = workspace.coverLetters.find((l) => l.analysisId === analysis.id);
+  // Every regeneration is kept; the newest is shown, earlier ones are counted.
+  const letters = workspace.coverLetters
+    .filter((l) => l.analysisId === analysis.id)
+    .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+  const letter = letters[0];
 
   return (
     <>
@@ -76,7 +80,7 @@ export default async function CoverLetterPage({
       ) : (
         <Card
           title="Draft"
-          sub="Every paragraph carries its evidence, exactly like a resume line."
+          sub={`Every paragraph carries its evidence, exactly like a resume line.${letters.length > 1 ? ` Showing the newest of ${letters.length} versions; earlier versions are kept.` : ""}`}
         >
           <p>
             <strong>{letter.greeting}</strong>

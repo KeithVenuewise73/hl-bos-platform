@@ -26,6 +26,8 @@ export interface AppConfig {
   /** Supabase, when configured. Publishable key only — never service-role. */
   readonly supabaseUrl: string | undefined;
   readonly supabasePublishableKey: string | undefined;
+  /** Where subscribers get help. Unset means the account page says so. */
+  readonly supportEmail: string | undefined;
 }
 
 let cached: AppConfig | undefined;
@@ -44,6 +46,7 @@ export function config(): AppConfig {
     nodeEnv: nonEmpty(env["NODE_ENV"]),
     supabaseUrl: nonEmpty(env["NEXT_PUBLIC_SUPABASE_URL"]),
     supabasePublishableKey: nonEmpty(env["NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY"]),
+    supportEmail: nonEmpty(env["CAREER_SUPPORT_EMAIL"]),
   };
   cached = resolved;
   return resolved;
