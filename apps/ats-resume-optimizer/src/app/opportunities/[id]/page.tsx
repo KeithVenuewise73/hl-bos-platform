@@ -299,7 +299,12 @@ export default async function OpportunityPage({
             <div className="field-row">
               <div className="field">
                 <label htmlFor="stage-select">New status</label>
-                <select id="stage-select" name="stage">
+                {/* Keyed by stage so a re-render never keeps a stale selection,
+                    and no consequential status is pre-selected. */}
+                <select id="stage-select" name="stage" key={o.stage} defaultValue="">
+                  <option value="" disabled>
+                    Choose…
+                  </option>
                   {nextStages.map((s) => (
                     <option key={s} value={s}>
                       {STAGE_LABELS[s]}

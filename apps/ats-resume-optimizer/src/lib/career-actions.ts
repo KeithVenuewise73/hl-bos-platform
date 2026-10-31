@@ -649,8 +649,10 @@ export async function importJob(form: FormData): Promise<void> {
   const postedAt = text(form, "postedAt");
   if (postedAt.length > 0 && !isIsoDate(postedAt))
     back("/jobs", "The posting date is not a real calendar date.");
+  const location = text(form, "location").slice(0, 120);
   const parsed = parseJobPosting({
     rawText: description,
+    ...(location ? { location } : {}),
     ...(employer ? { company: employer } : {}),
     ...(title ? { title } : {}),
   });
@@ -826,16 +828,48 @@ export async function generatePackage(form: FormData): Promise<void> {
       const strong = analysis.matches
         .filter((m) => m.status === "strong_match" || m.status === "terminology_match")
         .map((m) => m.requirement);
+      // Qualification gaps: what the posting REQUIRES or PREFERS that the bank
+      // does not evidence, required first. Duties listed under
+      // "Responsibilities" are what the job does, not qualifications, so an
+      // unmatched duty is reported as uncertain rather than as a gap.
+      const requirementById = new Map(job.requirements.map((r) => [r.id, r]));
+      const isDuty = (requirementId: string): boolean =>
+        /responsibilit|duties|what you.ll do/i.test(
+          requirementById.get(requirementId)?.sourceSection ?? "",
+        );
+      const rank = {
+        critical: 0,
+        important: 1,
+        preferred: 2,
+        informational: 3,
+      } as const;
+      // A REQUIRED qualification that is only partly met (an associate degree
+      // against a bachelor's requirement) is a gap to be honest about too.
+      const requiredPartial = (m: (typeof analysis.matches)[number]): boolean =>
+        m.status === "partial_match" &&
+        m.importance === "critical" &&
+        !isDuty(m.requirementId);
       const gaps = analysis.matches
         .filter(
           (m) =>
-            m.status === "not_evidenced" &&
-            (m.importance === "critical" || m.importance === "important"),
+            (m.status === "not_evidenced" &&
+              m.importance !== "informational" &&
+              !isDuty(m.requirementId)) ||
+            requiredPartial(m),
         )
-        .map((m) => `Not evidenced: ${m.requirement}`);
-      const partial = analysis.matches
-        .filter((m) => m.status === "partial_match")
-        .map((m) => `Partly evidenced: ${m.requirement}`);
+        .sort((a, b) => rank[a.importance] - rank[b.importance])
+        .map(
+          (m) =>
+            `${m.status === "partial_match" ? "Only partly evidenced" : "Not evidenced"} (${m.importance === "critical" ? "required" : m.importance}): ${m.requirement}`,
+        );
+      const partial = [
+        ...analysis.matches
+          .filter((m) => m.status === "partial_match" && !requiredPartial(m))
+          .map((m) => `Partly evidenced: ${m.requirement}`),
+        ...analysis.matches
+          .filter((m) => m.status === "not_evidenced" && isDuty(m.requirementId))
+          .map((m) => `Duty not clearly shown in your experience: ${m.requirement}`),
+      ];
       const withDrafts = attachDrafts(
         { ...opp, jobPostingId: job.id, analysisId: analysis.id },
         { resumeId: resume.id, coverLetterId: letter.id, outreach },
@@ -915,6 +949,8 @@ export async function updateOpportunity(form: FormData): Promise<void> {
       let next: Opportunity;
       switch (op) {
         case "stage":
+          if (text(form, "stage") === "")
+            throw new Error("Choose the new status first.");
           next = changeStage(
             opp,
             text(form, "stage"),

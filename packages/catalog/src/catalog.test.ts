@@ -150,7 +150,9 @@ describe("repository scan (ground truth)", () => {
     // against a local PostgreSQL 16 and UNAPPLIED to any project.
     // Plus 0052 (jerseysort — JerseySort AI), verified against a local
     // PostgreSQL 16 and UNAPPLIED to any project.
-    expect(inv.migrations.length).toBe(52);
+    // Plus 0053 (ats.career_records — HLG Career Platform), verified against a
+    // local PostgreSQL 16 (16 assertions) and UNAPPLIED to any project.
+    expect(inv.migrations.length).toBe(53);
     expect(inv.edgeFunctions).toContain("ai-gateway");
     expect(inv.edgeFunctions).not.toContain("tests");
     expect(inv.apps).toEqual(

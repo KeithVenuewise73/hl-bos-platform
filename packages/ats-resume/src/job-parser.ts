@@ -137,7 +137,7 @@ function classifyKind(text: string, section: string): RequirementKind {
 
 /** Metadata the posting states about itself. Never a requirement. */
 const METADATA_LABEL_RE =
-  /^(location|compensation|salary|pay|employment type|job type|department|reports to|req(uisition)? id|job id|posted|schedule|shift|category|industry|company|employer|title|position|job title|role)\s*[:-]/i;
+  /^(location|compensation( range)?|(base |annual )?salary( range)?|pay( range| rate)?|hourly (pay|rate|wage)|wage( range)?|employment type|job type|department|reports to|req(uisition)? id|job id|posted|schedule|shift|category|industry|company|employer|title|position|job title|role)\s*[:-]/i;
 
 /**
  * Wording that marks a line as an actual demand rather than a description.
@@ -163,8 +163,11 @@ function candidateRequirementTexts(seg: Segment): string[] {
   if (seg.section === "informational") return [cleaned];
   if (seg.section === "body" && !DEMAND_CUE_RE.test(cleaned)) return [];
   // Long prose paragraphs are split so one sentence is one requirement.
+  // Metadata is checked again per sentence: "…our Columbus site. Salary
+  // range: $82,000 - $95,000 per year." hides a label mid-paragraph.
   return sentences(cleaned)
     .filter((s) => s.length >= 8)
+    .filter((s) => !METADATA_LABEL_RE.test(s))
     .filter((s) => seg.section !== "body" || DEMAND_CUE_RE.test(s));
 }
 

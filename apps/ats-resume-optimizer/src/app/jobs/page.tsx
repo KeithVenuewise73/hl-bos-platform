@@ -84,6 +84,14 @@ export default async function JobsPage({
               />
             </div>
           </div>
+          <div className="field">
+            <label htmlFor="location">Location</label>
+            <input
+              id="location"
+              name="location"
+              placeholder="City, State — or Remote"
+            />
+          </div>
           <div className="field-row">
             <div className="field">
               <label htmlFor="salaryText">Salary (if listed)</label>

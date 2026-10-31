@@ -417,6 +417,19 @@ export function matchRequirements(
       status = "not_evidenced";
     }
 
+    // Degrees are credentials: an associate degree does not satisfy a
+    // bachelor's requirement however many words the two lines share. Found by
+    // the career-platform end-to-end run, where "Associate of Applied Science,
+    // Supply Chain Management" was a STRONG match for "Bachelor's degree in
+    // supply chain". The level is compared, and a shortfall caps the verdict.
+    const shortfall = degreeShortfall(requirement, index);
+    if (
+      shortfall !== undefined &&
+      (status === "strong_match" || status === "terminology_match")
+    ) {
+      status = "partial_match";
+    }
+
     const isAdjacent = status === "partial_match" && adjacent !== undefined;
     const chosen = isAdjacent
       ? adjacent.entry
@@ -436,9 +449,12 @@ export function matchRequirements(
         : "No supporting evidence found",
       evidenceFactIds: useEvidence ? [chosen.fact.id] : [],
       status,
-      recommendedAction: isAdjacent
-        ? adjacent.concept.warning
-        : actionFor(requirement, status, firedGroup),
+      recommendedAction:
+        shortfall !== undefined && status === "partial_match"
+          ? shortfall
+          : isAdjacent
+            ? adjacent.concept.warning
+            : actionFor(requirement, status, firedGroup),
       suggestedPlacement: placementFor(requirement, status),
       coverage:
         status === "not_evidenced" ? 0 : Math.max(rawScore, firedGroup ? 0.5 : 0),
@@ -470,6 +486,59 @@ export function matchRequirements(
   }
 
   return { matches, terminology: [...opportunities.values()] };
+}
+
+const DEGREE_LEVELS: readonly {
+  readonly level: number;
+  readonly name: string;
+  readonly re: RegExp;
+}[] = [
+  { level: 4, name: "doctorate", re: /\b(ph\.?\s?d|doctorate|doctoral)\b/i },
+  {
+    level: 3,
+    name: "master's degree",
+    re: /\b(master'?s?|mba|m\.s\.|m\.a\.|m\.sc\.?|msc)\b/i,
+  },
+  {
+    level: 2,
+    name: "bachelor's degree",
+    re: /\b(bachelor'?s?|baccalaureate|bba|b\.s\.|b\.a\.|b\.sc\.?|bsc|four[- ]year degree)\b/i,
+  },
+  {
+    level: 1,
+    name: "associate degree",
+    re: /\b(associate'?s? (degree|of)|a\.a\.s\.|a\.s\.|a\.a\.|two[- ]year degree)/i,
+  },
+];
+
+/** The highest degree level a text names, or undefined. */
+export function degreeLevel(text: string): { level: number; name: string } | undefined {
+  return DEGREE_LEVELS.find((d) => d.re.test(text));
+}
+
+/**
+ * When a requirement names a degree level and the candidate's highest
+ * recorded degree is lower, say so in plain words. Undefined when there is no
+ * degree level to compare, or the candidate meets it.
+ */
+function degreeShortfall(
+  requirement: JobRequirement,
+  index: EvidenceIndex,
+): string | undefined {
+  if (requirement.kind !== "education" && !/\bdegree\b/i.test(requirement.text))
+    return undefined;
+  const required = degreeLevel(requirement.text);
+  if (required === undefined) return undefined;
+  let highest: { level: number; name: string } | undefined;
+  for (const entry of index.entries) {
+    if (entry.fact.category !== "education") continue;
+    const level = degreeLevel(entry.fact.text);
+    if (level !== undefined && (highest === undefined || level.level > highest.level))
+      highest = level;
+  }
+  if (highest === undefined || highest.level >= required.level) return undefined;
+  const article = (word: string): string => (/^[aeiou]/i.test(word) ? "an" : "a");
+  return `The posting asks for ${article(required.name)} ${required.name}; your highest degree on record is ${article(highest.name)} ${highest.name}. Related study is real evidence, but do not present it as ${article(required.name)} ${required.name}. If the posting accepts equivalent experience, say so plainly.`;
 }
 
 export function describeSource(fact: CareerFact): string {

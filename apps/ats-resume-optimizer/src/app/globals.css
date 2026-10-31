@@ -311,7 +311,9 @@ label {
   margin: 4px 0 0;
 }
 
+input:not([type]),
 input[type="text"],
+input[type="number"],
 input[type="email"],
 input[type="url"],
 input[type="date"],

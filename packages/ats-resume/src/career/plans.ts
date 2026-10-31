@@ -71,7 +71,12 @@ export const PLANS: Readonly<Record<PlanId, Plan>> = {
   },
 };
 
-/** Estimated cost of one action by engine. The rules engine makes no paid calls. */
+/**
+ * Estimated cost of one action by engine. The rules engine makes no paid
+ * calls. The Claude figures are PLACEHOLDERS, not quotes: the career flow does
+ * not call Claude today, and these must be replaced with measured cost before
+ * it does.
+ */
 export const COST_PER_ACTION_USD: Readonly<
   Record<string, Partial<Record<MeteredAction, number>>>
 > = {
