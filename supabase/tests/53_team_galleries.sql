@@ -27,8 +27,8 @@ select has_table('gallery', t, 't_table_' || t)
 select is(
   (select count(*)::int from pg_class c join pg_namespace n on n.oid = c.relnamespace
     where n.nspname = 'gallery' and c.relkind = 'r'
-      and c.relrowsecurity and c.relforcerowsecurity),
-  4, 't_rls_enabled_and_forced_on_every_table');
+      and not (c.relrowsecurity and c.relforcerowsecurity)),
+  0, 't_rls_enabled_and_forced_on_every_table');
 select is(
   (select count(*)::int from pg_policies where schemaname = 'gallery'),
   0, 't_no_policy_admits_anyone');
@@ -49,9 +49,12 @@ select is(
       and (has_function_privilege('anon', p.oid, 'execute')
            or has_function_privilege('authenticated', p.oid, 'execute'))),
   0, 't_anon_and_authenticated_run_no_function');
+-- Except reset_publisher (0054): only the approval-gated workflow may reset
+-- who publishes, never the Edge Function.
 select is(
   (select count(*)::int from pg_proc p join pg_namespace n on n.oid = p.pronamespace
-    where n.nspname = 'gallery' and not has_function_privilege('service_role', p.oid, 'execute')),
+    where n.nspname = 'gallery' and p.proname <> 'reset_publisher'
+      and not has_function_privilege('service_role', p.oid, 'execute')),
   0, 't_service_role_runs_every_function');
 select is(
   (select count(*)::int from pg_proc p join pg_namespace n on n.oid = p.pronamespace

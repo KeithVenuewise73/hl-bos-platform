@@ -6,7 +6,7 @@
 // database half (no web access, pinned paths, exact publishing, switched-off
 // galleries) is covered by supabase/tests/53_team_galleries.sql.
 
-import { randomBytes, scryptSync } from "node:crypto";
+import { createHash, randomBytes, scryptSync } from "node:crypto";
 
 import {
   handle,
@@ -126,9 +126,11 @@ function world() {
   const failures: Record<string, number> = {};
   const removed: { bucket: string; paths: string[] }[] = [];
   const published: Record<string, unknown>[] = [];
+  const registrations: string[] = [];
+  let registerAnswer = "connected";
   const deps: GalleryDeps = {
     accessSecret: SECRET,
-    publisherKey: PUBLISHER,
+    publisherKeySha256: createHash("sha256").update(PUBLISHER).digest("hex"),
     store: {
       galleryForLink: (link) =>
         Promise.resolve(
@@ -177,6 +179,10 @@ function world() {
       removeGallery: () => Promise.resolve([`${VARSITY}/${GAME}/${PHOTO}-web.jpg`]),
       recordFailure: (id) => Promise.resolve((failures[id] = (failures[id] ?? 0) + 1)),
       recentFailures: (id) => Promise.resolve(failures[id] ?? 0),
+      registerPublisher: (sha) => {
+        registrations.push(sha);
+        return Promise.resolve(registerAnswer);
+      },
     },
     files: {
       signedUrls: (paths) =>
@@ -192,7 +198,14 @@ function world() {
       },
     },
   };
-  return { deps, galleries, removed, published };
+  return {
+    deps,
+    galleries,
+    removed,
+    published,
+    registrations,
+    answerRegistration: (a: string) => (registerAnswer = a),
+  };
 }
 
 const BASE = "https://x.supabase.co/functions/v1/team-gallery";
@@ -486,5 +499,52 @@ Deno.test(
       ]),
       "dropped photo and old cover deleted from the right buckets",
     );
+  },
+);
+
+Deno.test("JerseySort connects by sending only its key's fingerprint", async () => {
+  const w = world();
+  const sha = createHash("sha256")
+    .update("a-brand-new-key-made-on-the-laptop")
+    .digest("hex");
+  const ok = await handle(post("/publish/register", { key_sha256: sha }), w.deps);
+  assertEquals(ok.status, 200, "connected");
+  assertEquals(w.registrations[0], sha, "the fingerprint, not a key, was registered");
+  const bad = await handle(
+    post("/publish/register", { key_sha256: "the-key-itself" }),
+    w.deps,
+  );
+  assertEquals(bad.status, 400, "anything but a fingerprint is refused");
+  w.answerRegistration("taken");
+  const taken = await handle(post("/publish/register", { key_sha256: sha }), w.deps);
+  assertEquals(taken.status, 409, "another computer got there first: said so");
+  assertEquals((await taken.json()).reason, "taken", "reason given");
+  w.answerRegistration("closed");
+  const closed = await handle(post("/publish/register", { key_sha256: sha }), w.deps);
+  assertEquals(closed.status, 403, "window closed: said so");
+});
+
+Deno.test(
+  "a key is checked by its fingerprint; no publisher yet means no publishing",
+  async () => {
+    const w = world();
+    const check = await handle(
+      post("/publish/check", {}, { "x-gallery-publisher-key": PUBLISHER }),
+      w.deps,
+    );
+    assertEquals(check.status, 200, "the registered key works");
+    const wrong = await handle(
+      post("/publish/check", {}, { "x-gallery-publisher-key": "x".repeat(48) }),
+      w.deps,
+    );
+    assertEquals(wrong.status, 401, "another key does not");
+    const none = await handle(
+      post("/publish/check", {}, { "x-gallery-publisher-key": PUBLISHER }),
+      {
+        ...w.deps,
+        publisherKeySha256: null,
+      },
+    );
+    assertEquals(none.status, 401, "before JerseySort connects, nobody publishes");
   },
 );

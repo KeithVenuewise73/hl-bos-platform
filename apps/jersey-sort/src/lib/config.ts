@@ -15,6 +15,8 @@ import { readSharedKey } from "./shared-key.ts";
  *                            fresh each time so saving it there needs no restart.
  *   JERSEYSORT_AI_MODEL      override the Claude model
  *   JERSEYSORT_WORKERS       photos analysed at once (default 2)
+ *   JERSEYSORT_GALLERY_SERVICE_URL  the team-gallery service team galleries are
+ *                            published to (default: HL-BOS Core's, ADR-0001)
  */
 
 export type ProviderChoice = "claude" | "local-ocr" | "none";
@@ -28,6 +30,8 @@ export interface AppConfig {
   readonly providerFromEnv: boolean;
   readonly workers: number;
   readonly secureCookies: boolean;
+  /** Where "Publish online" sends team galleries. */
+  readonly galleryServiceUrl: string;
 }
 
 let cached: AppConfig | undefined;
@@ -57,6 +61,10 @@ export function config(): AppConfig {
     providerFromEnv: requested !== undefined,
     workers: Number.isInteger(workers) && workers >= 1 && workers <= 8 ? workers : 2,
     secureCookies: nonEmpty(env["JERSEYSORT_SECURE_COOKIES"]) === "1",
+    galleryServiceUrl: (
+      nonEmpty(env["JERSEYSORT_GALLERY_SERVICE_URL"]) ??
+      "https://mvvtngiopdrgiedjmhfb.supabase.co/functions/v1/team-gallery"
+    ).replace(/\/+$/, ""),
   };
   return cached;
 }

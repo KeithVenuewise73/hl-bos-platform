@@ -11,8 +11,11 @@
 //     and to that hash, so changing the password, or switching the gallery
 //     off, ends every pass at once. Photos are only ever handed out as
 //     signed URLs that expire.
-//   * THE PUBLISHER (the photographer's JerseySort). Every /publish/* call
-//     must carry the publisher key (held in Vault), compared in constant time.
+//   * THE PUBLISHER (the photographer's JerseySort). It makes its key on his
+//     computer and registers only the key's SHA-256 fingerprint, once, during
+//     the connect window migration 0054 opens (/publish/register). Every other
+//     /publish/* call must carry the key; its fingerprint is compared with the
+//     registered one in constant time.
 //
 // /listing is the only thing anyone may read without a password: the games
 // the website lists, with the cover photo the photographer chose. No photo
@@ -87,6 +90,8 @@ export interface GalleryStore {
   removeGallery(galleryId: string): Promise<string[]>;
   recordFailure(galleryId: string): Promise<number>;
   recentFailures(galleryId: string): Promise<number>;
+  /** 'connected' | 'taken' (another computer) | 'closed' (no window open). */
+  registerPublisher(sha256: string): Promise<string>;
 }
 
 export type Bucket = "gallery-photos" | "gallery-covers";
@@ -103,7 +108,8 @@ export interface GalleryDeps {
   store: GalleryStore;
   files: GalleryFiles;
   accessSecret: string;
-  publisherKey: string;
+  /** SHA-256 (hex) of the registered publisher's key; null until JerseySort connects. */
+  publisherKeySha256: string | null;
   now?: () => number;
 }
 
@@ -152,11 +158,11 @@ export function passIsValid(
   return want.length === got.length && timingSafeEqual(want, got);
 }
 
-function sameKey(a: string, b: string): boolean {
-  if (!a || !b) return false;
-  const x = Buffer.from(sha256(a));
-  const y = Buffer.from(sha256(b));
-  return timingSafeEqual(x, y);
+/** Does this key's fingerprint match the registered publisher's? */
+export function keyMatches(key: string, registeredSha256: string | null): boolean {
+  if (!key || !registeredSha256 || !/^[0-9a-f]{64}$/.test(registeredSha256))
+    return false;
+  return timingSafeEqual(Buffer.from(sha256(key)), Buffer.from(registeredSha256));
 }
 
 // --- HTTP ----------------------------------------------------------------------
@@ -209,10 +215,28 @@ export function routeOf(url: URL): string {
   return rest.replace(/\/+$/, "") || "/";
 }
 
-async function body(req: Request): Promise<Record<string, unknown>> {
+/** What the routes read from a request body; anything may be missing or wrong. */
+interface Body {
+  link?: unknown;
+  password?: unknown;
+  key_sha256?: unknown;
+  gallery_id?: unknown;
+  gallery?: unknown;
+  keep_games?: unknown;
+  game_id?: unknown;
+  files?: unknown;
+  game?: unknown;
+  photos?: unknown;
+}
+interface FileRequest {
+  photo_id?: unknown;
+  kind?: unknown;
+}
+
+async function body(req: Request): Promise<Body> {
   try {
-    const b = await req.json();
-    return b !== null && typeof b === "object" ? (b as Record<string, unknown>) : {};
+    const b: unknown = await req.json();
+    return b !== null && typeof b === "object" ? (b as Body) : {};
   } catch {
     return {};
   }
@@ -332,9 +356,33 @@ export async function handle(req: Request, deps: GalleryDeps): Promise<Response>
   // --- the publisher ------------------------------------------------------------
   if (route.startsWith("/publish/")) {
     if (req.method !== "POST") return json(req, 405, { error: "POST only." });
-    if (!sameKey(req.headers.get("x-gallery-publisher-key") ?? "", deps.publisherKey)) {
+    if (route === "/publish/register") {
+      const sha = text((await body(req)).key_sha256);
+      if (!/^[0-9a-f]{64}$/.test(sha)) {
+        return json(req, 400, { error: "key_sha256 must be 64 hex characters." });
+      }
+      const result = await deps.store.registerPublisher(sha);
+      if (result === "connected") return json(req, 200, { connected: true });
+      if (result === "taken") {
+        return json(req, 409, {
+          error: "The galleries are connected to another computer's JerseySort.",
+          reason: "taken",
+        });
+      }
+      return json(req, 403, {
+        error: "The one-time connect window is closed.",
+        reason: "closed",
+      });
+    }
+    if (
+      !keyMatches(
+        req.headers.get("x-gallery-publisher-key") ?? "",
+        deps.publisherKeySha256,
+      )
+    ) {
       return json(req, 401, { error: "Not the publisher." });
     }
+    if (route === "/publish/check") return json(req, 200, { connected: true });
     const b = await body(req);
     const galleryId = text(b.gallery_id);
     if (!UUID.test(galleryId))
@@ -354,9 +402,7 @@ export async function handle(req: Request, deps: GalleryDeps): Promise<Response>
       const gameId = text(b.game_id);
       if (!UUID.test(gameId))
         return json(req, 400, { error: "game_id must be a uuid." });
-      const files = Array.isArray(b.files)
-        ? (b.files as Record<string, unknown>[])
-        : [];
+      const files = Array.isArray(b.files) ? (b.files as FileRequest[]) : [];
       const out: { photo_id: string; kind: string; url: string }[] = [];
       for (const f of files) {
         const photoId = text(f.photo_id);
@@ -386,7 +432,7 @@ export async function handle(req: Request, deps: GalleryDeps): Promise<Response>
     }
     if (route === "/publish/game") {
       const game = (b.game ?? {}) as Record<string, unknown>;
-      if (!UUID.test(text(game.id)))
+      if (!UUID.test(text(game["id"])))
         return json(req, 400, { error: "game.id must be a uuid." });
       const photos = Array.isArray(b.photos)
         ? (b.photos as Record<string, unknown>[])

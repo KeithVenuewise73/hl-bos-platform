@@ -20,6 +20,13 @@ import {
   setGalleryPassword,
   unlockGallery,
 } from "@/lib/repo/galleries.ts";
+import {
+  connectOnline,
+  republishIfOnline,
+  startPublish,
+  takeOffline,
+} from "@/lib/online.ts";
+import { setCover } from "@/lib/online-core.ts";
 import { cookieOptions, requireUser } from "@/lib/session.ts";
 
 const text = (f: FormData, k: string) => {
@@ -30,6 +37,7 @@ const why = (e: unknown, fallback: string) =>
   e instanceof ValidationError ? e.message : fallback;
 const back = (id: string, key: "notice" | "error", message: string) =>
   `/galleries/${id}?${key}=${encodeURIComponent(message)}`;
+const online = (live: boolean) => (live ? " Updating the online gallery now." : "");
 
 export async function createGalleryAction(form: FormData): Promise<void> {
   const user = await requireUser();
@@ -60,14 +68,15 @@ export async function saveGalleryEventsAction(form: FormData): Promise<void> {
   } catch (e) {
     redirect(back(id, "error", why(e, "Could not save the games.")));
   }
+  const live = await republishIfOnline(user.organizationId, id);
   revalidatePath("/galleries");
   redirect(
     back(
       id,
       "notice",
       events.length === 1
-        ? "Saved: the team now sees 1 game."
-        : `Saved: the team now sees ${events.length} games.`,
+        ? `Saved: the team now sees 1 game.${online(live)}`
+        : `Saved: the team now sees ${events.length} games.${online(live)}`,
     ),
   );
 }
@@ -83,8 +92,9 @@ export async function renameGalleryAction(form: FormData): Promise<void> {
   } catch (e) {
     redirect(back(id, "error", why(e, "Could not save the name.")));
   }
+  const live = await republishIfOnline(user.organizationId, id);
   revalidatePath("/galleries");
-  redirect(back(id, "notice", "Name saved."));
+  redirect(back(id, "notice", `Name saved.${online(live)}`));
 }
 
 export async function setGalleryPasswordAction(form: FormData): Promise<void> {
@@ -95,11 +105,12 @@ export async function setGalleryPasswordAction(form: FormData): Promise<void> {
   } catch (e) {
     redirect(back(id, "error", why(e, "Could not change the password.")));
   }
+  const live = await republishIfOnline(user.organizationId, id);
   redirect(
     back(
       id,
       "notice",
-      "New team password saved. Anyone already looking must enter the new one.",
+      `New team password saved. Anyone already looking must enter the new one.${online(live)}`,
     ),
   );
 }
@@ -113,12 +124,15 @@ export async function setGalleryActiveAction(form: FormData): Promise<void> {
   } catch (e) {
     redirect(back(id, "error", why(e, "Could not change the link.")));
   }
+  const live = await republishIfOnline(user.organizationId, id);
   revalidatePath("/galleries");
   redirect(
     back(
       id,
       "notice",
-      on ? "The link works again." : "Link switched off. Nobody can open this gallery.",
+      (on
+        ? "The link works again."
+        : "Link switched off. Nobody can open this gallery.") + online(live),
     ),
   );
 }
@@ -131,19 +145,33 @@ export async function newGalleryLinkAction(form: FormData): Promise<void> {
   } catch (e) {
     redirect(back(id, "error", why(e, "Could not make a new link.")));
   }
+  const live = await republishIfOnline(user.organizationId, id);
   revalidatePath("/galleries");
   redirect(
     back(
       id,
       "notice",
-      "New link made. The old link no longer works: share the new one.",
+      `New link made. The old link no longer works: share the new one.${online(live)}`,
     ),
   );
 }
 
 export async function deleteGalleryAction(form: FormData): Promise<void> {
   const user = await requireUser();
-  deleteGallery(db(), user.organizationId, text(form, "id"));
+  const id = text(form, "id");
+  // Online first: a gallery deleted here must not stay on the website.
+  try {
+    await takeOffline(id);
+  } catch (e) {
+    redirect(
+      back(
+        id,
+        "error",
+        `Not deleted: it is still online and could not be taken off (${e instanceof Error ? e.message : "no answer"}). Try again when the internet is back.`,
+      ),
+    );
+  }
+  deleteGallery(db(), user.organizationId, id);
   revalidatePath("/galleries");
   redirect(
     `/galleries?notice=${encodeURIComponent("Team gallery deleted. Its photos are still in JerseySort.")}`,
@@ -172,4 +200,45 @@ export async function unlockGalleryAction(form: FormData): Promise<void> {
     path: `/g/${link}`,
   });
   redirect(`/g/${link}`);
+}
+
+/** Connect this computer's JerseySort as the online galleries' publisher. */
+export async function connectOnlineAction(form: FormData): Promise<void> {
+  await requireUser();
+  const id = text(form, "id");
+  const r = await connectOnline();
+  redirect(
+    r.ok
+      ? back(id, "notice", "Connected to the online galleries. You can publish now.")
+      : back(id, "error", r.message),
+  );
+}
+
+export async function publishOnlineAction(form: FormData): Promise<void> {
+  const user = await requireUser();
+  const id = text(form, "id");
+  startPublish(user.organizationId, id);
+  redirect(`/galleries/${id}#online`);
+}
+
+/** The one photo a game's public page on the website may show (or none). */
+export async function setCoverAction(form: FormData): Promise<void> {
+  const user = await requireUser();
+  const id = text(form, "id");
+  const event = text(form, "event");
+  const photo = text(form, "photo");
+  try {
+    setCover(db(), user.organizationId, id, event, photo === "" ? null : photo);
+  } catch (e) {
+    redirect(back(id, "error", why(e, "Could not save the cover.")));
+  }
+  redirect(
+    back(
+      id,
+      "notice",
+      photo === ""
+        ? "No cover: that game's public page shows no photo."
+        : "Cover saved. Publish online to put it on the website.",
+    ),
+  );
 }

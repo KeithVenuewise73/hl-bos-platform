@@ -174,3 +174,40 @@ export async function renderVariants(
     height: height ?? preview.info.height,
   };
 }
+
+export interface WebVariants {
+  /** About 2400 px on the long side: the size parents download online. */
+  readonly web: Buffer;
+  /** 480 px, for the online gallery grid. */
+  readonly thumb: Buffer;
+  readonly width: number;
+  readonly height: number;
+}
+
+/** The online gallery's copies of a photo, both JPEG, rotated upright. */
+export async function renderWebVariants(
+  bytes: Uint8Array,
+  kind: PhotoKind,
+): Promise<WebVariants> {
+  let decodable: Buffer = Buffer.from(bytes);
+  if (kind === "heic") {
+    decodable = Buffer.from(
+      await convertHeic({ buffer: decodable, format: "JPEG", quality: 0.95 }),
+    );
+  }
+  const base = sharp(decodable, {
+    failOn: "error",
+    limitInputPixels: 300_000_000,
+  }).rotate();
+  const web = await base
+    .clone()
+    .resize({ width: 2400, height: 2400, fit: "inside", withoutEnlargement: true })
+    .jpeg({ quality: 84, mozjpeg: true })
+    .toBuffer({ resolveWithObject: true });
+  const thumb = await base
+    .clone()
+    .resize({ width: 480, height: 480, fit: "inside", withoutEnlargement: true })
+    .jpeg({ quality: 74, mozjpeg: true })
+    .toBuffer();
+  return { web: web.data, thumb, width: web.info.width, height: web.info.height };
+}
