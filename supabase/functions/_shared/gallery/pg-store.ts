@@ -4,6 +4,20 @@
 // deno-lint-ignore-file no-explicit-any
 import type { GalleryStore } from "./core.ts";
 
+/** The service's own settings (migration 0054): pass secret and publisher fingerprint. */
+export async function serviceSettings(
+  sql: any,
+): Promise<{ accessSecret: string; publisherKeySha256: string | null } | null> {
+  const r =
+    await sql`select access_secret, publisher_key_sha256 from gallery.service_settings()`;
+  const row = r[0];
+  if (!row || String(row.access_secret ?? "").length < 32) return null;
+  return {
+    accessSecret: String(row.access_secret),
+    publisherKeySha256: row.publisher_key_sha256 ?? null,
+  };
+}
+
 export function pgStore(sql: any): GalleryStore {
   return {
     async galleryForLink(link) {
@@ -50,6 +64,10 @@ export function pgStore(sql: any): GalleryStore {
     async recordFailure(id) {
       const r = await sql`select gallery.record_unlock_failure(${id}) as n`;
       return Number(r[0]?.n ?? 0);
+    },
+    async registerPublisher(sha) {
+      const r = await sql`select gallery.register_publisher(${sha}) as result`;
+      return String(r[0]?.result ?? "closed");
     },
     async recentFailures(id) {
       const r = await sql`select gallery.recent_unlock_failures(${id}) as n`;

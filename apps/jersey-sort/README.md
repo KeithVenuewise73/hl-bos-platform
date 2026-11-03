@@ -91,10 +91,35 @@ You stay in control: **change the password** (everyone already looking must
 enter the new one), **switch the link off**, or **make a new link** (the old
 one stops working). Deleting a gallery leaves its photos in JerseySort.
 
-**For now the link opens on this computer only**, and the page says so.
-Teams open it from their own phones once galleries are put online; that needs
-a hosting account and a new, approved database migration (these tables are
-in the local store only, not in migration 0052).
+**The /g/ link opens on this computer only**, and the page says so. For
+phones, publish the gallery online (below).
+
+### Online, on 5starsportsmedia.com
+
+On a team gallery's page, **Online**:
+
+1. **Connect to the online galleries** (once). This computer makes its own
+   publisher key and keeps it in the data folder (`gallery-publisher.json`);
+   only the key's fingerprint is sent, during the one-time connect window
+   migration 0054 opens. If another computer connected first, it says so.
+2. **Cover for the website**, per game: the one photo a game's public page
+   may show. None chosen, none shown.
+3. **Publish online**: each game's photos go up at web size (about 2400 px)
+   with 480 px thumbnails; originals stay here. Publishing again uploads only
+   new photos and makes the online copy match (unticked games and removed
+   photos are removed). The page shows progress and the website link.
+
+Switching a gallery off, a new password, a new link, games or name: when the
+gallery is online, it is published again at once, so switching it off here
+switches it off online. Deleting a gallery takes it offline first.
+
+Goes to `JERSEYSORT_GALLERY_SERVICE_URL` (default: HL-BOS Core's
+`team-gallery` function). Until migrations 0053 + 0054 are applied and the
+function is deployed (both need the CEO's approval), Connect says "not
+switched on yet". Proven by `src/lib/online.test.ts` (against the real
+service handler) and `scripts/local-test/verify-publish-online.cjs` (20
+checks in a real browser against `gallery-service-local.ts`, the real
+service code on a local PostgreSQL).
 
 Proven by `scripts/local-test/verify-team-galleries.cjs` (29 checks in a real
 browser, also run on Windows CI) and `src/lib/galleries.test.ts`.

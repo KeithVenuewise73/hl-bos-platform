@@ -290,6 +290,41 @@ create table if not exists shared_gallery_access (
   created_at text not null default (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
 );
 
+-- Team galleries ONLINE (published to the team-gallery service). The cover
+-- photo the photographer picked for each game's public page, and what is
+-- already online, so publishing again uploads only what is new.
+create table if not exists shared_gallery_covers (
+  gallery_id text not null references shared_galleries(id) on delete cascade,
+  event_id text not null references events(id) on delete cascade,
+  photo_id text not null references photos(id) on delete cascade,
+  primary key (gallery_id, event_id)
+);
+
+create table if not exists published_galleries (
+  gallery_id text primary key references shared_galleries(id) on delete cascade,
+  published_at text not null,
+  games integer not null,
+  photos integer not null
+);
+
+create table if not exists published_photos (
+  gallery_id text not null references shared_galleries(id) on delete cascade,
+  photo_id text not null references photos(id) on delete cascade,
+  event_id text not null,
+  web_bytes integer not null,
+  width integer,
+  height integer,
+  published_at text not null,
+  primary key (gallery_id, photo_id)
+);
+
+create table if not exists published_covers (
+  gallery_id text not null references shared_galleries(id) on delete cascade,
+  event_id text not null,
+  photo_id text not null,
+  primary key (gallery_id, event_id)
+);
+
 -- The review queue is a VIEW, not a table: a photo is in it exactly when its
 -- status says so, so the queue cannot drift from the photos it describes.
 create view if not exists review_queue as

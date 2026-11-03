@@ -3,18 +3,23 @@ import { headers } from "next/headers";
 import { notFound } from "next/navigation";
 
 import {
+  connectOnlineAction,
   deleteGalleryAction,
+  publishOnlineAction,
   newGalleryLinkAction,
   renameGalleryAction,
   saveGalleryEventsAction,
   setGalleryActiveAction,
   setGalleryPasswordAction,
 } from "@/actions/galleries.ts";
+import { AutoRefresh } from "@/components/AutoRefresh.tsx";
 import { CopyLink } from "@/components/CopyLink.tsx";
 import { Notice, param, type SearchParams } from "@/components/Notice.tsx";
 import { db } from "@/lib/db.ts";
 import { count, longDate } from "@/lib/format.ts";
 import { listEvents } from "@/lib/repo/events.ts";
+import { isConnected, publishStatus } from "@/lib/online.ts";
+import { coverFor, onlineStatus, websiteLink } from "@/lib/online-core.ts";
 import { getGallery } from "@/lib/repo/galleries.ts";
 import { requireUser } from "@/lib/session.ts";
 
@@ -39,6 +44,13 @@ export default async function GalleryPage({
   const proto = h.get("x-forwarded-proto") ?? "http";
   const url = `${proto}://${host}/g/${gallery.token}`;
   const local = /^(localhost|127\.0\.0\.1|\[::1\])(:|$)/.test(host);
+  const connected = await isConnected();
+  const online = onlineStatus(db(), gallery.id);
+  const publishing = publishStatus(gallery.id);
+  const running = publishing !== null && !publishing.finished;
+  const covers = new Map(
+    gallery.eventIds.map((e) => [e, coverFor(db(), gallery.id, e)] as const),
+  );
   const title = gallery.group_name
     ? `${gallery.group_name} · ${gallery.name}`
     : gallery.name;
@@ -64,8 +76,8 @@ export default async function GalleryPage({
             </p>
             {local ? (
               <p className="mt-2 text-sm text-amber-200" data-testid="local-only">
-                For now this link opens on this computer only. Teams can open it from
-                their own phones once galleries are put online (the next step).
+                This link opens on this computer only. For phones, publish the gallery
+                online (below) and give out its website link instead.
               </p>
             ) : null}
           </>
@@ -97,6 +109,72 @@ export default async function GalleryPage({
             </button>
           </form>
         </div>
+      </section>
+
+      <section className="card mb-5 p-4" id="online" data-testid="online">
+        <h2 className="mb-2 font-semibold">Online, on 5starsportsmedia.com</h2>
+        {running ? <AutoRefresh seconds={3} /> : null}
+        {!connected ? (
+          <>
+            <p className="mb-3 text-sm text-muted">
+              Publishing puts this gallery on the website: each game&apos;s public page
+              shows only the cover photo you pick, and the photos stay behind the team
+              password. First connect this computer, once.
+            </p>
+            <form action={connectOnlineAction}>
+              <input type="hidden" name="id" value={gallery.id} />
+              <button className="btn-primary" type="submit">
+                Connect to the online galleries
+              </button>
+            </form>
+          </>
+        ) : (
+          <>
+            {online !== null ? (
+              <>
+                <p className="mb-2 text-sm" data-testid="online-status">
+                  Online since {new Date(online.publishedAt).toLocaleString("en-US")}:{" "}
+                  {count(online.games, "game")}, {count(online.photos, "photo")}.
+                </p>
+                <CopyLink url={websiteLink(gallery.token)} />
+                <p className="mt-2 text-sm text-muted">
+                  The website link opens on any phone. Give it out with the team
+                  password.
+                </p>
+              </>
+            ) : (
+              <p className="mb-2 text-sm text-muted">Not online yet.</p>
+            )}
+            {running ? (
+              <p className="mt-3 text-sm" data-testid="publish-progress">
+                {publishing.phase === "preparing"
+                  ? "Getting ready…"
+                  : `Publishing: ${publishing.done.toLocaleString("en-US")} of ${count(publishing.total, "photo")}…`}
+              </p>
+            ) : null}
+            {publishing?.phase === "failed" ? (
+              <p className="mt-3 text-sm text-red-300" data-testid="publish-problem">
+                {publishing.message}
+              </p>
+            ) : null}
+            {publishing?.phase === "done" && !running ? (
+              <p className="mt-3 text-sm text-green-200" data-testid="publish-done">
+                Published: {count(publishing.total, "photo")} online
+                {publishing.uploaded > 0 ? ` (${publishing.uploaded} new)` : ""}.
+              </p>
+            ) : null}
+            <form action={publishOnlineAction} className="mt-3">
+              <input type="hidden" name="id" value={gallery.id} />
+              <button className="btn-primary" type="submit" disabled={running}>
+                {online === null ? "Publish online" : "Publish changes online"}
+              </button>
+            </form>
+            <p className="mt-2 text-xs text-muted">
+              Photos go online at web size (about 2400 px); your originals stay on this
+              computer. Publishing again uploads only new photos.
+            </p>
+          </>
+        )}
       </section>
 
       <section className="card mb-5 p-4">
@@ -165,6 +243,19 @@ export default async function GalleryPage({
                       </span>
                     </span>
                   </label>
+                  {chosen.has(e.id) ? (
+                    <p className="px-3 pb-2 pl-9 text-xs text-muted">
+                      Cover for the website:{" "}
+                      {covers.get(e.id) ? "chosen" : "none (no photo shown publicly)"} ·{" "}
+                      <Link
+                        className="underline"
+                        href={`/galleries/${gallery.id}/cover/${e.id}`}
+                        data-testid="choose-cover"
+                      >
+                        {covers.get(e.id) ? "change" : "choose one"}
+                      </Link>
+                    </p>
+                  ) : null}
                 </li>
               ))}
             </ul>
