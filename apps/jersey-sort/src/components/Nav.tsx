@@ -12,6 +12,7 @@ const LINKS = [
   { href: "/photos", label: "Photos" },
   { href: "/players", label: "Players" },
   { href: "/albums", label: "Albums" },
+  { href: "/galleries", label: "Team galleries" },
   { href: "/review", label: "Review" },
   { href: "/settings", label: "Settings" },
 ];

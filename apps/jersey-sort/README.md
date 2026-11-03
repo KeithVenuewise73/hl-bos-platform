@@ -71,6 +71,34 @@ saved in DateSort's Sports panel (`src/lib/shared-key.ts`, read fresh each time)
 Signing in now returns to the page you were going to (`?next=`), and only to
 a page of this app (`src/lib/next-path.ts`).
 
+## Team galleries
+
+**Team galleries** in the menu. Give a team, an organization or a group of
+family and friends their own private gallery, branded with your organization's
+name (for example _5 Star Sports Media_):
+
+1. **Create** one: organization or group (optional, e.g. _Cazenovia Hockey_),
+   team or gallery name (_Varsity_), and a team password (6+ characters).
+2. **Tick the games** it shows. Visitors see only those games: never another
+   team's, never a game left unticked, not even by guessing an address.
+3. **Copy the link** and give it, with the password, to the coach.
+
+Visitors need no account: link + team password, then they can view each
+game's photos and download one (the untouched original) or **Download all**
+(a ZIP). Ten wrong passwords in 15 minutes and that link waits.
+
+You stay in control: **change the password** (everyone already looking must
+enter the new one), **switch the link off**, or **make a new link** (the old
+one stops working). Deleting a gallery leaves its photos in JerseySort.
+
+**For now the link opens on this computer only**, and the page says so.
+Teams open it from their own phones once galleries are put online; that needs
+a hosting account and a new, approved database migration (these tables are
+in the local store only, not in migration 0052).
+
+Proven by `scripts/local-test/verify-team-galleries.cjs` (29 checks in a real
+browser, also run on Windows CI) and `src/lib/galleries.test.ts`.
+
 ## Who reads the numbers
 
 | Provider                | When                                          | What it can do                                                                                                                                                                                                    |

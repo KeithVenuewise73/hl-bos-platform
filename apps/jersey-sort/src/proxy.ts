@@ -15,6 +15,9 @@ const OPEN = new Set(["/login", "/signup"]);
 
 export function proxy(request: NextRequest): NextResponse {
   if (OPEN.has(request.nextUrl.pathname)) return NextResponse.next();
+  // Team galleries are for visitors without an account: their own link and
+  // team password guard them (checked on every request in /g/…).
+  if (request.nextUrl.pathname.startsWith("/g/")) return NextResponse.next();
   if (request.cookies.has("jerseysort_session")) return NextResponse.next();
   const url = request.nextUrl.clone();
   url.pathname = "/login";
