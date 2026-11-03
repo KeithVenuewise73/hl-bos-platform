@@ -1360,6 +1360,15 @@ const ASSETS: Asset[] = [
     ["Meta", "LinkedIn", "TikTok"],
   ),
   ...edgeFn(
+    "team-gallery",
+    "Team Gallery",
+    "Serves team galleries online: the public listing for 5starsportsmedia.com (games and the chosen cover photo only), the team-password check (scrypt, guessing throttle) that issues an access pass bound to the gallery and its current password, and photos as expiring signed URLs; plus JerseySort's publish calls behind a publisher key from Vault.",
+    [],
+    ["db.gallery"],
+    "built_undeployed",
+    [],
+  ),
+  ...edgeFn(
     "social-publish-worker",
     "Social Publish Worker",
     "Minute cron. Claims due targets with FOR UPDATE SKIP LOCKED, runs one adapter per platform, logs every attempt. Per-target outcomes are independent.",
@@ -1532,6 +1541,25 @@ const ASSETS: Asset[] = [
     relationships: [{ kind: "owned_by", to: "repo.hl-bos-platform" }],
     evidence:
       "migration 0052 verified from empty against a local PostgreSQL 16 (74 pgTAP assertions; 1180 across the suite, 0 failing; grant, status-guard and one-number rules each mutation-checked); UNAPPLIED to any project",
+  },
+
+  {
+    id: "db.gallery",
+    kind: "database",
+    name: "Team galleries online (gallery)",
+    summary:
+      "The online copy of JerseySort's team galleries: galleries (link token, the team password's scrypt hash, brand, team), games and their web-size photos, and a wrong-password log for the guessing throttle; a private photo bucket and a public bucket holding only the per-game cover the photographer chose. Not API-exposed; anon and authenticated hold no privilege at all; RLS enabled AND forced with no policy; every function is the service role's alone (the team-gallery Edge Function). A photo's storage paths are pinned to its own gallery and game, and a cover must be one of the game's own photos.",
+    maturity: "built_undeployed",
+    reuse: ["internal_only"],
+    owner: "Herman Legacy Platform",
+    layer: "HL-BOS",
+    key: "gallery",
+    location: "gallery schema",
+    tags: ["schema", "postgres", "rls", "storage"],
+    metrics: { tables: 4 },
+    relationships: [{ kind: "owned_by", to: "repo.hl-bos-platform" }],
+    evidence:
+      "migration 0053 verified from empty against a local PostgreSQL 16 (43 pgTAP assertions; 1223 across the suite, 0 failing; the cover rule mutation-checked); the team-gallery function run end to end against it; UNAPPLIED to any project",
   },
 
   ...db(
