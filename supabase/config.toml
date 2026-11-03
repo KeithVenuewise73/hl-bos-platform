@@ -33,8 +33,9 @@ enabled = false
 enabled = true
 port = 54323
 
-[inbucket]
+[local_smtp]
 # Local mail catcher. Ensures local dev cannot send real email.
+# (Named [inbucket] before Supabase CLI 3, which refuses that name.)
 enabled = true
 port = 54324
 

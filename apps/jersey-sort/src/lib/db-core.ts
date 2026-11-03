@@ -253,6 +253,43 @@ create table if not exists ai_analysis_jobs (
 );
 create index if not exists jobs_photo on ai_analysis_jobs (photo_id, started_at desc);
 
+-- Team galleries: a private, password-protected page that shows a team or
+-- group ONLY the events assigned to it. Local-store only for now: migration
+-- 0052 does not have these tables yet, and putting galleries online needs a
+-- new, approved migration.
+create table if not exists shared_galleries (
+  id text primary key,
+  organization_id text not null references organizations(id) on delete cascade,
+  group_name text,
+  name text not null check (length(name) between 1 and 120),
+  token text not null unique,
+  password_hash text not null,
+  active integer not null default 1 check (active in (0, 1)),
+  created_by text references users(id) on delete set null,
+  created_at text not null default (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
+  updated_at text not null default (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
+);
+create index if not exists shared_galleries_org on shared_galleries (organization_id, group_name, name);
+
+create table if not exists shared_gallery_events (
+  gallery_id text not null references shared_galleries(id) on delete cascade,
+  event_id text not null references events(id) on delete cascade,
+  added_at text not null default (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
+  primary key (gallery_id, event_id)
+);
+create index if not exists shared_gallery_events_event on shared_gallery_events (event_id);
+
+-- A visitor who entered the right password. Like sessions, only the SHA-256
+-- of the cookie is stored. password_hash is the gallery's hash when access
+-- was granted: changing the password ends every visit at once.
+create table if not exists shared_gallery_access (
+  token_hash text primary key,
+  gallery_id text not null references shared_galleries(id) on delete cascade,
+  password_hash text not null,
+  expires_at text not null,
+  created_at text not null default (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
+);
+
 -- The review queue is a VIEW, not a table: a photo is in it exactly when its
 -- status says so, so the queue cannot drift from the photos it describes.
 create view if not exists review_queue as

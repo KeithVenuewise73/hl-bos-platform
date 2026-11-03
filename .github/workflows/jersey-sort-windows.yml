@@ -20,6 +20,7 @@ on:
       - "packages/jersey-sort/**"
       - "apps/control-center/**"
       - "scripts/local-test/verify-folder-check.cjs"
+      - "scripts/local-test/verify-team-galleries.cjs"
       - "scripts/control-center.bat"
       - ".github/workflows/jersey-sort-windows.yml"
       - "pnpm-lock.yaml"
@@ -90,7 +91,7 @@ jobs:
           npm install -g playwright@1.56.1 --no-fund --no-audit
           npx -y playwright@1.56.1 install chromium
 
-      - name: Start the console (control-center.bat step 7), press Start JerseySort AI, then Check Folder
+      - name: Start the console (control-center.bat step 7), press Start JerseySort AI, then Check Folder and team galleries
         # One step on purpose: on Windows runners every process a step starts
         # is ended with that step, so a console started in an earlier step is
         # gone before the browser reaches it. (On the CEO's PC the console
@@ -116,6 +117,9 @@ jobs:
           }
           "console is up"
           node scripts/local-test/verify-folder-check.cjs http://127.0.0.1:4603 --console http://localhost:4000
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          # Team galleries, on the JerseySort the console just started.
+          node scripts/local-test/verify-team-galleries.cjs http://127.0.0.1:4603
           exit $LASTEXITCODE
 
       - name: Summary
