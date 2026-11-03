@@ -3,9 +3,11 @@
 import { useState, useTransition } from "react";
 
 import {
+  allowPhones,
   launchSceneFlow,
   readSceneFlowStatus,
   rotateSceneFlowCode,
+  sceneFlowDiagnostics,
 } from "@/actions/sceneflow";
 import type { SceneFlowStatus } from "@/lib/sceneflow-launch";
 
@@ -20,6 +22,8 @@ export function SceneFlowLaunch({ initial }: { initial: SceneFlowStatus }) {
   const [status, setStatus] = useState(initial);
   const [note, setNote] = useState("");
   const [detail, setDetail] = useState("");
+  const [report, setReport] = useState("");
+  const [copied, setCopied] = useState(false);
   const [pending, start] = useTransition();
 
   /**
@@ -66,7 +70,15 @@ export function SceneFlowLaunch({ initial }: { initial: SceneFlowStatus }) {
             width: 9,
             height: 9,
             borderRadius: 9,
-            background: status.running ? "#3fb950" : "#6e7681",
+            // Three states, because there are three. Green is reserved for
+            // "nothing known is in the way"; a running app a phone cannot
+            // reach is amber, not green. The old panel used green for both and
+            // sent the operator to an address that would not load.
+            background: !status.running
+              ? "#6e7681"
+              : status.clear
+                ? "#3fb950"
+                : "#d29922",
             marginRight: 8,
           }}
         />
@@ -94,7 +106,121 @@ export function SceneFlowLaunch({ initial }: { initial: SceneFlowStatus }) {
         >
           New code
         </button>
+        {status.offerRule ? (
+          // Shown only when it would change something. A permanent "fix the
+          // firewall" button on a machine whose firewall is already open is a
+          // control that does nothing, and invites pressing it to find out.
+          <button
+            type="button"
+            onClick={() => act(allowPhones)}
+            disabled={pending}
+            style={button(pending, "#1f6feb")}
+          >
+            Allow phones through the firewall
+          </button>
+        ) : null}
+        <button
+          type="button"
+          onClick={() => {
+            setCopied(false);
+            start(async () => {
+              try {
+                const text = await sceneFlowDiagnostics();
+                setReport(text);
+                try {
+                  await navigator.clipboard.writeText(text);
+                  setCopied(true);
+                } catch {
+                  // Clipboard permission can be refused. The text is on screen
+                  // either way, which is the part that matters.
+                }
+              } catch (error) {
+                setReport(
+                  `The report could not be gathered: ${
+                    error instanceof Error ? error.message : String(error)
+                  }`,
+                );
+              }
+            });
+          }}
+          disabled={pending}
+          style={button(pending, "#30363d")}
+        >
+          Report for Claude
+        </button>
       </div>
+
+      {status.offerRule ? (
+        // Said before it is pressed, not after. This button asks Windows for
+        // Administrator and opens a port on the home network; the operator is
+        // entitled to know both of those things while deciding.
+        <div
+          style={{
+            background: "#0d1117",
+            border: "1px solid #262c36",
+            borderRadius: 10,
+            padding: "14px 16px",
+            marginBottom: 12,
+          }}
+        >
+          <strong style={{ fontSize: 13 }}>What that button does</strong>
+          <p
+            style={{
+              margin: "6px 0 0",
+              color: "#8b949e",
+              fontSize: 12.5,
+              lineHeight: 1.6,
+            }}
+          >
+            Windows will ask your permission — that prompt is the rule being added, and
+            declining it changes nothing. The rule lets devices on networks Windows
+            already treats as yours reach port 4100 on this PC. It covers Private
+            networks only, never public Wi-Fi, so taking this laptop to a café does not
+            carry the opening with it.
+          </p>
+          <p
+            style={{
+              margin: "8px 0 0",
+              color: "#6e7681",
+              fontSize: 12.5,
+              lineHeight: 1.6,
+            }}
+          >
+            The six-digit code above is still what keeps other devices in the house out.
+            The rule decides who can knock; the code decides who gets in.
+          </p>
+        </div>
+      ) : null}
+
+      {report === "" ? null : (
+        // Built because four rounds were spent asking him to read things off a
+        // screen and relay them. It contains no secrets -- the access code is
+        // reported as set or not set, never as its value.
+        <div style={{ marginBottom: 12 }}>
+          <p style={{ margin: "0 0 6px", color: "#8b949e", fontSize: 12.5 }}>
+            {copied
+              ? "Copied. Paste this into the chat with Claude."
+              : "Select this and copy it into the chat with Claude."}
+          </p>
+          <textarea
+            readOnly
+            value={report}
+            onFocus={(e) => e.currentTarget.select()}
+            rows={16}
+            style={{
+              width: "100%",
+              boxSizing: "border-box",
+              background: "#0d1117",
+              border: "1px solid #262c36",
+              borderRadius: 8,
+              color: "#8b949e",
+              fontSize: 11.5,
+              fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace",
+              padding: "10px 12px",
+            }}
+          />
+        </div>
+      )}
 
       {status.running && status.code !== "" ? (
         <div
@@ -256,6 +382,31 @@ export function SceneFlowLaunch({ initial }: { initial: SceneFlowStatus }) {
         That does not close SceneFlow; it stays on the network until the PC is
         restarted.
       </p>
+
+      {status.firewallEvidence.length === 0 ? null : (
+        // What was actually read from Windows, so the line under the dot is
+        // never something the operator has to take on trust.
+        <details style={{ marginTop: 10 }}>
+          <summary style={{ color: "#6e7681", fontSize: 12, cursor: "pointer" }}>
+            What Windows was asked about the firewall
+          </summary>
+          <pre
+            style={{
+              margin: "8px 0 0",
+              padding: "10px 12px",
+              background: "#0d1117",
+              border: "1px solid #262c36",
+              borderRadius: 8,
+              color: "#8b949e",
+              fontSize: 11.5,
+              whiteSpace: "pre-wrap",
+              wordBreak: "break-word",
+            }}
+          >
+            {status.firewallEvidence.join("\n")}
+          </pre>
+        </details>
+      )}
     </div>
   );
 }

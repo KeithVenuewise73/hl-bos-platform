@@ -1,6 +1,6 @@
 import { SceneFlowLaunch } from "@/components/SceneFlowLaunch";
 import { repoStatus } from "@/lib/git";
-import { detectGpu } from "@/lib/gpu";
+import { detectGpu, systemRamMB } from "@/lib/gpu";
 import type { GpuVerdict } from "@/lib/gpu-report";
 import { readinessFrom } from "@/lib/sceneflow-report";
 import { sceneflowStatus } from "@/lib/sceneflow-launch";
@@ -29,7 +29,7 @@ export default async function SceneFlowPage() {
   // wired to anything, so no environment variable could change this answer,
   // and reading one would imply it could.
   const [readiness, sceneflow, repo] = await Promise.all([
-    detectGpu().then(readinessFrom),
+    detectGpu().then((gpu) => readinessFrom(gpu, systemRamMB())),
     sceneflowStatus(),
     repoStatus(),
   ]);
@@ -166,6 +166,52 @@ export default async function SceneFlowPage() {
             ))}
           </tbody>
         </table>
+
+        {/* The processor models, shown only when that is the route this
+            machine would take. On a machine with a card they are noise. */}
+        {readiness.plan?.onProcessor ? (
+          <>
+            <h3 style={{ margin: "18px 0 6px", fontSize: 14 }}>
+              On the processor, which is what this machine would use
+            </h3>
+            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+              <tbody>
+                {readiness.cpuModels.map((m) => (
+                  <tr key={m.model} style={{ borderTop: "1px solid #262c36" }}>
+                    <td
+                      style={{
+                        padding: "8px 8px 8px 0",
+                        color: m.fits ? "#c9d1d9" : "#6e7681",
+                        whiteSpace: "nowrap",
+                      }}
+                    >
+                      {m.model === readiness.plan?.model.model
+                        ? "\u2192 "
+                        : m.fits
+                          ? "\u2713 "
+                          : "\u2014 "}
+                      {m.model}
+                    </td>
+                    <td
+                      style={{ padding: "8px", color: "#8b949e", whiteSpace: "nowrap" }}
+                    >
+                      {Math.ceil(m.needsMB / 1024)}GB
+                    </td>
+                    <td
+                      style={{
+                        padding: "8px 0 8px 8px",
+                        color: "#8b949e",
+                        lineHeight: 1.5,
+                      }}
+                    >
+                      {m.note}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </>
+        ) : null}
       </section>
 
       <section style={{ ...CARD, marginBottom: 14 }}>

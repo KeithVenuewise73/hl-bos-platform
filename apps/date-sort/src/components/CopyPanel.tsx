@@ -5,7 +5,7 @@ import { useEffect, useRef, useState } from "react";
 import { folderName } from "@hl-bos/date-sort";
 
 import { copyHealth } from "@/lib/copy-watch.ts";
-import { count, longDate } from "@/lib/format.ts";
+import { count, longDate, number } from "@/lib/format.ts";
 import type { CopyMessage, DayCopyView, ScanView } from "@/lib/scan-view.ts";
 
 type Progress = Extract<CopyMessage, { type: "progress" }>;
@@ -341,11 +341,10 @@ export function CopyPanel({ view, copy }: { view: ScanView; copy: CopyState }) {
             <span className="font-mono">
               {copy.progress.folder.split(/[\\/]/).pop()}
             </span>
-            … {copy.progress.done.toLocaleString("en-US")} of{" "}
-            {count(copy.progress.total, "photo")} · {gb(copy.progress.bytesCopied)}{" "}
-            copied
+            … {number(copy.progress.done)} of {count(copy.progress.total, "photo")} ·{" "}
+            {gb(copy.progress.bytesCopied)} copied
             {copy.progress.alreadyThere > 0
-              ? ` · ${copy.progress.alreadyThere.toLocaleString("en-US")} already there, skipped`
+              ? ` · ${number(copy.progress.alreadyThere)} already there, skipped`
               : ""}
           </p>
           <div className="mt-2 h-2 overflow-hidden rounded bg-panel-2">
@@ -403,19 +402,18 @@ function CopySummary({ results }: { results: Record<string, DayCopyView> }) {
       <p>
         <span data-testid="sum-copied">{count(sum("copied"), "photo")} copied</span> ·{" "}
         <span data-testid="sum-already">
-          {sum("alreadyThere").toLocaleString("en-US")} already there
+          {number(sum("alreadyThere"))} already there
         </span>{" "}
         ·{" "}
         <span
           data-testid="sum-conflicts"
           className={conflicts.length > 0 ? "text-estimate" : ""}
         >
-          {conflicts.length.toLocaleString("en-US")} left alone (different file, same
-          name)
+          {number(conflicts.length)} left alone (different file, same name)
         </span>{" "}
         ·{" "}
         <span data-testid="sum-failed" className={failed.length > 0 ? "text-bad" : ""}>
-          {failed.length.toLocaleString("en-US")} could not be copied
+          {number(failed.length)} could not be copied
         </span>
       </p>
       {renamed.length > 0 ? (
@@ -490,10 +488,8 @@ export function CardCopy({ day, copy }: { day: string; copy: CopyState }) {
       </button>
       {result ? (
         <p className="text-xs" data-testid="card-result">
-          <span className="text-brand">
-            {result.copied.toLocaleString("en-US")} copied
-          </span>
-          {` · ${result.alreadyThere.toLocaleString("en-US")} already there`}
+          <span className="text-brand">{number(result.copied)} copied</span>
+          {` · ${number(result.alreadyThere)} already there`}
           {result.conflicts.length > 0 ? (
             <span className="text-estimate">{` · ${result.conflicts.length} left alone`}</span>
           ) : null}

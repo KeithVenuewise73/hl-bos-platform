@@ -2,12 +2,12 @@
   "name": "@hl-bos/hl-bti",
   "version": "0.1.0",
   "private": true,
-  "description": "HL-BTI — the deployable Herman Legacy Business Transformation application. An authenticated, statically-exported SPA that reuses HL-BOS identity/tenancy/permissions (Supabase) and the @hl-bos/bti-engine, persisting businesses and analyses to the HL-BOS Supabase Pro project via the public bti_* RPCs. Deployed to the Herman Legacy Cloud (Coolify).",
+  "description": "HL-BTI \u2014 the deployable Herman Legacy Business Transformation application. An authenticated, statically-exported SPA that reuses HL-BOS identity/tenancy/permissions (Supabase) and the @hl-bos/bti-engine, persisting businesses and analyses to the HL-BOS Supabase Pro project via the public bti_* RPCs. Deployed to the Herman Legacy Cloud (Coolify).",
   "type": "module",
   "scripts": {
-    "dev": "next dev --port 4200",
+    "dev": "next dev --port 4200 --hostname 127.0.0.1",
     "build": "next build",
-    "start": "next start --port 4200",
+    "start": "next start --port 4200 --hostname 127.0.0.1",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "clean": "rm -rf .next out dist *.tsbuildinfo"

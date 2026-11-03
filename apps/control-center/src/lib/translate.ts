@@ -178,6 +178,26 @@ const RULES: readonly Rule[] = [
       "The build stopped partway. Your work is safe. Close the console window and open it again -- startup checks the libraries and usually repairs this by itself. If it happens twice, send Claude these lines.",
     owner: "ai-engineer",
   },
+  // --- Letting a phone reach SceneFlow --------------------------------
+  // Added after "I tried to use it on my phone and it didn't work". The panel
+  // handles these three in plain English where they happen; these rules exist
+  // so the next variant arrives as a sentence rather than as PowerShell.
+  {
+    match:
+      /operation was can(cel|celle)d by the user|requested operation requires elevation/i,
+    headline: "The Windows permission prompt was declined, so nothing was changed.",
+    meaning:
+      "Adding a firewall rule needs Administrator, which this console deliberately does not have — so Windows asks you directly. Nothing was opened and nothing was broken. Press the button again and choose Yes if you do want phones on your home network to reach SceneFlow.",
+    owner: "ceo",
+  },
+  {
+    match:
+      /is not recognized as the name of a cmdlet|Get-NetFirewall|New-NetFirewallRule/i,
+    headline: "Windows could not be asked about its firewall.",
+    meaning:
+      "The console asks Windows directly whether phones are allowed through to SceneFlow. That command did not run on this machine, so the answer is unknown rather than no. The address may still work on your phone — try it. If it does not, send Claude these lines.",
+    owner: "ai-engineer",
+  },
   {
     match: /ECONNREFUSED|ETIMEDOUT|ENOTFOUND|network/i,
     headline: "Could not reach an outside service.",
