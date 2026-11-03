@@ -58,3 +58,9 @@ double_confirm_changes = true
 enable_confirmations = true
 [analytics]
 enabled = false
+
+# Team galleries (migration 0053): visitors have no Supabase account, so this
+# function does not require a Supabase JWT. The team password is checked
+# inside it, and every publish call needs the publisher key from Vault.
+[functions.team-gallery]
+verify_jwt = false
