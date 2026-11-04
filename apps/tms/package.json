@@ -1,0 +1,32 @@
+{
+  "name": "@hl-bos/tms-app",
+  "version": "0.1.0",
+  "private": true,
+  "description": "HLG Transportation Management System — Release 1 local prototype (Fleet, Drivers, Digital DVIR, Maintenance, fleet status, module licensing). Runs on this computer over SYNTHETIC data held in memory by a port of the production fleet backend. Nothing is persisted and nothing reaches a database.",
+  "type": "module",
+  "scripts": {
+    "dev": "next dev --port 4610 --hostname 127.0.0.1",
+    "build": "next build",
+    "start": "next start --port 4610 --hostname 127.0.0.1",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint .",
+    "test": "vitest run",
+    "clean": "rm -rf .next dist *.tsbuildinfo"
+  },
+  "dependencies": {
+    "@hl-bos/tms": "workspace:*",
+    "next": "catalog:",
+    "react": "catalog:",
+    "react-dom": "catalog:",
+    "server-only": "catalog:"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "catalog:",
+    "@types/node": "catalog:",
+    "@types/react": "catalog:",
+    "@types/react-dom": "catalog:",
+    "tailwindcss": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  }
+}

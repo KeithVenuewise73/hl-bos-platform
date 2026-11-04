@@ -255,6 +255,26 @@ const ASSETS: Asset[] = [
       "apps/jersey-sort; 85/85 end-to-end browser checks against the running app; analysis today is local OCR, not AI — no key is configured",
   },
   {
+    id: "app.tms",
+    kind: "application",
+    name: "HLG Transportation Management System (Release 1 prototype)",
+    summary:
+      "Modular TMS for HSCS: vehicle registry, fleet status board, driver profiles with credential expiry, Digital DVIR on a phone (pre-trip / en-route / end-of-day, tanker checklist, severity, photo, typed signature), defect queue with acknowledge / assess / certify and driver review of repairs, maintenance service records and work orders, and per-company module licensing. Runs locally over synthetic data held in memory.",
+    maturity: "built_undeployed",
+    reuse: ["internal_only"],
+    owner: "Herman Supply Chain Solutions",
+    layer: "HL-BOS",
+    key: "tms",
+    location: "apps/tms",
+    tags: ["tms", "fleet", "dvir", "transportation", "hscs", "local-first"],
+    relationships: [
+      { kind: "uses", to: "pkg.tms" },
+      { kind: "owned_by", to: "repo.hl-bos-platform" },
+    ],
+    evidence:
+      "apps/tms; 40/40 end-to-end browser checks against the running app (scripts/local-test/verify-tms.cjs); synthetic in-memory data only, not connected to any database",
+  },
+  {
     id: "app.date-sort",
     kind: "application",
     name: "DateSort",
@@ -516,6 +536,23 @@ const ASSETS: Asset[] = [
     ],
     evidence:
       "packages/jersey-sort; 76 tests green; the Claude provider tested with an injected client only — never run against the live API",
+  },
+  {
+    id: "pkg.tms",
+    kind: "package",
+    name: "@hl-bos/tms",
+    summary:
+      "TMS core: the 12-module catalog with internal capabilities kept separate from billable modules, the entitlement resolver (canOpen / canCall / save_fleet section guard), the Digital DVIR rules copied from production fleet.api, live fleet status computed from records, and an in-memory port of fleet.api behind a FleetBackend boundary.",
+    maturity: "built_undeployed",
+    reuse: ["reusable"],
+    owner: "Herman Legacy Platform",
+    layer: "HL-BOS",
+    key: "tms",
+    location: "packages/tms",
+    tags: ["package", "domain-logic", "fleet", "dvir", "entitlements"],
+    relationships: [{ kind: "owned_by", to: "repo.hl-bos-platform" }],
+    evidence:
+      "packages/tms; 29 tests green without a database and 43 with it: the 14 backend scenarios also pass against the recovered production fleet.api in an isolated local PostgreSQL (TMS_PG_DB=tms_fleet); verified by mutation",
   },
   {
     id: "pkg.date-sort",
