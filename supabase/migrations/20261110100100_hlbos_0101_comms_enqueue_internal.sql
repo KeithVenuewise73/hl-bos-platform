@@ -22,7 +22,8 @@ begin
     select id into v_id from comms.messages where tenant_id = p_tenant and idempotency_key = p_idempotency;
     if found then return v_id; end if;
   end if;
-  if exists (select 1 from comms.suppression s where s.tenant_id = p_tenant and s.channel = p_channel and s.contact = p_to) then
+  -- explicit lower(): the citext '=' operator is not resolved under search_path='' (falls back to case-sensitive text)
+  if exists (select 1 from comms.suppression s where s.tenant_id = p_tenant and s.channel = p_channel and lower(s.contact::text) = lower(p_to::text)) then
     insert into comms.messages (tenant_id, source_module, channel, template_key, template_version, to_contact,
       message_class, status, idempotency_key, requested_by)
     values (p_tenant, p_module, p_channel, p_template, p_version, p_to, 'transactional', 'suppressed', p_idempotency, auth.uid())

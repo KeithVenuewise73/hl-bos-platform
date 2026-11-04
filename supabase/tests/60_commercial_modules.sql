@@ -6,7 +6,7 @@
 -- fail-closed gate, tenant isolation, no data loss on deactivation, mock transport off by default.
 -- ===========================================================================
 begin;
-select plan(32);
+select plan(33);
 select tests.seed();
 
 -- test-only catalog (rolled back with the transaction)
@@ -107,6 +107,9 @@ insert into comms.suppression (tenant_id, channel, contact, reason) values (test
 create temp table supp_msg as select comms.enqueue_internal(tests.uid('tenant_a'), 'test', 'email', 'test_note', 1,
   'stop@example.test', '{"name":"Bo","when":"Tuesday"}', 'k2') as id;
 select is((select m.status::text from comms.messages m join supp_msg s on s.id = m.id), 'suppressed', 'a suppressed contact is never queued');
+create temp table supp_case as select comms.enqueue_internal(tests.uid('tenant_a'), 'test', 'email', 'test_note', 1,
+  'STOP@Example.test', '{"name":"Bo","when":"Tuesday"}', 'k2b') as id;
+select is((select m.status::text from comms.messages m join supp_case s on s.id = m.id), 'suppressed', 'suppression matches regardless of letter case');
 select tests.login_as(tests.uid('owner_a'));
 select throws_ok($$select comms.enqueue_internal(tests.uid('tenant_a'), 'test', 'email', 'test_note', 1, 'x@example.test', '{"name":"x","when":"y"}', 'k3')$$,
   '42501', null, 'authenticated users cannot call the internal enqueue directly');
