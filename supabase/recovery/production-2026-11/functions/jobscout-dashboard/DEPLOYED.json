@@ -1,0 +1,43 @@
+{
+ "slug": "jobscout-dashboard",
+ "id": "ea68453a-e3d5-4756-b25f-b4cc4f6af357",
+ "name": "jobscout-dashboard",
+ "status": "ACTIVE",
+ "version": 3,
+ "verify_jwt": false,
+ "import_map": false,
+ "entrypoint_path": "file:///tmp/user_fn_mvvtngiopdrgiedjmhfb_ea68453a-e3d5-4756-b25f-b4cc4f6af357_3/source/jobscout-dashboard/index.ts",
+ "ezbr_sha256": "2675f3e777cb53d00dd7b1e938076a856abbecfea4dfa0d828d4115851cb4972",
+ "created_at_ms": 1787703408623,
+ "created_at_iso": "2026-08-26T00:16:48.623Z",
+ "updated_at_ms": 1787705475728,
+ "updated_at_iso": "2026-08-26T00:51:15.728Z",
+ "files": [
+  "_shared/auth.ts",
+  "_shared/dashboard.ts",
+  "_shared/dedupe.ts",
+  "_shared/page.ts",
+  "jobscout-dashboard/index.ts"
+ ],
+ "cmp_vs_phase3": {
+  "_shared/auth.ts": "SAME",
+  "_shared/dashboard.ts": "SAME",
+  "_shared/dedupe.ts": "SAME",
+  "_shared/page.ts": "SAME",
+  "jobscout-dashboard/index.ts": "SAME"
+ },
+ "matches_phase3": true,
+ "env_var_names": [
+  "SUPABASE_SERVICE_ROLE_KEY",
+  "SUPABASE_URL"
+ ],
+ "phase3_meta": {
+  "v": 3,
+  "jwt": false,
+  "created": "2026-08-26",
+  "updated": "2026-08-26",
+  "sha": "2675f3e777cb"
+ },
+ "change_vs_phase3": "none",
+ "verified_at_utc": "2026-11-04T14:44:14Z"
+}

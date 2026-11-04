@@ -1,0 +1,46 @@
+{
+ "slug": "jobscout-score",
+ "id": "e001673a-af0e-4f1c-be25-835728593378",
+ "name": "jobscout-score",
+ "status": "ACTIVE",
+ "version": 9,
+ "verify_jwt": true,
+ "import_map": false,
+ "entrypoint_path": "file:///tmp/user_fn_mvvtngiopdrgiedjmhfb_e001673a-af0e-4f1c-be25-835728593378_9/source/jobscout-score/index.ts",
+ "ezbr_sha256": "eda1c8f6f0c814e268823b11a00403bdcb910432ae16e82d58b610b22684086c",
+ "created_at_ms": 1787688773116,
+ "created_at_iso": "2026-08-25T20:12:53.116Z",
+ "updated_at_ms": 1787701954312,
+ "updated_at_iso": "2026-08-25T23:52:34.312Z",
+ "files": [
+  "_shared/auth.ts",
+  "_shared/dedupe.ts",
+  "_shared/score.ts",
+  "jobscout-score/index.ts"
+ ],
+ "cmp_vs_phase3": {
+  "_shared/auth.ts": "SAME",
+  "_shared/dedupe.ts": "SAME",
+  "_shared/score.ts": "SAME",
+  "jobscout-score/index.ts": "SAME"
+ },
+ "matches_phase3": true,
+ "env_var_names": [
+  "ANTHROPIC_API_KEY",
+  "JOBSCOUT_RESUME_LABEL",
+  "JOBSCOUT_SCORE_BUDGET_MS",
+  "JOBSCOUT_SCORE_EFFORT",
+  "JOBSCOUT_SCORE_LIMIT",
+  "SUPABASE_SERVICE_ROLE_KEY",
+  "SUPABASE_URL"
+ ],
+ "phase3_meta": {
+  "v": 9,
+  "jwt": true,
+  "created": "2026-08-25",
+  "updated": "2026-08-25",
+  "sha": "eda1c8f6f0c8"
+ },
+ "change_vs_phase3": "none",
+ "verified_at_utc": "2026-11-04T14:44:14Z"
+}
