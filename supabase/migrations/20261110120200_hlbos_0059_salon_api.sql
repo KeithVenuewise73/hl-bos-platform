@@ -1,7 +1,7 @@
 -- ===========================================================================
--- hlbos_0122_salon_api — gated RPCs for SalonOS Release 1.
+-- hlbos_0059_salon_api — gated RPCs for SalonOS Release 1.
 -- Each: authenticate -> tenant membership -> module licence -> permission -> validate -> act.
--- rollback: drop the salon.* functions (schema dropped by 0121's rollback).
+-- rollback: drop the salon.* functions (schema dropped by 0058's rollback).
 -- ===========================================================================
 create or replace function salon._gate(p_tenant uuid, p_module extensions.citext, p_permission extensions.citext default null) returns void
 language plpgsql stable security definer set search_path = '' as $$

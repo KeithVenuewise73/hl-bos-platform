@@ -1,5 +1,5 @@
 -- ===========================================================================
--- hlbos_0121_salon_core — HLG SalonOS Release 1: data model, module catalog, packages,
+-- hlbos_0058_salon_core — HLG SalonOS Release 1: data model, module catalog, packages,
 -- permissions, notification templates. Shared HL-BOS identity/tenancy/entitlements/comms.
 -- Direct table access is granted to NO API role; gated RPCs in 0122 are the only path.
 -- rollback: DROP SCHEMA salon CASCADE; delete salon.* rows from entitlements.packages/modules,
@@ -130,10 +130,10 @@ insert into identity.permissions (key, description, scope) values
 on conflict (key) do nothing;
 insert into identity.role_permissions (role_key, permission_key)
 select r, p from unnest(array['tenant_owner','tenant_admin']) r,
-  unnest(array['salon.settings.manage','salon.catalog.manage','salon.appointment.create','salon.appointment.manage','salon.customer.manage','salon.customer.read','salon.report.read','salon.campaign.manage']) p
+  unnest(array['salon.availability.update','salon.appointment.update','salon.settings.manage','salon.catalog.manage','salon.appointment.create','salon.appointment.manage','salon.customer.manage','salon.customer.read','salon.report.read','salon.campaign.manage']) p
 on conflict do nothing;
 insert into identity.role_permissions (role_key, permission_key) values
-  ('manager','salon.catalog.manage'),('manager','salon.appointment.create'),('manager','salon.appointment.manage'),('manager','salon.customer.manage'),('manager','salon.customer.read'),('manager','salon.report.read'),
+  ('manager','salon.availability.update'),('manager','salon.appointment.update'),('manager','salon.catalog.manage'),('manager','salon.appointment.create'),('manager','salon.appointment.manage'),('manager','salon.customer.manage'),('manager','salon.customer.read'),('manager','salon.report.read'),
   ('staff','salon.availability.update'),('staff','salon.appointment.create'),('staff','salon.appointment.update'),('staff','salon.customer.read'),
   ('service_account','salon.appointment.create')       -- the public booking site acts through a service-account membership
 on conflict do nothing;

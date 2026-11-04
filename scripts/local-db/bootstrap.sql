@@ -10,7 +10,7 @@ do $$ begin
 create schema if not exists auth;
 create table if not exists auth.users (
   id uuid primary key default gen_random_uuid(),
-  email text unique, email_confirmed_at timestamptz, created_at timestamptz default now(), raw_user_meta_data jsonb default '{}'
+  email text unique, email_confirmed_at timestamptz, is_sso_user boolean default false, created_at timestamptz default now(), raw_user_meta_data jsonb default '{}'
 );
 create or replace function auth.uid() returns uuid language sql stable as $$
   select nullif(nullif(current_setting('request.jwt.claims', true), '')::jsonb ->> 'sub', '')::uuid $$;
