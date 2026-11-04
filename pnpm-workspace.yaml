@@ -50,6 +50,14 @@ catalog:
   # reachable from a browser bundle.
   server-only: "0.0.1"
 
+  # --- Database driver (isolated environments + server-side service code) ---
+  # node-postgres. Used to run the SAME SQL contract PostgREST exposes (SET
+  # LOCAL ROLE authenticated + request.jwt.claims) against an isolated local
+  # database, and by the billing/communications workers. Never shipped to a
+  # browser. Pinned: 8.23.1 published 2026-09-30.
+  pg: "8.23.1"
+  "@types/pg": "8.23.1"
+
   # --- JerseySort AI (apps/jersey-sort) -----------------------------------
   # sharp: thumbnails and previews. Prebuilt per-platform binaries arrive as
   #   optional dependencies, so no install script has to run.

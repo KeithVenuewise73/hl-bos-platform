@@ -512,6 +512,23 @@ const ASSETS: Asset[] = [
       "packages/hype-video; 100 tests green; the fabrication guard verified by mutation (planting 'Undefeated. 12-0.' in the writer fails 20 tests)",
   },
   {
+    id: "pkg.commercial",
+    kind: "package",
+    name: "@hl-bos/commercial",
+    summary:
+      "Shared commercial services for TransportationOS and SalonOS: Stripe webhook verification (with replay tolerance) and provider-neutral billing events, Twilio signature verification and STOP/START, message transports (mock by default; live Twilio/Resend refuse to construct without explicit approval), the delivery worker with retry/backoff and per-company limits, and IsolatedDb, which runs SQL as PostgREST does for a signed-in user.",
+    maturity: "built_undeployed",
+    reuse: ["reusable"],
+    owner: "Herman Legacy Platform",
+    layer: "HL-BOS",
+    key: "commercial",
+    location: "packages/commercial",
+    tags: ["package", "billing", "communications", "entitlements", "stripe", "twilio"],
+    relationships: [{ kind: "owned_by", to: "repo.hl-bos-platform" }],
+    evidence:
+      "packages/commercial; 14 unit tests (incl. Twilio's published signature example) + 17 tests against an isolated PostgreSQL with all 54 migrations and proposed P001; two mutations of the SQL caught",
+  },
+  {
     id: "pkg.jersey-sort",
     kind: "package",
     name: "@hl-bos/jersey-sort",
