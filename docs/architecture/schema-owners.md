@@ -7,6 +7,7 @@
     | Schema / tables | Product | Source of truth today | Notes |
     | --- | --- | --- | --- |
     | `identity, entitlements, workflows, events, integrations, ai, billing` | HL-BOS platform core | hl-bos-platform `supabase/migrations/` (0001–0017) | Shared primitives. Every product depends on them. Changes require a platform ADR. |
+
 | `visibility` | VisibilityAI | hl-bos-platform `supabase/migrations/` (0014, 0017) | First product module on the core. |
 | `vstudio` | Venture Studio intelligence (HLVS Phase 2) | hl-bos-platform `supabase/migrations/` (0032–0039) — consolidated; production ledger holds the step-by-step rows | Repo is a squash of 0034/r01/r02/0039 — see REPO_DIFF.md. |
 | `dma, disco, hlvs_board, ingest` | HLVS discovery / DMA pipeline | **Production ledger only** (`supabase/recovery/production-2026-11/migrations/`) | No file on `main`. 29 rows. Recovered 2026-11-04. |

@@ -6,11 +6,11 @@ How the deployed database schema and edge functions were recovered on 2026-11-04
 
 ## What was recovered
 
-| Component | Count | Where | Verification |
-| --- | --- | --- | --- |
-| Applied migrations | 111 | `supabase/recovery/production-2026-11/migrations/` | MD5 of each row's `statements` recomputed in the database and compared to the local file (`MANIFEST.csv`): all 111 match |
-| Edge functions (deployed source) | 10 | `supabase/recovery/production-2026-11/functions/<slug>/` | Each file's SHA-256 recorded in `SHA256SUMS`; `DEPLOYED.json` holds version, `verify_jwt`, entrypoint and timestamps as reported by the platform |
-| Diff against the repository | — | `supabase/recovery/production-2026-11/migrations/REPO_DIFF.md`, `functions/REPO_DIFF.md` | Normalized text comparison; findings listed per file |
+| Component                        | Count | Where                                                                                    | Verification                                                                                                                                     |
+| -------------------------------- | ----- | ---------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Applied migrations               | 111   | `supabase/recovery/production-2026-11/migrations/`                                       | MD5 of each row's `statements` recomputed in the database and compared to the local file (`MANIFEST.csv`): all 111 match                         |
+| Edge functions (deployed source) | 10    | `supabase/recovery/production-2026-11/functions/<slug>/`                                 | Each file's SHA-256 recorded in `SHA256SUMS`; `DEPLOYED.json` holds version, `verify_jwt`, entrypoint and timestamps as reported by the platform |
+| Diff against the repository      | —     | `supabase/recovery/production-2026-11/migrations/REPO_DIFF.md`, `functions/REPO_DIFF.md` | Normalized text comparison; findings listed per file                                                                                             |
 
 Original version stamps and names are preserved. Nothing was renumbered, reformatted or "fixed".
 
@@ -24,7 +24,7 @@ Original version stamps and names are preserved. Nothing was renumbered, reforma
 ## What this does and does not prove
 
 - **Source recovered** — yes, for every migration and every function.
-- **Source verified** — yes for migrations (MD5) and function files (SHA-256 against the platform's own copy). This proves the files match what the platform *stores*; it does not prove the *running* bundle (`ezbr_sha256` in `DEPLOYED.json`) was built from exactly these files, because the platform bundles on deploy.
+- **Source verified** — yes for migrations (MD5) and function files (SHA-256 against the platform's own copy). This proves the files match what the platform _stores_; it does not prove the _running_ bundle (`ezbr_sha256` in `DEPLOYED.json`) was built from exactly these files, because the platform bundles on deploy.
 - **Environment reproducible / deployment tested / production recovery validated** — **no**. Nobody has yet created an empty project, applied these 111 files in order and compared the resulting catalog to production. That is the next step and is proposed in `docs/operations/migration-policy.md` §4.
 
 ## How to restore from this archive (procedure, not yet rehearsed)

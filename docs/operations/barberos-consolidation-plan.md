@@ -6,12 +6,12 @@ Two branches, one product, one production schema. This plan says how they become
 
 ## Inputs (VERIFIED, Phase 3 + ledger)
 
-| | Branch A `claude/shop-transformation-barber-os-ntwb2n` (**authoritative**) | Branch B `claude/barberos-current-state-audit-xz3psp` (**preserve**) | Production (`mvvtngiopdrgiedjmhfb`) |
-| --- | --- | --- | --- |
-| Migrations | 0048–0059 (12 files, prod's names; version stamps `20260909120000…` differ from prod's `20260909203027…`) | 0049–0054 verbatim reconstructions of A's end state; 0055 audit public API; 0056 cockpit API | hlbos_0048–0058 (11 rows) + 0055r01, 0055r02 (13 rows total) |
-| Not applied anywhere | 0059 barberos_booking (5 tables, `btree_gist` exclusion, 25 RPCs, pgTAP plan(45)) | 0056 cockpit API (11 fns incl. `provision_client`, pipeline) | — |
-| Apps | `apps/barbershop` (Next 15, port 4400, Dockerfile, 76 unit tests), `apps/shop-pages` (Deno host for `site` fn) | `apps/barberos-cockpit` (static Next export, port 4700, no Dockerfile, 59 unit tests; pgTAP 49/53/55/56) | `site` edge function deployed (serves published shop pages) |
-| Data | — | — | shops 1, sites 1, bundles 3, capabilities 16, clients 0, visits 0; `transform_audit` 50 shop profiles / 40 runs |
+|                      | Branch A `claude/shop-transformation-barber-os-ntwb2n` (**authoritative**)                                     | Branch B `claude/barberos-current-state-audit-xz3psp` (**preserve**)                                     | Production (`mvvtngiopdrgiedjmhfb`)                                                                             |
+| -------------------- | -------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
+| Migrations           | 0048–0059 (12 files, prod's names; version stamps `20260909120000…` differ from prod's `20260909203027…`)      | 0049–0054 verbatim reconstructions of A's end state; 0055 audit public API; 0056 cockpit API             | hlbos_0048–0058 (11 rows) + 0055r01, 0055r02 (13 rows total)                                                    |
+| Not applied anywhere | 0059 barberos_booking (5 tables, `btree_gist` exclusion, 25 RPCs, pgTAP plan(45))                              | 0056 cockpit API (11 fns incl. `provision_client`, pipeline)                                             | —                                                                                                               |
+| Apps                 | `apps/barbershop` (Next 15, port 4400, Dockerfile, 76 unit tests), `apps/shop-pages` (Deno host for `site` fn) | `apps/barberos-cockpit` (static Next export, port 4700, no Dockerfile, 59 unit tests; pgTAP 49/53/55/56) | `site` edge function deployed (serves published shop pages)                                                     |
+| Data                 | —                                                                                                              | —                                                                                                        | shops 1, sites 1, bundles 3, capabilities 16, clients 0, visits 0; `transform_audit` 50 shop profiles / 40 runs |
 
 ## Steps
 
@@ -27,7 +27,9 @@ Two branches, one product, one production schema. This plan says how they become
 10. CEO decisions: approve the PR (Level C merge), approve applying 0059–0061 (Level B), decide hosting for the three apps (DigitalOcean App Platform has 0 apps today).
 
 ## What is not in scope
+
 SMS/billing/notification hooks for BarberOS (none exist on either branch — see the shared-services plan), per-shop custom domains (`apps/shop-pages` is slug-path only), a reschedule flow in `/book`.
 
 ## Effort estimate
+
 Steps 1–8: one engineering session, mostly mechanical; the risk is in step 2's semantic diffs and step 7's pgTAP run against a real schema branch.

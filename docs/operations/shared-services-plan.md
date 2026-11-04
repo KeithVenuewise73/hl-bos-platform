@@ -4,16 +4,17 @@
 
 Today three products run three incompatible copies of the same two capabilities:
 
-| Capability | Venuewise (`urwnbskrtoplgnkkxuvl`) | Legacy (`bkfsjhhclbqrhaolvhmz`) | HL-BOS Core (`mvvtngiopdrgiedjmhfb`) |
-| --- | --- | --- | --- |
+| Capability   | Venuewise (`urwnbskrtoplgnkkxuvl`)                                                                                                                 | Legacy (`bkfsjhhclbqrhaolvhmz`)                        | HL-BOS Core (`mvvtngiopdrgiedjmhfb`)                                                                                                                                                                                              |
+| ------------ | -------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Outbound SMS | `sms_outbox` + `send-sms-outbox` (Twilio REST), `super-processor` (invites), double opt-in, STOP/START via `sms-inbound` — **failing since 08-23** | `generate-alerts`, `daily-brief` (channels unverified) | `comms` schema: `providers`, `sender_identities`, `templates`, `template_versions`, `messages` (23 cols), `consent`, `suppression` — applied as `hlbos_0019_communications` (2026-07-26), **no sender function deployed, 0 rows** |
-| Email | `smart-task` via Resend (PIN reset only); client calls a `send-welcome` function that does not exist | — | `comms` (same tables) |
-| Push | `hyper-action`, `send-notifications` (VAPID) | — | — |
-| Billing | `subscriptions`, `family_product_entitlements`, `stripe-checkout` v9, `stripe-webhook` v7, `stripe-portal`, founder slots (shared with Apple) | — | `billing` schema: `providers`, `products`, `plans`, `plan_prices`, `subscriptions`, `invoices`, `payments`, `payment_methods` (`hlbos_0015/0016`), `billing-webhook` function **in repo, not deployed**, 0 rows |
+| Email        | `smart-task` via Resend (PIN reset only); client calls a `send-welcome` function that does not exist                                               | —                                                      | `comms` (same tables)                                                                                                                                                                                                             |
+| Push         | `hyper-action`, `send-notifications` (VAPID)                                                                                                       | —                                                      | —                                                                                                                                                                                                                                 |
+| Billing      | `subscriptions`, `family_product_entitlements`, `stripe-checkout` v9, `stripe-webhook` v7, `stripe-portal`, founder slots (shared with Apple)      | —                                                      | `billing` schema: `providers`, `products`, `plans`, `plan_prices`, `subscriptions`, `invoices`, `payments`, `payment_methods` (`hlbos_0015/0016`), `billing-webhook` function **in repo, not deployed**, 0 rows                   |
 
 HL-BOS Core already holds the designed shared schemas; nothing uses them. Venuewise holds the only working (until August) implementation; nothing shares it.
 
 ## Principle
+
 Build on what exists: the `comms` and `billing` schemas in HL-BOS Core are the target. Venuewise's functions are the reference implementation to port (Stripe webhook signature handling, double opt-in, STOP/START, founder-slot logic are all proven code). Nothing in Venuewise is removed until the shared service has carried real traffic for 30 days.
 
 ## HLG Communications — phases

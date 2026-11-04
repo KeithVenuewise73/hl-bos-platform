@@ -8,7 +8,7 @@ These rules bind any AI session (Claude, ChatGPT, Copilot or other) working in t
 2. **Branch, never `main`.** All work lands on a branch named `<type>/<topic>` and arrives at `main` through a PR the CEO approves. No AI session merges.
 3. **The repository is the ledger.** Any SQL or function the session applies (after approval) is committed to the branch **first**, with the same version stamp the platform will record, so repo and database never diverge again.
 4. **No invented results.** A test "passed" only if the session ran it and shows the output. A migration "applied" only if the ledger row exists. A function "deployed" only if `DEPLOYED.json` reflects the new version. Reports label every claim VERIFIED / DOCUMENTED / NOT VERIFIED / ASSUMPTION.
-5. **No secrets in text.** Tokens, keys, connection strings and customer PII never appear in a commit, PR, report, log or chat message. Secret *names* are fine.
+5. **No secrets in text.** Tokens, keys, connection strings and customer PII never appear in a commit, PR, report, log or chat message. Secret _names_ are fine.
 6. **No outbound side effects.** Sending SMS/email, charging a card, creating a subscription, calling a provider's write API — never, even "to test".
 7. **Ask once, plainly.** When a decision belongs to the CEO (trust, money, customers, deletion), the session presents the decision in one paragraph with the recommendation and stops. It does not ask the CEO to run commands.
 8. **Leave the trail.** Every session ends with: the branch, the PR, what was verified and how, what is still unverified, and what needs approval — in `docs/operations/` or the PR body, not only in the chat.

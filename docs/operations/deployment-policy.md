@@ -6,11 +6,11 @@ Applies to: Development Control Center (`apps/control-center`), VisibilityAI, HL
 
 ## Environments
 
-| Name | Supabase project | Purpose | Who deploys |
-| --- | --- | --- | --- |
-| production | `mvvtngiopdrgiedjmhfb` | Live customers / live operations | CI with CEO approval only |
-| preview | a Supabase branch of `mvvtngiopdrgiedjmhfb` (or an empty project) | Rehearsing migrations and function deploys; running the restore drill | Engineer, no approval |
-| local | Supabase CLI local stack | Development and tests | Engineer |
+| Name       | Supabase project                                                  | Purpose                                                               | Who deploys               |
+| ---------- | ----------------------------------------------------------------- | --------------------------------------------------------------------- | ------------------------- |
+| production | `mvvtngiopdrgiedjmhfb`                                            | Live customers / live operations                                      | CI with CEO approval only |
+| preview    | a Supabase branch of `mvvtngiopdrgiedjmhfb` (or an empty project) | Rehearsing migrations and function deploys; running the restore drill | Engineer, no approval     |
+| local      | Supabase CLI local stack                                          | Development and tests                                                 | Engineer                  |
 
 There is no shared "staging" project today and none should be created by hand; a Supabase branch is the preview environment.
 
@@ -20,11 +20,11 @@ Nothing reaches production except through a pull request into `main` that (a) pa
 
 ## Levels of change
 
-| Level | Examples | Who |
-| --- | --- | --- |
-| A — safe | docs, tests, recovery archives, new branches, PRs | engineer, no approval |
-| B — reversible production change | RLS policies, grants, function redeploy, cron pause/resume, secrets rotation, migrations | engineer prepares package; CEO approves; CI applies |
-| C — irreversible or commercial | deleting data, merging to `main`, customer migration, billing changes, outbound messaging | CEO decides case by case; never executed by an AI session |
+| Level                            | Examples                                                                                  | Who                                                       |
+| -------------------------------- | ----------------------------------------------------------------------------------------- | --------------------------------------------------------- |
+| A — safe                         | docs, tests, recovery archives, new branches, PRs                                         | engineer, no approval                                     |
+| B — reversible production change | RLS policies, grants, function redeploy, cron pause/resume, secrets rotation, migrations  | engineer prepares package; CEO approves; CI applies       |
+| C — irreversible or commercial   | deleting data, merging to `main`, customer migration, billing changes, outbound messaging | CEO decides case by case; never executed by an AI session |
 
 A Level B package states: exact change, reason, current defect, affected apps, expected behaviour after, backup, validation test, rollback, risk. Packages prepared on 2026-11-04 are under `security/stage0/`.
 
