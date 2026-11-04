@@ -1,5 +1,5 @@
 -- ===========================================================================
--- hlbos_0101_comms_enqueue_internal — queue a transactional message from inside
+-- hlbos_0056_comms_enqueue_internal — queue a transactional message from inside
 -- another module's RPC (e.g. salon cancel -> notify customer), without granting
 -- every module user the comms.message.create permission.
 --

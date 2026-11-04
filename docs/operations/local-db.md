@@ -13,6 +13,7 @@ scripts/local-db/reset.sh
 scripts/local-db/run-tests.sh hlbos_local 60_commercial_modules.sql
 ```
 
-Migration numbering (coordinated across branches): `0100–0109` shared commercial services,
-`0110–0119` TransportationOS, `0120–0129` SalonOS. None collides with the production-only numbers
-recorded in `supabase/recovery/` (0044/0045/0049 collisions are untouched).
+Migration numbering: the repository's lineage gate (`scripts/check-lineage.mjs`) requires contiguous ordinals, so the
+commercial migrations are stacked in merge order (0055, 0056 shared services; SalonOS follows). NOTE: production already
+records different migrations under ordinals 0055-0058 (see `supabase/recovery/**/REPO_DIFF.md`); ordinals are names only,
+the version timestamps are unique, but promoting the recovered production rows into `main` will need a rename decision.

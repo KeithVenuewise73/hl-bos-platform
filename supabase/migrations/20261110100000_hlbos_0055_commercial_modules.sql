@@ -1,5 +1,5 @@
 -- ===========================================================================
--- hlbos_0100_commercial_modules — module catalog, packages, and the server-side
+-- hlbos_0055_commercial_modules — module catalog, packages, and the server-side
 -- licensing gate shared by every commercial product (TransportationOS, SalonOS).
 --
 -- Builds ON the existing entitlements schema (0010): module_activations stays the

@@ -1,7 +1,7 @@
 \ir _fixtures.sql.inc
 
 -- ===========================================================================
--- hlbos_0100/0101 — commercial module licensing + internal message queue.
+-- hlbos_0055/0056 — commercial module licensing + internal message queue.
 -- Server-side enforcement: platform-admin-only packaging, dependency rules,
 -- fail-closed gate, tenant isolation, no data loss on deactivation, mock transport off by default.
 -- ===========================================================================
