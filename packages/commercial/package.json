@@ -1,0 +1,27 @@
+{
+  "name": "@hl-bos/commercial",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Shared commercial services for HL-BOS products (TransportationOS, SalonOS): Stripe webhook signature verification and provider-neutral billing events, Twilio signature verification and STOP/START handling, message transports (mock by default; Twilio and Resend refuse to send unless explicitly enabled), the delivery worker with retry and per-company rate limits, and IsolatedDb, which runs SQL exactly as PostgREST does for a signed-in user. Server-side only.",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "default": "./src/index.ts"
+    }
+  },
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run",
+    "clean": "rm -rf dist *.tsbuildinfo"
+  },
+  "dependencies": {
+    "pg": "catalog:"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "@types/pg": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  }
+}
