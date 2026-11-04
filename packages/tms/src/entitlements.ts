@@ -192,6 +192,12 @@ export function canOpen(
 ): AccessDecision {
   const s = screenByKey(screen);
   const { active } = resolveEntitlements(licensed);
+  if (s.key === "modules" && role === "owner") {
+    // Billing must stay reachable when nothing is licensed: a failed payment
+    // or a cancellation would otherwise lock the owner out of the one page
+    // that fixes it. (Found by the browser test.) Operational screens stay shut.
+    return { allowed: true };
+  }
   if (s.modules === "core") {
     if (active.length === 0) {
       return {
@@ -234,7 +240,9 @@ export type Operation =
   | "submit_action"
   | "submit_service"
   | "team"
-  | "save_member";
+  | "save_member"
+  | "templates"
+  | "save_template";
 
 const OPERATION_MODULES: Record<Operation, ModuleKey[] | "core"> = {
   workspaces: "core",
@@ -245,6 +253,8 @@ const OPERATION_MODULES: Record<Operation, ModuleKey[] | "core"> = {
   submit_inspection: ["dvir"],
   submit_action: ["dvir", "maintenance"],
   submit_service: ["maintenance"],
+  templates: ["dvir"],
+  save_template: ["dvir"],
 };
 
 export function canCall(op: Operation, licensed: readonly ModuleKey[]): AccessDecision {
@@ -310,4 +320,31 @@ export function unlicensedFleetChanges(
     if (before !== after) out.push(section);
   }
   return out;
+}
+
+/**
+ * Module keys as HL-BOS stores them (entitlements.modules, proposed P001)
+ * mapped to this package's keys. The database is the source of truth for
+ * what a company holds; this is only the name translation.
+ */
+export const DB_MODULE_KEY: Record<ModuleKey, string> = {
+  fleet_management: "tms_fleet",
+  driver_management: "tms_drivers",
+  dvir: "tms_dvir",
+  dispatch: "tms_dispatch",
+  routes: "tms_routes",
+  driver_app: "tms_driver_app",
+  kpi_scorecards: "tms_kpi",
+  profitability: "tms_profitability",
+  maintenance: "tms_maintenance",
+  executive_dashboard: "tms_executive",
+  customer_portal: "tms_portal",
+  automation: "tms_automation",
+};
+
+export function fromDbModules(dbKeys: readonly string[]): ModuleKey[] {
+  const set = new Set(dbKeys);
+  return (Object.keys(DB_MODULE_KEY) as ModuleKey[]).filter((k) =>
+    set.has(DB_MODULE_KEY[k]),
+  );
 }

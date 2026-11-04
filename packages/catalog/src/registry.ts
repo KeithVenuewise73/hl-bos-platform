@@ -257,9 +257,9 @@ const ASSETS: Asset[] = [
   {
     id: "app.tms",
     kind: "application",
-    name: "HLG Transportation Management System (Release 1 prototype)",
+    name: "HSCS TransportationOS (Release 1)",
     summary:
-      "Modular TMS for HSCS: vehicle registry, fleet status board, driver profiles with credential expiry, Digital DVIR on a phone (pre-trip / en-route / end-of-day, tanker checklist, severity, photo, typed signature), defect queue with acknowledge / assess / certify and driver review of repairs, maintenance service records and work orders, and per-company module licensing. Runs locally over synthetic data held in memory.",
+      "Modular TMS for HSCS: vehicle registry, fleet status board, driver profiles with credential expiry, Digital DVIR on a phone (pre-trip / en-route / end-of-day, tanker checklist, severity, photo, typed signature), defect queue with acknowledge / assess / certify and driver review of repairs, maintenance service records and work orders, and per-company module licensing. Runs locally against an isolated PostgreSQL with the recovered production fleet backend and the proposed licence gate.",
     maturity: "built_undeployed",
     reuse: ["internal_only"],
     owner: "Herman Supply Chain Solutions",
@@ -272,7 +272,7 @@ const ASSETS: Asset[] = [
       { kind: "owned_by", to: "repo.hl-bos-platform" },
     ],
     evidence:
-      "apps/tms; 40/40 end-to-end browser checks against the running app (scripts/local-test/verify-tms.cjs); synthetic in-memory data only, not connected to any database",
+      "apps/tms; 49/49 end-to-end browser checks against the running app and an isolated PostgreSQL (scripts/local-test/verify-transportationos.cjs), incl. persistence across restart; synthetic data; not connected to production",
   },
   {
     id: "app.date-sort",

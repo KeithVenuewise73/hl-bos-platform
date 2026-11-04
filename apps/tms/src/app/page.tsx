@@ -13,7 +13,7 @@ export default async function Home() {
     <div>
       <PageTitle
         title={`Welcome, ${ctx.user.name}`}
-        sub={`${ctx.company.name} · ${ctx.user.title}`}
+        sub={`${ctx.company.name} · ${ctx.role}`}
       />
       <div className="grid gap-4 md:grid-cols-2">
         <Card title="What you can open">
@@ -32,9 +32,7 @@ export default async function Home() {
         <Card title="Your company's modules">
           <ul data-testid="active-modules" className="space-y-1 text-sm">
             {ctx.activeModules.map((k) => (
-              <li key={k}>
-                ✓ {moduleByKey(k as Parameters<typeof moduleByKey>[0]).name}
-              </li>
+              <li key={k}>✓ {moduleByKey(k).name}</li>
             ))}
           </ul>
         </Card>

@@ -397,7 +397,7 @@ export const APPLICATIONS: ApplicationRecord[] = [
     repository: REPO,
     owner: "KeithVenuewise73",
     executiveOwner: "Keith Herman (CEO)",
-    currentBranch: "feat/hscs-tms-fleet-operations-v1",
+    currentBranch: "feat/transportationos-v1",
     environment: "local",
     developmentStatus: "built_undeployed",
     deploymentStatus: "not_deployed",
@@ -415,9 +415,9 @@ export const APPLICATIONS: ApplicationRecord[] = [
     softwareFactoryIntegration:
       "None yet. @hl-bos/tms holds the module catalog and entitlement resolver that a future HL-BOS entitlements integration would read.",
     notes:
-      "Listens on 127.0.0.1 only; demo sign-in with no password; all data synthetic and in memory. Production fleet.api (deployed 2026-10-17 outside source control, unused) was recovered byte-for-byte to supabase/recovered/production-2026-10-17 and is NOT a migration in this repo.",
+      "Listens on 127.0.0.1 only; password sign-in against an isolated local database; all data synthetic and persisted there. Production fleet.api (deployed 2026-10-17 outside source control, unused) was recovered byte-for-byte to supabase/recovered/production-2026-10-17 and is NOT a migration in this repo.",
     evidence:
-      "apps/tms + packages/tms; 40/40 end-to-end checks (scripts/local-test/verify-tms.cjs); 14 backend scenarios pass against the recovered production SQL",
+      "apps/tms + packages/tms; 49/49 end-to-end checks against an isolated PostgreSQL (scripts/local-test/verify-transportationos.cjs); 54 database tests incl. the P002 licence gate",
   },
   {
     key: "date-sort",

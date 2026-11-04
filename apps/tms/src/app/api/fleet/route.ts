@@ -1,21 +1,14 @@
 import { NextResponse } from "next/server";
-import {
-  canCall,
-  isFleetError,
-  unlicensedFleetChanges,
-  type Operation,
-  type Snapshot,
-} from "@hl-bos/tms";
-import { demo } from "@/lib/demo.ts";
-import { currentCtx } from "@/lib/guard.ts";
+import { canCall, isFleetError, type Operation } from "@hl-bos/tms";
+import { currentCtx, fleetCall } from "@/lib/guard.ts";
 
 /**
  * The one door from the browser to the fleet backend.
  *
- * The company is ALWAYS the signed-in user's own: any `workspace` the browser
- * sends is overwritten, so one company cannot address another's records. The
- * licence check happens here; role checks happen inside the backend, exactly
- * where production fleet.api does them.
+ * The company is ALWAYS the signed-in user's own: a `workspace` sent by the
+ * browser is overwritten. The licence is checked twice — here, for a clear
+ * message before a round trip, and again in the database (P002), which is
+ * the check that counts.
  */
 const OPS = new Set<Operation>([
   "snapshot",
@@ -25,6 +18,8 @@ const OPS = new Set<Operation>([
   "submit_service",
   "team",
   "save_member",
+  "templates",
+  "save_template",
 ]);
 
 export async function POST(req: Request): Promise<NextResponse> {
@@ -45,40 +40,14 @@ export async function POST(req: Request): Promise<NextResponse> {
       { error: licence.detail, reason: licence.reason },
       { status: 403 },
     );
-  const backend = (await demo()).backend;
-  if (op === "save_fleet") {
-    const current = await backend.call<Snapshot>(ctx.user.id, "snapshot", {
-      workspace: ctx.company.id,
-    });
-    const incoming = (body.args?.["fleet"] ?? {}) as Record<string, unknown>;
-    const blocked = unlicensedFleetChanges(
-      current.state.payload,
-      incoming,
-      ctx.company.licensed,
-    );
-    if (blocked.length > 0) {
-      return NextResponse.json(
-        {
-          error: `This company is not licensed to change: ${blocked.join(", ")}.`,
-          reason: "not_licensed",
-        },
-        { status: 403 },
-      );
-    }
-  }
   try {
-    const result = await backend.call(ctx.user.id, op, {
-      ...(body.args ?? {}),
-      workspace: ctx.company.id,
-    });
-    return NextResponse.json({ result });
+    return NextResponse.json({ result: await fleetCall(ctx, op, body.args ?? {}) });
   } catch (e) {
-    if (isFleetError(e)) {
+    if (isFleetError(e))
       return NextResponse.json(
         { error: e.message },
         { status: e.code === "42501" ? 403 : 422 },
       );
-    }
     throw e;
   }
 }

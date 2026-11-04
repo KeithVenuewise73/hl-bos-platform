@@ -1,8 +1,8 @@
 import { text, type TeamMember } from "@hl-bos/tms";
-import { demo, USERS } from "@/lib/demo.ts";
-import { requireScreen, snapshotFor } from "@/lib/guard.ts";
+import { fleetCall, requireScreen, snapshotFor } from "@/lib/guard.ts";
 import { PageTitle } from "@/components/ui.tsx";
 import { SetupForms } from "@/components/SetupForms.tsx";
+import { TemplateEditor } from "@/components/TemplateEditor.tsx";
 
 export const dynamic = "force-dynamic";
 
@@ -14,12 +14,16 @@ export const dynamic = "force-dynamic";
 export default async function Setup() {
   const ctx = await requireScreen("setup");
   const s = await snapshotFor(ctx);
-  const team = await (
-    await demo()
-  ).backend.call<{ members: TeamMember[] }>(ctx.user.id, "team", {
-    workspace: ctx.company.id,
-  });
-  const names = new Map(USERS.map((u) => [u.email, u.name]));
+  const team = await fleetCall<{ members: TeamMember[] }>(ctx, "team");
+  const dvir = ctx.activeModules.includes("dvir");
+  const templates = dvir
+    ? await fleetCall<{ equipmentType: string; items: string[] }[]>(ctx, "templates")
+    : [];
+  const types = [
+    ...new Set(
+      (s.state.payload?.assets ?? []).map((a) => text(a.type)).filter(Boolean),
+    ),
+  ].sort();
   return (
     <div>
       <PageTitle
@@ -35,10 +39,15 @@ export default async function Setup() {
         }))}
         members={team.members.map((m) => ({
           ...m,
-          name: names.get(m.email) ?? m.email,
+          name: m.email.split("@")[0]!.replace(/^./, (c) => c.toUpperCase()),
         }))}
-        isOwner={ctx.user.role === "owner"}
+        isOwner={ctx.role === "owner"}
       />
+      {dvir ? (
+        <div className="mt-4 grid md:grid-cols-2">
+          <TemplateEditor templates={templates} types={types} />
+        </div>
+      ) : null}
     </div>
   );
 }

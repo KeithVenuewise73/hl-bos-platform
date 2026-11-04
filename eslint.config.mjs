@@ -193,6 +193,15 @@ export default tseslint.config(
   // No service-role key is read anywhere in this app. NEXT_PUBLIC_* must be
   // literal dot-access to be inlined at build time, which is why @hl-bos/config's
   // dynamic loadEnv() cannot be used for these two.
+  // TransportationOS's env boundary: one file, every value with a safe local
+  // default (the isolated database, a per-process session secret).
+  {
+    files: ["apps/tms/src/lib/env.ts"],
+    rules: {
+      "no-restricted-properties": "off",
+      "no-restricted-syntax": "off",
+    },
+  },
   {
     files: ["apps/highlightai-football/src/lib/env.ts"],
     rules: {

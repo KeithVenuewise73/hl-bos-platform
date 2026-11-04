@@ -1,9 +1,10 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
 import { currentCtx } from "@/lib/guard.ts";
+import { SignOut } from "@/components/SignOut.tsx";
 import "./globals.css";
 
-export const metadata = { title: "HLG TMS · Release 1 local prototype" };
+export const metadata = { title: "HSCS TransportationOS · isolated environment" };
 export const viewport = {
   width: "device-width",
   initialScale: 1,
@@ -19,13 +20,13 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
           data-testid="demo-banner"
           className="no-print bg-accent px-4 py-1 text-center text-xs font-semibold text-ink"
         >
-          LOCAL PROTOTYPE · synthetic data · held in memory, not saved · not connected
-          to any HL-BOS database
+          ISOLATED DEVELOPMENT ENVIRONMENT · synthetic data · saved in a local database
+          on this computer · not connected to production
         </div>
         <header className="no-print bg-brand text-white">
           <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-x-4 gap-y-2 px-4 py-3">
             <Link href="/" className="font-bold tracking-tight">
-              HLG TMS
+              TransportationOS
             </Link>
             {ctx ? (
               <>
@@ -46,10 +47,7 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
                 <div className="ml-auto text-right text-xs leading-tight">
                   <div className="font-semibold">{ctx.user.name}</div>
                   <div className="opacity-80">
-                    {ctx.company.name} · {ctx.user.role}{" "}
-                    <Link href="/login" className="underline">
-                      switch
-                    </Link>
+                    {ctx.company.name} · {ctx.role} <SignOut />
                   </div>
                 </div>
               </>

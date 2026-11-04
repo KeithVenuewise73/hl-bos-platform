@@ -590,6 +590,9 @@ importers:
 
   apps/tms:
     dependencies:
+      '@hl-bos/commercial':
+        specifier: workspace:*
+        version: link:../../packages/commercial
       '@hl-bos/tms':
         specifier: workspace:*
         version: link:../../packages/tms

@@ -1,5 +1,5 @@
 import { checklistFor, defectState, unitStatuses, text } from "@hl-bos/tms";
-import { requireScreen, snapshotFor } from "@/lib/guard.ts";
+import { fleetCall, requireScreen, snapshotFor } from "@/lib/guard.ts";
 import { PageTitle } from "@/components/ui.tsx";
 import { DvirForm, type DvirUnit } from "@/components/DvirForm.tsx";
 
@@ -9,6 +9,12 @@ export const dynamic = "force-dynamic";
 export default async function DriverInspection() {
   const ctx = await requireScreen("driver_dvir");
   const s = await snapshotFor(ctx);
+  // Configurable templates add required items per equipment type (P002).
+  const templates = await fleetCall<{ equipmentType: string; items: string[] }[]>(
+    ctx,
+    "templates",
+  );
+  const extra = new Map(templates.map((t) => [t.equipmentType, t.items]));
   const live = new Map(unitStatuses(s).map((u) => [u.id, u]));
   const units: DvirUnit[] = (s.state.payload?.assets ?? [])
     .filter((a) => a.status !== "Inactive")
@@ -50,7 +56,7 @@ export default async function DriverInspection() {
         name: text(a.name, id),
         type: unit.type,
         status: live.get(id)?.status ?? "Available",
-        checklist: checklistFor(unit),
+        checklist: [...checklistFor(unit), ...(extra.get(unit.type) ?? [])],
         pendingReviews,
       };
     });

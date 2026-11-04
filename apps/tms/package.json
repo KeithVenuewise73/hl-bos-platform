@@ -2,7 +2,7 @@
   "name": "@hl-bos/tms-app",
   "version": "0.1.0",
   "private": true,
-  "description": "HLG Transportation Management System — Release 1 local prototype (Fleet, Drivers, Digital DVIR, Maintenance, fleet status, module licensing). Runs on this computer over SYNTHETIC data held in memory by a port of the production fleet backend. Nothing is persisted and nothing reaches a database.",
+  "description": "HSCS TransportationOS \u2014 Release 1 (Fleet, Drivers, Digital DVIR, Maintenance, fleet status board, module licensing). Runs on this computer against an ISOLATED local PostgreSQL that holds every HL-BOS migration, the production fleet backend recovered byte-for-byte, and the proposed licence gate. Data persists in that database. Synthetic data only; never connected to production.",
   "type": "module",
   "scripts": {
     "dev": "next dev --port 4610 --hostname 127.0.0.1",
@@ -14,6 +14,7 @@
     "clean": "rm -rf .next dist *.tsbuildinfo"
   },
   "dependencies": {
+    "@hl-bos/commercial": "workspace:*",
     "@hl-bos/tms": "workspace:*",
     "next": "catalog:",
     "react": "catalog:",

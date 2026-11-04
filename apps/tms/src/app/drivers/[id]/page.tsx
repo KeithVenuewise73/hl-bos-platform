@@ -1,8 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { text, type TeamMember } from "@hl-bos/tms";
-import { demo } from "@/lib/demo.ts";
-import { requireScreen, snapshotFor } from "@/lib/guard.ts";
+import { fleetCall, requireScreen, snapshotFor } from "@/lib/guard.ts";
 import { Card, Empty, Expiry, PageTitle, fmtTime } from "@/components/ui.tsx";
 import { DriverProfileForm } from "@/components/DriverProfileForm.tsx";
 
@@ -14,11 +13,7 @@ export default async function Driver({ params }: { params: Promise<{ id: string 
   const s = await snapshotFor(ctx);
   const d = s.state.payload?.drivers.find((x) => text(x.id) === id);
   if (!d) notFound();
-  const team = await (
-    await demo()
-  ).backend.call<{ members: TeamMember[] }>(ctx.user.id, "team", {
-    workspace: ctx.company.id,
-  });
+  const team = await fleetCall<{ members: TeamMember[] }>(ctx, "team");
   const member = team.members.find((m) => m.email === d.email);
   const inspections = member
     ? s.inspections.filter((i) => i.actor === member.id).reverse()

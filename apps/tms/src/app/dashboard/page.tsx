@@ -5,9 +5,19 @@ import {
   isOutstanding,
   unitStatuses,
   SEVERITY,
+  text,
+  type TeamMember,
 } from "@hl-bos/tms";
-import { requireScreen, snapshotFor } from "@/lib/guard.ts";
-import { Card, Empty, PageTitle, Stat, StatusPill, fmtTime } from "@/components/ui.tsx";
+import { fleetCall, requireScreen, snapshotFor } from "@/lib/guard.ts";
+import {
+  Card,
+  Empty,
+  PageTitle,
+  Stat,
+  StatusPill,
+  daysUntil,
+  fmtTime,
+} from "@/components/ui.tsx";
 
 export const dynamic = "force-dynamic";
 
@@ -18,6 +28,30 @@ export default async function Dashboard() {
   const sum = fleetSummary(s);
   const units = unitStatuses(s);
   const open = defectRows(s).filter(isOutstanding);
+  // Assignments are visible to owners and managers (fleet.api 'team').
+  const team =
+    ctx.role === "maintenance"
+      ? null
+      : await fleetCall<{ members: TeamMember[] }>(ctx, "team");
+  const drivers = (team?.members ?? []).filter((m) => m.role === "driver");
+  const openWork = (s.state.payload?.work ?? []).filter(
+    (w) => w.status !== "Completed",
+  );
+  const expiring = [
+    ...(s.state.payload?.assets ?? []).map((a) => ({
+      what: `${text(a.id)} registration`,
+      d: daysUntil(a.registrationExpires),
+      inactive: a.status === "Inactive",
+    })),
+    ...(s.state.payload?.drivers ?? []).flatMap((d) => [
+      { what: `${text(d.name)} CDL`, d: daysUntil(d.cdlExpires), inactive: false },
+      {
+        what: `${text(d.name)} medical card`,
+        d: daysUntil(d.medicalExpires),
+        inactive: false,
+      },
+    ]),
+  ].filter((x) => !x.inactive && x.d !== null && x.d <= 30);
   const pct =
     sum.inspectionCompletion === null
       ? "—"
@@ -116,6 +150,53 @@ export default async function Dashboard() {
           </ul>
         )}
       </Card>
+      <div className="grid gap-4 md:grid-cols-2">
+        <Card title="Driver assignments">
+          {team === null ? (
+            <Empty>Visible to owners and managers.</Empty>
+          ) : drivers.length === 0 ? (
+            <Empty>No drivers.</Empty>
+          ) : (
+            <ul data-testid="assignments" className="space-y-1 text-sm">
+              {drivers.map((d) => (
+                <li key={d.id} data-driver={d.email}>
+                  <b>{d.email.split("@")[0]}</b> —{" "}
+                  {d.units.length ? (
+                    d.units.join(", ")
+                  ) : (
+                    <span className="text-warn">no vehicle</span>
+                  )}
+                  {d.active ? "" : " (inactive)"}
+                </li>
+              ))}
+            </ul>
+          )}
+        </Card>
+        <Card title="Maintenance alerts">
+          {openWork.length === 0 && expiring.length === 0 ? (
+            <Empty>No alerts.</Empty>
+          ) : (
+            <ul data-testid="alerts" className="space-y-1 text-sm">
+              {openWork.map((w) => (
+                <li key={text(w.id)}>
+                  Work order <b>{text(w.id)}</b> open on {text(w.asset)}:{" "}
+                  {text(w.title)}
+                </li>
+              ))}
+              {expiring.map((x) => (
+                <li key={x.what} className={x.d! < 0 ? "text-bad" : "text-warn"}>
+                  {x.what}{" "}
+                  {x.d! < 0 ? `expired ${-x.d!} days ago` : `expires in ${x.d} days`}
+                </li>
+              ))}
+            </ul>
+          )}
+          <p className="mt-2 text-xs text-muted">
+            Shown here only. No alert is sent: notifications are not built for
+            TransportationOS yet.
+          </p>
+        </Card>
+      </div>
     </div>
   );
 }

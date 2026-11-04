@@ -106,10 +106,10 @@ export const PORTFOLIO: readonly Product[] = [
     location: null,
   },
   {
-    name: "HLG Transportation Management System (FleetHuddle)",
+    name: "HSCS TransportationOS (FleetHuddle)",
     stage: "development",
     status:
-      "Release 1 runs on this computer as a prototype: vehicles, drivers, Digital DVIR on a phone, the defect and repair queue, maintenance records, a live fleet status board, and module licensing (a DVIR-only company can register trucks but cannot open Fleet, Driver or Maintenance screens). 40 of 40 checks pass in a real browser. It runs on SYNTHETIC data held in memory, and nothing is saved. The backend it copies is real: the production fleet database (deployed 2026-10-17 outside source control, never used — 0 vehicles, 0 inspections) was recovered byte for byte and runs unchanged in a local test database; 14 scenarios pass against it. Dispatch, routes, KPIs, profitability, customer portal and notifications are NOT built. The original ChatGPT prototypes could not be reached and their source was not recovered.",
+      "Release 1 works on this computer against a real database: vehicles, drivers, the driver's phone inspection with photo and signature, the defect and repair queue, maintenance costs, inspection templates, the manager's fleet board, and module licensing that the DATABASE enforces (a DVIR-only company cannot record maintenance even by calling the database directly). Licences follow billing: a failed payment closes the modules and keeps the records; payment re-opens them. 49 of 49 browser checks pass, including after restarting the app. The database is an isolated copy on this computer with synthetic data: nothing is connected to production, and the licence gate (proposed migrations P001/P002) is not applied anywhere. Dispatch, routes, KPIs, profitability and the customer portal are not built.",
     version: null,
     location:
       "this repository (apps/tms, packages/tms, supabase/recovered/production-2026-10-17)",

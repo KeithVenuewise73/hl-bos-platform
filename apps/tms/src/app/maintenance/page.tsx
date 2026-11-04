@@ -16,7 +16,7 @@ export default async function Maintenance({
   const work = s.state.payload?.work ?? [];
   const units = (s.state.payload?.assets ?? []).map((a) => text(a.id));
   const open = defectRows(s).filter(isOutstanding);
-  const canManage = ctx.user.role === "owner" || ctx.user.role === "manager";
+  const canManage = ctx.role === "owner" || ctx.role === "manager";
   return (
     <div className="space-y-4">
       <PageTitle

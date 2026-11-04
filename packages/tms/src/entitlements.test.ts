@@ -168,3 +168,19 @@ describe("isFleetError", () => {
     expect(isFleetError(new Error("x"))).toBe(false);
   });
 });
+
+describe("billing stays reachable", () => {
+  it("an owner with nothing licensed can still open Modules (to pay or resubscribe), and nothing else", () => {
+    expect(canOpen("modules", [], "owner").allowed).toBe(true);
+    expect(canOpen("modules", [], "manager")).toMatchObject({ allowed: false });
+    expect(canOpen("driver_dvir", [], "owner")).toMatchObject({
+      allowed: false,
+      reason: "not_licensed",
+    });
+    expect(canOpen("setup", [], "owner")).toMatchObject({
+      allowed: false,
+      reason: "no_modules",
+    });
+    expect(navigation([], "owner").map((x) => x.key)).toEqual(["modules"]);
+  });
+});

@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { text, type TeamMember } from "@hl-bos/tms";
-import { demo } from "@/lib/demo.ts";
-import { requireScreen, snapshotFor } from "@/lib/guard.ts";
+import { fleetCall, requireScreen, snapshotFor } from "@/lib/guard.ts";
 import { Card, Empty, Expiry, PageTitle } from "@/components/ui.tsx";
 import { DriverProfileForm } from "@/components/DriverProfileForm.tsx";
 
@@ -10,11 +9,7 @@ export const dynamic = "force-dynamic";
 export default async function Drivers() {
   const ctx = await requireScreen("drivers");
   const s = await snapshotFor(ctx);
-  const team = await (
-    await demo()
-  ).backend.call<{ members: TeamMember[] }>(ctx.user.id, "team", {
-    workspace: ctx.company.id,
-  });
+  const team = await fleetCall<{ members: TeamMember[] }>(ctx, "team");
   const drivers = s.state.payload?.drivers ?? [];
   return (
     <div className="space-y-4">

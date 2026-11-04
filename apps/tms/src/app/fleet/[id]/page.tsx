@@ -1,8 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { defectRows, unitStatuses, type TeamMember, text } from "@hl-bos/tms";
-import { demo } from "@/lib/demo.ts";
-import { requireScreen, snapshotFor } from "@/lib/guard.ts";
+import { fleetCall, requireScreen, snapshotFor } from "@/lib/guard.ts";
 import {
   Card,
   Empty,
@@ -27,15 +26,11 @@ export default async function Vehicle({ params }: { params: Promise<{ id: string
   const services = s.unit_records.filter((r) => r.asset === id);
   const work = (s.state.payload?.work ?? []).filter((w) => w.asset === id);
   let drivers: TeamMember[] = [];
-  if (ctx.user.role === "owner" || ctx.user.role === "manager") {
-    const t = await (
-      await demo()
-    ).backend.call<{ members: TeamMember[] }>(ctx.user.id, "team", {
-      workspace: ctx.company.id,
-    });
+  if (ctx.role === "owner" || ctx.role === "manager") {
+    const t = await fleetCall<{ members: TeamMember[] }>(ctx, "team");
     drivers = t.members.filter((m) => m.units.includes(id));
   }
-  const canEdit = ctx.user.role === "owner" || ctx.user.role === "manager";
+  const canEdit = ctx.role === "owner" || ctx.role === "manager";
   return (
     <div className="space-y-4">
       <PageTitle

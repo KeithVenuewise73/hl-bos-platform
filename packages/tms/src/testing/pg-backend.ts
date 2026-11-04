@@ -71,23 +71,59 @@ export class PgFleetBackend implements FleetBackend {
     return this.psql(sql);
   }
 
-  // eslint-disable-next-line @typescript-eslint/require-await -- psql is synchronous; interface is async
-  async call<T = unknown>(
-    actor: string,
-    op: Operation,
-    args: Record<string, unknown> = {},
-  ): Promise<T> {
+  /** One transaction as a signed-in user, the way PostgREST runs a request. */
+  private asUser<T>(actor: string, expr: string): T {
     const claims = JSON.stringify({ sub: actor, role: "authenticated" });
     const out = this.psql(
       [
         "begin;",
         "set local role authenticated;",
         `select set_config('request.jwt.claims', ${lit(claims)}, true) \\g /dev/null`,
-        `select public.hlg_fleet_rpc(${lit(op)}, ${lit(JSON.stringify(args))}::jsonb);`,
+        `select ${expr};`,
         "commit;",
       ].join("\n"),
     );
     return JSON.parse(out) as T;
+  }
+
+  // eslint-disable-next-line @typescript-eslint/require-await -- psql is synchronous; interface is async
+  async call<T = unknown>(
+    actor: string,
+    op: Operation,
+    args: Record<string, unknown> = {},
+  ): Promise<T> {
+    return this.asUser<T>(
+      actor,
+      `public.hlg_fleet_rpc(${lit(op)}, ${lit(JSON.stringify(args))}::jsonb)`,
+    );
+  }
+
+  /** Call one of the public fleet RPC wrappers by name. */
+  // eslint-disable-next-line @typescript-eslint/require-await -- psql is synchronous
+  async callRpc<T = unknown>(
+    actor: string,
+    fn: "hlg_fleet_rpc" | "hlg_fleet_medical_rpc",
+    op: string,
+    args: Record<string, unknown>,
+  ): Promise<T> {
+    return this.asUser<T>(
+      actor,
+      `public.${fn}(${lit(op)}, ${lit(JSON.stringify(args))}::jsonb)`,
+    );
+  }
+
+  /** Call an internal function directly, as a signed-in user would try to. */
+  // eslint-disable-next-line @typescript-eslint/require-await -- psql is synchronous
+  async callFunction<T = unknown>(
+    actor: string,
+    qualified: "fleet.api" | "fleet.medical_api",
+    op: string,
+    args: Record<string, unknown>,
+  ): Promise<T> {
+    return this.asUser<T>(
+      actor,
+      `${qualified}(${lit(op)}, ${lit(JSON.stringify(args))}::jsonb)`,
+    );
   }
 
   addUser(id: string, email: string, confirmed = true): void {
@@ -96,12 +132,44 @@ export class PgFleetBackend implements FleetBackend {
     );
   }
 
-  addWorkspace(id: string, name: string, opts: { operable?: boolean } = {}): void {
+  /**
+   * A company with the four built TransportationOS modules licensed unless
+   * `modules` says otherwise. Licences are real HL-BOS entitlement rows, so
+   * every call goes through the P002 gate exactly as it would in production.
+   */
+  addWorkspace(
+    id: string,
+    name: string,
+    opts: { operable?: boolean; modules?: readonly string[] } = {},
+  ): void {
     const slug = `t-${id.slice(0, 8)}`;
     const status = opts.operable === false ? "suspended" : "active";
+    const features = (
+      opts.modules ?? ["tms_fleet", "tms_drivers", "tms_dvir", "tms_maintenance"]
+    )
+      .map(
+        (m) =>
+          `(${lit(id)}, (select feature_key from entitlements.modules where key = ${lit(m)}), 'grant')`,
+      )
+      .join(",");
     this.psql(
       `insert into platform.tenants(id,slug,name,status) values (${lit(id)},${lit(slug)},${lit(name)},${lit(status)});
-       insert into fleet.workspaces(id,name,bootstrap_owner_email) values (${lit(id)},${lit(name)},'owner@example.test');`,
+       insert into fleet.workspaces(id,name,bootstrap_owner_email) values (${lit(id)},${lit(name)},'owner@example.test');
+       ${features ? `insert into entitlements.tenant_entitlements (tenant_id, feature_key, source) values ${features};` : ""}`,
+    );
+  }
+
+  /** Replace a company's licences (to test what happens when one is removed). */
+  setModules(id: string, modules: readonly string[]): void {
+    const rows = modules
+      .map(
+        (m) =>
+          `(${lit(id)}, (select feature_key from entitlements.modules where key = ${lit(m)}), 'grant')`,
+      )
+      .join(",");
+    this.psql(
+      `delete from entitlements.tenant_entitlements where tenant_id = ${lit(id)};
+       ${rows ? `insert into entitlements.tenant_entitlements (tenant_id, feature_key, source) values ${rows};` : ""}`,
     );
   }
 
