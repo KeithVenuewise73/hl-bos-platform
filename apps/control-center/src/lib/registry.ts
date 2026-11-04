@@ -106,11 +106,13 @@ export const PORTFOLIO: readonly Product[] = [
     location: null,
   },
   {
-    name: "FleetHuddle",
-    stage: "not-started",
-    status: "One integration point exists in the legacy project. No HL-BOS code yet.",
+    name: "HLG Transportation Management System (FleetHuddle)",
+    stage: "development",
+    status:
+      "Release 1 runs on this computer as a prototype: vehicles, drivers, Digital DVIR on a phone, the defect and repair queue, maintenance records, a live fleet status board, and module licensing (a DVIR-only company can register trucks but cannot open Fleet, Driver or Maintenance screens). 40 of 40 checks pass in a real browser. It runs on SYNTHETIC data held in memory, and nothing is saved. The backend it copies is real: the production fleet database (deployed 2026-10-17 outside source control, never used — 0 vehicles, 0 inspections) was recovered byte for byte and runs unchanged in a local test database; 14 scenarios pass against it. Dispatch, routes, KPIs, profitability, customer portal and notifications are NOT built. The original ChatGPT prototypes could not be reached and their source was not recovered.",
     version: null,
-    location: null,
+    location:
+      "this repository (apps/tms, packages/tms, supabase/recovered/production-2026-10-17)",
   },
   {
     name: "CoachAI",

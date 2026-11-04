@@ -420,6 +420,10 @@
     {
       "title": "SceneFlow on a phone: say honestly whether one can reach it, and add the Windows firewall rule on request",
       "done": true
+    },
+    {
+      "title": "HLG TMS Release 1 local prototype (Fleet, Drivers, Digital DVIR, Maintenance, status board, module licensing) on synthetic in-memory data; production fleet/scorecard SQL recovered byte-for-byte and parity-tested locally — not connected, not deployed",
+      "done": true
     }
   ],
   "blockers": [

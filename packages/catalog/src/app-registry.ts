@@ -389,6 +389,37 @@ export const APPLICATIONS: ApplicationRecord[] = [
       "apps/jersey-sort + packages/jersey-sort; 85/85 end-to-end checks against the running app (scripts/local-test/verify-jersey-sort.cjs); load-tested at 300 photos through the browser and 14,000 in the database; migration 0052 verified locally, UNAPPLIED",
   },
   {
+    key: "tms",
+    name: "HLG Transportation Management System",
+    description:
+      "One TMS for HSCS with independently licensable modules. Release 1 prototype: Fleet Management, Driver Management, Digital DVIR (driver phone screen), Maintenance, fleet status board and module licensing.",
+    category: "vertical_product",
+    repository: REPO,
+    owner: "KeithVenuewise73",
+    executiveOwner: "Keith Herman (CEO)",
+    currentBranch: "feat/hscs-tms-fleet-operations-v1",
+    environment: "local",
+    developmentStatus: "built_undeployed",
+    deploymentStatus: "not_deployed",
+    productionUrl: null,
+    stagingUrl: null,
+    localUrl: "http://localhost:4610",
+    // Deliberately null: the app runs on synthetic in-memory data. The fleet
+    // schema it mirrors IS live on HL-BOS Core but is not connected.
+    supabaseProject: null,
+    version: "0.1.0",
+    health: "unknown",
+    hosting: "none yet",
+    dependencies: ["@hl-bos/tms"],
+    reusableModules: [],
+    softwareFactoryIntegration:
+      "None yet. @hl-bos/tms holds the module catalog and entitlement resolver that a future HL-BOS entitlements integration would read.",
+    notes:
+      "Listens on 127.0.0.1 only; demo sign-in with no password; all data synthetic and in memory. Production fleet.api (deployed 2026-10-17 outside source control, unused) was recovered byte-for-byte to supabase/recovered/production-2026-10-17 and is NOT a migration in this repo.",
+    evidence:
+      "apps/tms + packages/tms; 40/40 end-to-end checks (scripts/local-test/verify-tms.cjs); 14 backend scenarios pass against the recovered production SQL",
+  },
+  {
     key: "date-sort",
     name: "DateSort",
     description:
