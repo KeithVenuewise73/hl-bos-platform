@@ -1,0 +1,32 @@
+{
+ "slug": "hlvs-probe",
+ "id": "528f875e-203a-4f92-b711-652cb3aaa0e8",
+ "name": "hlvs-probe",
+ "status": "ACTIVE",
+ "version": 2,
+ "verify_jwt": false,
+ "import_map": false,
+ "entrypoint_path": "file:///tmp/user_fn_mvvtngiopdrgiedjmhfb_528f875e-203a-4f92-b711-652cb3aaa0e8_1/source/index.ts",
+ "ezbr_sha256": "009a56f5f06e6985c8161df3a079746b11ec625736d7e44f8704acefef088460",
+ "created_at_ms": 1787019607249,
+ "created_at_iso": "2026-08-18T02:20:07.249Z",
+ "updated_at_ms": 1787019607249,
+ "updated_at_iso": "2026-08-18T02:20:07.249Z",
+ "files": [
+  "index.ts"
+ ],
+ "cmp_vs_phase3": {
+  "index.ts": "SAME"
+ },
+ "matches_phase3": true,
+ "env_var_names": [],
+ "phase3_meta": {
+  "v": 2,
+  "jwt": false,
+  "created": "2026-08-18",
+  "updated": "2026-08-18",
+  "sha": "009a56f5f06e"
+ },
+ "change_vs_phase3": "none",
+ "verified_at_utc": "2026-11-04T14:44:14Z"
+}
