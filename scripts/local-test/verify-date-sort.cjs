@@ -512,6 +512,20 @@ async function iphoneChecks(page, work) {
   });
   await page.reload();
   const run = async () => {
+    // The keep-awake line shows only while copying, which can be brief here:
+    // record the first thing it says.
+    await page.evaluate(() => {
+      window.__iphoneAwake = null;
+      const seen = () => {
+        const el = document.querySelector("[data-testid=iphone-awake]");
+        if (el && window.__iphoneAwake === null) window.__iphoneAwake = el.textContent;
+      };
+      new MutationObserver(seen).observe(document.body, {
+        childList: true,
+        subtree: true,
+        characterData: true,
+      });
+    });
     await page.click("[data-testid=iphone-button]");
     return page
       .waitForFunction(
@@ -557,6 +571,14 @@ async function iphoneChecks(page, work) {
         ]),
     JSON.stringify({ first, keptFiles }),
   );
+  const awakeSaid = await page.evaluate(() => window.__iphoneAwake);
+  const awakeOk = check(
+    "while it copies, the page says the laptop will not go to sleep",
+    /will not go to sleep until the copy from the iPhone finishes/.test(
+      awakeSaid || "",
+    ),
+    String(awakeSaid),
+  );
   const same = check(
     "each copy is byte for byte the original",
     sha(path.join(kept, "100APPLE", "IMG_0042.MOV")) ===
@@ -596,6 +618,7 @@ async function iphoneChecks(page, work) {
   verdict(
     "Bring in from iPhone (same Windows calls, iPhone-like folder)",
     copied,
+    awakeOk,
     same,
     autoScan,
     again,

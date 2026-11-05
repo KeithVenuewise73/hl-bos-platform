@@ -211,6 +211,15 @@ export type IphoneLine =
   | { readonly type: "stuck" }
   | { readonly type: "error"; readonly message: string };
 
+/**
+ * What the page receives from /api/iphone: the script's lines, plus one line
+ * DateSort itself adds before copying, saying whether Windows agreed to stay
+ * awake (keep-awake.ts). parseIphoneLine never accepts "awake", so the
+ * script cannot claim it.
+ */
+export type IphonePageLine =
+  IphoneLine | { readonly type: "awake"; readonly held: boolean };
+
 /** One line of the script's output, or null for anything else it printed. */
 export function parseIphoneLine(line: string): IphoneLine | null {
   try {

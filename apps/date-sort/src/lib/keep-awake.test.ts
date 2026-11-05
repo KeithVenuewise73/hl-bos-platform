@@ -12,12 +12,17 @@ vi.mock("server-only", () => ({}));
 
 const { keepAwake } = await import("./keep-awake");
 
-/** The SYSTEM section of powercfg /requests: who is keeping the computer on. */
-function systemRequests(): string {
+/** A section of powercfg /requests: who is keeping the screen / computer on. */
+function requests(section: "DISPLAY" | "SYSTEM"): string {
   const out = execFileSync("powercfg", ["/requests"], { encoding: "utf8" });
-  const m = /SYSTEM:\s*\r?\n([\s\S]*?)\r?\n\s*\r?\nAWAYMODE:/.exec(out);
-  return m?.[1] ?? out;
+  const next = section === "DISPLAY" ? "SYSTEM" : "AWAYMODE";
+  const m = new RegExp(
+    `${section}:\\s*\\r?\\n([\\s\\S]*?)\\r?\\n\\s*\\r?\\n${next}:`,
+  ).exec(out);
+  return m?.[1] ?? "";
 }
+const systemRequests = () => requests("SYSTEM");
+const displayRequests = () => requests("DISPLAY");
 
 const settle = () => new Promise((r) => setTimeout(r, 1500));
 
@@ -27,9 +32,12 @@ describe.runIf(process.platform === "win32")("keeping Windows awake", () => {
     const awake = await keepAwake();
     expect(awake.held).toBe(true);
     expect(systemRequests()).toMatch(/powershell/i);
+    // The screen too: on Modern Standby laptops, screen-off starts standby.
+    expect(displayRequests()).toMatch(/powershell/i);
     awake.release();
     await settle();
     expect(systemRequests()).not.toMatch(/powershell/i);
+    expect(displayRequests()).not.toMatch(/powershell/i);
   }, 60_000);
 });
 
