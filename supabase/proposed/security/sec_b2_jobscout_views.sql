@@ -1,5 +1,6 @@
 -- ===========================================================================
--- SECURITY PACKAGE B2 — PROPOSED, NOT APPLIED. Separate approval, separate from B1.
+-- SECURITY PACKAGE B2 — APPLIED TO PRODUCTION 2026-11-05 as version 20261105185109
+-- (owner-authorized; see supabase/applied/ and phase9-execution-results.md §1).
 --
 -- WHAT IS EXPOSED TODAY (production, read-only catalog checks, 2026-11-05; VERIFIED
 -- from privileges, not exercised over HTTP):

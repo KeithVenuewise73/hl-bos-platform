@@ -1,8 +1,8 @@
 {
-  "$comment": "Production HL-BOS Core (mvvtngiopdrgiedjmhfb) migration ledger, from PR #113's recovery manifest; statements_md5 re-verified against production read-only on 2026-11-05 (111/111). normalized_sha256 = SHA-256 of the SQL with comments and whitespace removed. Used by scripts/check-replay-safety.mjs. Never applied; data about history only.",
+  "$comment": "Production HL-BOS Core (mvvtngiopdrgiedjmhfb) migration ledger, from PR #113's recovery manifest; statements_md5 re-verified against production read-only on 2026-11-05 (111/111). normalized_sha256 = SHA-256 of the SQL with comments and whitespace removed. Used by scripts/check-replay-safety.mjs. Never applied; data about history only. 2026-11-05: row 112 (S-B2, applied in Phase 9) added after verifying it in production.",
   "project": "mvvtngiopdrgiedjmhfb",
   "verifiedAt": "2026-11-05",
-  "count": 111,
+  "count": 112,
   "migrations": [
     {
       "version": "20260718013452",
@@ -780,6 +780,13 @@
       "statements_md5": "34232767ab82b53a2ed5bc6e1ee53359",
       "stamp_only": false,
       "normalized_sha256": "404a52c8c929138bd4c28d8bb97d3650d7003a6a24771bd7635512176500089e"
+    },
+    {
+      "version": "20261105185109",
+      "name": "hlbos_sec_b2_jobscout_views_invoker",
+      "statements_md5": "6f86fca6b0ff779517504383f9c4aeb1",
+      "stamp_only": false,
+      "normalized_sha256": "ad03249e3f5169a852d5f59b2c0165d433ab761592876008c686861c8ec6dd5d"
     }
   ]
 }
