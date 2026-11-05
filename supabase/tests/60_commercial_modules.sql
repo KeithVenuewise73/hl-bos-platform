@@ -6,7 +6,7 @@
 -- fail-closed gate, tenant isolation, no data loss on deactivation, mock transport off by default.
 -- ===========================================================================
 begin;
-select plan(33);
+select plan(40);
 select tests.seed();
 
 -- test-only catalog (rolled back with the transaction)
@@ -116,8 +116,29 @@ select throws_ok($$select comms.enqueue_internal(tests.uid('tenant_a'), 'test', 
 select tests.logout();
 select throws_ok($$select comms.dev_dispatch_mock()$$, '42501', null, 'mock transport refuses to run unless explicitly enabled');
 select set_config('hlbos.allow_mock_transport', 'on', true);
-select is(comms.dev_dispatch_mock(), 1, 'with the dev flag on, the mock transport marks exactly the one queued message as sent');
-select is((select provider_key::text from comms.messages where idempotency_key = 'k1'), 'mock', 'delivery was by the mock provider (no network)');
+-- Messages the mock transport must NEVER complete: one for a real provider (queued, waiting
+-- for the real worker) and one still pending approval.
+insert into comms.messages (tenant_id, source_module, channel, template_key, template_version, to_contact,
+  message_class, status, subject, body, provider_key, idempotency_key)
+values (tests.uid('tenant_a'), 'test', 'sms', 'test_note', 1, '+15550100', 'transactional', 'queued', null, 'real', 'twilio', 'k_real'),
+       (tests.uid('tenant_a'), 'test', 'email', 'test_note', 1, 'p@example.test', 'transactional', 'pending', 's', 'b', 'mock_email', 'k_pending'),
+       (tests.uid('tenant_a'), 'test', 'email', 'test_note', 1, 'a@example.test', 'transactional', 'approved', 's', 'b', 'mock_email', 'k_approved'),
+       (tests.uid('tenant_a'), 'test', 'email', 'test_note', 1, 'n@example.test', 'transactional', 'queued', 's', 'b', null, 'k_noprov');
+select is(comms.dev_dispatch_mock(), 1, 'with the dev flag on, the mock transport marks exactly the one mock-provider message as sent');
+select is((select m.provider_key::text || '/' || p.kind::text from comms.messages m join comms.providers p on p.key = m.provider_key
+            where m.idempotency_key = 'k1'), 'mock_email/mock', 'delivery was by a mock provider, and the provider was not rewritten');
+select is((select status::text || '/' || provider_key::text || '/' || coalesce(provider_message_ref::text, '-') from comms.messages where idempotency_key = 'k_real'),
+  'queued/twilio/-', 'a real-provider message is never marked sent by the mock transport, and keeps its provider');
+select is((select status::text from comms.messages where idempotency_key = 'k_pending'), 'pending', 'a pending message is not sent by the mock transport');
+select is((select status::text from comms.messages where idempotency_key = 'k_approved'), 'approved', 'an approved-but-not-queued message is not sent by the mock transport');
+select is((select status::text || '/' || coalesce(provider_key::text, 'none') from comms.messages where idempotency_key = 'k_noprov'),
+  'queued/none', 'a message with no provider is left queued, and no provider is assigned to it');
+select is((select count(*)::int from comms.messages where status in ('sent','delivered') and provider_message_ref is not null and provider_message_ref::text not like 'mock-%'), 0,
+  'the mock transport never writes a real-looking provider reference');
+select is((select count(*)::int from comms.messages where idempotency_key = 'k2' and status = 'suppressed'), 1, 'a suppressed message stays suppressed');
+update comms.providers set is_active = true where key = 'twilio';
+select is(comms.dev_dispatch_mock(), 0, 'even with the real provider active, the mock transport leaves its message for the real worker');
+update comms.providers set is_active = false where key = 'twilio';
 
 select * from finish();
 rollback;
