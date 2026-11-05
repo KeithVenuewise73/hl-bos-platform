@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 
 import { count } from "@/lib/format.ts";
-import type { IphoneLine } from "@/lib/iphone-script.ts";
+import type { IphonePageLine } from "@/lib/iphone-script.ts";
 
 interface Tally {
   device: string;
@@ -43,6 +43,8 @@ export function IphoneButton({
 }) {
   const [folder, setFolder] = useState<string | null>(null);
   const [state, setState] = useState<State>({ kind: "idle" });
+  /** Whether Windows agreed to stay awake for this copy; null until it answers. */
+  const [awake, setAwake] = useState<boolean | null>(null);
 
   useEffect(() => {
     void fetch("/api/settings", { headers: { "Content-Type": "application/json" } })
@@ -84,6 +86,7 @@ export function IphoneButton({
     const into = folder ?? (await chooseFolder());
     if (into === null) return;
     setState({ kind: "copying", tally: null });
+    setAwake(null);
     let tally: Tally | null = null;
     let ended = false;
     try {
@@ -112,8 +115,10 @@ export function IphoneButton({
           const line = buffered.slice(0, nl);
           buffered = buffered.slice(nl + 1);
           if (line.trim() === "") continue;
-          const m = JSON.parse(line) as IphoneLine;
-          if (m.type === "none") {
+          const m = JSON.parse(line) as IphonePageLine;
+          if (m.type === "awake") {
+            setAwake(m.held);
+          } else if (m.type === "none") {
             ended = true;
             setState({
               kind: "problem",
@@ -245,6 +250,13 @@ export function IphoneButton({
             ? ` · ${t.short.length} already in the folder but smaller than on the phone, probably cut short by an earlier copy (${t.short.slice(0, 3).join(", ")}${t.short.length > 3 ? "…" : ""})`
             : ""}
           {state.kind === "done" ? ". Scanning them now." : ""}
+        </p>
+      ) : null}
+      {busy && awake !== null ? (
+        <p className="text-xs text-muted" data-testid="iphone-awake">
+          {awake
+            ? "This laptop will not go to sleep until the copy from the iPhone finishes. Keep the lid open: closing it still puts Windows to sleep."
+            : "Windows could not be kept awake for this copy. Keep the laptop awake and the lid open until it finishes; if it does sleep, press the button again to finish the rest."}
         </p>
       ) : null}
       {state.kind === "problem" ? (

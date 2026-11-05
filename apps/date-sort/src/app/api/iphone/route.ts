@@ -1,7 +1,7 @@
 import { guard } from "@/lib/guard.ts";
 import { copyFromIphone } from "@/lib/iphone.ts";
 import { keepAwake } from "@/lib/keep-awake.ts";
-import type { IphoneLine } from "@/lib/iphone-script.ts";
+import type { IphonePageLine } from "@/lib/iphone-script.ts";
 
 export const dynamic = "force-dynamic";
 
@@ -34,7 +34,7 @@ export async function POST(request: Request): Promise<Response> {
   const encoder = new TextEncoder();
   const stream = new ReadableStream<Uint8Array>({
     async start(controller) {
-      const send = (m: IphoneLine) => {
+      const send = (m: IphonePageLine) => {
         try {
           controller.enqueue(encoder.encode(`${JSON.stringify(m)}\n`));
         } catch {
@@ -43,6 +43,7 @@ export async function POST(request: Request): Promise<Response> {
       };
       // A phone full of video takes a while: Windows must not sleep meanwhile.
       const awake = await keepAwake();
+      send({ type: "awake", held: awake.held });
       try {
         await copyFromIphone(folder, send, request.signal);
       } finally {
