@@ -1,0 +1,16 @@
+-- ===========================================================================
+-- SECURITY PACKAGE B1 (SEC-11) — PROPOSED, NOT APPLIED. Separate approval.
+-- disco.v_opportunity_board runs with its OWNER's rights (no security_invoker),
+-- so it bypasses the RLS of the tables it reads.
+--
+-- Production, read-only, 2026-11-05 (VERIFIED): no role except the owner can
+-- SELECT this view today (anon, authenticated and service_role all lack it), and
+-- no repository code or deployed edge function reads it. Switching it to
+-- security_invoker therefore changes nobody's access; it removes a bypass that
+-- would open the moment someone granted SELECT on the view.
+--
+-- The JobScout views are NOT here: they are package S-B2
+-- (sec_b2_jobscout_views.sql), kept separate because they are reachable today.
+-- Rollback: alter view disco.v_opportunity_board reset (security_invoker);
+-- ===========================================================================
+alter view disco.v_opportunity_board set (security_invoker = true);

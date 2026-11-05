@@ -60,6 +60,14 @@ export default async function Page() {
             Business Profiles
           </a>{" "}
           ·{" "}
+          <a href="/growth" style={{ color: "#58a6ff" }}>
+            Growth Intelligence
+          </a>{" "}
+          ·{" "}
+          <a href="/revenue" style={{ color: "#58a6ff" }}>
+            Revenue Center
+          </a>{" "}
+          ·{" "}
           <a href="/video" style={{ color: "#58a6ff" }}>
             Video Studio
           </a>{" "}

@@ -420,6 +420,58 @@
     {
       "title": "SceneFlow on a phone: say honestly whether one can reach it, and add the Windows firewall rule on request",
       "done": true
+    },
+    {
+      "title": "HLG Growth Intelligence engine (@hl-bos/growth-intelligence) + read-only Growth Intelligence page in the console: HLD/HSCS routing and isolation, evidence-separated reviews, price-gated proposals, attribution, Google connector readiness, honest dashboards and feedback loop — no migration, no live Google connection",
+      "done": true
+    },
+    {
+      "title": "Growth Intelligence pilot: store HLD/HSCS leads, inquiries and agreements in HL-BOS (needs PR #113 reconciled, then your approval of one migration)",
+      "done": false
+    },
+    {
+      "title": "Growth Intelligence pilot: connect Search Console, GA4 and Business Profile for HLG's own sites (needs your Google sign-in)",
+      "done": false
+    },
+    {
+      "title": "Growth Intelligence pilot: HLD and HSCS prices set (your decision) so proposals can leave draft",
+      "done": false
+    },
+    {
+      "title": "Revenue Center (one system, inside HL-BOS): one-click Send to Review, owner-only exact-version approvals, evidence by kind, outreach via the server-side path, backfill without duplicates — proven on an isolated database (17/17); migration PROPOSED, not applied",
+      "done": true
+    },
+    {
+      "title": "Revenue Center: apply the proposed migration to HL-BOS Core and create the HLD and HSCS tenants (needs your approval, after PR #113)",
+      "done": false
+    },
+    {
+      "title": "Revenue Center: export the original hosted app (source, 8 industries) or allow its address, so it can be reconciled",
+      "done": false
+    },
+    {
+      "title": "Revenue Center Phase 6: 8-industry/400-prospect model, campaign geography, spend-capped discovery runs, cross-spelling dedupe, website inquiry intake (HLD/HSCS), referrals, responses, owner dashboards — 23/23 tests on BOTH main and a production-equivalent rebuild (99.49% schema-identical to production); rollback proven exact",
+      "done": true
+    },
+    {
+      "title": "Revenue Center: decide the HSCS tenant (new, or reuse hscs-government) and adopt the 50 existing HLD barbershop prospects (needs your approval)",
+      "done": false
+    },
+    {
+      "title": "Revenue Center Phase 7 release candidate: pilot posture enforced in the database (no synthetic, mock, paid or automatic sending), adoption package for the 50 HLD barbershops, HSCS commercial tenant package, replay-safety guard, #114 mock-dispatch fix, security packages — 31/31 tests on both schemas, rollback exact",
+      "done": true
+    },
+    {
+      "title": "Revenue Center Phase 8: replay-hazard matrix measured on the production-equivalent copy (a plain push today would stop at 0040; production function logic verified identical to main's end state), security packages tested per role (S-B2 found the public key can read the JobScout shortlist today), #114 guard in draft PR #116 (848/848), owner pilot sign-in + safety panel + error log in the console",
+      "done": true
+    },
+    {
+      "title": "Revenue Center: verify on real PostgreSQL 17 + Supabase Auth/PostgREST + real pgTAP (needs an isolated Supabase branch — your approval; about $0.32 a day, billed hourly)",
+      "done": false
+    },
+    {
+      "title": "Security: close the JobScout shortlist exposure (package S-B2; the dashboard keeps working, demonstrated) — needs your approval",
+      "done": false
     }
   ],
   "blockers": [
