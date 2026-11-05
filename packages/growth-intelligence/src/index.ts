@@ -15,3 +15,4 @@ export * from "./approval.ts";
 export * from "./dashboard.ts";
 export * from "./feedback.ts";
 export * from "./from-presence.ts";
+export * from "./revenue-center.ts";
