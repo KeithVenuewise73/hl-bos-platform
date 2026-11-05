@@ -436,6 +436,18 @@
     {
       "title": "Growth Intelligence pilot: HLD and HSCS prices set (your decision) so proposals can leave draft",
       "done": false
+    },
+    {
+      "title": "Revenue Center (one system, inside HL-BOS): one-click Send to Review, owner-only exact-version approvals, evidence by kind, outreach via the server-side path, backfill without duplicates — proven on an isolated database (17/17); migration PROPOSED, not applied",
+      "done": true
+    },
+    {
+      "title": "Revenue Center: apply the proposed migration to HL-BOS Core and create the HLD and HSCS tenants (needs your approval, after PR #113)",
+      "done": false
+    },
+    {
+      "title": "Revenue Center: export the original hosted app (source, 8 industries) or allow its address, so it can be reconciled",
+      "done": false
     }
   ],
   "blockers": [

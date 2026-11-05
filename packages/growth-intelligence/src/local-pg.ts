@@ -1,4 +1,4 @@
-// LOCAL TESTS ONLY. An HlbosRpc that runs the real HL-BOS database functions
+// LOCAL DEVELOPMENT AND TESTS ONLY. An HlbosRpc that runs the real HL-BOS database functions
 // on a throwaway local PostgreSQL through `psql`, impersonating a user exactly
 // as PostgREST does (request.jwt.claims + role authenticated), so row-level
 // security and every permission check apply. Never pointed at a hosted project:

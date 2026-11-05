@@ -76,16 +76,19 @@ not checked by me) · **NOT VERIFIED** · **ASSUMPTION**.
   archive it is (it applies nothing), then give new migrations numbers from **0060** up,
   and renumber #114 before it merges. No renumbering is done here.
 
-## 5. Known gaps found by testing (not fixed — each needs a migration and your approval)
+## 5. Gaps found by testing — status
 
-1. **Owner-only approval is not enforced by the database.** The `manager` role, which a line
-   lead needs in order to work prospects, also holds `workflows.approval.manage`. A test pins
-   this; it will fail the day the gap is closed.
-2. **Send to Review is several database calls, not one transaction.** A network failure
-   mid-way would leave an open review that blocks the next one. Fix: one SQL function.
-3. **No column for assumptions or "not checked" items** on `visibility.assessments`; today
-   they live only inside the proposal draft.
-4. **`comms` is not exposed through PostgREST** (by design), so the console needs a
-   server-side route to queue outreach in production.
-5. **Two of the eight categories are missing** from the scanner, plus a transportation
-   category for HSCS.
+Items 1–3 below, plus two further gaps found later, are closed in the **proposed**
+migration `supabase/proposed/revenue-center/revenue_center_controls.sql`. It is proven on
+the isolated database only and applied nowhere. See
+[`revenue-center-phase5-completion.md`](revenue-center-phase5-completion.md).
+
+1. **Owner-only approval** — closed: `workflows.decide` refuses commercial items, and
+   `revenue.approve_commercial` requires `tenant_owner`, a designation and the exact content hash.
+2. **Send to Review atomicity** — closed: `revenue.send_to_review` is one transaction and is idempotent.
+3. **Assumptions / not-checked storage** — closed: `revenue.assessment_evidence`, one kind per row, enforced by constraints.
+4. **`comms` not reachable through the API** — handled: the Revenue Center reaches it only through
+   `revenue.queue_outreach`. Exposing the `revenue` schema is a deployment step.
+5. **Categories** — 7 grounded; the 8th needs the original's export.
+6. **New:** `comms.record_delivery` could mark an unapproved message sent — closed.
+7. **New:** suppression could be bypassed by changing an address's capitals — closed.

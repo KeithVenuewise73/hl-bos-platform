@@ -36,3 +36,21 @@ insert into entitlements.tenant_entitlements (tenant_id, feature_key) values
   ('00000000-0000-4000-8000-0000000000d1', 'visibility.content'),
   ('00000000-0000-4000-8000-0000000000d2', 'visibility.content')
 on conflict do nothing;
+
+-- Added for the Revenue Center controls (supabase/proposed/revenue-center):
+insert into auth.users (id, email, email_confirmed_at) values
+  ('00000000-0000-4000-8000-00000000a004', 'hscs-lead@hlg.test',  now()),  -- HSCS only
+  ('00000000-0000-4000-8000-00000000a005', 'co-owner@hlg.test',   now()),  -- tenant_owner of HLD, NOT designated
+  ('00000000-0000-4000-8000-00000000a006', 'platform@hlg.test',   now())   -- platform owner (designates; mock worker)
+on conflict (id) do nothing;
+insert into identity.memberships (id, tenant_id, user_id, status) values
+  ('00000000-0000-4000-8000-0000000000e4', '00000000-0000-4000-8000-0000000000d2', '00000000-0000-4000-8000-00000000a004', 'active'),
+  ('00000000-0000-4000-8000-0000000000e5', '00000000-0000-4000-8000-0000000000d1', '00000000-0000-4000-8000-00000000a005', 'active')
+on conflict (id) do nothing;
+insert into identity.membership_roles (membership_id, role_key) values
+  ('00000000-0000-4000-8000-0000000000e4', 'manager'),
+  ('00000000-0000-4000-8000-0000000000e5', 'tenant_owner')
+on conflict do nothing;
+insert into identity.platform_admins (user_id, role_key) values
+  ('00000000-0000-4000-8000-00000000a006', 'platform_owner')
+on conflict (user_id) do nothing;

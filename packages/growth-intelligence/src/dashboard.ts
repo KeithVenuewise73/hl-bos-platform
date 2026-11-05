@@ -26,7 +26,13 @@ import type {
 } from "./types.ts";
 
 export type MetricStatus =
-  "measured" | "estimate" | "no_data" | "not_supported" | "not_connected";
+  | "measured"
+  | "estimate"
+  | "no_data"
+  | "not_supported"
+  | "not_connected"
+  /** Counted from synthetic development records. Never a business result. */
+  | "synthetic";
 
 export interface Metric {
   key: string;
@@ -57,6 +63,11 @@ export interface DashboardInput {
    * every kind has a live source.
    */
   capturedKinds?: readonly GrowthEventKind[];
+  /**
+   * Development only: count synthetic records too. Every figure they touch is
+   * then labelled "synthetic", never "measured".
+   */
+  includeSynthetic?: boolean;
 }
 
 const LTV_MIN_CUSTOMERS = 5;
@@ -149,12 +160,30 @@ function build(
           note: `Nothing connected records ${label.toLowerCase()} yet, so this is unknown — not zero.`,
         }
       : count(key, label, n, any, none);
+  // Revenue comes from signed agreements. If nothing records agreements, a
+  // revenue total would be a zero nobody measured.
+  const agreementsUncaptured = (key: string, label: string): Metric | undefined =>
+    captured && !captured.has("agreement_signed")
+      ? {
+          key,
+          label,
+          value: null,
+          unit: "cents",
+          status: "not_connected",
+          note: "Nothing connected records signed agreements yet, so revenue is unknown — not zero.",
+        }
+      : undefined;
   const inScope = <T extends { line: BusinessLine }>(x: T) =>
     scope === "consolidated" || x.line === scope;
   const scopedEvents = allEvents.filter(inScope);
   const scopedExpenses = allExpenses.filter(inScope);
-  const events = scopedEvents.filter((e) => !e.isDemo);
-  const expenses = scopedExpenses.filter((e) => !e.isDemo);
+  const synthetic = input.includeSynthetic === true;
+  const events = synthetic ? [...scopedEvents] : scopedEvents.filter((e) => !e.isDemo);
+  const expenses = synthetic
+    ? [...scopedExpenses]
+    : scopedExpenses.filter((e) => !e.isDemo);
+  const syntheticCounted =
+    synthetic && (events.some((e) => e.isDemo) || expenses.some((e) => e.isDemo));
   const demoRecordsExcluded =
     scopedEvents.length - events.length + (scopedExpenses.length - expenses.length);
   const any = events.length > 0;
@@ -222,24 +251,26 @@ function build(
     counted("consultations", "Consultations held", consultations, "consultation_held"),
     counted("proposals", "Proposals sent", proposals.size, "proposal_sent"),
     counted("signed", "Signed customers", signed, "agreement_signed"),
-    money(
-      "implementation_revenue",
-      "Implementation revenue (agreed)",
-      implementationCents,
-      any,
-      none,
-      unpricedImpl,
-      "From signed agreements. Collected payments are reported by billing once it is live.",
-    ),
-    money(
-      "mrr",
-      "Monthly recurring revenue (agreed)",
-      mrrCents,
-      any,
-      none,
-      unpricedMonthly,
-      `${active.length} active customer(s).`,
-    ),
+    agreementsUncaptured("implementation_revenue", "Implementation revenue (agreed)") ??
+      money(
+        "implementation_revenue",
+        "Implementation revenue (agreed)",
+        implementationCents,
+        any,
+        none,
+        unpricedImpl,
+        "From signed agreements. Collected payments are reported by billing once it is live.",
+      ),
+    agreementsUncaptured("mrr", "Monthly recurring revenue (agreed)") ??
+      money(
+        "mrr",
+        "Monthly recurring revenue (agreed)",
+        mrrCents,
+        any,
+        none,
+        unpricedMonthly,
+        `${active.length} active customer(s).`,
+      ),
     expenses.length > 0
       ? {
           key: "expenses",
@@ -313,6 +344,13 @@ function build(
     if (e.kind === "agreement_signed") c.signed.add(e.leadId);
     channels.set(e.channel, c);
   }
+
+  if (syntheticCounted)
+    for (const m of metrics)
+      if (m.status === "measured" || m.status === "estimate") {
+        m.status = "synthetic";
+        m.note = `SYNTHETIC DEVELOPMENT DATA — not a business result. ${m.note}`.trim();
+      }
 
   return {
     scope,

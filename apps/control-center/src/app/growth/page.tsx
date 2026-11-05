@@ -13,6 +13,7 @@ const STATUS: Record<Metric["status"], { label: string; color: string }> = {
   no_data: { label: "No data yet", color: C.grey },
   not_supported: { label: "Not enough data", color: C.grey },
   not_connected: { label: "Not connected", color: C.red },
+  synthetic: { label: "Synthetic (dev)", color: C.yellow },
 };
 
 function show(m: Metric): string {

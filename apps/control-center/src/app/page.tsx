@@ -64,6 +64,10 @@ export default async function Page() {
             Growth Intelligence
           </a>{" "}
           ·{" "}
+          <a href="/revenue" style={{ color: "#58a6ff" }}>
+            Revenue Center
+          </a>{" "}
+          ·{" "}
           <a href="/video" style={{ color: "#58a6ff" }}>
             Video Studio
           </a>{" "}

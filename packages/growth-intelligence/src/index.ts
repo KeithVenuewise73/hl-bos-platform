@@ -16,3 +16,5 @@ export * from "./dashboard.ts";
 export * from "./feedback.ts";
 export * from "./from-presence.ts";
 export * from "./revenue-center.ts";
+export * from "./industries.ts";
+export * from "./discovery.ts";
