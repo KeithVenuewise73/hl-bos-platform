@@ -165,6 +165,12 @@ importers:
       '@hl-bos/video-studio':
         specifier: workspace:*
         version: link:../../packages/video-studio
+      '@supabase/ssr':
+        specifier: 'catalog:'
+        version: 0.12.3(@supabase/supabase-js@2.110.6)
+      '@supabase/supabase-js':
+        specifier: 'catalog:'
+        version: 2.110.6
       next:
         specifier: 'catalog:'
         version: 16.2.10(react-dom@19.2.7(react@19.2.7))(react@19.2.7)

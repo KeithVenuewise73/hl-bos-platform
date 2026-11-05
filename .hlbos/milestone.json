@@ -462,7 +462,15 @@
       "done": true
     },
     {
-      "title": "Revenue Center: verify on real PostgreSQL 17 + Supabase Auth/PostgREST + real pgTAP (needs an isolated Supabase branch — your approval, hourly cost)",
+      "title": "Revenue Center Phase 8: replay-hazard matrix measured on the production-equivalent copy (a plain push today would stop at 0040; production function logic verified identical to main's end state), security packages tested per role (S-B2 found the public key can read the JobScout shortlist today), #114 guard in draft PR #116 (848/848), owner pilot sign-in + safety panel + error log in the console",
+      "done": true
+    },
+    {
+      "title": "Revenue Center: verify on real PostgreSQL 17 + Supabase Auth/PostgREST + real pgTAP (needs an isolated Supabase branch — your approval; about $0.32 a day, billed hourly)",
+      "done": false
+    },
+    {
+      "title": "Security: close the JobScout shortlist exposure (package S-B2; the dashboard keeps working, demonstrated) — needs your approval",
       "done": false
     }
   ],

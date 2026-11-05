@@ -8,8 +8,10 @@ import {
   consoleRevenueSource,
   lineName,
   revenueView,
-  type RevenueSource,
+  type ConnectedSource,
 } from "@/lib/revenue";
+import { RevenueErrorLog } from "@/lib/revenue-errors";
+import { pilotChecks } from "@/lib/revenue-health";
 
 import {
   decideAction,
@@ -17,6 +19,8 @@ import {
   rejectProspectAction,
   resolveInquiryAction,
   sendToReviewAction,
+  signInAction,
+  signOutAction,
 } from "./actions";
 
 export const dynamic = "force-dynamic";
@@ -86,9 +90,12 @@ export default async function RevenuePage({
         <Card title="Not connected">
           <p style={{ margin: 0, fontSize: 13, color: C.muted }}>{src.reason}</p>
         </Card>
+      ) : src.mode === "sign_in_required" ? (
+        <SignIn />
       ) : (
         <Connected src={src} />
       )}
+      <RecentErrors />
     </main>
   );
 }
@@ -111,15 +118,128 @@ function Notice({ tone, children }: { tone: "ok" | "error"; children: ReactNode 
   );
 }
 
-async function Connected({
-  src,
-}: {
-  src: Extract<RevenueSource, { mode: "development" }>;
-}) {
+const input: CSSProperties = {
+  display: "block",
+  width: "100%",
+  maxWidth: 340,
+  boxSizing: "border-box",
+  margin: "0 0 8px",
+  padding: "8px 10px",
+  background: "#0d1117",
+  color: "inherit",
+  border: `1px solid ${C.border}`,
+  borderRadius: 6,
+  fontSize: 14,
+};
+
+/** HL-BOS sign-in for the owner-only pilot. The password goes to HL-BOS's Auth server only. */
+function SignIn() {
+  return (
+    <Card
+      title="Sign in to HL-BOS"
+      sub="The pilot runs as you. What you can see and decide is checked by the database, not by this page."
+    >
+      <form action={signInAction}>
+        <input
+          name="email"
+          type="email"
+          required
+          autoComplete="username"
+          placeholder="Email"
+          style={input}
+        />
+        <input
+          name="password"
+          type="password"
+          required
+          autoComplete="current-password"
+          placeholder="Password"
+          style={input}
+        />
+        <button type="submit" style={button(true)}>
+          Sign in
+        </button>
+      </form>
+    </Card>
+  );
+}
+
+/** The last failures, so an error is never just a message that vanished on reload. */
+async function RecentErrors() {
+  const errors = await new RevenueErrorLog().recent(8);
+  return (
+    <Card
+      title="Recent problems"
+      sub="Kept on this computer only. No form contents are recorded."
+    >
+      {errors.length === 0 ? (
+        <p style={{ margin: 0, fontSize: 13, color: C.muted }}>
+          No Revenue Center action has failed on this computer.
+        </p>
+      ) : (
+        <Scroll>
+          <table style={{ borderCollapse: "collapse", width: "100%" }}>
+            <tbody>
+              {errors.map((e) => (
+                <tr key={`${e.at}${e.action}`}>
+                  <td style={{ ...td, whiteSpace: "nowrap", color: C.muted }}>
+                    {e.at.replace("T", " ").slice(0, 16)}
+                  </td>
+                  <td style={td}>{e.action.replaceAll("_", " ")}</td>
+                  <td style={td}>{e.message}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </Scroll>
+      )}
+    </Card>
+  );
+}
+
+async function Connected({ src }: { src: ConnectedSource }) {
   const v = await revenueView(src);
   const consolidated = v.dashboards.find((d) => d.scope === "consolidated");
+  const checks = pilotChecks(src.mode, v);
+  const broken = checks.filter((c) => !c.ok);
   return (
     <>
+      {src.mode === "pilot" ? (
+        <form
+          action={signOutAction}
+          style={{ fontSize: 13, color: C.muted, marginBottom: 10 }}
+        >
+          Signed in to HL-BOS as {src.email ?? "the owner"}.{" "}
+          <button type="submit" style={{ ...button(), padding: "3px 10px" }}>
+            Sign out
+          </button>
+        </form>
+      ) : null}
+      {broken.length ? (
+        <Notice tone="error">
+          <strong>
+            {src.mode === "pilot"
+              ? "Stop — this environment is outside the approved pilot limits."
+              : "This development database would not pass the pilot checks."}
+          </strong>{" "}
+          {broken.map((c) => c.detail).join(" ")}
+        </Notice>
+      ) : null}
+      <Card
+        title="Pilot safety"
+        sub="Read from the database each time this page loads."
+      >
+        <ul style={{ margin: 0, paddingLeft: 18, fontSize: 13, lineHeight: 1.7 }}>
+          {checks.map((c) => (
+            <li key={c.key}>
+              <span style={{ color: c.ok ? C.green : C.red }}>
+                {c.ok ? "OK" : "PROBLEM"}
+              </span>{" "}
+              {c.label} — <span style={{ color: C.muted }}>{c.detail}</span>
+            </li>
+          ))}
+        </ul>
+      </Card>
       <div
         style={{
           background: "#1c1a08",
@@ -139,9 +259,10 @@ async function Connected({
         discovery {v.release?.allow_paid_discovery ? "ON" : "off"} · automatic
         notifications {v.release?.allow_auto_notifications ? "ON" : "off"} · mock
         delivery {v.release?.allow_mock_delivery ? "on" : "off"}. {v.totals.synthetic}{" "}
-        of {v.totals.prospects} record(s) are synthetic — fictitious businesses from the
-        mock discovery source, not leads. Every figure they touch is labelled Synthetic
-        and kept out of live commercial metrics.
+        of {v.totals.prospects} record(s) are synthetic
+        {src.mode === "pilot"
+          ? "; synthetic records are never counted in pilot figures."
+          : " — fictitious businesses from the mock discovery source, not leads. Every figure they touch is labelled Synthetic and kept out of live commercial metrics."}
       </div>
 
       <Card title="Owner overview" sub="Both businesses. Only you see this view.">

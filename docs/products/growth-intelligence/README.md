@@ -54,9 +54,11 @@ built into those, not beside them.
 - **VERIFIED.** Open PRs that overlap: #113 (recovery — must merge first), #114 (SalonOS,
   commercial modules + comms enqueue), #112 (HSCS fleet backend), #103 (HLD inquiry
   delivery), #93 (premium HLD/HSCS sites). None of them is touched here.
-- **VERIFIED.** Three Supabase projects: HL-BOS Core (platform), Herman Legacy Business
-  Platform (public website forms, KPI data), Venuewise Platform (legacy — out of scope per
-  the operating contract; not opened).
+- **VERIFIED (corrected in Phase 8).** Three Supabase projects: HL-BOS Core (`mvvtngiopdrgiedjmhfb`,
+  platform), Herman Legacy Business Platform (`bkfsjhhclbqrhaolvhmz`, the **legacy** project
+  with SEC-1 — out of scope per the operating contract; not opened), and Venuewise Platform
+  (`urwnbskrtoplgnkkxuvl`, not opened). An earlier version of this line called Venuewise the
+  legacy project; that was wrong (see `docs/operations/environments.md`).
 
 ---
 

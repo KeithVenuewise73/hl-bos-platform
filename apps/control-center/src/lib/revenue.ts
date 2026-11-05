@@ -19,6 +19,7 @@ import {
 } from "@hl-bos/growth-intelligence";
 import { psqlRpc } from "@hl-bos/growth-intelligence/local-pg";
 
+import { pilotConfig, pilotSource } from "./revenue-pilot";
 import { readEnvFile } from "./secrets";
 
 /**
@@ -29,11 +30,12 @@ import { readEnvFile } from "./secrets";
  *    build) plus the proposed Revenue Center migration. Synthetic records only.
  *    Set HLBOS_REVENUE_DEV_PG=<socket dir or localhost>:<port> in .env.local.
  *    The adapter refuses any non-local host.
- *  - "not_connected": the default. The proposed migration has not been applied
- *    to HL-BOS production (that needs the owner's approval), so the page says so.
- *
- * Production will use supabaseRpc() with the signed-in owner's session; that
- * needs the migration applied and the revenue schema exposed, both approvals.
+ *  - "pilot": HL-BOS Core, signed in as the owner through HL-BOS's Supabase Auth
+ *    (lib/revenue-pilot.ts). Needs the Revenue Center migration applied and the
+ *    tenants set up — both owner approvals — and HLBOS_PILOT_SUPABASE_URL +
+ *    HLBOS_PILOT_PUBLISHABLE_KEY in .env.local.
+ *  - "sign_in_required": the pilot is configured and nobody is signed in.
+ *  - "not_connected": the default, with the reason in plain English.
  */
 export type RevenueSource =
   | {
@@ -43,7 +45,19 @@ export type RevenueSource =
       actor: string;
       tenants: LineTenants;
     }
+  | {
+      mode: "pilot";
+      rc: RevenueCenter;
+      rpc: HlbosRpc;
+      actor: string;
+      tenants: LineTenants;
+      email: string | null;
+    }
+  | { mode: "sign_in_required"; reason: string }
   | { mode: "not_connected"; reason: string };
+
+/** A source that can read and write. */
+export type ConnectedSource = Extract<RevenueSource, { mode: "development" | "pilot" }>;
 
 /** The synthetic fixture's ids (scripts/local-test/revenue-center-fixture.sql). */
 const DEV_TENANTS: LineTenants = {
@@ -52,9 +66,30 @@ const DEV_TENANTS: LineTenants = {
 };
 const DEV_OWNER = "00000000-0000-4000-8000-00000000a001";
 
-/** Reads the console's own settings file (.env.local), like every other console connection. */
-export async function consoleRevenueSource(): Promise<RevenueSource> {
-  return revenueSource(await readEnvFile());
+/**
+ * Reads the console's own settings file (.env.local), like every other console connection.
+ * `writable` lets a server action refresh the sign-in cookie; pages pass false.
+ */
+export async function consoleRevenueSource(writable = false): Promise<RevenueSource> {
+  const env = await readEnvFile();
+  const dev = Boolean(env["HLBOS_REVENUE_DEV_PG"]);
+  let pilot;
+  try {
+    pilot = pilotConfig(env);
+  } catch (e) {
+    return {
+      mode: "not_connected",
+      reason: e instanceof Error ? e.message : String(e),
+    };
+  }
+  if (dev && pilot)
+    return {
+      mode: "not_connected",
+      reason:
+        "Both the development database and the HL-BOS pilot are configured. The console connects to exactly one, so it connects to neither until one is removed.",
+    };
+  if (pilot) return pilotSource(pilot, writable);
+  return revenueSource(env);
 }
 
 export function revenueSource(
@@ -146,7 +181,7 @@ export interface RevenueView {
 const n = (x: unknown) => Number(x ?? 0);
 
 export async function revenueView(
-  src: Extract<RevenueSource, { mode: "development" }>,
+  src: ConnectedSource,
   now = new Date(),
 ): Promise<RevenueView> {
   const { rc, rpc, actor } = src;
@@ -271,7 +306,8 @@ export async function revenueView(
         connectors: connectorReadiness([], now),
         now,
         capturedKinds: REVENUE_CENTER_CAPTURED_KINDS,
-        includeSynthetic: true,
+        // Synthetic records count only on the throwaway development database; the pilot never mixes them in.
+        includeSynthetic: src.mode === "development",
       },
     ),
     totals: {

@@ -1,6 +1,6 @@
 -- ===========================================================================
 -- SECURITY PACKAGE A — PROPOSED, NOT APPLIED. Separate approval; NOT part of PR #115's release.
--- 23 SECURITY DEFINER functions are executable by `anon` through the default
+-- 35 SECURITY DEFINER functions are executable by `anon` through the default
 -- PUBLIC grant (production, read-only, 2026-11-05). anon has no USAGE on these
 -- schemas, so none is reachable today; this removes the latent exposure (e.g.
 -- graph.publish_projection, dma.verify_fact) without changing anyone else's

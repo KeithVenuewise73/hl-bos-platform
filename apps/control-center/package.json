@@ -19,6 +19,8 @@
     "@hl-bos/sceneflow": "workspace:*",
     "@hl-bos/site-builder": "workspace:*",
     "@hl-bos/video-studio": "workspace:*",
+    "@supabase/ssr": "catalog:",
+    "@supabase/supabase-js": "catalog:",
     "next": "catalog:",
     "react": "catalog:",
     "react-dom": "catalog:",

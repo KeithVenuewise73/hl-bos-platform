@@ -1,5 +1,6 @@
 -- ===========================================================================
--- PROPOSED FIX FOR PR #114 — NOT APPLIED. Belongs in #114's 0056 (or a
+-- PROPOSED FIX FOR PR #114 — NOT APPLIED. Implemented and tested in draft PR #116
+-- (branch claude/pr114-mock-delivery-guard -> feat/salonos-v1). Belongs in #114's 0056 (or a
 -- follow-up), not in #115; kept here so #115's review can see it was raised.
 --
 -- Problem (demonstrated on an isolated database, see
