@@ -49,9 +49,9 @@ revoke all on function comms.enqueue_internal(uuid, extensions.citext, comms.cha
 --
 -- It can never record a REAL message as sent. It touches only messages that are
 --   * queued (never pending, approved-but-unqueued, suppressed, failed or already sent), and
---   * addressed to a provider whose kind is 'mock' (a message for twilio/email, active or not,
---     stays queued for the real worker), or to no provider at all, which is then assigned the
---     channel's mock provider. The provider of a message is never rewritten to another one.
+--   * addressed to a provider whose kind is 'mock'. A message for twilio/email (active or
+--     not) or with no provider at all stays queued for the real worker. The provider of a
+--     message is never written.
 -- And when the Revenue Center's release settings are installed, they must allow mock delivery.
 create or replace function comms.dev_dispatch_mock(p_limit integer default 100)
 returns integer language plpgsql volatile security definer set search_path = '' as $$
@@ -69,20 +69,17 @@ begin
     end if;
   end if;
   for v_id, v_tenant, v_provider in
-    select m.id, m.tenant_id,
-           coalesce(p.key, (select mp.key from comms.providers mp
-                             where mp.kind = 'mock' and mp.channel = m.channel order by mp.key limit 1))
+    select m.id, m.tenant_id, m.provider_key
       from comms.messages m
-      left join comms.providers p on p.key = m.provider_key
+      join comms.providers p on p.key = m.provider_key
      where m.status = 'queued'
-       and (p.kind = 'mock' or m.provider_key is null)
+       and p.kind = 'mock'
      order by m.created_at
      limit p_limit
        for update of m skip locked
   loop
-    if v_provider is null then continue; end if;  -- no mock provider for this channel: leave it queued
     update comms.messages
-       set status = 'sent', provider_key = v_provider, provider_message_ref = 'mock-' || v_id::text, sent_at = now()
+       set status = 'sent', provider_message_ref = 'mock-' || v_id::text, sent_at = now()
      where id = v_id;
     perform events.emit('communication.sent'::extensions.citext, v_tenant,
       jsonb_build_object('message', v_id, 'provider', v_provider, 'mock', true));
