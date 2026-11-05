@@ -75,6 +75,8 @@ export const REVENUE_API_SURFACE = {
     "revenue.identity_keys",
     "revenue.open_approvals",
     "revenue.outreach_messages",
+    "revenue.release_settings",
+    "revenue.prospect_history",
     "visibility.prospects",
     "visibility.assessments",
     "visibility.recommendations",

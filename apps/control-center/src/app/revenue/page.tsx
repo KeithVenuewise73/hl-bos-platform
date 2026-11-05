@@ -130,8 +130,16 @@ async function Connected({
           fontSize: 13,
         }}
       >
-        <strong>Development database on this computer.</strong> {v.totals.synthetic} of{" "}
-        {v.totals.prospects} record(s) are synthetic — fictitious businesses from the
+        <strong>
+          {v.release?.environment === "development"
+            ? "Development database on this computer."
+            : `Environment: ${v.release?.environment ?? "unknown"}.`}
+        </strong>{" "}
+        Outreach delivery {v.release?.allow_outbound_delivery ? "ON" : "off"} · paid
+        discovery {v.release?.allow_paid_discovery ? "ON" : "off"} · automatic
+        notifications {v.release?.allow_auto_notifications ? "ON" : "off"} · mock
+        delivery {v.release?.allow_mock_delivery ? "on" : "off"}. {v.totals.synthetic}{" "}
+        of {v.totals.prospects} record(s) are synthetic — fictitious businesses from the
         mock discovery source, not leads. Every figure they touch is labelled Synthetic
         and kept out of live commercial metrics.
       </div>
@@ -319,46 +327,48 @@ async function Connected({
             </tbody>
           </table>
         </Scroll>
-        <form
-          action={mockBackfillAction}
-          style={{
-            display: "flex",
-            flexWrap: "wrap",
-            gap: 8,
-            marginTop: 10,
-            fontSize: 12.5,
-            alignItems: "center",
-          }}
-        >
-          <span style={{ color: C.muted }}>
-            Development only — fill a campaign from the synthetic source:
-          </span>
-          <input
-            name="campaign"
-            placeholder="campaign key"
+        {v.release?.environment === "development" ? (
+          <form
+            action={mockBackfillAction}
             style={{
-              background: C.field,
-              color: C.text,
-              border: `1px solid ${C.border}`,
-              borderRadius: 6,
-              padding: "6px 8px",
-            }}
-          />
-          <select
-            name="line"
-            style={{
-              background: C.field,
-              color: C.text,
-              border: `1px solid ${C.border}`,
-              borderRadius: 6,
-              padding: "6px 8px",
+              display: "flex",
+              flexWrap: "wrap",
+              gap: 8,
+              marginTop: 10,
+              fontSize: 12.5,
+              alignItems: "center",
             }}
           >
-            <option value="hld">HLD</option>
-            <option value="hscs">HSCS</option>
-          </select>
-          <button style={button(false)}>Synthetic backfill</button>
-        </form>
+            <span style={{ color: C.muted }}>
+              Development only — fill a campaign from the synthetic source:
+            </span>
+            <input
+              name="campaign"
+              placeholder="campaign key"
+              style={{
+                background: C.field,
+                color: C.text,
+                border: `1px solid ${C.border}`,
+                borderRadius: 6,
+                padding: "6px 8px",
+              }}
+            />
+            <select
+              name="line"
+              style={{
+                background: C.field,
+                color: C.text,
+                border: `1px solid ${C.border}`,
+                borderRadius: 6,
+                padding: "6px 8px",
+              }}
+            >
+              <option value="hld">HLD</option>
+              <option value="hscs">HSCS</option>
+            </select>
+            <button style={button(false)}>Synthetic backfill</button>
+          </form>
+        ) : null}
       </Card>
 
       <Card title={`Prospects (${v.prospects.length})`}>

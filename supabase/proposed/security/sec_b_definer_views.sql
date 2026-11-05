@@ -1,0 +1,17 @@
+-- ===========================================================================
+-- SECURITY PACKAGE B (SEC-11) — PROPOSED, NOT APPLIED. Separate approval.
+-- Three views run with their OWNER's rights (no security_invoker), so they
+-- bypass the RLS of the tables they read.
+--
+-- B1  disco.v_opportunity_board — no anon/authenticated schema access; read by
+--     service-role code (bypasses RLS anyway) → switching is behaviour-neutral for it.
+-- B2  jobscout.v_last_runs, jobscout.v_shortlist — anon HAS usage on jobscout and the
+--     jobscout-dashboard edge function runs with verify_jwt = false. Its tables
+--     have RLS ON with NO policies, so as invoker these views return nothing to
+--     anon/authenticated. Apply B2 only after the JobScout owner confirms the
+--     dashboard reads through the service role. NOT safe to apply blind.
+-- Rollback: alter view … reset (security_invoker);
+-- ===========================================================================
+alter view disco.v_opportunity_board set (security_invoker = true);              -- B1
+-- alter view jobscout.v_last_runs  set (security_invoker = true);              -- B2 (after review)
+-- alter view jobscout.v_shortlist  set (security_invoker = true);              -- B2 (after review)

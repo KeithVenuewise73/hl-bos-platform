@@ -119,7 +119,18 @@ export interface InquiryRow {
   receivedAt: string;
 }
 
+export interface ReleaseSettings {
+  environment: "development" | "pilot" | "production";
+  allow_synthetic_records: boolean;
+  allow_mock_delivery: boolean;
+  allow_paid_discovery: boolean;
+  allow_auto_notifications: boolean;
+  allow_outbound_delivery: boolean;
+}
+
 export interface RevenueView {
+  /** What this environment may do, read from revenue.release_settings (the database enforces it). */
+  release: ReleaseSettings | undefined;
   prospects: ProspectRow[];
   industries: IndustryRow[];
   approvals: (PendingApproval & { line: BusinessLine })[];
@@ -229,7 +240,13 @@ export async function revenueView(
     hld: rows.filter((r) => r.line === "hld").length,
     hscs: rows.filter((r) => r.line === "hscs").length,
   };
+  const [release] = await rpc.rows<ReleaseSettings>(
+    actor,
+    "revenue.release_settings",
+    {},
+  );
   return {
+    release,
     prospects: rows.sort(
       (a, b) => a.industry.localeCompare(b.industry) || a.name.localeCompare(b.name),
     ),

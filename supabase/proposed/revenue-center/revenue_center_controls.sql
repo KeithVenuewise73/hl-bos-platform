@@ -47,6 +47,63 @@ do $$ begin create type revenue.prospect_status as enum ('active','qualified','r
 do $$ begin create type revenue.evidence_kind as enum
   ('observed','verified','customer_provided','needs_verification','not_checked','assumption','estimate'); exception when duplicate_object then null; end $$;
 
+-- --- Release settings: what this environment may do --------------------------
+-- One row. Defaults are the internal-pilot posture: everything that could
+-- reach the outside world, spend money or create test data is OFF.
+create table if not exists revenue.release_settings (
+  id                       boolean primary key default true check (id),
+  environment              text not null default 'pilot' check (environment in ('development','pilot','production')),
+  allow_synthetic_records  boolean not null default false,  -- mock / synthetic prospects, inquiries, referrals
+  allow_mock_delivery      boolean not null default false,  -- revenue.mock_deliver
+  allow_paid_discovery     boolean not null default false,  -- Google Places or any paid source (the monthly cap applies too)
+  allow_auto_notifications boolean not null default false,  -- e.g. "new inquiry" emails to the owner
+  allow_outbound_delivery  boolean not null default false,  -- recording a Revenue Center message as sent by a real provider
+  set_by uuid references auth.users(id) on delete set null,
+  set_at timestamptz not null default now(),
+  -- mock delivery and synthetic data are development-only, whatever anyone sets
+  constraint release_settings_dev_only check (environment = 'development' or (not allow_synthetic_records and not allow_mock_delivery))
+);
+insert into revenue.release_settings (id) values (true) on conflict (id) do nothing;
+alter table revenue.release_settings enable row level security; alter table revenue.release_settings force row level security;
+create policy release_settings_select on revenue.release_settings for select to authenticated using (true);
+grant select on revenue.release_settings to authenticated;
+create trigger release_settings_audit after insert or update or delete on revenue.release_settings for each row execute function audit.emit();
+
+create or replace function revenue.setting(p_name text)
+returns boolean language sql stable security definer set search_path = '' as $$
+  select case p_name
+    when 'allow_synthetic_records'  then allow_synthetic_records
+    when 'allow_mock_delivery'      then allow_mock_delivery
+    when 'allow_paid_discovery'     then allow_paid_discovery
+    when 'allow_auto_notifications' then allow_auto_notifications
+    when 'allow_outbound_delivery'  then allow_outbound_delivery
+  end from revenue.release_settings where id;
+$$;
+
+create or replace function revenue.assert_record_allowed(p_is_synthetic boolean, p_source text)
+returns void language plpgsql stable security definer set search_path = '' as $$
+begin
+  if (p_is_synthetic or p_source = 'mock') and not coalesce(revenue.setting('allow_synthetic_records'), false) then
+    raise exception 'synthetic or mock records are not allowed in this environment' using errcode = 'insufficient_privilege';
+  end if;
+end; $$;
+
+create or replace function revenue.set_release_settings(
+  p_environment text, p_allow_synthetic boolean, p_allow_mock_delivery boolean, p_allow_paid_discovery boolean,
+  p_allow_auto_notifications boolean, p_allow_outbound_delivery boolean)
+returns void language plpgsql volatile security definer set search_path = '' as $$
+begin
+  if not exists (select 1 from identity.platform_admins pa join identity.role_permissions rp on rp.role_key = pa.role_key
+                 where pa.user_id = auth.uid() and rp.permission_key = 'revenue.approver.assign') then
+    raise exception 'only the platform owner changes release settings' using errcode = 'insufficient_privilege';
+  end if;
+  update revenue.release_settings set environment = p_environment, allow_synthetic_records = p_allow_synthetic,
+    allow_mock_delivery = p_allow_mock_delivery, allow_paid_discovery = p_allow_paid_discovery,
+    allow_auto_notifications = p_allow_auto_notifications, allow_outbound_delivery = p_allow_outbound_delivery,
+    set_by = auth.uid(), set_at = now()
+  where id;
+end; $$;
+
 -- --- Permissions (existing authorization infrastructure) -------------------
 insert into identity.permissions (key, description, scope) values
   ('revenue.commercial_approval.manage', 'Give final approval to a proposal or outreach message.', 'tenant'),
@@ -80,6 +137,7 @@ create table if not exists revenue.prospect_profiles (
   status_reason    text,
   status_changed_at timestamptz,
   scan_snapshot    jsonb not null default '{}'::jsonb,
+  source_ref       jsonb not null default '{}'::jsonb,   -- where the record came from (file/row, run, inquiry)
   created_at       timestamptz not null default now(),
   -- a rejected or disqualified record keeps its dedupe key, so the same
   -- business is never re-added by a backfill
@@ -324,6 +382,12 @@ begin
   if p_status in ('sent','delivered') and v_status not in ('approved','queued','sent') then
     raise exception 'a % message cannot be recorded as %', v_status, p_status using errcode = 'insufficient_privilege';
   end if;
+  -- Revenue Center outreach through a REAL provider only when the environment allows it.
+  if p_status in ('sent','delivered') and exists (select 1 from comms.messages m left join comms.providers pr on pr.key = m.provider_key
+       where m.id = p_message and m.source_module = 'revenue_center' and pr.kind is distinct from 'mock')
+     and not coalesce(revenue.setting('allow_outbound_delivery'), false) then
+    raise exception 'outbound Revenue Center delivery is disabled in this environment' using errcode = 'insufficient_privilege';
+  end if;
   update comms.messages
      set status = p_status,
          provider_message_ref = coalesce(p_provider_ref, provider_message_ref),
@@ -443,6 +507,7 @@ returns jsonb language plpgsql volatile security definer set search_path = '' as
 declare v_existing uuid; v_matched text; v_id uuid; v_keys text[];
 begin
   if p_is_synthetic is null then raise exception 'is_synthetic must be stated' using errcode = 'not_null_violation'; end if;
+  perform revenue.assert_record_allowed(p_is_synthetic, p_source::text);
   perform revenue.assert_industry_fits(p_tenant, p_industry);
   if p_campaign is not null and not exists (select 1 from revenue.campaigns c
       where c.tenant_id = p_tenant and lower(c.key::text) = lower(p_campaign::text)
@@ -617,6 +682,9 @@ begin
   select m.provider_key, p.kind into v_provider, v_kind from comms.messages m
     left join comms.providers p on p.key = m.provider_key where m.id = p_message;
   if not found then raise exception 'message % not found', p_message using errcode = 'no_data_found'; end if;
+  if not coalesce(revenue.setting('allow_mock_delivery'), false) then
+    raise exception 'mock delivery is disabled in this environment' using errcode = 'insufficient_privilege';
+  end if;
   if v_kind is distinct from 'mock' then
     raise exception 'mock delivery refused for provider %', coalesce(v_provider::text,'none') using errcode = 'insufficient_privilege';
   end if;
@@ -859,6 +927,10 @@ begin
   if p_candidates > v_max then
     raise exception 'at most % candidates per run (asked for %)', v_max, p_candidates using errcode = 'invalid_parameter_value';
   end if;
+  if (p_planned_paid_requests > 0 or p_source = 'google_places') and not coalesce(revenue.setting('allow_paid_discovery'), false) then
+    raise exception 'paid discovery is disabled in this environment' using errcode = 'insufficient_privilege';
+  end if;
+  perform revenue.assert_record_allowed(false, p_source::text);
   if p_planned_paid_requests > 0 then
     select coalesce(sum(greatest(paid_requests, case when status = 'running' then planned_paid_requests else 0 end)), 0)
       into v_used from revenue.discovery_runs
@@ -903,6 +975,7 @@ returns void language plpgsql volatile security definer set search_path = '' as 
 declare v_tenant uuid; v_keys text[]; v_clash uuid;
 begin
   if p_is_synthetic is null then raise exception 'is_synthetic must be stated' using errcode = 'not_null_violation'; end if;
+  perform revenue.assert_record_allowed(p_is_synthetic, 'import');
   select tenant_id into v_tenant from visibility.prospects where id = p_prospect;
   if not found then raise exception 'prospect % not found', p_prospect using errcode = 'no_data_found'; end if;
   if not identity.has_permission(v_tenant, 'visibility.prospect.manage') then
@@ -1038,6 +1111,7 @@ begin
   if p_payload->>'idempotency_key' is null or p_payload->'is_synthetic' is null or p_payload->'consent_marketing' is null then
     raise exception 'idempotency_key, is_synthetic and consent_marketing are required' using errcode = 'not_null_violation';
   end if;
+  perform revenue.assert_record_allowed((p_payload->>'is_synthetic')::boolean, 'inbound_inquiry');
   select * into v_prev from revenue.inquiries where tenant_id = p_site_tenant and idempotency_key = p_payload->>'idempotency_key';
   if found then return jsonb_build_object('inquiry_id', v_prev.id, 'status', v_prev.status, 'prospect_id', v_prev.prospect_id, 'replayed', true); end if;
 
@@ -1097,6 +1171,7 @@ begin
 
   -- Notify the business (transactional, internal, mock provider in development).
   select notify_contact into v_notify from revenue.business_lines where tenant_id = p_site_tenant;
+  if not coalesce(revenue.setting('allow_auto_notifications'), false) then v_notify := null; end if;
   if v_notify is not null then
     v_msg := comms.request_message(p_site_tenant, 'revenue_center', 'email', 'inquiry_received', 1, v_notify, 'transactional',
       jsonb_build_object('line', upper(v_line), 'company', coalesce(nullif(p_payload->>'company',''), 'a visitor')),
@@ -1206,6 +1281,7 @@ begin
   select prospect_id into v_existing from revenue.identity_keys where tenant_id = v_r.to_tenant and key = any(v_keys) limit 1;
   if v_existing is null then
     select is_synthetic into v_syn from revenue.prospect_profiles where prospect_id = v_r.from_prospect;
+    perform revenue.assert_record_allowed(coalesce(v_syn, false), 'referral');
     insert into visibility.prospects (tenant_id, business_name, city, website_url, industry, created_by)
     values (v_r.to_tenant, v_r.shared->>'business_name', v_r.shared->>'city', v_r.shared->>'website_url', v_ind, auth.uid())
     returning id into v_new;
@@ -1354,7 +1430,41 @@ grant select on revenue.open_approvals, revenue.outreach_messages to authenticat
 -- the API surface needs. Internal helpers are callable from the definer
 -- functions above, never directly.
 revoke all on all functions in schema revenue from public, anon;
+revoke all on function revenue.setting(text), revenue.assert_record_allowed(boolean, text) from authenticated;
 revoke all on function revenue.is_commercial(uuid), revenue.tenant_line(uuid),
   revenue.assert_industry_fits(uuid, extensions.citext), revenue.void_approval_on_change(),
   revenue.lowercase_contact() from authenticated;
 grant execute on function revenue.content_sha256(text, text), revenue.message_sha256(text, text, text) to authenticated;
+-- Platform-owner-only inside; callable by signed-in users so the check can run.
+grant execute on function revenue.set_release_settings(text, boolean, boolean, boolean, boolean, boolean) to authenticated;
+
+-- --- Enable the Revenue Center for an HLG-owned (first-party) tenant ----------
+-- Entitlements are otherwise granted only through billing subscriptions. HLG's
+-- own businesses do not subscribe to themselves, so the platform owner enables
+-- them here — first-party tenants only, audited. Customer tenants are refused.
+create or replace function revenue.enable_first_party_tenant(p_tenant uuid)
+returns void language plpgsql volatile security definer set search_path = '' as $$
+declare v_class text;
+begin
+  if not exists (select 1 from identity.platform_admins pa join identity.role_permissions rp on rp.role_key = pa.role_key
+                 where pa.user_id = auth.uid() and rp.permission_key = 'revenue.approver.assign') then
+    raise exception 'only the platform owner enables a business' using errcode = 'insufficient_privilege';
+  end if;
+  select tenant_class::text into v_class from platform.tenants where id = p_tenant;
+  if v_class is distinct from 'first_party' then
+    raise exception 'only HLG-owned (first-party) tenants can be enabled this way' using errcode = 'insufficient_privilege';
+  end if;
+  if revenue.tenant_line(p_tenant) is null then
+    raise exception 'assign the business line first' using errcode = 'invalid_parameter_value';
+  end if;
+  insert into entitlements.module_activations (tenant_id, module, active, activated_by)
+  values (p_tenant, 'visibility', true, auth.uid())
+  on conflict (tenant_id, module) do update set active = true, activated_at = now(), activated_by = auth.uid();
+  insert into entitlements.tenant_entitlements (tenant_id, feature_key, source, granted_by)
+  values (p_tenant, 'visibility.content', 'grant', auth.uid())
+  on conflict (tenant_id, feature_key) do nothing;
+  perform audit.log_security_event('revenue.enable_first_party_tenant', 'allowed', 'info', p_tenant,
+    'entitlements.module_activations', 'visibility', null);
+end; $$;
+revoke all on function revenue.enable_first_party_tenant(uuid) from public, anon;
+grant execute on function revenue.enable_first_party_tenant(uuid) to authenticated;

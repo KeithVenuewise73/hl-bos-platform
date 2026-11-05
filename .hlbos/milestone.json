@@ -456,6 +456,14 @@
     {
       "title": "Revenue Center: decide the HSCS tenant (new, or reuse hscs-government) and adopt the 50 existing HLD barbershop prospects (needs your approval)",
       "done": false
+    },
+    {
+      "title": "Revenue Center Phase 7 release candidate: pilot posture enforced in the database (no synthetic, mock, paid or automatic sending), adoption package for the 50 HLD barbershops, HSCS commercial tenant package, replay-safety guard, #114 mock-dispatch fix, security packages — 31/31 tests on both schemas, rollback exact",
+      "done": true
+    },
+    {
+      "title": "Revenue Center: verify on real PostgreSQL 17 + Supabase Auth/PostgREST + real pgTAP (needs an isolated Supabase branch — your approval, hourly cost)",
+      "done": false
     }
   ],
   "blockers": [

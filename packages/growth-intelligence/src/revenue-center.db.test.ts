@@ -77,6 +77,22 @@ const priceBook = (line: "hld" | "hscs"): PriceBook => ({
   approvedAt: NOW.toISOString(),
 });
 const OWNER_P: Principal = { id: OWNER, role: "owner", lines: [] };
+const DEV_SETTINGS = {
+  p_environment: "development",
+  p_allow_synthetic: true,
+  p_allow_mock_delivery: true,
+  p_allow_paid_discovery: true,
+  p_allow_auto_notifications: true,
+  p_allow_outbound_delivery: false,
+};
+const PILOT_SETTINGS = {
+  p_environment: "pilot",
+  p_allow_synthetic: false,
+  p_allow_mock_delivery: false,
+  p_allow_paid_discovery: false,
+  p_allow_auto_notifications: false,
+  p_allow_outbound_delivery: false,
+};
 const VARS = {
   business: "Synthetic",
   contact: "Owner",
@@ -169,6 +185,10 @@ describe.skipIf(!ENV)(
         p_line: "hscs",
         p_notify: "owner@hlg.test",
       });
+      // This isolated database is a DEVELOPMENT environment: synthetic data and
+      // mock delivery allowed. The migration's default is the pilot posture
+      // (everything off); that is tested below.
+      await rpc.call(PLATFORM, "revenue.set_release_settings", DEV_SETTINGS);
       await rpc.call(PLATFORM, "revenue.designate_approver", {
         p_tenant: TENANTS.hld,
         p_user: OWNER,
@@ -1005,6 +1025,99 @@ describe.skipIf(!ENV)(
           `select count(*) from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='revenue' and p.prosecdef and not coalesce(array_to_string(p.proconfig, ',') like '%search_path=%', false)`,
         ),
       ).toBe("0");
+    });
+
+    it("PILOT POSTURE — no synthetic records, no mock delivery, no paid discovery, no automatic notifications, no real delivery", async () => {
+      expect(
+        db(
+          `select environment||'/'||allow_synthetic_records||'/'||allow_mock_delivery from revenue.release_settings`,
+        ),
+      ).toBe("development/true/true");
+      await expect(
+        rpc.call(OWNER, "revenue.set_release_settings", PILOT_SETTINGS),
+      ).rejects.toThrow(/platform owner/);
+      await expect(
+        rpc.call(PLATFORM, "revenue.set_release_settings", {
+          ...PILOT_SETTINGS,
+          p_allow_mock_delivery: true,
+        }),
+      ).rejects.toThrow(/release_settings_dev_only/);
+      await expect(
+        rpc.call(PLATFORM, "revenue.set_release_settings", {
+          ...PILOT_SETTINGS,
+          p_environment: "production",
+          p_allow_synthetic: true,
+        }),
+      ).rejects.toThrow(/release_settings_dev_only/);
+      await rpc.call(PLATFORM, "revenue.set_release_settings", PILOT_SETTINGS);
+      try {
+        await expect(
+          backfillCampaign(rc, HLD_MGR, "hld", "hld_dental_rochester", mock),
+        ).rejects.toThrow(/not allowed in this environment/);
+        await expect(
+          submitInquiry(
+            rpc,
+            HLD_WEB,
+            TENANTS.hld,
+            buildInquiry(inq({ submissionId: "pilot-1", email: "p1@example.test" })),
+          ),
+        ).rejects.toThrow(/not allowed in this environment/);
+        const real = await submitInquiry(
+          rpc,
+          HLD_WEB,
+          TENANTS.hld,
+          buildInquiry(
+            inq({
+              submissionId: "pilot-2",
+              email: "real-visitor@example.test",
+              isSynthetic: false,
+            }),
+          ),
+        );
+        expect(
+          db(
+            `select coalesce(notification_message_id::text,'none') from revenue.inquiries where id='${real.inquiry_id}'`,
+          ),
+        ).toBe("none");
+        await expect(
+          rc.beginDiscoveryRun(
+            HLD_MGR,
+            "hld",
+            "hld_dental_rochester",
+            "google_places",
+            20,
+            1,
+          ),
+        ).rejects.toThrow(/paid discovery is disabled/);
+        const anyMsg = db(`select id from comms.messages limit 1`);
+        await expect(
+          rpc.call(PLATFORM, "revenue.mock_deliver", { p_message: anyMsg }),
+        ).rejects.toThrow(/mock delivery is disabled/);
+        const rcMsg = db(
+          `select id from comms.messages where source_module='revenue_center' limit 1`,
+        );
+        db(
+          `update comms.messages set provider_key='email', status='approved' where id='${rcMsg}'`,
+        );
+        await expect(
+          rpc.call(PLATFORM, "comms.record_delivery", {
+            p_message: rcMsg,
+            p_status: "sent",
+          }),
+        ).rejects.toThrow(/outbound Revenue Center delivery is disabled/);
+        // the dashboard's live figures exclude every synthetic record
+        const live = lineDashboard(OWNER_P, "hld", {
+          events: await rc.loadEvents(OWNER),
+          expenses: [],
+          connectors: connectorReadiness([], NOW),
+          now: NOW,
+          capturedKinds: REVENUE_CENTER_CAPTURED_KINDS,
+        });
+        expect(live.metrics.find((m) => m.key === "inbound")!.value).toBe(1); // the one real inquiry, nothing synthetic
+        expect(live.demoRecordsExcluded).toBeGreaterThan(0);
+      } finally {
+        await rpc.call(PLATFORM, "revenue.set_release_settings", DEV_SETTINGS);
+      }
     });
 
     it("every one of the eight industries fits its own business", () => {
