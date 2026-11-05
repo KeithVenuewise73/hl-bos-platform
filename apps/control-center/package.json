@@ -14,6 +14,7 @@
   },
   "dependencies": {
     "@hl-bos/catalog": "workspace:*",
+    "@hl-bos/growth-intelligence": "workspace:*",
     "@hl-bos/presence-scanner": "workspace:*",
     "@hl-bos/sceneflow": "workspace:*",
     "@hl-bos/site-builder": "workspace:*",

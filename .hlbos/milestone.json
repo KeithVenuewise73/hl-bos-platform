@@ -420,6 +420,22 @@
     {
       "title": "SceneFlow on a phone: say honestly whether one can reach it, and add the Windows firewall rule on request",
       "done": true
+    },
+    {
+      "title": "HLG Growth Intelligence engine (@hl-bos/growth-intelligence) + read-only Growth Intelligence page in the console: HLD/HSCS routing and isolation, evidence-separated reviews, price-gated proposals, attribution, Google connector readiness, honest dashboards and feedback loop — no migration, no live Google connection",
+      "done": true
+    },
+    {
+      "title": "Growth Intelligence pilot: store HLD/HSCS leads, inquiries and agreements in HL-BOS (needs PR #113 reconciled, then your approval of one migration)",
+      "done": false
+    },
+    {
+      "title": "Growth Intelligence pilot: connect Search Console, GA4 and Business Profile for HLG's own sites (needs your Google sign-in)",
+      "done": false
+    },
+    {
+      "title": "Growth Intelligence pilot: HLD and HSCS prices set (your decision) so proposals can leave draft",
+      "done": false
     }
   ],
   "blockers": [

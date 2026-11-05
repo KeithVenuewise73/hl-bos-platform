@@ -1,0 +1,26 @@
+{
+  "name": "@hl-bos/growth-intelligence",
+  "version": "0.1.0",
+  "private": true,
+  "description": "HLG Growth Intelligence. Two independent business lines (Herman Legacy Digital and Herman Supply Chain Solutions) over the existing Presence Scanner, BTI growth map and HL-BOS prospect stages: campaign routing, business-line isolation, evidence-separated opportunity reviews, proposals that refuse to invent prices or savings, lead attribution, Google connector readiness, an honest growth dashboard and an evidence-gated feedback loop. Pure TypeScript: no storage, no network, no AI calls.",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "default": "./src/index.ts"
+    }
+  },
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run",
+    "clean": "rm -rf dist *.tsbuildinfo"
+  },
+  "dependencies": {
+    "@hl-bos/presence-scanner": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  }
+}
