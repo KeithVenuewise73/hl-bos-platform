@@ -18,3 +18,6 @@ export * from "./from-presence.ts";
 export * from "./revenue-center.ts";
 export * from "./industries.ts";
 export * from "./discovery.ts";
+export * from "./identity.ts";
+export * from "./inquiry.ts";
+export * from "./supabase-rpc.ts";

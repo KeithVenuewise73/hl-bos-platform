@@ -448,6 +448,14 @@
     {
       "title": "Revenue Center: export the original hosted app (source, 8 industries) or allow its address, so it can be reconciled",
       "done": false
+    },
+    {
+      "title": "Revenue Center Phase 6: 8-industry/400-prospect model, campaign geography, spend-capped discovery runs, cross-spelling dedupe, website inquiry intake (HLD/HSCS), referrals, responses, owner dashboards — 23/23 tests on BOTH main and a production-equivalent rebuild (99.49% schema-identical to production); rollback proven exact",
+      "done": true
+    },
+    {
+      "title": "Revenue Center: decide the HSCS tenant (new, or reuse hscs-government) and adopt the 50 existing HLD barbershop prospects (needs your approval)",
+      "done": false
     }
   ],
   "blockers": [

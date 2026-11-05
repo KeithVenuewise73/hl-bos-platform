@@ -430,31 +430,46 @@ grant execute on function comms.request_message(uuid, extensions.citext, comms.c
 -- ===========================================================================
 -- 2. Prospect registration, status and rejection
 -- ===========================================================================
+-- Phase 6: register through the industry catalog and the tenant's business
+-- line, with every identity key (place, domain, phone, email, name+city)
+-- checked, so the same business under another spelling is not re-added.
 create or replace function revenue.register_prospect(
   p_tenant uuid, p_business text, p_industry extensions.citext, p_dedupe extensions.citext,
   p_source revenue.discovery_source, p_is_synthetic boolean, p_campaign extensions.citext default null,
   p_email extensions.citext default null, p_phone text default null, p_city text default null,
-  p_website text default null, p_snapshot jsonb default '{}'::jsonb)
+  p_website text default null, p_snapshot jsonb default '{}'::jsonb,
+  p_identity_keys text[] default '{}', p_run uuid default null)
 returns jsonb language plpgsql volatile security definer set search_path = '' as $$
-declare v_existing uuid; v_id uuid;
+declare v_existing uuid; v_matched text; v_id uuid; v_keys text[];
 begin
   if p_is_synthetic is null then raise exception 'is_synthetic must be stated' using errcode = 'not_null_violation'; end if;
-  select prospect_id into v_existing from revenue.prospect_profiles
-   where tenant_id = p_tenant and lower(dedupe_key::text) = lower(p_dedupe::text);
+  perform revenue.assert_industry_fits(p_tenant, p_industry);
+  if p_campaign is not null and not exists (select 1 from revenue.campaigns c
+      where c.tenant_id = p_tenant and lower(c.key::text) = lower(p_campaign::text)
+        and lower(c.industry_key::text) = lower(p_industry::text) and c.status = 'approved') then
+    raise exception 'campaign % is not an approved % campaign of this business', p_campaign, p_industry
+      using errcode = 'invalid_parameter_value';
+  end if;
+  v_keys := array(select distinct lower(k) from unnest(array_append(coalesce(p_identity_keys,'{}'), p_dedupe::text)) k
+                   where k is not null and btrim(k) <> '');
+  select ik.prospect_id, ik.key into v_existing, v_matched from revenue.identity_keys ik
+   where ik.tenant_id = p_tenant and ik.key = any(v_keys) limit 1;
   if found then
     if not identity.has_permission(p_tenant, 'visibility.prospect.read') then
       raise exception 'insufficient privilege' using errcode = 'insufficient_privilege';
     end if;
-    return jsonb_build_object('prospect_id', v_existing, 'duplicate', true);
+    return jsonb_build_object('prospect_id', v_existing, 'duplicate', true, 'matched_key', v_matched);
   end if;
   v_id := visibility.create_prospect(p_tenant, p_business, null, p_email, p_phone, p_industry, p_city, p_website);
   insert into revenue.prospect_profiles (prospect_id, tenant_id, industry_key, campaign_key, dedupe_key,
-    discovery_source, is_synthetic, scan_snapshot)
-  values (v_id, p_tenant, p_industry, p_campaign, lower(p_dedupe::text), p_source, p_is_synthetic, coalesce(p_snapshot,'{}'::jsonb));
+    discovery_source, is_synthetic, scan_snapshot, discovery_run_id)
+  values (v_id, p_tenant, lower(p_industry::text), p_campaign, lower(p_dedupe::text), p_source, p_is_synthetic,
+    coalesce(p_snapshot,'{}'::jsonb), p_run);
+  insert into revenue.identity_keys (tenant_id, key, prospect_id) select p_tenant, k, v_id from unnest(v_keys) k;
   return jsonb_build_object('prospect_id', v_id, 'duplicate', false);
 end; $$;
-revoke all on function revenue.register_prospect(uuid, text, extensions.citext, extensions.citext, revenue.discovery_source, boolean, extensions.citext, extensions.citext, text, text, text, jsonb) from public, anon;
-grant execute on function revenue.register_prospect(uuid, text, extensions.citext, extensions.citext, revenue.discovery_source, boolean, extensions.citext, extensions.citext, text, text, text, jsonb) to authenticated;
+revoke all on function revenue.register_prospect(uuid, text, extensions.citext, extensions.citext, revenue.discovery_source, boolean, extensions.citext, extensions.citext, text, text, text, jsonb, text[], uuid) from public, anon;
+grant execute on function revenue.register_prospect(uuid, text, extensions.citext, extensions.citext, revenue.discovery_source, boolean, extensions.citext, extensions.citext, text, text, text, jsonb, text[], uuid) to authenticated;
 
 create or replace function revenue.set_prospect_status(p_prospect uuid, p_status revenue.prospect_status, p_reason text default null)
 returns void language plpgsql volatile security definer set search_path = '' as $$
@@ -587,7 +602,8 @@ begin
     lower(p_to::text)::extensions.citext, 'marketing', p_vars,
     ('proposal:' || p_content::text || ':' || lower(p_to::text))::extensions.citext, null, true, null);
   select approval_instance_id into v_instance from comms.messages where id = v_msg;
-  return jsonb_build_object('message_id', v_msg, 'approval_instance_id', v_instance);
+  return jsonb_build_object('message_id', v_msg, 'approval_instance_id', v_instance,
+    'status', (select status from comms.messages where id = v_msg));
 end; $$;
 revoke all on function revenue.queue_outreach(uuid, extensions.citext, jsonb) from public, anon;
 grant execute on function revenue.queue_outreach(uuid, extensions.citext, jsonb) to authenticated;
@@ -608,3 +624,737 @@ begin
 end; $$;
 revoke all on function revenue.mock_deliver(uuid) from public, anon;
 grant execute on function revenue.mock_deliver(uuid) to authenticated;
+
+-- ===========================================================================
+-- PHASE 6
+-- ===========================================================================
+
+-- --- Business lines: which tenant is HLD and which is HSCS ------------------
+create table if not exists revenue.business_lines (
+  tenant_id      uuid primary key references platform.tenants(id) on delete cascade,
+  line           text not null unique check (line in ('hld','hscs')),
+  notify_contact extensions.citext,          -- where new-inquiry notifications go; null = none
+  set_by         uuid references auth.users(id) on delete set null,
+  set_at         timestamptz not null default now()
+);
+alter table revenue.business_lines enable row level security; alter table revenue.business_lines force row level security;
+create policy business_lines_select on revenue.business_lines for select to authenticated using (identity.is_member(tenant_id));
+grant select on revenue.business_lines to authenticated;
+create trigger business_lines_audit after insert or update or delete on revenue.business_lines for each row execute function audit.emit();
+
+create or replace function revenue.set_business_line(p_tenant uuid, p_line text, p_notify extensions.citext default null)
+returns void language plpgsql volatile security definer set search_path = '' as $$
+begin
+  if not exists (select 1 from identity.platform_admins pa join identity.role_permissions rp on rp.role_key = pa.role_key
+                 where pa.user_id = auth.uid() and rp.permission_key = 'revenue.approver.assign') then
+    raise exception 'only the platform owner assigns business lines' using errcode = 'insufficient_privilege';
+  end if;
+  insert into revenue.business_lines (tenant_id, line, notify_contact, set_by) values (p_tenant, p_line, lower(p_notify::text), auth.uid())
+  on conflict (tenant_id) do update set line = excluded.line, notify_contact = excluded.notify_contact, set_by = excluded.set_by, set_at = now();
+end; $$;
+revoke all on function revenue.set_business_line(uuid, text, extensions.citext) from public, anon;
+grant execute on function revenue.set_business_line(uuid, text, extensions.citext) to authenticated;
+
+-- --- The eight industries (plus one "not one of the eight" bucket per line) --
+create table if not exists revenue.industries (
+  key            extensions.citext primary key,
+  label          text not null,
+  line           text not null check (line in ('hld','hscs')),
+  default_target integer not null check (default_target >= 0),
+  search_terms   text not null,
+  place_types    text[] not null default '{}',
+  constraint industries_key_format check (key::text ~ '^[a-z][a-z0-9_]{2,63}$')
+);
+alter table revenue.industries enable row level security; alter table revenue.industries force row level security;
+create policy industries_select on revenue.industries for select to authenticated using (true);
+grant select on revenue.industries to authenticated;
+insert into revenue.industries (key, label, line, default_target, search_terms, place_types) values
+  ('dental',                'Dental practices',              'hld',  50, 'dentist dental practice',            array['dentist','dental_clinic']),
+  ('barbershop',            'Barbershops',                   'hld',  50, 'barber shop',                        array['barber_shop']),
+  ('salon',                 'Salons',                        'hld',  50, 'hair salon',                         array['hair_salon','beauty_salon','nail_salon']),
+  ('landscaping',           'Landscaping companies',         'hld',  50, 'landscaping company lawn care',      array['landscaper']),
+  ('pet_grooming',          'Pet groomers',                  'hld',  50, 'pet grooming dog groomer',           array['pet_care','pet_store']),
+  ('moving',                'Moving companies',              'hscs', 50, 'moving company movers',              array['moving_company']),
+  ('transportation',        'Transportation providers',      'hscs', 50, 'trucking company freight carrier',   array['trucking_company']),
+  ('third_party_logistics', 'Third-party logistics (3PLs)',  'hscs', 50, '3PL third party logistics warehouse', array['warehouse','logistics_service']),
+  ('general_hld',           'HLD — not one of the eight',    'hld',   0, '',                                   '{}'),
+  ('general_hscs',          'HSCS — not one of the eight',   'hscs',  0, '',                                   '{}')
+on conflict (key) do nothing;
+
+create or replace function revenue.tenant_line(p_tenant uuid)
+returns text language sql stable security definer set search_path = '' as $$
+  select line from revenue.business_lines where tenant_id = p_tenant;
+$$;
+create or replace function revenue.assert_industry_fits(p_tenant uuid, p_industry extensions.citext)
+returns void language plpgsql stable security definer set search_path = '' as $$
+declare v_line text; v_ind text;
+begin
+  v_line := revenue.tenant_line(p_tenant);
+  if v_line is null then raise exception 'tenant % is not an HLG business line', p_tenant using errcode = 'invalid_parameter_value'; end if;
+  select line into v_ind from revenue.industries where lower(key::text) = lower(p_industry::text);
+  if v_ind is null then raise exception 'unknown industry %', p_industry using errcode = 'invalid_parameter_value'; end if;
+  if v_ind <> v_line then
+    raise exception 'industry % belongs to %, not to this business (%)', p_industry, upper(v_ind), upper(v_line)
+      using errcode = 'invalid_parameter_value';
+  end if;
+end; $$;
+
+alter table revenue.prospect_profiles add constraint prospect_profiles_industry_fk
+  foreign key (industry_key) references revenue.industries(key) not valid;
+
+-- --- Identity keys: one business, many spellings ---------------------------
+create table if not exists revenue.identity_keys (
+  tenant_id   uuid not null references platform.tenants(id) on delete cascade,
+  key         text not null,               -- 'place:…' 'domain:…' 'phone:…' 'email:…' 'name:<normalised>|<city>'
+  prospect_id uuid not null references visibility.prospects(id) on delete cascade,
+  created_at  timestamptz not null default now(),
+  primary key (tenant_id, key),
+  constraint identity_keys_lower check (key = lower(key))
+);
+alter table revenue.identity_keys enable row level security; alter table revenue.identity_keys force row level security;
+create policy identity_keys_select on revenue.identity_keys for select to authenticated using (identity.has_permission(tenant_id, 'visibility.prospect.read'));
+grant select on revenue.identity_keys to authenticated;
+insert into revenue.identity_keys (tenant_id, key, prospect_id)
+  select tenant_id, lower(dedupe_key::text), prospect_id from revenue.prospect_profiles on conflict do nothing;
+
+-- --- Campaigns, with configurable geography ---------------------------------
+create table if not exists revenue.campaigns (
+  tenant_id    uuid not null references platform.tenants(id) on delete cascade,
+  key          extensions.citext not null,
+  industry_key extensions.citext not null references revenue.industries(key),
+  name         text not null,
+  market_label text not null,               -- e.g. 'Buffalo, NY' — any market, not hard-coded
+  market_zip   text,
+  market_lat   numeric(9,6),
+  market_lon   numeric(9,6),
+  radius_miles numeric(6,2) not null check (radius_miles > 0 and radius_miles <= 100),
+  target_active integer not null default 50 check (target_active between 0 and 1000),
+  search_terms text,                         -- overrides the industry's default terms
+  status       text not null default 'draft' check (status in ('draft','approved','paused','ended')),
+  created_by   uuid references auth.users(id) on delete set null,
+  created_at   timestamptz not null default now(),
+  approved_by  uuid references auth.users(id) on delete set null,
+  approved_at  timestamptz,
+  primary key (tenant_id, key),
+  constraint campaigns_key_format check (key::text ~ '^[a-z][a-z0-9_]{2,63}$'),
+  constraint campaigns_latlon check ((market_lat is null) = (market_lon is null))
+);
+alter table revenue.campaigns enable row level security; alter table revenue.campaigns force row level security;
+create policy campaigns_select on revenue.campaigns for select to authenticated using (identity.has_permission(tenant_id, 'visibility.prospect.read'));
+grant select on revenue.campaigns to authenticated;
+create trigger campaigns_audit after insert or update or delete on revenue.campaigns for each row execute function audit.emit();
+
+create or replace function revenue.upsert_campaign(
+  p_tenant uuid, p_key extensions.citext, p_industry extensions.citext, p_name text, p_market_label text,
+  p_radius_miles numeric, p_target integer default 50, p_zip text default null,
+  p_lat numeric default null, p_lon numeric default null, p_search_terms text default null)
+returns void language plpgsql volatile security definer set search_path = '' as $$
+begin
+  if not identity.has_permission(p_tenant, 'visibility.prospect.manage') then
+    raise exception 'insufficient privilege' using errcode = 'insufficient_privilege';
+  end if;
+  perform revenue.assert_industry_fits(p_tenant, p_industry);
+  insert into revenue.campaigns (tenant_id, key, industry_key, name, market_label, market_zip, market_lat, market_lon,
+    radius_miles, target_active, search_terms, created_by)
+  values (p_tenant, lower(p_key::text), lower(p_industry::text), p_name, p_market_label, p_zip, p_lat, p_lon,
+    p_radius_miles, p_target, p_search_terms, auth.uid())
+  on conflict (tenant_id, key) do update set name = excluded.name, market_label = excluded.market_label,
+    market_zip = excluded.market_zip, market_lat = excluded.market_lat, market_lon = excluded.market_lon,
+    radius_miles = excluded.radius_miles, target_active = excluded.target_active, search_terms = excluded.search_terms,
+    status = 'draft', approved_by = null, approved_at = null;   -- any change needs re-approval
+end; $$;
+revoke all on function revenue.upsert_campaign(uuid, extensions.citext, extensions.citext, text, text, numeric, integer, text, numeric, numeric, text) from public, anon;
+grant execute on function revenue.upsert_campaign(uuid, extensions.citext, extensions.citext, text, text, numeric, integer, text, numeric, numeric, text) to authenticated;
+
+create or replace function revenue.set_campaign_status(p_tenant uuid, p_key extensions.citext, p_status text)
+returns void language plpgsql volatile security definer set search_path = '' as $$
+begin
+  -- approving or resuming a campaign is the owner's decision; pausing/ending is anyone who manages prospects
+  if p_status = 'approved' then
+    if not identity.has_permission(p_tenant, 'revenue.commercial_approval.manage')
+       or not exists (select 1 from revenue.commercial_approvers a where a.tenant_id = p_tenant and a.user_id = auth.uid()) then
+      raise exception 'only the designated owner approves a campaign' using errcode = 'insufficient_privilege';
+    end if;
+  elsif not identity.has_permission(p_tenant, 'visibility.prospect.manage') then
+    raise exception 'insufficient privilege' using errcode = 'insufficient_privilege';
+  end if;
+  update revenue.campaigns set status = p_status,
+    approved_by = case when p_status = 'approved' then auth.uid() else approved_by end,
+    approved_at = case when p_status = 'approved' then now() else approved_at end
+   where tenant_id = p_tenant and key = lower(p_key::text);
+  if not found then raise exception 'campaign % not found', p_key using errcode = 'no_data_found'; end if;
+end; $$;
+revoke all on function revenue.set_campaign_status(uuid, extensions.citext, text) from public, anon;
+grant execute on function revenue.set_campaign_status(uuid, extensions.citext, text) to authenticated;
+
+-- --- Discovery runs and spending limits -------------------------------------
+create table if not exists revenue.discovery_limits (
+  tenant_id               uuid primary key references platform.tenants(id) on delete cascade,
+  paid_requests_per_month integer not null default 0 check (paid_requests_per_month >= 0),  -- 0 = no paid discovery
+  max_candidates_per_run  integer not null default 50 check (max_candidates_per_run between 1 and 500),
+  set_by uuid references auth.users(id) on delete set null,
+  set_at timestamptz not null default now()
+);
+create table if not exists revenue.discovery_runs (
+  id            uuid primary key default pg_catalog.gen_random_uuid(),
+  tenant_id     uuid not null references platform.tenants(id) on delete cascade,
+  campaign_key  extensions.citext not null,
+  industry_key  extensions.citext not null,
+  source        revenue.discovery_source not null,
+  status        text not null default 'running' check (status in ('running','finished','failed')),
+  planned_paid_requests integer not null default 0 check (planned_paid_requests >= 0),
+  paid_requests integer not null default 0 check (paid_requests >= 0),
+  est_cost_cents integer not null default 0 check (est_cost_cents >= 0),
+  candidates    integer not null default 0,
+  added         integer not null default 0,
+  duplicates    integer not null default 0,
+  needs_review  integer not null default 0,
+  error         text,
+  started_by    uuid references auth.users(id) on delete set null,
+  started_at    timestamptz not null default now(),
+  finished_at   timestamptz
+);
+alter table revenue.prospect_profiles add column if not exists discovery_run_id uuid references revenue.discovery_runs(id) on delete set null;
+alter table revenue.discovery_limits enable row level security; alter table revenue.discovery_limits force row level security;
+alter table revenue.discovery_runs   enable row level security; alter table revenue.discovery_runs   force row level security;
+create policy discovery_limits_select on revenue.discovery_limits for select to authenticated using (identity.is_member(tenant_id));
+create policy discovery_runs_select on revenue.discovery_runs for select to authenticated using (identity.has_permission(tenant_id, 'visibility.prospect.read'));
+grant select on revenue.discovery_limits, revenue.discovery_runs to authenticated;
+create trigger discovery_limits_audit after insert or update or delete on revenue.discovery_limits for each row execute function audit.emit();
+create trigger discovery_runs_audit after insert or update or delete on revenue.discovery_runs for each row execute function audit.emit();
+
+create or replace function revenue.set_discovery_limits(p_tenant uuid, p_paid_per_month integer, p_max_per_run integer)
+returns void language plpgsql volatile security definer set search_path = '' as $$
+begin
+  -- money: the designated owner only
+  if not identity.has_permission(p_tenant, 'revenue.commercial_approval.manage')
+     or not exists (select 1 from revenue.commercial_approvers a where a.tenant_id = p_tenant and a.user_id = auth.uid()) then
+    raise exception 'only the designated owner sets discovery spending' using errcode = 'insufficient_privilege';
+  end if;
+  insert into revenue.discovery_limits (tenant_id, paid_requests_per_month, max_candidates_per_run, set_by)
+  values (p_tenant, p_paid_per_month, p_max_per_run, auth.uid())
+  on conflict (tenant_id) do update set paid_requests_per_month = excluded.paid_requests_per_month,
+    max_candidates_per_run = excluded.max_candidates_per_run, set_by = excluded.set_by, set_at = now();
+end; $$;
+revoke all on function revenue.set_discovery_limits(uuid, integer, integer) from public, anon;
+grant execute on function revenue.set_discovery_limits(uuid, integer, integer) to authenticated;
+
+-- Opens a run only within the limits. Paid requests are reserved up front, so
+-- two runs at once cannot both spend the last of the month's allowance.
+create or replace function revenue.begin_discovery_run(
+  p_tenant uuid, p_campaign extensions.citext, p_source revenue.discovery_source, p_candidates integer, p_planned_paid_requests integer default 0)
+returns uuid language plpgsql volatile security definer set search_path = '' as $$
+declare v_c revenue.campaigns; v_paid_cap integer; v_max integer; v_used integer; v_id uuid;
+begin
+  if not identity.has_permission(p_tenant, 'visibility.prospect.manage') then
+    raise exception 'insufficient privilege' using errcode = 'insufficient_privilege';
+  end if;
+  select * into v_c from revenue.campaigns where tenant_id = p_tenant and key = lower(p_campaign::text);
+  if not found or v_c.status <> 'approved' then
+    raise exception 'campaign % is not approved', p_campaign using errcode = 'invalid_parameter_value';
+  end if;
+  perform 1 from platform.tenants where id = p_tenant for update;   -- serialise spending per tenant
+  select coalesce(max(paid_requests_per_month), 0), coalesce(max(max_candidates_per_run), 50)
+    into v_paid_cap, v_max from revenue.discovery_limits where tenant_id = p_tenant;
+  if p_candidates > v_max then
+    raise exception 'at most % candidates per run (asked for %)', v_max, p_candidates using errcode = 'invalid_parameter_value';
+  end if;
+  if p_planned_paid_requests > 0 then
+    select coalesce(sum(greatest(paid_requests, case when status = 'running' then planned_paid_requests else 0 end)), 0)
+      into v_used from revenue.discovery_runs
+     where tenant_id = p_tenant and started_at >= date_trunc('month', now());
+    if v_used + p_planned_paid_requests > v_paid_cap then
+      raise exception 'paid discovery limit: % of % requests used this month; this run needs %', v_used, v_paid_cap, p_planned_paid_requests
+        using errcode = 'insufficient_privilege';
+    end if;
+  end if;
+  insert into revenue.discovery_runs (tenant_id, campaign_key, industry_key, source, planned_paid_requests, started_by)
+  values (p_tenant, v_c.key, v_c.industry_key, p_source, p_planned_paid_requests, auth.uid())
+  returning id into v_id;
+  return v_id;
+end; $$;
+revoke all on function revenue.begin_discovery_run(uuid, extensions.citext, revenue.discovery_source, integer, integer) from public, anon;
+grant execute on function revenue.begin_discovery_run(uuid, extensions.citext, revenue.discovery_source, integer, integer) to authenticated;
+
+create or replace function revenue.finish_discovery_run(
+  p_run uuid, p_paid_requests integer, p_est_cost_cents integer, p_candidates integer, p_added integer,
+  p_duplicates integer, p_needs_review integer, p_error text default null)
+returns void language plpgsql volatile security definer set search_path = '' as $$
+declare v_tenant uuid;
+begin
+  select tenant_id into v_tenant from revenue.discovery_runs where id = p_run and status = 'running';
+  if not found then raise exception 'discovery run % is not running', p_run using errcode = 'no_data_found'; end if;
+  if not identity.has_permission(v_tenant, 'visibility.prospect.manage') then
+    raise exception 'insufficient privilege' using errcode = 'insufficient_privilege';
+  end if;
+  update revenue.discovery_runs set status = case when p_error is null then 'finished' else 'failed' end,
+    paid_requests = p_paid_requests, est_cost_cents = p_est_cost_cents, candidates = p_candidates, added = p_added,
+    duplicates = p_duplicates, needs_review = p_needs_review, error = p_error, finished_at = now()
+   where id = p_run;
+end; $$;
+revoke all on function revenue.finish_discovery_run(uuid, integer, integer, integer, integer, integer, integer, text) from public, anon;
+grant execute on function revenue.finish_discovery_run(uuid, integer, integer, integer, integer, integer, integer, text) to authenticated;
+
+-- --- Adopt prospects that already exist (e.g. the 50 production barbershops) -
+create or replace function revenue.adopt_prospect(
+  p_prospect uuid, p_industry extensions.citext, p_dedupe extensions.citext, p_is_synthetic boolean,
+  p_identity_keys text[] default '{}', p_campaign extensions.citext default null)
+returns void language plpgsql volatile security definer set search_path = '' as $$
+declare v_tenant uuid; v_keys text[]; v_clash uuid;
+begin
+  if p_is_synthetic is null then raise exception 'is_synthetic must be stated' using errcode = 'not_null_violation'; end if;
+  select tenant_id into v_tenant from visibility.prospects where id = p_prospect;
+  if not found then raise exception 'prospect % not found', p_prospect using errcode = 'no_data_found'; end if;
+  if not identity.has_permission(v_tenant, 'visibility.prospect.manage') then
+    raise exception 'insufficient privilege' using errcode = 'insufficient_privilege';
+  end if;
+  perform revenue.assert_industry_fits(v_tenant, p_industry);
+  if exists (select 1 from revenue.prospect_profiles where prospect_id = p_prospect) then
+    raise exception 'prospect % is already in the Revenue Center', p_prospect using errcode = 'unique_violation';
+  end if;
+  v_keys := array(select distinct lower(k) from unnest(array_append(coalesce(p_identity_keys,'{}'), p_dedupe::text)) k where btrim(coalesce(k,'')) <> '');
+  select prospect_id into v_clash from revenue.identity_keys where tenant_id = v_tenant and key = any(v_keys) limit 1;
+  if found then raise exception 'prospect % duplicates %', p_prospect, v_clash using errcode = 'unique_violation'; end if;
+  insert into revenue.prospect_profiles (prospect_id, tenant_id, industry_key, campaign_key, dedupe_key, discovery_source, is_synthetic)
+  values (p_prospect, v_tenant, lower(p_industry::text), p_campaign, lower(p_dedupe::text), 'import', p_is_synthetic);
+  insert into revenue.identity_keys (tenant_id, key, prospect_id) select v_tenant, k, p_prospect from unnest(v_keys) k;
+end; $$;
+revoke all on function revenue.adopt_prospect(uuid, extensions.citext, extensions.citext, boolean, text[], extensions.citext) from public, anon;
+grant execute on function revenue.adopt_prospect(uuid, extensions.citext, extensions.citext, boolean, text[], extensions.citext) to authenticated;
+
+-- --- Proposals: linked to their prospect; unpriced ones cannot be submitted -
+create table if not exists revenue.proposal_links (
+  content_id  uuid primary key references visibility.content_assets(id) on delete cascade,
+  prospect_id uuid not null references visibility.prospects(id) on delete cascade,
+  tenant_id   uuid not null references platform.tenants(id) on delete cascade,
+  created_at  timestamptz not null default now()
+);
+alter table revenue.proposal_links enable row level security; alter table revenue.proposal_links force row level security;
+create policy proposal_links_select on revenue.proposal_links for select to authenticated using (identity.has_permission(tenant_id, 'visibility.content.read'));
+grant select on revenue.proposal_links to authenticated;
+
+create or replace function revenue.draft_proposal(p_prospect uuid, p_title text, p_body text)
+returns uuid language plpgsql volatile security definer set search_path = '' as $$
+declare v_tenant uuid; v_id uuid;
+begin
+  select tenant_id into v_tenant from revenue.prospect_profiles where prospect_id = p_prospect;
+  if not found then raise exception 'prospect % not found', p_prospect using errcode = 'no_data_found'; end if;
+  v_id := visibility.draft_content(v_tenant, null, 'proposal', p_title, p_body, null);
+  insert into revenue.proposal_links (content_id, prospect_id, tenant_id) values (v_id, p_prospect, v_tenant);
+  return v_id;
+end; $$;
+revoke all on function revenue.draft_proposal(uuid, text, text) from public, anon;
+grant execute on function revenue.draft_proposal(uuid, text, text) to authenticated;
+
+-- The database checks the proposal itself: every line priced, nothing blocked.
+create or replace function revenue.submit_proposal(p_content uuid)
+returns uuid language plpgsql volatile security definer set search_path = '' as $$
+declare v_l revenue.proposal_links; v_body jsonb; v_instance uuid;
+begin
+  select * into v_l from revenue.proposal_links where content_id = p_content;
+  if not found then raise exception 'proposal % not found', p_content using errcode = 'no_data_found'; end if;
+  begin
+    select body::jsonb into v_body from visibility.content_assets where id = p_content;
+  exception when others then
+    raise exception 'the proposal is not in the structured format' using errcode = 'invalid_parameter_value';
+  end;
+  if coalesce(v_body#>>'{proposal,status}','') <> 'ready_for_approval'
+     or jsonb_array_length(coalesce(v_body#>'{proposal,lines}','[]'::jsonb)) = 0
+     or exists (select 1 from jsonb_array_elements(v_body#>'{proposal,lines}') l
+                where jsonb_typeof(l->'oneTimeCents') <> 'number' or jsonb_typeof(l->'monthlyCents') <> 'number') then
+    raise exception 'an unpriced or blocked proposal cannot be submitted for approval' using errcode = 'check_violation';
+  end if;
+  v_instance := visibility.submit_content_for_approval(p_content);
+  perform visibility.set_prospect_stage(v_l.prospect_id, 'proposed');
+  return v_instance;
+end; $$;
+revoke all on function revenue.submit_proposal(uuid) from public, anon;
+grant execute on function revenue.submit_proposal(uuid) to authenticated;
+
+-- --- Website inquiries --------------------------------------------------------
+insert into identity.permissions (key, description, scope) values
+  ('revenue.inquiry.create', 'Submit a website inquiry into the Revenue Center (website intake).', 'tenant')
+on conflict (key) do nothing;
+insert into identity.role_permissions (role_key, permission_key) values
+  ('service_account','revenue.inquiry.create'), ('tenant_owner','revenue.inquiry.create'), ('tenant_admin','revenue.inquiry.create')
+on conflict do nothing;
+insert into comms.templates (key, name, channel, module) values
+  ('inquiry_received', 'New website inquiry (internal notification)', 'email', 'revenue_center')
+on conflict (key) do nothing;
+insert into comms.template_versions (template_key, version, subject, body, variables) values
+  ('inquiry_received', 1, 'New {{line}} inquiry: {{company}}',
+   'A new inquiry arrived through the {{line}} website from {{company}}. Open the Revenue Center to review it.',
+   array['line','company'])
+on conflict (template_key, version) do nothing;
+
+create table if not exists revenue.inquiries (
+  id               uuid primary key default pg_catalog.gen_random_uuid(),
+  tenant_id        uuid not null references platform.tenants(id) on delete cascade,  -- the website's business
+  idempotency_key  extensions.citext not null,
+  received_at      timestamptz not null default now(),
+  contact_name     text,
+  email            extensions.citext,
+  phone            text,
+  company          text,
+  industry_text    text,
+  message          text,
+  attribution      jsonb not null default '{}'::jsonb,
+  consent_marketing boolean not null,
+  consent_text_version text,
+  consent_evidence jsonb not null default '{}'::jsonb,
+  spam_reasons     text[] not null default '{}',
+  status           text not null check (status in ('routed','needs_review','spam','duplicate')),
+  routing_reasons  text[] not null default '{}',
+  routed_tenant_id uuid references platform.tenants(id) on delete set null,
+  prospect_id      uuid references visibility.prospects(id) on delete set null,
+  notification_message_id uuid references comms.messages(id) on delete set null,
+  is_synthetic     boolean not null,
+  resolved_by      uuid references auth.users(id) on delete set null,
+  resolved_at      timestamptz,
+  constraint inquiries_idempotent unique (tenant_id, idempotency_key),
+  constraint inquiries_contact check (email is not null or phone is not null),
+  constraint inquiries_message_len check (length(coalesce(message,'')) <= 5000)
+);
+alter table revenue.inquiries enable row level security; alter table revenue.inquiries force row level security;
+create policy inquiries_select on revenue.inquiries for select to authenticated
+  using (identity.has_permission(tenant_id, 'visibility.prospect.read'));
+grant select on revenue.inquiries to authenticated;
+create trigger inquiries_audit after insert or update or delete on revenue.inquiries for each row execute function audit.emit();
+
+-- p_payload: { idempotency_key, contact_name, email, phone, company, industry_text, industry_key, message,
+--   attribution{}, consent_marketing, consent_text_version, consent_evidence{}, spam_reasons[],
+--   routing{status:'routed'|'needs_review', line, reasons[]}, identity_keys[], is_synthetic }
+create or replace function revenue.ingest_inquiry(p_site_tenant uuid, p_payload jsonb)
+returns jsonb language plpgsql volatile security definer set search_path = '' as $$
+declare
+  v_line text := revenue.tenant_line(p_site_tenant); v_prev revenue.inquiries; v_id uuid; v_status text;
+  v_keys text[]; v_existing uuid; v_prospect uuid; v_ind text; v_notify extensions.citext; v_msg uuid;
+  v_reasons text[] := coalesce(array(select jsonb_array_elements_text(p_payload#>'{routing,reasons}')), '{}');
+begin
+  if not identity.has_permission(p_site_tenant, 'revenue.inquiry.create') then
+    raise exception 'insufficient privilege to submit inquiries for this business' using errcode = 'insufficient_privilege';
+  end if;
+  if v_line is null then raise exception 'tenant is not an HLG business line' using errcode = 'invalid_parameter_value'; end if;
+  if p_payload->>'idempotency_key' is null or p_payload->'is_synthetic' is null or p_payload->'consent_marketing' is null then
+    raise exception 'idempotency_key, is_synthetic and consent_marketing are required' using errcode = 'not_null_violation';
+  end if;
+  select * into v_prev from revenue.inquiries where tenant_id = p_site_tenant and idempotency_key = p_payload->>'idempotency_key';
+  if found then return jsonb_build_object('inquiry_id', v_prev.id, 'status', v_prev.status, 'prospect_id', v_prev.prospect_id, 'replayed', true); end if;
+
+  v_keys := array(select distinct lower(k) from jsonb_array_elements_text(coalesce(p_payload->'identity_keys','[]'::jsonb)) k where btrim(k) <> '');
+  if jsonb_array_length(coalesce(p_payload->'spam_reasons','[]'::jsonb)) > 0 then
+    v_status := 'spam';
+  else
+    select prospect_id into v_existing from revenue.identity_keys where tenant_id = p_site_tenant and key = any(v_keys) limit 1;
+    if v_existing is not null then
+      v_status := 'duplicate';
+    elsif p_payload#>>'{routing,status}' = 'routed' and p_payload#>>'{routing,line}' = v_line then
+      v_status := 'routed';
+    else
+      v_status := 'needs_review';   -- never auto-route to the other business
+      if p_payload#>>'{routing,line}' is distinct from v_line and p_payload#>>'{routing,status}' = 'routed' then
+        v_reasons := array_append(v_reasons, 'routing pointed at the other business; a person decides');
+      end if;
+    end if;
+  end if;
+
+  insert into revenue.inquiries (tenant_id, idempotency_key, contact_name, email, phone, company, industry_text, message,
+    attribution, consent_marketing, consent_text_version, consent_evidence, spam_reasons, status, routing_reasons,
+    prospect_id, is_synthetic)
+  values (p_site_tenant, p_payload->>'idempotency_key', p_payload->>'contact_name', lower(p_payload->>'email'),
+    p_payload->>'phone', p_payload->>'company', p_payload->>'industry_text', p_payload->>'message',
+    coalesce(p_payload->'attribution','{}'::jsonb), (p_payload->>'consent_marketing')::boolean,
+    p_payload->>'consent_text_version', coalesce(p_payload->'consent_evidence','{}'::jsonb),
+    coalesce(array(select jsonb_array_elements_text(p_payload->'spam_reasons')), '{}'), v_status, v_reasons,
+    v_existing, (p_payload->>'is_synthetic')::boolean)
+  returning id into v_id;
+  if v_status in ('spam') then return jsonb_build_object('inquiry_id', v_id, 'status', v_status, 'replayed', false); end if;
+
+  if v_status = 'routed' then
+    v_ind := coalesce(nullif(p_payload->>'industry_key',''), 'general_' || v_line);
+    if not exists (select 1 from revenue.industries where key = v_ind and line = v_line) then v_ind := 'general_' || v_line; end if;
+    -- The website's service account may submit inquiries but not manage
+    -- prospects, so the record is written here, by this function, directly.
+    insert into visibility.prospects (tenant_id, business_name, contact_name, email, phone, industry, created_by)
+    values (p_site_tenant, coalesce(nullif(p_payload->>'company',''), p_payload->>'contact_name', 'Website inquiry'),
+      p_payload->>'contact_name', lower(p_payload->>'email'), p_payload->>'phone', v_ind, auth.uid())
+    returning id into v_prospect;
+    insert into revenue.prospect_profiles (prospect_id, tenant_id, industry_key, dedupe_key, discovery_source, is_synthetic)
+    values (v_prospect, p_site_tenant, v_ind, coalesce(v_keys[1], 'inquiry:' || v_id::text), 'inbound_inquiry', (p_payload->>'is_synthetic')::boolean);
+    insert into revenue.identity_keys (tenant_id, key, prospect_id)
+      select p_site_tenant, k, v_prospect from unnest(v_keys) k on conflict do nothing;
+    update revenue.inquiries set prospect_id = v_prospect, routed_tenant_id = p_site_tenant where id = v_id;
+    perform events.emit('revenue.inquiry.routed', p_site_tenant, jsonb_build_object('inquiry', v_id, 'prospect', v_prospect));
+  end if;
+
+  -- Consent is recorded only when the visitor gave it, with its evidence.
+  if (p_payload->>'consent_marketing')::boolean and p_payload->>'email' is not null then
+    insert into comms.consent (tenant_id, channel, contact, status, source, granted_at)
+    values (p_site_tenant, 'email', lower(p_payload->>'email'), 'granted',
+            'website form, consent text ' || coalesce(p_payload->>'consent_text_version','unversioned'), now())
+    on conflict (tenant_id, channel, contact) do update set status = 'granted', source = excluded.source, granted_at = now();
+  end if;
+
+  -- Notify the business (transactional, internal, mock provider in development).
+  select notify_contact into v_notify from revenue.business_lines where tenant_id = p_site_tenant;
+  if v_notify is not null then
+    v_msg := comms.request_message(p_site_tenant, 'revenue_center', 'email', 'inquiry_received', 1, v_notify, 'transactional',
+      jsonb_build_object('line', upper(v_line), 'company', coalesce(nullif(p_payload->>'company',''), 'a visitor')),
+      ('inquiry:' || v_id::text)::extensions.citext, null, false, null);
+    update revenue.inquiries set notification_message_id = v_msg where id = v_id;
+  end if;
+  return jsonb_build_object('inquiry_id', v_id, 'status', v_status, 'prospect_id', coalesce(v_prospect, v_existing), 'replayed', false);
+end; $$;
+revoke all on function revenue.ingest_inquiry(uuid, jsonb) from public, anon;
+grant execute on function revenue.ingest_inquiry(uuid, jsonb) to authenticated;
+
+-- A person decides an uncertain inquiry: into which business it goes.
+create or replace function revenue.resolve_inquiry(p_inquiry uuid, p_line text, p_industry extensions.citext default null)
+returns uuid language plpgsql volatile security definer set search_path = '' as $$
+declare v_i revenue.inquiries; v_target uuid; v_prospect uuid; v_ind text;
+begin
+  select * into v_i from revenue.inquiries where id = p_inquiry;
+  if not found then raise exception 'inquiry % not found', p_inquiry using errcode = 'no_data_found'; end if;
+  if v_i.status <> 'needs_review' then raise exception 'inquiry is %, not awaiting a decision', v_i.status using errcode = 'invalid_parameter_value'; end if;
+  select tenant_id into v_target from revenue.business_lines where line = p_line;
+  if v_target is null then raise exception 'no tenant is assigned to %', p_line using errcode = 'invalid_parameter_value'; end if;
+  if not identity.has_permission(v_i.tenant_id, 'visibility.prospect.read')
+     or not identity.has_permission(v_target, 'visibility.prospect.manage') then
+    raise exception 'deciding this inquiry needs access to both businesses' using errcode = 'insufficient_privilege';
+  end if;
+  v_ind := coalesce(lower(p_industry::text), 'general_' || p_line);
+  perform revenue.assert_industry_fits(v_target, v_ind::extensions.citext);
+  insert into visibility.prospects (tenant_id, business_name, contact_name, email, phone, industry, created_by)
+  values (v_target, coalesce(nullif(v_i.company,''), v_i.contact_name, 'Website inquiry'), v_i.contact_name, v_i.email, v_i.phone, v_ind, auth.uid())
+  returning id into v_prospect;
+  insert into revenue.prospect_profiles (prospect_id, tenant_id, industry_key, dedupe_key, discovery_source, is_synthetic)
+  values (v_prospect, v_target, v_ind, coalesce('email:' || v_i.email::text, 'phone:' || v_i.phone, 'inquiry:' || v_i.id::text), 'inbound_inquiry', v_i.is_synthetic);
+  insert into revenue.identity_keys (tenant_id, key, prospect_id)
+    select v_target, k, v_prospect from unnest(array_remove(array[case when v_i.email is not null then 'email:' || lower(v_i.email::text) end,
+      case when v_i.phone is not null then 'phone:' || regexp_replace(v_i.phone, '\D', '', 'g') end], null)) k
+  on conflict do nothing;
+  update revenue.inquiries set status = 'routed', routed_tenant_id = v_target, prospect_id = v_prospect, resolved_by = auth.uid(), resolved_at = now()
+   where id = p_inquiry;
+  return v_prospect;
+end; $$;
+revoke all on function revenue.resolve_inquiry(uuid, text, extensions.citext) from public, anon;
+grant execute on function revenue.resolve_inquiry(uuid, text, extensions.citext) to authenticated;
+
+-- --- Cross-business referrals: share a name, not the record ----------------
+create table if not exists revenue.referrals (
+  id            uuid primary key default pg_catalog.gen_random_uuid(),
+  from_tenant   uuid not null references platform.tenants(id) on delete cascade,
+  to_tenant     uuid not null references platform.tenants(id) on delete cascade,
+  from_prospect uuid not null references visibility.prospects(id) on delete cascade,
+  shared        jsonb not null,             -- business_name, website_url, city ONLY
+  note          text,
+  status        text not null default 'pending' check (status in ('pending','accepted','declined')),
+  to_prospect   uuid references visibility.prospects(id) on delete set null,
+  created_by    uuid references auth.users(id) on delete set null,
+  created_at    timestamptz not null default now(),
+  decided_by    uuid references auth.users(id) on delete set null,
+  decided_at    timestamptz,
+  constraint referrals_other_business check (from_tenant <> to_tenant),
+  constraint referrals_one_open unique (from_prospect, to_tenant)
+);
+alter table revenue.referrals enable row level security; alter table revenue.referrals force row level security;
+create policy referrals_select on revenue.referrals for select to authenticated
+  using (identity.has_permission(from_tenant, 'visibility.prospect.read') or identity.has_permission(to_tenant, 'visibility.prospect.read'));
+grant select on revenue.referrals to authenticated;
+create trigger referrals_audit after insert or update or delete on revenue.referrals for each row execute function audit.emit();
+
+create or replace function revenue.refer_prospect(p_prospect uuid, p_to_line text, p_note text default null)
+returns uuid language plpgsql volatile security definer set search_path = '' as $$
+declare v_p visibility.prospects; v_to uuid; v_id uuid;
+begin
+  select * into v_p from visibility.prospects where id = p_prospect;
+  if not found then raise exception 'prospect % not found', p_prospect using errcode = 'no_data_found'; end if;
+  if not identity.has_permission(v_p.tenant_id, 'visibility.prospect.manage') then
+    raise exception 'insufficient privilege' using errcode = 'insufficient_privilege';
+  end if;
+  select tenant_id into v_to from revenue.business_lines where line = p_to_line;
+  if v_to is null or v_to = v_p.tenant_id then raise exception 'no other business called %', p_to_line using errcode = 'invalid_parameter_value'; end if;
+  insert into revenue.referrals (from_tenant, to_tenant, from_prospect, shared, note, created_by)
+  values (v_p.tenant_id, v_to, p_prospect,
+    jsonb_build_object('business_name', v_p.business_name, 'website_url', v_p.website_url, 'city', v_p.city),
+    p_note, auth.uid())
+  returning id into v_id;
+  return v_id;
+end; $$;
+revoke all on function revenue.refer_prospect(uuid, text, text) from public, anon;
+grant execute on function revenue.refer_prospect(uuid, text, text) to authenticated;
+
+create or replace function revenue.decide_referral(p_referral uuid, p_accept boolean, p_industry extensions.citext default null)
+returns uuid language plpgsql volatile security definer set search_path = '' as $$
+declare v_r revenue.referrals; v_line text; v_ind text; v_keys text[]; v_existing uuid; v_new uuid; v_syn boolean;
+begin
+  select * into v_r from revenue.referrals where id = p_referral and status = 'pending';
+  if not found then raise exception 'referral % is not pending', p_referral using errcode = 'no_data_found'; end if;
+  if not identity.has_permission(v_r.to_tenant, 'visibility.prospect.manage') then
+    raise exception 'only the receiving business decides a referral' using errcode = 'insufficient_privilege';
+  end if;
+  if not p_accept then
+    update revenue.referrals set status = 'declined', decided_by = auth.uid(), decided_at = now() where id = p_referral;
+    return null;
+  end if;
+  v_line := revenue.tenant_line(v_r.to_tenant);
+  v_ind := coalesce(lower(p_industry::text), 'general_' || v_line);
+  perform revenue.assert_industry_fits(v_r.to_tenant, v_ind::extensions.citext);
+  v_keys := array_remove(array[
+    case when v_r.shared->>'website_url' is not null then 'domain:' || lower(regexp_replace(regexp_replace(v_r.shared->>'website_url', '^https?://(www\.)?', ''), '/.*$', '')) end,
+    'name:' || lower(regexp_replace(v_r.shared->>'business_name', '[^a-zA-Z0-9]+', ' ', 'g')) || '|' || lower(coalesce(v_r.shared->>'city',''))], null);
+  select prospect_id into v_existing from revenue.identity_keys where tenant_id = v_r.to_tenant and key = any(v_keys) limit 1;
+  if v_existing is null then
+    select is_synthetic into v_syn from revenue.prospect_profiles where prospect_id = v_r.from_prospect;
+    insert into visibility.prospects (tenant_id, business_name, city, website_url, industry, created_by)
+    values (v_r.to_tenant, v_r.shared->>'business_name', v_r.shared->>'city', v_r.shared->>'website_url', v_ind, auth.uid())
+    returning id into v_new;
+    insert into revenue.prospect_profiles (prospect_id, tenant_id, industry_key, dedupe_key, discovery_source, is_synthetic)
+    values (v_new, v_r.to_tenant, v_ind, v_keys[1], 'referral', coalesce(v_syn, false));
+    insert into revenue.identity_keys (tenant_id, key, prospect_id) select v_r.to_tenant, k, v_new from unnest(v_keys) k on conflict do nothing;
+  end if;
+  update revenue.referrals set status = 'accepted', to_prospect = coalesce(v_existing, v_new), decided_by = auth.uid(), decided_at = now()
+   where id = p_referral;
+  return coalesce(v_existing, v_new);
+end; $$;
+revoke all on function revenue.decide_referral(uuid, boolean, extensions.citext) from public, anon;
+grant execute on function revenue.decide_referral(uuid, boolean, extensions.citext) to authenticated;
+
+-- --- Customer responses -------------------------------------------------------
+create table if not exists revenue.responses (
+  id          bigint generated always as identity primary key,
+  tenant_id   uuid not null references platform.tenants(id) on delete cascade,
+  prospect_id uuid not null references visibility.prospects(id) on delete cascade,
+  message_id  uuid references comms.messages(id) on delete set null,
+  kind        text not null check (kind in ('interested','meeting_booked','not_interested','unsubscribed','bounced','other')),
+  note        text,
+  recorded_by uuid references auth.users(id) on delete set null,
+  recorded_at timestamptz not null default now()
+);
+alter table revenue.responses enable row level security; alter table revenue.responses force row level security;
+create policy responses_select on revenue.responses for select to authenticated using (identity.has_permission(tenant_id, 'visibility.prospect.read'));
+grant select on revenue.responses to authenticated;
+create trigger responses_audit after insert or update or delete on revenue.responses for each row execute function audit.emit();
+
+create or replace function revenue.record_response(p_prospect uuid, p_kind text, p_note text default null, p_message uuid default null)
+returns bigint language plpgsql volatile security definer set search_path = '' as $$
+declare v_tenant uuid; v_id bigint; v_to extensions.citext;
+begin
+  select tenant_id into v_tenant from revenue.prospect_profiles where prospect_id = p_prospect;
+  if not found then raise exception 'prospect % not found', p_prospect using errcode = 'no_data_found'; end if;
+  if not identity.has_permission(v_tenant, 'visibility.prospect.manage') then
+    raise exception 'insufficient privilege' using errcode = 'insufficient_privilege';
+  end if;
+  if p_message is not null and not exists (select 1 from comms.messages where id = p_message and tenant_id = v_tenant) then
+    raise exception 'message % is not from this business', p_message using errcode = 'invalid_parameter_value';
+  end if;
+  insert into revenue.responses (tenant_id, prospect_id, message_id, kind, note, recorded_by)
+  values (v_tenant, p_prospect, p_message, p_kind, p_note, auth.uid()) returning id into v_id;
+  if p_kind in ('interested','meeting_booked') then
+    update revenue.prospect_profiles set status = 'qualified', status_changed_at = now() where prospect_id = p_prospect and status = 'active';
+  elsif p_kind = 'not_interested' then
+    perform revenue.set_prospect_status(p_prospect, 'rejected', coalesce(nullif(p_note,''), 'Not interested'));
+  elsif p_kind in ('unsubscribed','bounced') then
+    select coalesce(m.to_contact, p.email) into v_to from visibility.prospects p
+      left join comms.messages m on m.id = p_message where p.id = p_prospect;
+    if v_to is not null then
+      insert into comms.suppression (tenant_id, channel, contact, reason)
+      values (v_tenant, 'email', lower(v_to::text), case when p_kind = 'bounced' then 'bounce' else 'opt_out' end::comms.suppression_reason)
+      on conflict (tenant_id, channel, contact) do nothing;
+      update comms.consent set status = 'revoked', revoked_at = now() where tenant_id = v_tenant and channel = 'email' and contact = lower(v_to::text);
+    end if;
+  end if;
+  return v_id;
+end; $$;
+revoke all on function revenue.record_response(uuid, text, text, uuid) from public, anon;
+grant execute on function revenue.record_response(uuid, text, text, uuid) to authenticated;
+
+-- --- Industry summary: counts from stored records, RLS applies (invoker) -----
+create or replace view revenue.industry_summary with (security_invoker = true) as
+-- One row per prospect first (no join fan-out), then counted per industry.
+with p as (
+  select pp.*,
+    exists (select 1 from visibility.assessments a where a.prospect_id = pp.prospect_id and a.status = 'completed') as is_reviewed,
+    exists (select 1 from revenue.proposal_links pl where pl.prospect_id = pp.prospect_id) as has_proposal,
+    exists (select 1 from revenue.proposal_links pl join comms.messages m
+              on m.source_module = 'revenue_center' and m.idempotency_key::text like 'proposal:' || pl.content_id::text || ':%'
+             where pl.prospect_id = pp.prospect_id and m.status in ('approved','sent','delivered')) as has_outreach
+  from revenue.prospect_profiles pp
+)
+select p.tenant_id, p.industry_key,
+  count(*) filter (where p.status = 'active')                                   as active,
+  count(*) filter (where p.status = 'qualified')                                as qualified,
+  count(*) filter (where p.status = 'rejected')                                 as rejected,
+  count(*) filter (where p.status = 'disqualified')                             as disqualified,
+  count(*) filter (where p.status in ('active','qualified') and not p.is_reviewed) as review_queue,
+  count(*) filter (where p.is_reviewed)                                          as reviewed,
+  count(*) filter (where p.has_proposal)                                         as with_proposal,
+  count(*) filter (where p.has_outreach)                                         as outreach,
+  count(*) filter (where p.is_synthetic)                                         as synthetic,
+  count(*) filter (where p.discovery_source = 'import')                          as imported,
+  count(*) filter (where p.discovery_source = 'google_places')                   as live_discovered,
+  count(*) filter (where p.discovery_source in ('inbound_inquiry','referral'))   as inbound,
+  max(p.created_at)                                                              as last_added_at,
+  (select max(r.finished_at) from revenue.discovery_runs r
+    where r.tenant_id = p.tenant_id and r.industry_key = p.industry_key and r.status = 'finished') as last_discovery_at
+from p
+group by p.tenant_id, p.industry_key;
+grant select on revenue.industry_summary to authenticated;
+
+-- --- API surface: so comms and workflows never need exposing -----------------
+-- What the owner is asked to approve, with the fingerprint of that version.
+create or replace function revenue.approval_detail(p_instance uuid)
+returns jsonb language plpgsql stable security definer set search_path = '' as $$
+declare v_i workflows.instances; v_out jsonb;
+begin
+  select * into v_i from workflows.instances where id = p_instance;
+  if not found or not identity.is_member(v_i.tenant_id) or not revenue.is_commercial(p_instance) then
+    raise exception 'approval % not found', p_instance using errcode = 'no_data_found';
+  end if;
+  if v_i.subject_type = 'visibility.content' then
+    select jsonb_build_object('subject','proposal','tenant_id',v_i.tenant_id,'status',v_i.status,'title',c.title,'body',c.body,
+             'sha256', revenue.content_sha256(c.title, c.body))
+      into v_out from visibility.content_assets c where c.id::text = v_i.subject_id;
+  else
+    select jsonb_build_object('subject','outreach','tenant_id',v_i.tenant_id,'status',v_i.status,
+             'title','To ' || m.to_contact::text || ': ' || coalesce(m.subject,''),'body',coalesce(m.body,''),
+             'sha256', revenue.message_sha256(m.to_contact::text, m.subject, m.body))
+      into v_out from comms.messages m where m.id::text = v_i.subject_id;
+  end if;
+  return v_out;
+end; $$;
+revoke all on function revenue.approval_detail(uuid) from public, anon;
+grant execute on function revenue.approval_detail(uuid) to authenticated;
+
+-- After the owner approves a message: mark it approved (queued for the provider).
+create or replace function revenue.release_outreach(p_message uuid)
+returns void language plpgsql volatile security definer set search_path = '' as $$
+begin
+  if not exists (select 1 from comms.messages where id = p_message and source_module = 'revenue_center') then
+    raise exception 'message % is not Revenue Center outreach', p_message using errcode = 'no_data_found';
+  end if;
+  perform comms.approve_message(p_message);
+end; $$;
+revoke all on function revenue.release_outreach(uuid) from public, anon;
+grant execute on function revenue.release_outreach(uuid) to authenticated;
+
+create or replace view revenue.open_approvals with (security_invoker = true) as
+  select i.id, i.tenant_id, i.kind, i.subject_type, i.subject_id, i.started_at
+  from workflows.instances i
+  where i.status = 'open' and i.kind in ('visibility.content.publish','comms.message.create');
+create or replace view revenue.outreach_messages with (security_invoker = true) as
+  select m.id, m.tenant_id, m.status, m.idempotency_key, m.provider_key, m.created_at, m.updated_at, m.sent_at, m.delivered_at
+  from comms.messages m where m.source_module = 'revenue_center';
+grant select on revenue.open_approvals, revenue.outreach_messages to authenticated;
+
+-- --- Final grant posture ------------------------------------------------------
+-- "alter default privileges in schema … revoke … from public" cannot remove
+-- PostgreSQL's built-in PUBLIC EXECUTE on new functions (verified: seven
+-- helpers stayed executable by anon). Revoke explicitly, then grant only what
+-- the API surface needs. Internal helpers are callable from the definer
+-- functions above, never directly.
+revoke all on all functions in schema revenue from public, anon;
+revoke all on function revenue.is_commercial(uuid), revenue.tenant_line(uuid),
+  revenue.assert_industry_fits(uuid, extensions.citext), revenue.void_approval_on_change(),
+  revenue.lowercase_contact() from authenticated;
+grant execute on function revenue.content_sha256(text, text), revenue.message_sha256(text, text, text) to authenticated;

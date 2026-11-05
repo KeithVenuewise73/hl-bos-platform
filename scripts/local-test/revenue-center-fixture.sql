@@ -54,3 +54,18 @@ on conflict do nothing;
 insert into identity.platform_admins (user_id, role_key) values
   ('00000000-0000-4000-8000-00000000a006', 'platform_owner')
 on conflict (user_id) do nothing;
+
+-- Phase 6: each website's server signs in as its own service account, which may
+-- submit inquiries for its business and nothing else.
+insert into auth.users (id, email, email_confirmed_at) values
+  ('00000000-0000-4000-8000-00000000a007', 'hld-website@hlg.test',  now()),
+  ('00000000-0000-4000-8000-00000000a008', 'hscs-website@hlg.test', now())
+on conflict (id) do nothing;
+insert into identity.memberships (id, tenant_id, user_id, status) values
+  ('00000000-0000-4000-8000-0000000000e7', '00000000-0000-4000-8000-0000000000d1', '00000000-0000-4000-8000-00000000a007', 'active'),
+  ('00000000-0000-4000-8000-0000000000e8', '00000000-0000-4000-8000-0000000000d2', '00000000-0000-4000-8000-00000000a008', 'active')
+on conflict (id) do nothing;
+insert into identity.membership_roles (membership_id, role_key) values
+  ('00000000-0000-4000-8000-0000000000e7', 'service_account'),
+  ('00000000-0000-4000-8000-0000000000e8', 'service_account')
+on conflict do nothing;

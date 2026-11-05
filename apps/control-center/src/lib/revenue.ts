@@ -1,17 +1,17 @@
 import "server-only";
 
 import {
+  CORE_INDUSTRIES,
   REVENUE_CENTER_CAPTURED_KINDS,
   RevenueCenter,
   connectorReadiness,
   growthDashboard,
+  hasScan,
   industry,
   lineName,
-  planBackfill,
-  type BackfillPlan,
   type BusinessLine,
-  type Campaign,
   type HlbosRpc,
+  type IndustrySummaryRow,
   type LineDashboard,
   type LineTenants,
   type PendingApproval,
@@ -25,13 +25,15 @@ import { readEnvFile } from "./secrets";
  * Where the Revenue Center reads and writes.
  *
  *  - "development": a THROWAWAY PostgreSQL on this computer, built by
- *    scripts/local-test/revenue-center-db.sh from the repository's migrations
- *    plus the proposed Revenue Center migration. Synthetic records only. Set
- *    HLBOS_REVENUE_DEV_PG=<socket dir or localhost>:<port>. The adapter refuses
- *    any non-local host.
- *  - "not_connected": the default. HL-BOS production has not had the proposed
- *    migration applied (that needs the owner's approval), so the page says so
- *    instead of showing anything.
+ *    scripts/local-test/revenue-center-db.sh (or the production-equivalent
+ *    build) plus the proposed Revenue Center migration. Synthetic records only.
+ *    Set HLBOS_REVENUE_DEV_PG=<socket dir or localhost>:<port> in .env.local.
+ *    The adapter refuses any non-local host.
+ *  - "not_connected": the default. The proposed migration has not been applied
+ *    to HL-BOS production (that needs the owner's approval), so the page says so.
+ *
+ * Production will use supabaseRpc() with the signed-in owner's session; that
+ * needs the migration applied and the revenue schema exposed, both approvals.
  */
 export type RevenueSource =
   | {
@@ -49,21 +51,6 @@ const DEV_TENANTS: LineTenants = {
   hscs: "00000000-0000-4000-8000-0000000000d2",
 };
 const DEV_OWNER = "00000000-0000-4000-8000-00000000a001";
-export const DEV_CAMPAIGNS: Campaign[] = [
-  { key: "hld_salons", line: "hld", name: "Salons (synthetic)", status: "approved" },
-  {
-    key: "hld_contractors",
-    line: "hld",
-    name: "Contractors (synthetic)",
-    status: "approved",
-  },
-  {
-    key: "hscs_transport",
-    line: "hscs",
-    name: "Carriers (synthetic)",
-    status: "approved",
-  },
-];
 
 /** Reads the console's own settings file (.env.local), like every other console connection. */
 export async function consoleRevenueSource(): Promise<RevenueSource> {
@@ -89,7 +76,7 @@ export function revenueSource(
   });
   return {
     mode: "development",
-    rc: new RevenueCenter(rpc, DEV_TENANTS, DEV_CAMPAIGNS),
+    rc: new RevenueCenter(rpc, DEV_TENANTS),
     rpc,
     actor: DEV_OWNER,
     tenants: DEV_TENANTS,
@@ -108,23 +95,51 @@ export interface ProspectRow {
   reviews: number;
   latestScore: number | null;
   recommendations: number;
-  proposal: string | null;
+  /** A Presence Scanner scan is stored, so the prospect can be reviewed. */
+  hasScan: boolean;
+}
+
+export interface IndustryRow {
+  key: string;
+  label: string;
+  line: BusinessLine;
+  target: number;
+  summary: IndustrySummaryRow | undefined;
+  open: number;
+  backfill: number;
+}
+
+export interface InquiryRow {
+  id: string;
+  line: BusinessLine;
+  company: string | null;
+  status: string;
+  reasons: string[];
+  synthetic: boolean;
+  receivedAt: string;
 }
 
 export interface RevenueView {
   prospects: ProspectRow[];
-  backfill: BackfillPlan[];
+  industries: IndustryRow[];
   approvals: (PendingApproval & { line: BusinessLine })[];
+  inquiries: InquiryRow[];
   dashboards: LineDashboard[];
-  syntheticRecords: number;
+  totals: {
+    prospects: number;
+    synthetic: number;
+    byLine: Record<BusinessLine, number>;
+  };
 }
+
+const n = (x: unknown) => Number(x ?? 0);
 
 export async function revenueView(
   src: Extract<RevenueSource, { mode: "development" }>,
   now = new Date(),
 ): Promise<RevenueView> {
   const { rc, rpc, actor } = src;
-  const [profiles, prospects, assessments, recs, contents, instances] =
+  const [profiles, prospects, assessments, recs, open, summary, campaigns, inquiries] =
     await Promise.all([
       rpc.rows<ProspectProfileRow>(actor, "revenue.prospect_profiles", {}),
       rpc.rows<{ id: string; business_name: string }>(
@@ -140,30 +155,20 @@ export async function revenueView(
         assessed_at: string | null;
       }>(actor, "visibility.assessments", {}),
       rpc.rows<{ assessment_id: string }>(actor, "visibility.recommendations", {}),
+      rpc.rows<{ id: string; tenant_id: string }>(actor, "revenue.open_approvals", {}),
+      rc.industrySummary(actor),
+      rc.loadCampaigns(actor),
       rpc.rows<{
         id: string;
-        body: string;
+        tenant_id: string;
+        company: string | null;
         status: string;
-        approval_instance_id: string | null;
-      }>(actor, "visibility.content_assets", { kind: "proposal" }),
-      rpc.rows<{ id: string; tenant_id: string; status: string; kind: string }>(
-        actor,
-        "workflows.instances",
-        { status: "open" },
-      ),
+        routing_reasons: string[];
+        is_synthetic: boolean;
+        received_at: string;
+      }>(actor, "revenue.inquiries", {}),
     ]);
   const names = new Map(prospects.map((p) => [p.id, p.business_name]));
-  const proposalOf = new Map<string, string>();
-  for (const c of contents) {
-    try {
-      proposalOf.set(
-        (JSON.parse(c.body) as { prospectId: string }).prospectId,
-        c.status,
-      );
-    } catch {
-      /* edited outside the app: not attributed */
-    }
-  }
   const rows: ProspectRow[] = profiles.map((p) => {
     const mine = assessments.filter(
       (a) => a.prospect_id === p.prospect_id && a.status === "completed",
@@ -185,13 +190,11 @@ export async function revenueView(
       recommendations: latest
         ? recs.filter((r) => r.assessment_id === latest.id).length
         : 0,
-      proposal: proposalOf.get(p.prospect_id) ?? null,
+      hasScan: hasScan(p.scan_snapshot),
     };
   });
   const approvals: RevenueView["approvals"] = [];
-  for (const i of instances.filter(
-    (x) => x.kind === "visibility.content.publish" || x.kind === "comms.message.create",
-  )) {
+  for (const i of open) {
     try {
       approvals.push({
         ...(await rc.pendingApproval(actor, i.id)),
@@ -201,13 +204,48 @@ export async function revenueView(
       /* not a Revenue Center approval */
     }
   }
+  const industries: IndustryRow[] = CORE_INDUSTRIES.map((ind) => {
+    const sum = summary.find((r) => r.industry_key === ind.key);
+    // The target is the sum of this industry's approved campaigns, or the default when none exist.
+    const approved = campaigns.filter(
+      (c) => c.industry_key === ind.key && c.status === "approved",
+    );
+    const target = approved.length
+      ? approved.reduce((s, c) => s + c.target_active, 0)
+      : ind.targetActive;
+    const openCount = n(sum?.active) + n(sum?.qualified);
+    return {
+      key: ind.key,
+      label: ind.label,
+      line: ind.line,
+      target,
+      summary: sum,
+      open: openCount,
+      backfill: Math.max(0, target - openCount),
+    };
+  });
   const events = await rc.loadEvents(actor);
+  const byLine = {
+    hld: rows.filter((r) => r.line === "hld").length,
+    hscs: rows.filter((r) => r.line === "hscs").length,
+  };
   return {
     prospects: rows.sort(
       (a, b) => a.industry.localeCompare(b.industry) || a.name.localeCompare(b.name),
     ),
-    backfill: planBackfill(await rc.industryCounts(actor, { includeSynthetic: true })),
+    industries,
     approvals,
+    inquiries: inquiries
+      .filter((q) => q.status === "needs_review")
+      .map((q) => ({
+        id: q.id,
+        line: rc.lineOfTenant(q.tenant_id),
+        company: q.company,
+        status: q.status,
+        reasons: q.routing_reasons,
+        synthetic: q.is_synthetic,
+        receivedAt: q.received_at,
+      })),
     dashboards: growthDashboard(
       { id: actor, role: "owner", lines: [] },
       {
@@ -219,7 +257,11 @@ export async function revenueView(
         includeSynthetic: true,
       },
     ),
-    syntheticRecords: profiles.filter((p) => p.is_synthetic).length,
+    totals: {
+      prospects: rows.length,
+      synthetic: rows.filter((r) => r.synthetic).length,
+      byLine,
+    },
   };
 }
 

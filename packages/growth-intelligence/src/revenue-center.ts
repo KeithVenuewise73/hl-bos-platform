@@ -33,6 +33,7 @@ import {
   type OpportunityReview,
   type ReviewOptions,
 } from "./review.ts";
+import { prospectIdentityKeys } from "./identity.ts";
 import { lineName, routeLead, type Campaign, type RoutingResult } from "./routing.ts";
 import type { BusinessLine, Channel, GrowthEvent, GrowthEventKind } from "./types.ts";
 
@@ -96,6 +97,51 @@ export interface ProspectProfileRow {
   status_reason: string | null;
   scan_snapshot: Prospect;
   created_at: string;
+}
+
+export interface CampaignRow {
+  tenant_id: string;
+  key: string;
+  industry_key: string;
+  name: string;
+  market_label: string;
+  market_zip: string | null;
+  radius_miles: string | number;
+  target_active: number;
+  search_terms: string | null;
+  status: "draft" | "approved" | "paused" | "ended";
+}
+
+export interface CampaignInput {
+  key: string;
+  industryKey: string;
+  name: string;
+  marketLabel: string;
+  radiusMiles: number;
+  targetActive?: number;
+  zip?: string;
+  lat?: number;
+  lon?: number;
+  searchTerms?: string;
+}
+
+export interface IndustrySummaryRow {
+  tenant_id: string;
+  industry_key: string;
+  active: number;
+  qualified: number;
+  rejected: number;
+  disqualified: number;
+  review_queue: number;
+  reviewed: number;
+  with_proposal: number;
+  outreach: number;
+  synthetic: number;
+  imported: number;
+  live_discovered: number;
+  inbound: number;
+  last_added_at: string | null;
+  last_discovery_at: string | null;
 }
 
 export type PersistResult =
@@ -255,12 +301,62 @@ export function reviewPayload(
   return { scores, evidence, recommendations };
 }
 
+/** True when a stored snapshot is a Presence Scanner lead with evidence. */
+export function hasScan(snapshot: unknown): snapshot is Prospect {
+  const x = snapshot as Partial<Prospect> | null;
+  return (
+    !!x && Array.isArray(x.findings) && !!x.score && Array.isArray(x.score.components)
+  );
+}
+
 export class RevenueCenter {
   constructor(
     private readonly rpc: HlbosRpc,
     private readonly tenants: LineTenants,
-    private readonly campaigns: readonly Campaign[] = [],
   ) {}
+
+  /** Campaigns are stored per business (revenue.campaigns); routing reads them from there. */
+  async loadCampaigns(actor: string): Promise<(Campaign & CampaignRow)[]> {
+    const rows = await this.rpc.rows<CampaignRow>(actor, "revenue.campaigns", {});
+    return rows.map((r) => ({
+      ...r,
+      line: this.lineOfTenant(r.tenant_id),
+      status: r.status,
+    }));
+  }
+
+  async upsertCampaign(
+    actor: string,
+    line: BusinessLine,
+    c: CampaignInput,
+  ): Promise<void> {
+    await this.rpc.call(actor, "revenue.upsert_campaign", {
+      p_tenant: this.tenants[line],
+      p_key: c.key,
+      p_industry: c.industryKey,
+      p_name: c.name,
+      p_market_label: c.marketLabel,
+      p_radius_miles: c.radiusMiles,
+      p_target: c.targetActive ?? 50,
+      p_zip: c.zip ?? null,
+      p_lat: c.lat ?? null,
+      p_lon: c.lon ?? null,
+      p_search_terms: c.searchTerms ?? null,
+    });
+  }
+
+  async setCampaignStatus(
+    actor: string,
+    line: BusinessLine,
+    key: string,
+    status: "approved" | "paused" | "ended" | "draft",
+  ): Promise<void> {
+    await this.rpc.call(actor, "revenue.set_campaign_status", {
+      p_tenant: this.tenants[line],
+      p_key: key,
+      p_status: status,
+    });
+  }
 
   lineOfTenant(tenantId: string): BusinessLine {
     if (tenantId === this.tenants.hld) return "hld";
@@ -294,6 +390,7 @@ export class RevenueCenter {
       campaignKey: string;
       source: DiscoverySource;
       isSynthetic: boolean;
+      runId?: string;
     },
   ): Promise<PersistResult> {
     const ind: Industry | undefined = industryByKey(opts.industryKey);
@@ -313,7 +410,7 @@ export class RevenueCenter {
           .filter(Boolean)
           .join(" "),
       },
-      this.campaigns,
+      await this.loadCampaigns(actor),
     );
     if (routing.status !== "routed") return { status: "needs_review", routing };
     if (routing.line !== ind.line)
@@ -344,6 +441,8 @@ export class RevenueCenter {
         p_city: lead.market.label,
         p_website: lead.corrections.website ?? lead.website ?? null,
         p_snapshot: lead,
+        p_identity_keys: prospectIdentityKeys(lead),
+        p_run: opts.runId ?? null,
       },
     );
     return {
@@ -362,6 +461,12 @@ export class RevenueCenter {
   ): Promise<OpportunityReview> {
     const p = await this.profile(actor, prospectId);
     const lead = p.scan_snapshot;
+    // Inquiries, referrals and adopted records carry no website scan. A review
+    // needs observed evidence, so refuse plainly instead of inventing any.
+    if (!hasScan(lead))
+      throw new WorkflowError(
+        `No website scan is stored for this business yet (it came from ${p.discovery_source.replace("_", " ")}). Scan its website before reviewing.`,
+      );
     return buildReview(lead, {
       ...extra,
       line: this.lineOfTenant(p.tenant_id),
@@ -412,62 +517,39 @@ export class RevenueCenter {
     const line = this.lineOfTenant(p.tenant_id);
     const review = await this.reviewFor(actor, prospectId);
     const proposal = buildProposal(review, priceBook ? { priceBook } : {});
-    const contentId = await this.rpc.call<string>(actor, "visibility.draft_content", {
-      p_tenant: p.tenant_id,
-      p_site: null,
-      p_kind: "proposal",
+    const contentId = await this.rpc.call<string>(actor, "revenue.draft_proposal", {
+      p_prospect: prospectId,
       p_title: `Proposal — ${p.scan_snapshot.name} (${lineName(line)})`,
       p_body: JSON.stringify({ prospectId, proposal }),
     });
     if (proposal.status !== "ready_for_approval")
       return { contentId, proposal, approvalInstanceId: undefined };
+    // The database re-checks: every line priced, nothing blocked.
     const approvalInstanceId = await this.rpc.call<string>(
       actor,
-      "visibility.submit_content_for_approval",
-      { p_content: contentId },
+      "revenue.submit_proposal",
+      {
+        p_content: contentId,
+      },
     );
-    await this.rpc.call(actor, "visibility.set_prospect_stage", {
-      p_prospect: prospectId,
-      p_stage: "proposed",
-    });
     return { contentId, proposal, approvalInstanceId };
   }
 
   /** What the owner is asked to approve, with the hash of that exact version. */
   async pendingApproval(actor: string, instanceId: string): Promise<PendingApproval> {
-    const [i] = await this.rpc.rows<{ subject_type: string; subject_id: string }>(
-      actor,
-      "workflows.instances",
-      { id: instanceId },
-    );
-    if (!i) throw new WorkflowError("Approval not found, or not visible to you.");
-    if (i.subject_type === "visibility.content") {
-      const [c] = await this.rpc.rows<{ title: string; body: string }>(
-        actor,
-        "visibility.content_assets",
-        { id: i.subject_id },
-      );
-      if (!c) throw new WorkflowError("Proposal not found.");
-      return {
-        instanceId,
-        subject: "proposal",
-        title: c.title,
-        body: c.body,
-        sha256: contentSha256(c.title, c.body),
-      };
-    }
-    const [m] = await this.rpc.rows<{
-      to_contact: string;
-      subject: string | null;
-      body: string | null;
-    }>(actor, "comms.messages", { id: i.subject_id });
-    if (!m) throw new WorkflowError("Message not found.");
+    const d = await this.rpc.call<{
+      subject: "proposal" | "outreach";
+      title: string;
+      body: string;
+      sha256: string;
+    } | null>(actor, "revenue.approval_detail", { p_instance: instanceId });
+    if (!d) throw new WorkflowError("Approval not found, or not visible to you.");
     return {
       instanceId,
-      subject: "outreach",
-      title: `To ${m.to_contact}: ${m.subject ?? ""}`,
-      body: m.body ?? "",
-      sha256: messageSha256(m.to_contact, m.subject, m.body),
+      subject: d.subject,
+      title: d.title,
+      body: d.body,
+      sha256: d.sha256,
     };
   }
 
@@ -496,11 +578,16 @@ export class RevenueCenter {
     const r = await this.rpc.call<{
       message_id: string;
       approval_instance_id: string | null;
+      status: string;
     }>(actor, "revenue.queue_outreach", {
       p_content: contentId,
       p_to: to,
       p_vars: vars,
     });
+    if (r.status === "suppressed")
+      throw new WorkflowError(
+        "This address has opted out or bounced. Nothing will be sent to it.",
+      );
     if (!r.approval_instance_id)
       throw new WorkflowError("Outreach was not held for approval.");
     return { messageId: r.message_id, approvalInstanceId: r.approval_instance_id };
@@ -508,7 +595,7 @@ export class RevenueCenter {
 
   /** After the owner approves the message: it becomes 'approved' — queued, not sent. */
   async releaseOutreach(actor: string, messageId: string): Promise<void> {
-    await this.rpc.call(actor, "comms.approve_message", { p_message: messageId });
+    await this.rpc.call(actor, "revenue.release_outreach", { p_message: messageId });
   }
 
   async setStatus(
@@ -524,15 +611,162 @@ export class RevenueCenter {
     });
   }
 
+  /** Bring an existing HL-BOS prospect (e.g. the production barbershop list) into the Revenue Center. */
+  async adoptProspect(
+    actor: string,
+    prospectId: string,
+    industryKey: string,
+    identity: string[],
+    opts: { isSynthetic: boolean; campaignKey?: string },
+  ): Promise<void> {
+    const [dedupe, ...rest] = identity;
+    if (!dedupe)
+      throw new WorkflowError("An adopted prospect needs at least one identity key.");
+    await this.rpc.call(actor, "revenue.adopt_prospect", {
+      p_prospect: prospectId,
+      p_industry: industryKey,
+      p_dedupe: dedupe,
+      p_is_synthetic: opts.isSynthetic,
+      p_identity_keys: rest,
+      p_campaign: opts.campaignKey ?? null,
+    });
+  }
+
+  /** Offer a prospect to the other business. Only its name, website and city are shared. */
+  async referProspect(
+    actor: string,
+    prospectId: string,
+    toLine: BusinessLine,
+    note?: string,
+  ): Promise<string> {
+    return this.rpc.call<string>(actor, "revenue.refer_prospect", {
+      p_prospect: prospectId,
+      p_to_line: toLine,
+      p_note: note ?? null,
+    });
+  }
+
+  /** The receiving business accepts (creating its own prospect) or declines. */
+  async decideReferral(
+    actor: string,
+    referralId: string,
+    accept: boolean,
+    industryKey?: string,
+  ): Promise<string | null> {
+    return this.rpc.call<string | null>(actor, "revenue.decide_referral", {
+      p_referral: referralId,
+      p_accept: accept,
+      p_industry: industryKey ?? null,
+    });
+  }
+
+  /** A customer's reply, recorded by a person. Unsubscribes and bounces suppress the address. */
+  async recordResponse(
+    actor: string,
+    prospectId: string,
+    kind:
+      | "interested"
+      | "meeting_booked"
+      | "not_interested"
+      | "unsubscribed"
+      | "bounced"
+      | "other",
+    note?: string,
+    messageId?: string,
+  ): Promise<number> {
+    return this.rpc.call<number>(actor, "revenue.record_response", {
+      p_prospect: prospectId,
+      p_kind: kind,
+      p_note: note ?? null,
+      p_message: messageId ?? null,
+    });
+  }
+
+  /** A person decides which business an uncertain inquiry belongs to. */
+  async resolveInquiry(
+    actor: string,
+    inquiryId: string,
+    line: BusinessLine,
+    industryKey?: string,
+  ): Promise<string> {
+    return this.rpc.call<string>(actor, "revenue.resolve_inquiry", {
+      p_inquiry: inquiryId,
+      p_line: line,
+      p_industry: industryKey ?? null,
+    });
+  }
+
+  /** Per-industry counts from revenue.industry_summary (RLS applies: you see only your businesses). */
+  async industrySummary(actor: string): Promise<IndustrySummaryRow[]> {
+    return this.rpc.rows<IndustrySummaryRow>(actor, "revenue.industry_summary", {});
+  }
+
+  /** Open a discovery run; the database refuses it beyond the run and monthly limits. */
+  async beginDiscoveryRun(
+    actor: string,
+    line: BusinessLine,
+    campaignKey: string,
+    source: DiscoverySource,
+    candidates: number,
+    plannedPaidRequests: number,
+  ): Promise<string> {
+    return this.rpc.call<string>(actor, "revenue.begin_discovery_run", {
+      p_tenant: this.tenants[line],
+      p_campaign: campaignKey,
+      p_source: source,
+      p_candidates: candidates,
+      p_planned_paid_requests: plannedPaidRequests,
+    });
+  }
+
+  async finishDiscoveryRun(
+    actor: string,
+    runId: string,
+    r: {
+      paidRequests: number;
+      estCostCents: number;
+      candidates: number;
+      added: number;
+      duplicates: number;
+      needsReview: number;
+      error?: string | undefined;
+    },
+  ): Promise<void> {
+    await this.rpc.call(actor, "revenue.finish_discovery_run", {
+      p_run: runId,
+      p_paid_requests: r.paidRequests,
+      p_est_cost_cents: r.estCostCents,
+      p_candidates: r.candidates,
+      p_added: r.added,
+      p_duplicates: r.duplicates,
+      p_needs_review: r.needsReview,
+      p_error: r.error ?? null,
+    });
+  }
+
+  /** The designated owner sets how much paid discovery is allowed (0 = none). */
+  async setDiscoveryLimits(
+    actor: string,
+    line: BusinessLine,
+    paidRequestsPerMonth: number,
+    maxCandidatesPerRun: number,
+  ): Promise<void> {
+    await this.rpc.call(actor, "revenue.set_discovery_limits", {
+      p_tenant: this.tenants[line],
+      p_paid_per_month: paidRequestsPerMonth,
+      p_max_per_run: maxCandidatesPerRun,
+    });
+  }
+
   /** Active / qualified / rejected / disqualified per industry, from the database. */
   async industryCounts(
     actor: string,
-    opts: { includeSynthetic: boolean },
+    opts: { includeSynthetic: boolean; line?: BusinessLine },
   ): Promise<IndustryCounts[]> {
     const rows = await this.rpc.rows<ProspectProfileRow>(
       actor,
       "revenue.prospect_profiles",
-      {},
+      opts.line ? { tenant_id: this.tenants[opts.line] } : {},
     );
     const m = new Map<string, IndustryCounts>();
     for (const r of rows) {
@@ -565,8 +799,7 @@ export class RevenueCenter {
         status: string;
         idempotency_key: string | null;
         updated_at: string;
-        source_module: string;
-      }>(actor, "comms.messages", {}),
+      }>(actor, "revenue.outreach_messages", {}),
     ]);
     const byId = new Map(profiles.map((p) => [p.prospect_id, p]));
     const out: GrowthEvent[] = [];
@@ -613,25 +846,24 @@ export class RevenueCenter {
         push(p, "review_completed", a.assessed_at);
     }
     // Outreach counts only once a message has actually been delivered (mock or real).
-    const contents = await this.rpc.rows<{ id: string; body: string }>(
+    // Proposals are linked to their prospect in revenue.proposal_links.
+    const links = await this.rpc.rows<{ content_id: string; prospect_id: string }>(
       actor,
-      "visibility.content_assets",
-      { kind: "proposal" },
+      "revenue.proposal_links",
+      {},
     );
-    const contentProspect = new Map<string, string>();
-    for (const c of contents) {
-      try {
-        contentProspect.set(
-          c.id,
-          (JSON.parse(c.body) as { prospectId: string }).prospectId,
-        );
-      } catch {
-        // A body that is no longer the structured draft (edited outside the app)
-        // is not attributed to anyone rather than guessed.
-      }
+    const contentProspect = new Map(links.map((l) => [l.content_id, l.prospect_id]));
+    const responses = await this.rpc.rows<{
+      prospect_id: string;
+      kind: string;
+      recorded_at: string;
+    }>(actor, "revenue.responses", {});
+    for (const r of responses) {
+      const p = byId.get(r.prospect_id);
+      if (p) push(p, "outreach_response", r.recorded_at);
     }
     for (const m of messages) {
-      if (m.source_module !== "revenue_center" || !m.idempotency_key) continue;
+      if (!m.idempotency_key) continue;
       const contentId = m.idempotency_key.split(":")[1] ?? "";
       const p = byId.get(contentProspect.get(contentId) ?? "");
       if (p && m.status === "delivered") {
@@ -646,6 +878,7 @@ export class RevenueCenter {
 /** Event kinds the Revenue Center database actually records today. */
 export const REVENUE_CENTER_CAPTURED_KINDS: readonly GrowthEventKind[] = [
   "discovered",
+  "outreach_response",
   "inquiry_received",
   "referral_received",
   "review_completed",

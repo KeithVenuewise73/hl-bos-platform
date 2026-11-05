@@ -13,6 +13,12 @@ const COL = /^[a-z_][a-z0-9_]*$/;
 
 function lit(v: unknown): string {
   if (v === null || v === undefined) return "NULL";
+  // A list of strings is a PostgreSQL array literal ('{"a","b"}'), as PostgREST
+  // converts a JSON array for a text[] parameter.
+  if (Array.isArray(v) && v.every((x) => typeof x === "string"))
+    return lit(
+      `{${v.map((x) => `"${x.replace(/\\/g, "\\\\").replace(/"/g, '\\"')}"`).join(",")}}`,
+    );
   const s = typeof v === "string" ? v : JSON.stringify(v);
   return `'${s.replace(/'/g, "''")}'`;
 }
