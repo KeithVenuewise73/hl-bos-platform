@@ -255,7 +255,7 @@ export function IphoneButton({
       {busy && awake !== null ? (
         <p className="text-xs text-muted" data-testid="iphone-awake">
           {awake
-            ? "This laptop will not go to sleep until the copy from the iPhone finishes. Keep the lid open: closing it still puts Windows to sleep."
+            ? "This laptop will not go to sleep until the copy from the iPhone finishes, and the screen stays on until then. Keep the lid open: closing it still puts Windows to sleep."
             : "Windows could not be kept awake for this copy. Keep the laptop awake and the lid open until it finishes; if it does sleep, press the button again to finish the rest."}
         </p>
       ) : null}

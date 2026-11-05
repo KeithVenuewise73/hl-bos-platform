@@ -3,13 +3,21 @@ import "server-only";
 import { spawn } from "node:child_process";
 
 /**
- * Keep Windows from going to sleep while photos are being copied.
+ * Keep Windows from going to sleep while photos are being read or copied.
  *
  * A laptop that sleeps mid-copy drops the page's connection, and DateSort
- * stops (cleanly: every photo already copied is whole and checked). A copy of
- * thousands of photos easily outlasts the sleep timer, so while one runs this
- * holds Windows' "system required" flag, the same request a video player
- * makes. The screen may still turn off; the copy carries on.
+ * stops (cleanly: every photo already copied is whole and checked). A scan or
+ * copy of thousands of photos easily outlasts the sleep timer, so while one
+ * runs this holds Windows' "system required" AND "display required" flags,
+ * the same requests a video player makes.
+ *
+ * The screen is kept on deliberately. On many current laptops (Windows'
+ * "Modern Standby"), the screen turning off is what starts standby, so
+ * "system required" alone may not be enough. A laptop did go to sleep
+ * during a real camera download on 2026-11-05 (with only "system required",
+ * and with the scan not covered at all). Which of the two caused it was
+ * not confirmed; both are closed here: the screen stays on, and scanning
+ * holds the request too, until the job ends.
  *
  * Closing the lid is not covered: Windows treats that as an instruction, not
  * idleness, and sleeps anyway.
@@ -25,10 +33,10 @@ export interface Awake {
   release(): void;
 }
 
-// ES_CONTINUOUS | ES_SYSTEM_REQUIRED. No ES_DISPLAY_REQUIRED: the screen may sleep.
+// ES_CONTINUOUS | ES_SYSTEM_REQUIRED | ES_DISPLAY_REQUIRED (see above for why the screen too).
 export const AWAKE_SCRIPT = `
 $k = Add-Type -Name Power -Namespace DateSort -PassThru -MemberDefinition '[DllImport("kernel32.dll")] public static extern uint SetThreadExecutionState(uint flags);'
-if ($k::SetThreadExecutionState([uint32]"0x80000001") -eq 0) { exit 3 }
+if ($k::SetThreadExecutionState([uint32]"0x80000003") -eq 0) { exit 3 }
 [Console]::Out.WriteLine("awake")
 [Console]::Out.Flush()
 [void][Console]::In.ReadToEnd()

@@ -1,6 +1,7 @@
 import { scanFolder, ScanError, type ScanResult } from "@hl-bos/date-sort/scan";
 
 import { guard } from "@/lib/guard.ts";
+import { keepAwake } from "@/lib/keep-awake.ts";
 import { latestView, rememberScan, rememberView } from "@/lib/scan-store.ts";
 import type { ScanMessage, ScanView } from "@/lib/scan-view.ts";
 
@@ -44,6 +45,8 @@ export async function POST(request: Request): Promise<Response> {
       const send = (m: ScanMessage) =>
         controller.enqueue(encoder.encode(`${JSON.stringify(m)}\n`));
       let lastSent = 0;
+      // Reading the dates of a full card takes a while: Windows must not sleep meanwhile.
+      const awake = await keepAwake();
       try {
         const result = await scanFolder(folder, {
           includeSubfolders,
@@ -69,6 +72,7 @@ export async function POST(request: Request): Promise<Response> {
               : `The scan stopped: ${e instanceof Error ? e.message : String(e)}. Nothing in the folder was changed.`,
         });
       } finally {
+        awake.release();
         try {
           controller.close();
         } catch {

@@ -369,7 +369,7 @@ export function CopyPanel({ view, copy }: { view: ScanView; copy: CopyState }) {
       {busy && copy.awake !== null ? (
         <p className="text-xs text-muted" data-testid="copy-awake">
           {copy.awake
-            ? "This laptop will not go to sleep until the copy finishes. Keep the lid open: closing it still puts Windows to sleep."
+            ? "This laptop will not go to sleep until the copy finishes, and the screen stays on until then. Keep the lid open: closing it still puts Windows to sleep."
             : "Windows could not be kept awake for this copy. Keep the laptop awake and the lid open until it finishes; if it does sleep, press the button again to finish the rest."}
         </p>
       ) : null}

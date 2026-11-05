@@ -90,10 +90,10 @@ The rules (`packages/date-sort/src/copy`):
   different `IMG_0001.JPG`. The second copy is named `IMG_0001 (2).JPG`, the same way every time.
 - **Safe to repeat.** Pressing it again only copies what is missing, so an interrupted copy is
   finished by pressing the button again.
-- **The laptop stays awake while it copies.** A laptop that goes to sleep cuts the page off from
-  DateSort, which stops the copy (cleanly). So while a copy runs, DateSort asks Windows not to
+- **The laptop stays awake while it scans and copies.** A laptop that goes to sleep cuts the page off from
+  DateSort, which stops the copy (cleanly). So while a scan or copy runs, DateSort asks Windows not to
   sleep (`src/lib/keep-awake.ts`, the same request a video player makes), and lets go when the copy
-  ends or DateSort closes. The screen can still turn off. Closing the lid still sleeps, so the page
+  ends or DateSort closes. The screen stays on too: on many current laptops the screen turning off is what starts sleep. Closing the lid still sleeps, so the page
   says to keep it open. A Windows test checks with `powercfg /requests` that Windows really sees
   the request, and that it is gone afterwards. If the copy is cut off anyway, the page says so in
   plain words and says to press the button again.
