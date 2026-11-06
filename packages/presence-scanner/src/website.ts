@@ -20,6 +20,11 @@ import {
 } from "../../../supabase/functions/_shared/discovery/scan.ts";
 import { extractFindings } from "../../../supabase/functions/_shared/discovery/extract.ts";
 import type { DimensionScore } from "../../../supabase/functions/_shared/discovery/rubric.ts";
+import {
+  detectAccessBlock,
+  looksScriptRendered,
+  visibleText,
+} from "./access-blocks.ts";
 import { detectConversion, type Detection } from "./detectors.ts";
 import type { ExtraCheck } from "./verticals.ts";
 import { classifyUrl } from "./normalize.ts";
@@ -250,6 +255,38 @@ export async function inspectWebsite(
   }
 
   const page = captured;
+  // A security service's page served with HTTP 200 is not the business's
+  // website. Record the block; inspect nothing on it.
+  const titleMatch = /<title[^>]*>([\s\S]*?)<\/title>/i.exec(page.body);
+  const block = detectAccessBlock({
+    status: page.status,
+    headers: page.headers,
+    title: decodeEntities(titleMatch?.[1] ?? "").trim(),
+    text: visibleText(page.body),
+    sources: [
+      ...page.body.matchAll(/<(?:script|iframe)\b[^>]*\bsrc=["']([^"']+)["']/gi),
+    ].map((m) => m[1] ?? ""),
+    otherFields: (page.body.match(/<(input|select|textarea)\b/gi) ?? []).length,
+  });
+  if (block) {
+    const who = block.provider ? `${block.provider} ` : "";
+    return {
+      ...base,
+      url: scan.normalizedUrl,
+      finalUrl: page.finalUrl,
+      status: "blocked",
+      summary: `The website could not be inspected: a ${who}${block.kind.replace("_", " ")} page answered instead of the site.`,
+      findings: [
+        f(
+          "website.reachable",
+          "Website could not be inspected",
+          "blocked",
+          `${page.finalUrl}: a ${who}${block.kind.replace("_", " ")} page was served instead of the website (${block.evidence}). Nothing on it was treated as the business's site, and no attempt was made to get past it.`,
+          at,
+        ),
+      ],
+    };
+  }
   const w = extractFindings(page.body, page.headers, page.finalUrl);
   const det = detectConversion(page.body, now);
   const home = page.finalUrl;
@@ -577,6 +614,47 @@ export async function inspectWebsite(
     );
   }
 
+  // A page drawn by JavaScript: the raw HTML is an empty shell, so anything
+  // "not found" in it is a statement about the shell. Keep the facts the HTML
+  // head really carries; everything that depends on the page body is not checked.
+  const js = looksScriptRendered(page.body);
+  if (js.scriptRendered) {
+    const why = `The homepage is drawn by JavaScript (${js.evidence}), so a plain fetch cannot see its content. Needs the visual (browser) review.`;
+    return {
+      status: "ok",
+      url: scan.normalizedUrl,
+      finalUrl: home,
+      summary:
+        "The homepage loaded, but its content is drawn by JavaScript; only its address, HTTPS and page head were checked.",
+      findings: [
+        ...out
+          .filter((x) => !x.key.startsWith("site.") || SCRIPT_SAFE.has(x.key))
+          .filter((x) => x.key !== "site.rubric"),
+        ...out
+          .filter(
+            (x) =>
+              x.key.startsWith("site.") &&
+              !SCRIPT_SAFE.has(x.key) &&
+              x.key !== "site.rubric",
+          )
+          .map((x) => ({
+            ...x,
+            status: "not_checked" as const,
+            evidence: why,
+            confidence: "high" as const,
+          })),
+        f(
+          "site.script_rendered",
+          "Homepage content is drawn by JavaScript",
+          "present",
+          `${home}: ${js.evidence}.`,
+          at,
+        ),
+      ],
+      rubric: undefined,
+    };
+  }
+
   return {
     status: "ok",
     url: scan.normalizedUrl,
@@ -586,6 +664,14 @@ export async function inspectWebsite(
     rubric: { version: scan.rubricVersion, dimensions: scan.dimensions },
   };
 }
+
+/** Facts read from the address and the HTML head, which a JavaScript-drawn page still carries. */
+const SCRIPT_SAFE = new Set([
+  "site.https",
+  "site.title",
+  "site.meta_description",
+  "site.viewport",
+]);
 
 /** Business schema types that describe a business (not just a web page). */
 const BUSINESS_SCHEMA =

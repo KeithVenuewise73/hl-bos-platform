@@ -19,6 +19,9 @@ import { LeadControls } from "@/components/LeadControls";
 import { C, QUAL_COLOUR, scoreColour } from "@/components/presence-style";
 import { FilePresenceRepository } from "@/lib/presence-store";
 import { FileDraftRepository, FileProfileRepository } from "@/lib/site-store";
+import { VisualControls } from "@/components/VisualControls";
+import { browserInstalled, loadVisualReview } from "@/lib/visual";
+import type { VisualReview } from "@hl-bos/visual-review";
 
 export const dynamic = "force-dynamic";
 
@@ -50,10 +53,11 @@ export default async function LeadCardPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const [p, draft, profiles] = await Promise.all([
+  const [p, draft, profiles, browserReady] = await Promise.all([
     new FilePresenceRepository().getProspect(id),
     new FileDraftRepository().getByProspect(id),
     new FileProfileRepository().list(),
+    browserInstalled(),
   ]);
   // An HLG-owned business: its site is an internal draft from its Business Profile.
   const profile = profiles.find((x) => x.prospectId === id);
@@ -61,6 +65,7 @@ export default async function LeadCardPage({
   const q = effectiveQualification(p.qualification);
   const rec = p.places?.record;
   const byKey = new Map(p.findings.map((f) => [f.key, f]));
+  const visual = p.visual ? await loadVisualReview(p.visual.reviewId) : undefined;
 
   return (
     <main style={{ maxWidth: 1000, margin: "0 auto", padding: "28px 24px 64px" }}>
@@ -280,6 +285,8 @@ export default async function LeadCardPage({
         </table>
       </Card>
 
+      <VisualReviewCard id={p.id} review={visual} browserReady={browserReady} />
+
       <Card
         title="Findings and evidence"
         sub="Everything observed, where it came from and when. “Not found” means not seen on the homepage — only the homepage is inspected."
@@ -487,5 +494,148 @@ export default async function LeadCardPage({
         ) : null}
       </Card>
     </main>
+  );
+}
+
+const COVERAGE: Record<VisualReview["coverage"], [string, string]> = {
+  complete: ["Visually reviewed", C.green],
+  partial: ["Partly reviewed", C.yellow],
+  blocked: ["Could not be viewed", C.red],
+  failed: ["Review did not finish", C.red],
+  not_available: ["No browser on this computer", C.grey],
+};
+
+/** The browser-based review: what a real browser saw, page by page, with screenshots. */
+function VisualReviewCard({
+  id,
+  review,
+  browserReady,
+}: {
+  id: string;
+  review: VisualReview | undefined;
+  browserReady: boolean;
+}) {
+  const img = (file: string) =>
+    `/presence/${encodeURIComponent(id)}/visual/${review?.id ?? ""}/${file}`;
+  return (
+    <Card
+      title="Visual review (real browser)"
+      sub="A real browser on this computer opens the homepage and the most relevant pages it links to, read-only: nothing is submitted, booked or signed up for, and a block or CAPTCHA is recorded, never worked around."
+    >
+      {review ? (
+        <>
+          <p style={{ margin: "0 0 6px", fontSize: 14 }}>
+            <strong style={{ color: COVERAGE[review.coverage][1] }}>
+              {COVERAGE[review.coverage][0]}
+            </strong>{" "}
+            <span style={{ color: C.muted, fontSize: 12 }}>
+              {review.finishedAt.slice(0, 16).replace("T", " ")} UTC ·{" "}
+              {review.environment.browser}
+            </span>
+          </p>
+          <p style={{ margin: "0 0 12px", fontSize: 13, color: C.muted }}>
+            {review.coverageReason}
+          </p>
+          {review.pages.map((pg, i) => (
+            <div
+              key={`${pg.url}-${i}`}
+              style={{
+                borderTop: `1px solid ${C.border}`,
+                padding: "10px 0",
+                fontSize: 13,
+              }}
+            >
+              <div>
+                <strong>{pg.title ?? pg.url}</strong>{" "}
+                <span style={{ color: pg.access === "ok" ? C.green : C.yellow }}>
+                  {pg.access === "ok" ? "viewed" : pg.access.replace(/_/g, " ")}
+                </span>
+              </div>
+              <div style={{ color: C.muted, fontSize: 12, wordBreak: "break-all" }}>
+                {pg.finalUrl ?? pg.url} — {pg.reason}. {pg.detail}
+              </div>
+              {pg.access === "ok" && pg.navigation.length ? (
+                <div style={{ fontSize: 12, marginTop: 4 }}>
+                  Menu:{" "}
+                  {pg.navigation
+                    .slice(0, 12)
+                    .map((l) => l.text)
+                    .join(" · ")}
+                </div>
+              ) : null}
+              {pg.callsToAction.some(
+                (c) => c.intent === "book" || c.intent === "register",
+              ) ? (
+                <div style={{ fontSize: 12, marginTop: 2 }}>
+                  Booking / registration:{" "}
+                  {pg.callsToAction
+                    .filter((c) => c.intent === "book" || c.intent === "register")
+                    .slice(0, 4)
+                    .map((c) => `“${c.text}”${c.provider ? ` (${c.provider})` : ""}`)
+                    .join(", ")}
+                </div>
+              ) : null}
+              <div style={{ display: "flex", gap: 10, marginTop: 6, flexWrap: "wrap" }}>
+                {[pg.desktop, pg.mobile]
+                  .filter((s) => s !== undefined)
+                  .map((s) => (
+                    <a
+                      key={s.file}
+                      href={img(s.file)}
+                      target="_blank"
+                      rel="noreferrer"
+                      style={{ color: C.link, fontSize: 12 }}
+                    >
+                      <img
+                        src={img(s.file)}
+                        alt={`${s.file} of ${pg.url}`}
+                        style={{
+                          display: "block",
+                          width: s.width > 500 ? 220 : 90,
+                          maxHeight: 180,
+                          objectFit: "cover",
+                          objectPosition: "top",
+                          border: `1px solid ${C.border}`,
+                          borderRadius: 4,
+                        }}
+                      />
+                      {s.file.includes("mobile")
+                        ? "phone"
+                        : s.file.includes("blocked")
+                          ? "what answered"
+                          : "desktop"}
+                      {s.truncated ? " (top part)" : ""}
+                    </a>
+                  ))}
+              </div>
+            </div>
+          ))}
+          {review.notVisited.length ? (
+            <div
+              style={{
+                fontSize: 12,
+                color: C.muted,
+                borderTop: `1px solid ${C.border}`,
+                paddingTop: 8,
+              }}
+            >
+              Not visited:{" "}
+              {review.notVisited
+                .slice(0, 8)
+                .map((n) => `${n.url} (${n.reason})`)
+                .join("; ")}
+            </div>
+          ) : null}
+        </>
+      ) : (
+        <p style={{ margin: "0 0 12px", fontSize: 13, color: C.muted }}>
+          Not run yet. Until it is, nothing is said about this website&apos;s design,
+          navigation or booking.
+        </p>
+      )}
+      <div style={{ marginTop: 12 }}>
+        <VisualControls id={id} browserReady={browserReady} />
+      </div>
+    </Card>
   );
 }

@@ -175,7 +175,8 @@ export interface AuditEntry {
     | "note"
     | "qualification_override"
     | "qualification_override_cleared"
-    | "correction";
+    | "correction"
+    | "visual_review";
   detail: string;
 }
 
@@ -232,6 +233,21 @@ export interface Prospect {
   firstSeenAt: string;
   lastScannedAt: string;
   scanIds: string[];
+  /** The latest browser-based visual review (packages/visual-review), when one was run. */
+  visual?: VisualSummary;
+}
+
+/**
+ * What a visual review established, kept with the lead. Only "complete" means
+ * the website was visually inspected; "partial" means only some of it was.
+ */
+export interface VisualSummary {
+  reviewId: string;
+  coverage: "complete" | "partial" | "blocked" | "failed" | "not_available";
+  coverageReason: string;
+  pagesViewed: number;
+  finishedAt: string;
+  version: string;
 }
 
 export type ScanSource = "google_places" | "import";

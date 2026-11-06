@@ -12,6 +12,7 @@ export * from "./import.ts";
 export * from "./dedupe.ts";
 export * from "./chains.ts";
 export * from "./robots.ts";
+export * from "./access-blocks.ts";
 export * from "./detectors.ts";
 export * from "./website.ts";
 export * from "./saved-copy.ts";

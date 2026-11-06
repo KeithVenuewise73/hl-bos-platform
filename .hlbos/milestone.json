@@ -472,6 +472,10 @@
     {
       "title": "Security: close the JobScout shortlist exposure (package S-B2; the dashboard keeps working, demonstrated) — needs your approval",
       "done": false
+    },
+    {
+      "title": "Visual website review in a real browser: homepage + relevant pages, desktop and phone screenshots, menus, programs, booking/registration paths (landing page of third-party providers only); read-only by construction; blocks, CAPTCHAs and 429s recorded and never worked around; Revenue Center refuses design claims without browser evidence — tested in a real browser against local synthetic sites only, never against a live business site",
+      "done": true
     }
   ],
   "blockers": [

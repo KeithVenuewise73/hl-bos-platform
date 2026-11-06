@@ -293,3 +293,71 @@ describe("scanner error codes in plain English", () => {
     );
   });
 });
+
+describe("pages that stand in front of the website", () => {
+  const CF_BLOCK =
+    "<!doctype html><html><head><title>Attention Required! | Cloudflare</title></head><body><h1>Sorry, you have been blocked</h1><p>You are unable to access example.org</p></body></html>";
+  const CF_CHALLENGE =
+    '<!doctype html><html><head><title>Just a moment...</title></head><body><p>Enable JavaScript and cookies to continue</p><script src="/cdn-cgi/challenge-platform/x.js"></script></body></html>';
+  const SPA =
+    '<!doctype html><html><head><title>Example Rinks of Buffalo</title><meta name="viewport" content="width=device-width"></head><body><div id="root"></div><script src="/app.js"></script></body></html>';
+
+  it("a Cloudflare block page served with HTTP 200 is 'blocked', never inspected as the site", async () => {
+    const r = await inspectWebsite(
+      "https://rink.example",
+      fakeEgress({ "rink.example": { body: CF_BLOCK } }),
+      NOW,
+    );
+    expect(r.status).toBe("blocked");
+    expect(r.findings).toHaveLength(1);
+    expect(r.findings[0]!.status).toBe("blocked");
+    expect(r.findings[0]!.evidence).toContain("Cloudflare");
+    expect(r.findings[0]!.evidence).toContain("no attempt was made to get past it");
+  });
+
+  it("a challenge interstitial (cf-mitigated header or 'Just a moment...') is 'blocked'", async () => {
+    const byHeader = await inspectWebsite(
+      "https://rink.example",
+      fakeEgress({
+        "rink.example": {
+          body: "<html><body>hello</body></html>",
+          headers: { "content-type": "text/html", "cf-mitigated": "challenge" },
+        },
+      }),
+      NOW,
+    );
+    expect(byHeader.status).toBe("blocked");
+    const byPage = await inspectWebsite(
+      "https://rink.example",
+      fakeEgress({ "rink.example": { body: CF_CHALLENGE } }),
+      NOW,
+    );
+    expect(byPage.status).toBe("blocked");
+  });
+
+  it("a JavaScript-drawn homepage keeps its head facts and marks everything else 'not checked', not missing", async () => {
+    const r = await inspectWebsite(
+      "https://rink.example",
+      fakeEgress({ "rink.example": { body: SPA } }),
+      NOW,
+    );
+    expect(r.status).toBe("ok");
+    expect(r.rubric).toBeUndefined();
+    expect(status(r.findings, "site.title")).toBe("present");
+    expect(status(r.findings, "site.viewport")).toBe("present");
+    expect(status(r.findings, "site.script_rendered")).toBe("present");
+    for (const k of ["site.call", "site.booking", "site.form", "site.registration"])
+      expect(status(r.findings, k)).toBe("not_checked");
+    expect(r.findings.some((x) => x.status === "not_found")).toBe(false);
+  });
+
+  it("an ordinary small homepage is not mistaken for a block or a script shell", async () => {
+    const r = await inspectWebsite(
+      "https://shop.example",
+      fakeEgress({ "shop.example": { body: WEAK_CONTRACTOR_HTML } }),
+      NOW,
+    );
+    expect(r.status).toBe("ok");
+    expect(status(r.findings, "site.script_rendered")).toBeUndefined();
+  });
+});

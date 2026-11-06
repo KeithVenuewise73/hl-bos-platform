@@ -50,6 +50,13 @@ catalog:
   # reachable from a browser bundle.
   server-only: "0.0.1"
 
+  # --- Visual review (packages/visual-review) ------------------------------
+  # Playwright drives a real Chromium for the browser-based website review.
+  # Installing the package downloads NO browser; the console installs Chromium
+  # with one click (and the visual review says "not available" until it has).
+  # Pinned: each Playwright release expects one specific Chromium build.
+  playwright: "1.63.0"
+
   # --- JerseySort AI (apps/jersey-sort) -----------------------------------
   # sharp: thumbnails and previews. Prebuilt per-platform binaries arrive as
   #   optional dependencies, so no install script has to run.

@@ -14,7 +14,11 @@ const config: NextConfig = {
     "@hl-bos/site-builder",
     "@hl-bos/jersey-sort",
     "@hl-bos/bti-engine",
+    "@hl-bos/visual-review",
   ],
+  // Playwright drives a real browser from the server (the visual review). It
+  // must be loaded by Node at run time, never bundled.
+  serverExternalPackages: ["playwright", "playwright-core"],
   experimental: {
     // Server Actions call child_process. Keep the surface local.
     serverActions: { allowedOrigins: ["localhost:4000", "127.0.0.1:4000"] },

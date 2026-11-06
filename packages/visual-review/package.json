@@ -1,0 +1,27 @@
+{
+  "name": "@hl-bos/visual-review",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Browser-based visual website review: a real Chromium renders the homepage and the most relevant pages it links to, captures desktop and mobile screenshots, reads navigation, calls to action, forms and booking/registration paths, and records exactly what could and could not be seen. Read-only by construction: every non-GET request is refused, nothing is clicked except menu toggles, no form is ever submitted, security blocks and CAPTCHAs are recorded and never worked around.",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "default": "./src/index.ts"
+    }
+  },
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run",
+    "clean": "rm -rf dist *.tsbuildinfo"
+  },
+  "dependencies": {
+    "@hl-bos/presence-scanner": "workspace:*",
+    "playwright": "catalog:"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  }
+}
