@@ -1,0 +1,70 @@
+name: Control Center app window on Windows
+
+# The Control Center opens in its own window, like an app (scripts/open-app.mjs),
+# with its own Start menu entry (scripts/desktop-shortcut.mjs). This runs on
+# real Windows (a few minutes):
+#
+#   - the launcher against the REAL Microsoft Edge on the runner: it waits for
+#     a console that starts late, starts Edge as an app window, and Edge is
+#     asked which page it opened
+#   - the exact last step of control-center.bat, run by real cmd.exe from a
+#     folder named "Program Files (x86)" (a bracket in a path is what breaks
+#     batch files)
+#   - the Start menu entry is made once, in a test folder, and not again
+#
+# What no runner can show is what the window looks like on a person's screen.
+# That first look is the CEO's.
+
+on:
+  pull_request:
+    paths:
+      - "scripts/open-app.mjs"
+      - "scripts/control-center.bat"
+      - "scripts/desktop-shortcut.mjs"
+      - "scripts/local-test/verify-open-app.cjs"
+      - "apps/control-center/src/app/favicon.ico"
+      - ".github/workflows/control-center-app-windows.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  windows:
+    name: Control Center app window (Edge, control-center.bat last step, Start menu)
+    runs-on: windows-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        shell: pwsh
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "22"
+          package-manager-cache: false
+      - name: The app window and the batch file's last step
+        run: node scripts/local-test/verify-open-app.cjs
+      - name: The Start menu entry is made once, in a test folder
+        run: |
+          $d = Join-Path $env:RUNNER_TEMP 'desk'
+          $m = Join-Path $env:RUNNER_TEMP 'startmenu'
+          New-Item -ItemType Directory -Force -Path $d, $m | Out-Null
+          Remove-Item -LiteralPath '.hlbos\desktop-shortcut-control-center-start.json' -ErrorAction SilentlyContinue
+          $env:DATESORT_DESKTOP = $d
+          $env:DATESORT_STARTMENU = $m
+          $lnk = Join-Path $m 'HL-BOS Control Center.lnk'
+          node scripts/desktop-shortcut.mjs
+          if (-not (Test-Path -LiteralPath $lnk)) { "Start menu entry was not made"; exit 1 }
+          $s = (New-Object -ComObject WScript.Shell).CreateShortcut($lnk)
+          "target: $($s.TargetPath)"
+          "icon:   $($s.IconLocation)"
+          if ($s.TargetPath -ine (Join-Path (Get-Location) 'scripts\control-center.bat')) { "wrong target"; exit 1 }
+          if ($s.IconLocation -notlike '*control-center.ico*') { "wrong icon"; exit 1 }
+          Remove-Item -LiteralPath $lnk
+          node scripts/desktop-shortcut.mjs
+          if (Test-Path -LiteralPath $lnk) { "Start menu entry came back after being deleted"; exit 1 }
+          "Start menu entry: made once, stays deleted when deleted: OK"
+          Remove-Item -LiteralPath '.hlbos\desktop-shortcut-control-center-start.json' -ErrorAction SilentlyContinue
+          Remove-Item -LiteralPath '.hlbos\desktop-shortcut-control-center.json' -ErrorAction SilentlyContinue
+          Remove-Item -LiteralPath '.hlbos\desktop-shortcut.json' -ErrorAction SilentlyContinue

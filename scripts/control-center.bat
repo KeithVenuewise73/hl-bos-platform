@@ -145,10 +145,21 @@ if defined NEED_BUILD (
 
 REM --- 7. Go ------------------------------------------------------------------
 echo.
-echo   Opening http://localhost:4000
-echo   Leave this window open while you use it. Close it to shut down.
+echo   The Control Center opens in its own window in a moment.
+echo   Leave THIS black window open: it is what runs the console.
+echo   You can minimize it. Closing it shuts the console down.
 echo.
+REM  scripts\open-app.mjs waits until the console answers, then opens it in an
+REM  app window (Edge or Chrome, no address bar). If it is missing (an older copy
+REM  of this folder) or finds no browser, the console opens as a browser tab.
+REM  Plain goto, not an if-block: a path like "Program Files (x86)" has a
+REM  bracket in it and would end an if-block early.
+if exist "%ROOT%\scripts\open-app.mjs" goto :open_app
 start "" "http://localhost:4000"
+goto :serve
+:open_app
+start "" /b "%NODE_EXE%" "%ROOT%\scripts\open-app.mjs" http://localhost:4000
+:serve
 "%NODE_EXE%" "%PNPM_CJS%" --filter @hl-bos/control-center start
 goto :eof
 
