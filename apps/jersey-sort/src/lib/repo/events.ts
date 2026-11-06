@@ -181,7 +181,7 @@ export function listEvents(db: Db, org: string, limit = 200): EventSummary[] {
     `select x.*,
         (select count(*) from photos p where p.event_id = x.id) as photo_count,
         (select count(*) from photos p where p.event_id = x.id and p.status = 'needs_review') as review_count,
-        (select count(*) from photos p where p.event_id = x.id and p.status in ('uploaded','queued','processing')) as processing_count,
+        (select count(*) from photos p where p.event_id = x.id and p.status in ('queued','processing')) as processing_count,
         (select count(*) from photos p where p.event_id = x.id and p.status = 'failed') as failed_count
        from (${EVENT_SELECT} where e.organization_id = :org) x
       order by x.event_date desc, x.created_at desc

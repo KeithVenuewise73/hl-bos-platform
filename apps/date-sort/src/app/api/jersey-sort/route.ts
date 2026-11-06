@@ -9,10 +9,11 @@ import { ensureJerseySort, importUrl } from "@/lib/jersey-sort.ts";
 export const dynamic = "force-dynamic";
 
 /**
- * "Find jersey numbers" on a date card: find the date's folder in the
- * destination, make sure JerseySort is running, and return the JerseySort
- * page that turns that folder into an event. Nothing is read from or written
- * to the photos here; JerseySort reads the folder when the CEO confirms.
+ * "Find jersey numbers" and "Publish to 5 Star" on a date card: find the
+ * date's folder in the destination, make sure JerseySort is running, and
+ * return the JerseySort page for it (purpose "publish" opens the page that
+ * publishes it to the website). Nothing is read from or written to the photos
+ * here; JerseySort reads the folder when the CEO confirms.
  */
 export async function POST(request: Request): Promise<Response> {
   const refused = guard(request);
@@ -20,7 +21,9 @@ export async function POST(request: Request): Promise<Response> {
   const body = (await request.json().catch(() => ({}))) as {
     day?: unknown;
     eventName?: unknown;
+    purpose?: unknown;
   };
+  const publish = body.purpose === "publish";
   const day =
     typeof body.day === "string" && /^\d{4}-\d{2}-\d{2}$/.test(body.day)
       ? body.day
@@ -45,7 +48,7 @@ export async function POST(request: Request): Promise<Response> {
         error:
           plan.kind === "rename"
             ? "The event name changed since this date was copied. Press Copy first, so its folder has the new name."
-            : "Copy this date into its folder first, then find the jersey numbers.",
+            : `Copy this date into its folder first, then ${publish ? "publish it" : "find the jersey numbers"}.`,
       },
       { status: 409 },
     );
@@ -62,6 +65,7 @@ export async function POST(request: Request): Promise<Response> {
   if (problem !== null) return Response.json({ error: problem }, { status: 503 });
   return Response.json({
     url: importUrl({
+      page: publish ? "publish" : "import",
       folder: path.join(destination, plan.name),
       day,
       sport: sport ?? "",

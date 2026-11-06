@@ -573,6 +573,7 @@ function DateCard({
       <CardSport day={day.day} sport={sport} copy={copy} />
       <CardCopy day={day.day} copy={copy} />
       <CardJersey day={day.day} copy={copy} />
+      <CardJersey day={day.day} copy={copy} purpose="publish" />
     </article>
   );
 }

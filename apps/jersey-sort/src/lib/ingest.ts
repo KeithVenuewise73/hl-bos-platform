@@ -8,7 +8,9 @@
  *      organization, naming the original
  *   3. write the ORIGINAL, untouched
  *   4. read EXIF, render thumbnail and preview
- *   5. insert the rows, status QUEUED
+ *   5. insert the rows, status QUEUED (or UPLOADED when the caller does not
+ *      want the jersey numbers read: the photo is in, and is read only if
+ *      someone later asks, from the game's page)
  * A photo whose pixels cannot be decoded is still kept (the original is the
  * customer's file) and is marked FAILED with the reason, so it can be
  * downloaded and is never silently dropped.
@@ -32,7 +34,7 @@ export type IngestResult =
   | {
       readonly ok: true;
       readonly photoId: string;
-      readonly status: "queued" | "failed";
+      readonly status: "queued" | "uploaded" | "failed";
       readonly dateSource: "exif" | "upload";
     }
   | { readonly ok: false; readonly reason: string; readonly duplicateOf?: string };
@@ -47,6 +49,8 @@ export async function ingestPhoto(
     filename: string;
     bytes: Uint8Array;
     now?: Date;
+    /** False: bring the photo in without queueing it for reading. Default true. */
+    analyze?: boolean;
   },
 ): Promise<IngestResult> {
   const filename =
@@ -107,7 +111,8 @@ export async function ingestPhoto(
   const p = (n: number) => String(n).padStart(2, "0");
   const localNow = `${now.getFullYear()}-${p(now.getMonth() + 1)}-${p(now.getDate())}T${p(now.getHours())}:${p(now.getMinutes())}:${p(now.getSeconds())}`;
   const capturedAt = exif.capturedAt ?? localNow;
-  const status = error === null ? "queued" : "failed";
+  const status =
+    error !== null ? "failed" : input.analyze === false ? "uploaded" : "queued";
 
   try {
     db.tx(() => {

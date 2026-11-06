@@ -14,9 +14,11 @@ import {
 } from "@/actions/galleries.ts";
 import { AutoRefresh } from "@/components/AutoRefresh.tsx";
 import { CopyLink } from "@/components/CopyLink.tsx";
+import { FamilyMessage } from "@/components/FamilyMessage.tsx";
 import { Notice, param, type SearchParams } from "@/components/Notice.tsx";
 import { db } from "@/lib/db.ts";
 import { count, longDate } from "@/lib/format.ts";
+import { importStatus } from "@/lib/imports.ts";
 import { listEvents } from "@/lib/repo/events.ts";
 import { isConnected, publishStatus } from "@/lib/online.ts";
 import { coverFor, onlineStatus, websiteLink } from "@/lib/online-core.ts";
@@ -48,6 +50,10 @@ export default async function GalleryPage({
   const online = onlineStatus(db(), gallery.id);
   const publishing = publishStatus(gallery.id);
   const running = publishing !== null && !publishing.finished;
+  // Photos still coming in from a folder (Publish to 5 Star publishes after).
+  const arriving = gallery.eventIds
+    .map((e) => importStatus(e))
+    .filter((p) => p !== null && !p.finished);
   const covers = new Map(
     gallery.eventIds.map((e) => [e, coverFor(db(), gallery.id, e)] as const),
   );
@@ -113,7 +119,16 @@ export default async function GalleryPage({
 
       <section className="card mb-5 p-4" id="online" data-testid="online">
         <h2 className="mb-2 font-semibold">Online, on 5starsportsmedia.com</h2>
-        {running ? <AutoRefresh seconds={3} /> : null}
+        {running || arriving.length > 0 ? <AutoRefresh seconds={3} /> : null}
+        {arriving.map((p) =>
+          p === null ? null : (
+            <p key={p.folder} className="mb-2 text-sm" data-testid="publish-arriving">
+              Bringing in photos from <span className="font-mono">{p.folder}</span>:{" "}
+              {p.done.toLocaleString("en-US")} of {count(p.total, "photo")}. The gallery
+              goes online as soon as they are all in.
+            </p>
+          ),
+        )}
         {!connected ? (
           <>
             <p className="mb-3 text-sm text-muted">
@@ -141,6 +156,9 @@ export default async function GalleryPage({
                   The website link opens on any phone. Give it out with the team
                   password.
                 </p>
+                {gallery.active === 1 ? (
+                  <FamilyMessage title={title} link={websiteLink(gallery.token)} />
+                ) : null}
               </>
             ) : (
               <p className="mb-2 text-sm text-muted">Not online yet.</p>
@@ -211,6 +229,7 @@ export default async function GalleryPage({
         <h2 className="mb-1 font-semibold">Games this team sees</h2>
         <p className="mb-3 text-sm text-muted">
           Tick the games to show. Games come into JerseySort from DateSort (
+          <em>Publish to 5 Star</em> adds one here by itself, or
           <em>Find jersey numbers</em>) or by uploading.
         </p>
         {events.length === 0 ? (

@@ -71,6 +71,22 @@ saved in DateSort's Sports panel (`src/lib/shared-key.ts`, read fresh each time)
 Signing in now returns to the page you were going to (`?next=`), and only to
 a page of this app (`src/lib/next-path.ts`).
 
+## Publish a game to 5 Star from DateSort
+
+DateSort's **Publish to 5 Star** opens `/publish?folder=…&date=…&sport=…&name=…`
+(`src/app/publish/page.tsx`, `src/actions/publish-folder.ts`). Choose the team
+gallery and press **Publish to 5 Star**: the folder's game is found by its
+photos' bytes if it is already in JerseySort (`src/lib/folder-event.ts`), or
+created; it is added to the team gallery; the photos are brought in; and once
+every one has been tried the gallery is published online (connecting first if
+this computer never has). Jersey numbers are read only if **Also find jersey
+numbers** is ticked: otherwise the photos come in as `uploaded` ("Not read
+yet"), are not queued and not counted as being analysed, and the game's page
+offers **Find jersey numbers** to read them later (`readUnread`). The team
+gallery page shows the photos arriving and then the publish. It also has a **message for the families**: the website link
+and the team password, typed there because JerseySort never keeps the
+password.
+
 ## Team galleries
 
 **Team galleries** in the menu. Give a team, an organization or a group of

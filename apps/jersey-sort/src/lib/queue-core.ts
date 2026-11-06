@@ -211,6 +211,16 @@ export function retryFailed(
   ).changes;
 }
 
+/** Read the photos that were brought in without reading (one event, or all). */
+export function readUnread(db: Db, org: string, scope: { eventId?: string }): number {
+  return db.run(
+    `update photos set status = 'queued', error = null
+      where organization_id = :org and status = 'uploaded' and preview_path is not null
+        and (:event is null or event_id = :event)`,
+    { org, event: scope.eventId ?? null },
+  ).changes;
+}
+
 /** Re-analyse photos (e.g. after switching provider). Human decisions are kept. */
 export function reanalyze(
   db: Db,

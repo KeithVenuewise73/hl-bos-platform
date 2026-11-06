@@ -51,8 +51,13 @@ export function ensureJerseySort(): Promise<string | null> {
   return starting;
 }
 
-/** The JerseySort page that turns this folder into an event. */
+/**
+ * The JerseySort page for this folder: /import turns it into an event and
+ * reads the jersey numbers; /publish puts it in a team gallery and publishes
+ * it to 5starsportsmedia.com.
+ */
 export function importUrl(params: {
+  readonly page?: "import" | "publish";
   readonly folder: string;
   readonly day: string;
   readonly sport: string;
@@ -64,5 +69,5 @@ export function importUrl(params: {
     sport: params.sport,
     name: params.name,
   });
-  return `${JERSEYSORT_URL}/import?${q.toString()}`;
+  return `${JERSEYSORT_URL}/${params.page ?? "import"}?${q.toString()}`;
 }

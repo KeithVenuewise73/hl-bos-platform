@@ -1,3 +1,5 @@
+import type { ReactNode } from "react";
+
 import type { EventRow } from "@/lib/repo/events.ts";
 
 const SPORTS = [
@@ -19,6 +21,7 @@ export function EventForm({
   event,
   submit,
   hidden,
+  children,
 }: {
   action: (f: FormData) => Promise<void>;
   /** An event to edit, or (with an empty id) values to start a new one with. */
@@ -26,6 +29,8 @@ export function EventForm({
   submit: string;
   /** Extra fields sent with the form (the folder, on the import page). */
   hidden?: Readonly<Record<string, string>>;
+  /** More fields, shown just above the button (the team gallery, on /publish). */
+  children?: ReactNode;
 }) {
   return (
     <form action={action} className="card grid gap-4 p-5 sm:grid-cols-2">
@@ -137,6 +142,7 @@ export function EventForm({
           defaultValue={event?.notes ?? ""}
         />
       </div>
+      {children}
       <div className="sm:col-span-2">
         <button className="btn-primary" type="submit">
           {submit}

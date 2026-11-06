@@ -6,7 +6,7 @@ import { redirect } from "next/navigation";
 import { config } from "@/lib/config.ts";
 import { db } from "@/lib/db.ts";
 import { kickQueue } from "@/lib/queue.ts";
-import { reanalyze, retryFailed } from "@/lib/queue-core.ts";
+import { readUnread, reanalyze, retryFailed } from "@/lib/queue-core.ts";
 import {
   createEvent,
   deleteEvent,
@@ -95,6 +95,21 @@ export async function retryFailedAction(form: FormData): Promise<void> {
   const back = text(form, "returnTo").startsWith("/") ? text(form, "returnTo") : "/";
   redirect(
     `${back}${back.includes("?") ? "&" : "?"}notice=${encodeURIComponent(`${n} photo${n === 1 ? "" : "s"} queued for another try.`)}`,
+  );
+}
+
+/** Read the jersey numbers of photos that were brought in without reading. */
+export async function readUnreadAction(form: FormData): Promise<void> {
+  const user = await requireUser();
+  const eventId = text(form, "eventId") || undefined;
+  const n = readUnread(db(), user.organizationId, {
+    ...(eventId ? { eventId } : {}),
+  });
+  kickQueue();
+  revalidatePath("/", "layout");
+  const back = text(form, "returnTo").startsWith("/") ? text(form, "returnTo") : "/";
+  redirect(
+    `${back}${back.includes("?") ? "&" : "?"}notice=${encodeURIComponent(`Reading jersey numbers in ${n} photo${n === 1 ? "" : "s"}. You can leave this page; it keeps going.`)}`,
   );
 }
 

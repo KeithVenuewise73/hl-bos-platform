@@ -10,6 +10,8 @@ interface P {
   processing: number;
   failed: number;
   needsReview: number;
+  /** Brought in without reading jersey numbers (yet). */
+  unread?: number;
   /** A folder import from DateSort, while this server has one for the event. */
   importing?: {
     done: number;
@@ -80,28 +82,43 @@ export function ProgressPanel({
     );
   if (p.total === 0 && imp === null) return null;
   if (!busy && p.failed === 0 && imp === null) return null;
-  const pct = p.total === 0 ? 0 : Math.floor((p.done / p.total) * 100);
+  // Photos brought in without reading are not part of the analysis.
+  const total = p.total - (p.unread ?? 0);
+  const pct = total === 0 ? 0 : Math.floor((p.done / total) * 100);
   return (
     <section className="card mb-5 p-4" aria-live="polite">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
         <h2 className="display text-lg">
-          {busy ? "Analyzing photos" : "Analysis finished"}
+          {busy
+            ? "Analyzing photos"
+            : total === 0
+              ? "Photos brought in"
+              : "Analysis finished"}
         </h2>
-        <span className="text-sm text-muted">
-          {p.done.toLocaleString()} / {p.total.toLocaleString()} complete · {pct}%
-        </span>
+        {total > 0 ? (
+          <span className="text-sm text-muted">
+            {p.done.toLocaleString()} / {total.toLocaleString()} complete · {pct}%
+          </span>
+        ) : null}
       </div>
       {importNote}
-      <div className="mt-2 h-2 overflow-hidden rounded bg-panel-2">
-        <div className="h-full bg-brand transition-all" style={{ width: `${pct}%` }} />
-      </div>
-      <p className="mt-2 text-xs text-muted">
-        {p.processing > 0 ? `${p.processing} analyzing now · ` : ""}
-        {p.queued > 0 ? `${p.queued.toLocaleString()} waiting · ` : ""}
-        {p.needsReview.toLocaleString()} need review
-        {p.failed > 0 ? ` · ${p.failed} failed (retry from below)` : ""}. You can leave
-        this page; analysis keeps going.
-      </p>
+      {total > 0 ? (
+        <>
+          <div className="mt-2 h-2 overflow-hidden rounded bg-panel-2">
+            <div
+              className="h-full bg-brand transition-all"
+              style={{ width: `${pct}%` }}
+            />
+          </div>
+          <p className="mt-2 text-xs text-muted">
+            {p.processing > 0 ? `${p.processing} analyzing now · ` : ""}
+            {p.queued > 0 ? `${p.queued.toLocaleString()} waiting · ` : ""}
+            {p.needsReview.toLocaleString()} need review
+            {p.failed > 0 ? ` · ${p.failed} failed (retry from below)` : ""}. You can
+            leave this page; analysis keeps going.
+          </p>
+        </>
+      ) : null}
     </section>
   );
 }
