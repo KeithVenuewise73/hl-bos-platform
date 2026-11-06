@@ -224,6 +224,21 @@ numbers means Claude looks at **every** photo of the game:
 JerseySort uses the Claude key saved here, so it is pasted once. The game
 folder is only read: a test fingerprints every file before and after.
 
+## Publish to 5 Star (built)
+
+Every copied date card also has **Publish to 5 Star**. It works like Find
+jersey numbers (same folder checks, starts JerseySort if needed) and gives the
+link **Choose the team gallery and publish**. JerseySort's publish page shows
+the folder's photos and the game filled in. You choose the team gallery (made
+once in JerseySort, with the team password) and press **Publish to 5 Star**.
+The game is added to that team gallery, its photos are brought in, and the
+gallery is published to 5starsportsmedia.com as soon as they are all in.
+Pressing it again for the same folder adds nothing twice. Jersey numbers are
+read too, as with Find jersey numbers; publishing does not wait for them.
+Proved by `scripts/local-test/verify-publish-to-5star.cjs` (JerseySort and a
+local copy of the gallery service) and `verify-date-to-jersey.cjs` (the
+button).
+
 ## Not built yet
 
 | Step | What                                                                                                 |

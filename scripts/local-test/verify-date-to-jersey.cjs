@@ -196,6 +196,30 @@ async function jpeg(file, when, color) {
     link,
   );
   await shot(page, "01-datesort-jersey-link");
+
+  console.log("\nPublish to 5 Star");
+  await day.locator("[data-testid=publish-5star]").click();
+  const pub = await day
+    .locator("[data-testid=open-publish]")
+    .getAttribute("href", { timeout: 420_000 })
+    .catch(
+      async () =>
+        `ERROR: ${await day
+          .locator("[data-testid=publish-error]")
+          .textContent()
+          .catch(() => "no link")}`,
+    );
+  const pubUrl = pub && !pub.startsWith("ERROR") ? new URL(pub) : null;
+  check(
+    "Publish to 5 Star gives the publish link for the same date folder",
+    pubUrl !== null &&
+      pubUrl.pathname === "/publish" &&
+      pubUrl.searchParams.get("folder") === folder &&
+      pubUrl.searchParams.get("date") === "2026-01-13" &&
+      pubUrl.searchParams.get("sport") === "Basketball" &&
+      pubUrl.searchParams.get("name") === "Zac K",
+    pub,
+  );
   if (url === null) return finish(browser, work);
 
   console.log("\nJerseySort: sign up on the way, then import");
