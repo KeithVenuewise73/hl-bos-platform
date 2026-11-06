@@ -325,6 +325,25 @@ create table if not exists published_covers (
   primary key (gallery_id, event_id)
 );
 
+-- Instagram posts being put together from a game's photos (a draft: which
+-- photos, the caption, the shape). Nothing here is posted anywhere: it makes
+-- copies for a person to look at and post. Local-store only.
+create table if not exists instagram_drafts (
+  id text primary key,
+  organization_id text not null references organizations(id) on delete cascade,
+  event_id text not null references events(id) on delete cascade,
+  caption text not null default '',
+  format text not null default 'portrait' check (format in ('portrait','square')),
+  fit text not null default 'fill' check (fit in ('fill','bars')),
+  -- JSON array of photo ids, in the order they appear in the post.
+  photo_ids text not null default '[]',
+  created_by text references users(id) on delete set null,
+  created_at text not null default (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
+  updated_at text not null default (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
+);
+create index if not exists instagram_drafts_event
+  on instagram_drafts (organization_id, event_id, updated_at desc);
+
 -- The review queue is a VIEW, not a table: a photo is in it exactly when its
 -- status says so, so the queue cannot drift from the photos it describes.
 create view if not exists review_queue as

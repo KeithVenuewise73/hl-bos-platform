@@ -94,6 +94,15 @@ export default async function EventPage({
             Edit event
           </Link>
           {stats.photos > 0 ? (
+            <Link
+              className="btn-ghost"
+              href={`${base}/instagram`}
+              data-testid="instagram-link"
+            >
+              Instagram
+            </Link>
+          ) : null}
+          {stats.photos > 0 ? (
             <form action={reanalyzeAction}>
               <input type="hidden" name="eventId" value={id} />
               <input type="hidden" name="returnTo" value={base} />

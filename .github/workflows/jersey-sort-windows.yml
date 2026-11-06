@@ -7,6 +7,7 @@ name: JerseySort on Windows
 #   - Check Folder run on a camera-card-shaped folder and on the photo folder
 #     Windows itself ships (C:\Windows\Web), with every file fingerprinted
 #     before and after: any changed, renamed, deleted or added file fails
+#   - the team galleries and the Instagram post maker, in a real browser
 #   - JerseySort's and the console's unit tests, on Windows
 #
 # control-center.bat itself is not run: its update step pulls from GitHub
@@ -21,6 +22,7 @@ on:
       - "apps/control-center/**"
       - "scripts/local-test/verify-folder-check.cjs"
       - "scripts/local-test/verify-team-galleries.cjs"
+      - "scripts/local-test/verify-instagram.cjs"
       - "scripts/control-center.bat"
       - ".github/workflows/jersey-sort-windows.yml"
       - "pnpm-lock.yaml"
@@ -120,6 +122,9 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           # Team galleries, on the JerseySort the console just started.
           node scripts/local-test/verify-team-galleries.cjs http://127.0.0.1:4603
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          # Instagram posts (the pictures, the caption, the pack), on the same JerseySort.
+          node scripts/local-test/verify-instagram.cjs http://127.0.0.1:4603
           exit $LASTEXITCODE
 
       - name: Summary
