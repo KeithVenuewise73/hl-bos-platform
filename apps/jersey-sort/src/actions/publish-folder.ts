@@ -7,6 +7,8 @@ import { eventForFolder } from "@/lib/folder-event.ts";
 import { ImportError, readImportFolder } from "@/lib/folder-import.ts";
 import { startImport } from "@/lib/imports.ts";
 import { connectOnline, isConnected, startPublish } from "@/lib/online.ts";
+import { kickQueue } from "@/lib/queue.ts";
+import { readUnread } from "@/lib/queue-core.ts";
 import { createEvent, ValidationError } from "@/lib/repo/events.ts";
 import { getGallery, setGalleryEvents } from "@/lib/repo/galleries.ts";
 import { requireUser } from "@/lib/session.ts";
@@ -26,6 +28,10 @@ const text = (f: FormData, k: string) => {
  *   3. the photos are brought in (only the missing ones), and once every one
  *      has been tried, the gallery is published online.
  *
+ * Jersey numbers are NOT read unless the switch is ticked: reading means
+ * every photo is analysed, which costs money with Claude as the reader. The
+ * photos come in as "not read yet" and can be read later from the game's page.
+ *
  * Nothing in the folder is changed. Pressing it again is safe: what is in
  * JerseySort and online already is skipped.
  */
@@ -38,6 +44,7 @@ export async function publishFolderAction(form: FormData): Promise<void> {
     );
 
   const galleryId = text(form, "gallery");
+  const jerseys = text(form, "jerseys") === "1";
   const gallery = getGallery(db(), user.organizationId, galleryId);
   if (gallery === undefined) return fail("Choose the team gallery to publish into.");
   if (gallery.active !== 1) {
@@ -85,16 +92,22 @@ export async function publishFolderAction(form: FormData): Promise<void> {
     eventId,
   ]);
   const org = user.organizationId;
+  // A game already in JerseySort with photos not read yet: read them too.
+  if (jerseys && reused) {
+    readUnread(db(), org, { eventId });
+    kickQueue();
+  }
   startImport({
     org,
     userId: user.userId,
     eventId,
     contents,
+    analyze: jerseys,
     onDone: () => startPublish(org, gallery.id),
   });
   redirect(
     `/galleries/${gallery.id}?notice=${encodeURIComponent(
-      `${reused ? "This game was already in JerseySort; it is now in this team gallery." : "Game created and added to this team gallery."} Bringing in ${contents.photos.length.toLocaleString("en-US")} photos from ${contents.folder}; the gallery goes online on 5starsportsmedia.com as soon as they are all in.`,
+      `${reused ? "This game was already in JerseySort; it is now in this team gallery." : "Game created and added to this team gallery."} Bringing in ${contents.photos.length.toLocaleString("en-US")} photos from ${contents.folder}; the gallery goes online on 5starsportsmedia.com as soon as they are all in. ${jerseys ? "Jersey numbers are being read too." : "Jersey numbers are not being read: do that from the game's page if you want them."}`,
     )}#online`,
   );
 }

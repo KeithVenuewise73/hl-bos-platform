@@ -234,7 +234,10 @@ once in JerseySort, with the team password) and press **Publish to 5 Star**.
 The game is added to that team gallery, its photos are brought in, and the
 gallery is published to 5starsportsmedia.com as soon as they are all in.
 Pressing it again for the same folder adds nothing twice. Jersey numbers are
-read too, as with Find jersey numbers; publishing does not wait for them.
+**not** read unless you tick **Also find jersey numbers** on that page (reading
+means every photo is analysed, which costs money with Claude as the reader).
+The photos come in as "not read yet", and the game's page in JerseySort has a
+**Find jersey numbers** button to read them later.
 Proved by `scripts/local-test/verify-publish-to-5star.cjs` (JerseySort and a
 local copy of the gallery service) and `verify-date-to-jersey.cjs` (the
 button).

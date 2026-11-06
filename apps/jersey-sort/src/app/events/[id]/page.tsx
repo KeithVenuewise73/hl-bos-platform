@@ -1,7 +1,11 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
-import { reanalyzeAction, retryFailedAction } from "@/actions/events.ts";
+import {
+  readUnreadAction,
+  reanalyzeAction,
+  retryFailedAction,
+} from "@/actions/events.ts";
 import { Notice, param, type SearchParams } from "@/components/Notice.tsx";
 import { NumberCards } from "@/components/NumberCards.tsx";
 import { Pager } from "@/components/Pager.tsx";
@@ -116,6 +120,24 @@ export default async function EventPage({
           </span>
           <button className="btn-danger" type="submit">
             Retry failed
+          </button>
+        </form>
+      ) : null}
+
+      {p.unread > 0 ? (
+        <form
+          action={readUnreadAction}
+          className="card mb-5 flex flex-wrap items-center justify-between gap-2 p-3"
+          data-testid="unread-photos"
+        >
+          <input type="hidden" name="eventId" value={id} />
+          <input type="hidden" name="returnTo" value={base} />
+          <span className="text-sm">
+            {count(p.unread, "photo")} {p.unread === 1 ? "was" : "were"} brought in
+            without reading jersey numbers.
+          </span>
+          <button className="btn-primary" type="submit" data-testid="read-unread">
+            Find jersey numbers
           </button>
         </form>
       ) : null}

@@ -30,6 +30,8 @@ export function startImport(input: {
   readonly contents: FolderContents;
   /** Called once every photo has been tried (Publish to 5 Star publishes then). */
   readonly onDone?: () => void;
+  /** False: bring the photos in without queueing them for reading. */
+  readonly analyze?: boolean;
 }): void {
   const { onDone, ...rest } = input;
   const progress = newProgress(input.contents);
@@ -39,7 +41,12 @@ export function startImport(input: {
     progress,
     onPhoto: (p) => {
       // Analysis starts while photos are still arriving.
-      if (p.added > 0 && (p.done % 5 === 0 || p.done === p.total)) kickQueue();
+      if (
+        input.analyze !== false &&
+        p.added > 0 &&
+        (p.done % 5 === 0 || p.done === p.total)
+      )
+        kickQueue();
     },
   })
     .catch((e: unknown) => {

@@ -21,7 +21,7 @@ export function dashboardStats(db: Db, org: string, medium: number): DashboardSt
          (select count(distinct d.detected_value) from photo_detections d join photos p on p.id = d.photo_id
            where d.organization_id = :org and p.unusable = 0 and ${IN_GALLERY("d")}) as numbers,
          (select count(*) from photos where organization_id = :org and status = 'needs_review') as needsReview,
-         (select count(*) from photos where organization_id = :org and status in ('uploaded','queued','processing')) as processing,
+         (select count(*) from photos where organization_id = :org and status in ('queued','processing')) as processing,
          (select count(*) from photos where organization_id = :org and status = 'failed') as failed`,
       { org, medium },
     ) ?? {
@@ -58,6 +58,8 @@ export interface Progress {
   processing: number;
   failed: number;
   needsReview: number;
+  /** Brought in without reading jersey numbers (yet). */
+  unread: number;
 }
 
 /** Analysis progress for one event, or the whole organization. */
@@ -66,13 +68,22 @@ export function progress(db: Db, org: string, eventId: string | null): Progress 
     db.get<Progress>(
       `select count(*) as total,
               coalesce(sum(status in ('completed','needs_review','failed')), 0) as done,
-              coalesce(sum(status in ('uploaded','queued')), 0) as queued,
+              coalesce(sum(status = 'queued'), 0) as queued,
+              coalesce(sum(status = 'uploaded'), 0) as unread,
               coalesce(sum(status = 'processing'), 0) as processing,
               coalesce(sum(status = 'failed'), 0) as failed,
               coalesce(sum(status = 'needs_review'), 0) as needsReview
          from photos where organization_id = :org and (:event is null or event_id = :event)`,
       { org, event: eventId },
-    ) ?? { total: 0, done: 0, queued: 0, processing: 0, failed: 0, needsReview: 0 }
+    ) ?? {
+      total: 0,
+      done: 0,
+      queued: 0,
+      unread: 0,
+      processing: 0,
+      failed: 0,
+      needsReview: 0,
+    }
   );
 }
 

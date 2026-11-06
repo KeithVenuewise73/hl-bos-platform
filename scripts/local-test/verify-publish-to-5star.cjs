@@ -8,7 +8,9 @@
  *   published by itself once its photos are in · the team password opens it
  *   online · the message for the families carries the website link and the
  *   password · pressing it again for the same folder adds nothing twice ·
- *   the folder itself is never changed
+ *   jersey numbers are NOT read unless the switch is ticked (the photos come
+ *   in "not read yet"), can be read later from the game's page, and are read
+ *   at once when the switch is ticked · the folder itself is never changed
  *
  * Usage:
  *   (local PostgreSQL with all migrations applied, fresh)
@@ -66,6 +68,25 @@ async function until(fn, ms = 60000) {
     await new Promise((r) => setTimeout(r, 500));
   }
   return false;
+}
+/** JerseySort's own progress numbers, asked the way its pages ask. */
+const progressOf = (page) =>
+  page.evaluate(async () =>
+    (await fetch("/api/progress", { cache: "no-store" })).json(),
+  );
+async function photoFolder(parent, name, numbers) {
+  const dir = path.join(parent, name);
+  fs.mkdirSync(dir, { recursive: true });
+  for (const n of numbers) {
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="3600" height="2400">
+      <rect width="3600" height="2400" fill="#7c3aed"/>
+      <text x="1800" y="1400" text-anchor="middle" font-size="700" fill="#fff">${n}</text></svg>`;
+    fs.writeFileSync(
+      path.join(dir, `IMG_${n}.JPG`),
+      await sharp(Buffer.from(svg)).jpeg({ quality: 85 }).toBuffer(),
+    );
+  }
+  return dir;
 }
 function fingerprint(dir) {
   return fs
@@ -176,6 +197,19 @@ function loadPlaywright() {
       (await page.inputValue("#team")) === "Varsity",
       await page.inputValue("#team"),
     );
+    const sw = {
+      visible: await page.isVisible("[data-testid=publish-jerseys]"),
+      checked: await page.isChecked("[data-testid=publish-jerseys]"),
+      text: ((await page.textContent("[data-testid=publish-reader]")) || "").slice(
+        0,
+        80,
+      ),
+    };
+    check(
+      "the 'Also find jersey numbers' switch is there, and off",
+      sw.visible && !sw.checked && sw.text.includes("costs nothing"),
+      JSON.stringify(sw),
+    );
     await shot(page, "01-publish-page");
     await act(page, () => page.click('button:has-text("Publish to 5 Star")'));
     check(
@@ -207,6 +241,15 @@ function loadPlaywright() {
       body: JSON.stringify({ link, password: "goblue26" }),
     });
     check("the team password opens it online", right.status === 200);
+    const first = await progressOf(page);
+    check(
+      "jersey numbers were NOT read: the 3 photos are in, not queued, not being analysed",
+      first.total === 3 &&
+        first.unread === 3 &&
+        first.queued === 0 &&
+        first.processing === 0,
+      JSON.stringify(first),
+    );
 
     console.log("\n3. The message for the families");
     await page.goto(galleryUrl);
@@ -246,6 +289,84 @@ function loadPlaywright() {
     await page.goto(`${BASE}/events`);
     const named = await page.$$("text=Varsity vs Wheatfield");
     check("and still one game in JerseySort", named.length === 1, `${named.length}`);
+
+    check(
+      "pressing it again with the switch off still reads nothing",
+      (await progressOf(page)).unread === 3,
+    );
+
+    console.log("\n5. Reading the jersey numbers later, from the game's page");
+    await page.goto(galleryUrl);
+    const eventId = await page.getAttribute("[data-testid=gallery-event]", "value");
+    await page.goto(`${BASE}/events/${eventId}`);
+    check(
+      "the game's page says 3 photos were brought in without reading, with a button",
+      ((await page.textContent("[data-testid=unread-photos]")) || "").includes(
+        "3 photos were brought in without reading jersey numbers",
+      ),
+    );
+    await shot(page, "03-unread-photos");
+    await act(page, () => page.click("[data-testid=read-unread]"));
+    check(
+      "pressing it says the numbers are being read",
+      ((await page.textContent("body")) || "").includes(
+        "Reading jersey numbers in 3 photos",
+      ),
+    );
+    const read = await until(async () => {
+      const p = await progressOf(page);
+      return p.unread === 0 && p.queued + p.processing === 0 && p.done === 3;
+    }, 120000);
+    check(
+      "they are all read, and nothing is left unread",
+      read,
+      JSON.stringify(await progressOf(page)),
+    );
+
+    console.log(
+      "\n6. With the switch ticked, the numbers are read as the photos come in",
+    );
+    const second = await photoFolder(
+      path.join(work, "Games"),
+      "2026-10-31 - Hockey - Varsity vs Lockport",
+      ["5", "9"],
+    );
+    const secondUrl = `${BASE}/publish?${new URLSearchParams({
+      folder: second,
+      date: "2026-10-31",
+      sport: "Hockey",
+      name: "Varsity vs Lockport",
+    })}`;
+    await page.goto(secondUrl);
+    await page.check("[data-testid=publish-jerseys]");
+    await act(page, () => page.click('button:has-text("Publish to 5 Star")'));
+    check(
+      "the page says jersey numbers are being read too",
+      ((await page.textContent("body")) || "").includes(
+        "Jersey numbers are being read too.",
+      ),
+    );
+    const both = await until(async () => {
+      const g = await listing();
+      return g.length === 2 && g.reduce((n, x) => n + x.photo_count, 0) === 5;
+    }, 120000);
+    check(
+      "the second game is online as well (2 games, 5 photos)",
+      both,
+      JSON.stringify(await listing()),
+    );
+    const doneToo = await until(async () => {
+      const p = await progressOf(page);
+      return (
+        p.total === 5 && p.unread === 0 && p.queued + p.processing === 0 && p.done === 5
+      );
+    }, 120000);
+    check(
+      "its 2 photos were read, not left unread",
+      doneToo,
+      JSON.stringify(await progressOf(page)),
+    );
+    check("and its folder was not changed either", fs.readdirSync(second).length === 2);
 
     check("the folder itself was not changed", fingerprint(folder) === folderBefore);
     check("no script errors on the pages", errors.length === 0, errors.join(" | "));

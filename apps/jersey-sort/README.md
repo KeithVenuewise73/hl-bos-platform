@@ -79,8 +79,11 @@ gallery and press **Publish to 5 Star**: the folder's game is found by its
 photos' bytes if it is already in JerseySort (`src/lib/folder-event.ts`), or
 created; it is added to the team gallery; the photos are brought in; and once
 every one has been tried the gallery is published online (connecting first if
-this computer never has). The team gallery page shows the photos arriving and
-then the publish. It also has a **message for the families**: the website link
+this computer never has). Jersey numbers are read only if **Also find jersey
+numbers** is ticked: otherwise the photos come in as `uploaded` ("Not read
+yet"), are not queued and not counted as being analysed, and the game's page
+offers **Find jersey numbers** to read them later (`readUnread`). The team
+gallery page shows the photos arriving and then the publish. It also has a **message for the families**: the website link
 and the team password, typed there because JerseySort never keeps the
 password.
 

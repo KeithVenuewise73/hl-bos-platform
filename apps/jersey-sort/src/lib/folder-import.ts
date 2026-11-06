@@ -84,6 +84,8 @@ export async function importFolder(
     readonly progress: ImportProgress;
     /** Called after each photo (the app uses it to wake the analysis queue). */
     readonly onPhoto?: (p: ImportProgress) => void;
+    /** False: bring the photos in without queueing them for reading. */
+    readonly analyze?: boolean;
   },
 ): Promise<ImportProgress> {
   const p = input.progress;
@@ -98,6 +100,7 @@ export async function importFolder(
         eventId: input.eventId,
         filename: name,
         bytes,
+        ...(input.analyze === false ? { analyze: false } : {}),
       });
       if (r.ok) p.added += 1;
       else if (r.duplicateOf !== undefined) p.alreadyIn += 1;

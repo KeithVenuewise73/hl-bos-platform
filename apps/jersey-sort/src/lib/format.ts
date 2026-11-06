@@ -40,7 +40,7 @@ export function withParam(path: string, key: string, value: string): string {
 }
 
 export const STATUS_LABEL: Readonly<Record<string, string>> = {
-  uploaded: "Uploaded",
+  uploaded: "Not read yet",
   queued: "Queued",
   processing: "Analyzing",
   completed: "Sorted",

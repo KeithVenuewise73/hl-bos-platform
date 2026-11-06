@@ -74,6 +74,32 @@ export default async function PublishPage({
   };
   const n = contents?.photos.length ?? 0;
   const submit = `Publish to 5 Star (${count(n, "photo")})`;
+  const jerseySwitch = (
+    <label
+      className="flex items-start gap-2 text-sm sm:col-span-2"
+      data-testid="publish-jerseys-switch"
+    >
+      <input
+        type="checkbox"
+        name="jerseys"
+        value="1"
+        className="mt-1"
+        data-testid="publish-jerseys"
+      />
+      <span>
+        <span className="font-semibold text-text">Also find jersey numbers</span>
+        <span className="block text-muted" data-testid="publish-reader">
+          Off: the photos are published without reading them, which costs nothing. On:
+          every photo is read by {reader.label}
+          {reader.choice === "claude"
+            ? " (each photo is sent to Anthropic as a 1600 px preview, which costs a little per photo)"
+            : ""}
+          , as they come in. Publishing does not wait for the numbers. You can do it
+          later from the game&apos;s page.
+        </span>
+      </span>
+    </label>
+  );
   const picker = (
     <fieldset className="sm:col-span-2" data-testid="publish-galleries">
       <legend className="label">Team gallery</legend>
@@ -132,15 +158,6 @@ export default async function PublishPage({
             game&apos;s public page shows only a cover photo if you pick one. The folder
             itself is not changed in any way.
           </p>
-          {existing === undefined ? (
-            <p className="text-muted" data-testid="publish-reader">
-              Jersey numbers are also read, by {reader.label}, as the photos come in
-              {reader.choice === "claude"
-                ? " (each photo is sent to Anthropic as a 1600 px preview)"
-                : ""}
-              . Publishing does not wait for them.
-            </p>
-          ) : null}
         </section>
       ) : null}
       {contents !== null && n > 0 && galleries.length === 0 ? (
@@ -161,6 +178,7 @@ export default async function PublishPage({
             <input type="hidden" name="folder" value={contents.folder} />
             <input type="hidden" name="back" value={back} />
             {picker}
+            {jerseySwitch}
             <div>
               <button className="btn-primary" type="submit">
                 {submit}
@@ -175,6 +193,7 @@ export default async function PublishPage({
             hidden={{ folder: contents.folder, back }}
           >
             {picker}
+            {jerseySwitch}
           </EventForm>
         )
       ) : null}
