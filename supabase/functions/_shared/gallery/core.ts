@@ -21,6 +21,9 @@
 // the website lists, with the cover photo the photographer chose. No photo
 // paths, no hashes, no other photos.
 
+// Imported, not assumed: Supabase's Edge Runtime has no global `Buffer`
+// (supabase/functions/tests/team_gallery_runtime.test.ts keeps this honest).
+import { Buffer } from "node:buffer";
 import { createHash, createHmac, scryptSync, timingSafeEqual } from "node:crypto";
 
 export const ACCESS_DAYS = 30;

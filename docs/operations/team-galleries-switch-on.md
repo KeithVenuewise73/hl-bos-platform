@@ -2,18 +2,18 @@
 
 ## Status, stated plainly
 
-| Thing                                   | State                                                                                                                            |
-| --------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
-| Migration `0053_team_galleries`         | **Merged, NOT applied** to HL-BOS Core (`mvvtngiopdrgiedjmhfb`).                                                                 |
-| Migration `0054_team_gallery_publisher` | **Merged, NOT applied.**                                                                                                         |
-| Edge Function `team-gallery`            | **NOT deployed.** The live URL answers 404 today.                                                                                |
-| 5starsportsmedia.com galleries pages    | **Live**, saying "coming soon" — truthfully, because the service they read from does not exist yet.                              |
-| JerseySort "Publish online"             | Built and tested locally end to end; online it has nowhere to publish until the two steps above.                                 |
-| What blocks it                          | (1) CEO approval to apply and deploy; (2) this session's Supabase access does not reach the organization that holds HL-BOS Core. |
+| Thing                                   | State                                                                                                                                    |
+| --------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| Migration `0053_team_galleries`         | **APPLIED** to HL-BOS Core (`mvvtngiopdrgiedjmhfb`) on 2026-11-06 under CEO approval.                                                    |
+| Migration `0054_team_gallery_publisher` | **APPLIED** the same day, straight after 0053.                                                                                           |
+| Recorded in production as               | `hlbos_0053_team_galleries` and `hlbos_0054_team_gallery_publisher` (production assigns its own version numbers).                        |
+| Edge Function `team-gallery`            | **DEPLOYED**, version 2, `verify_jwt = false`.                                                                                           |
+| Data in `gallery`                       | **None.** No galleries, games, photos or files. The one-time connect window is **open** until 2026-11-07 21:59 UTC (about 5 PM Eastern). |
+| 5starsportsmedia.com galleries pages    | Live; they read `/listing`, which now answers `{"games":[]}`, so they still say "coming soon" until the first gallery is published.      |
+| JerseySort "Publish online"             | Waiting for the one click: **Connect to the online galleries**, inside the window above.                                                 |
 
-Nothing on this page has been run against production. Every expected value
-below comes from a fresh local database with all 54 migrations applied
-(1239 pgTAP assertions, 0 failing).
+The rest of this page is the runbook that was followed, then the record of
+what actually happened ("Apply record", at the end).
 
 ## What will be applied, byte for byte
 
@@ -22,7 +22,7 @@ below comes from a fresh local database with all 54 migrations applied
 | `supabase/migrations/20261103120000_hlbos_0053_team_galleries.sql`         | `692a35e361ec46c1866cc16a2ae3441a16c78b81ed24dce7c05dbe8991b07cdf` |
 | `supabase/migrations/20261104120000_hlbos_0054_team_gallery_publisher.sql` | `3a902ece613561f359912551cc112cb65ed829c5759adeb1f9d815d75af1f3a8` |
 | `supabase/functions/team-gallery/index.ts`                                 | `1a9c878f599c8ef45a6365f647a9ace09d5a1150bca4b924ef167d84c0f3574e` |
-| `supabase/functions/_shared/gallery/core.ts`                               | `8172928104ef56cffa01d7c5e2ef4f6d62e6df54e20fae9f73d848dd2f08fadf` |
+| `supabase/functions/_shared/gallery/core.ts` (**with the Buffer fix**)     | `b1cd655e7daf34b786f437fb0e10fcfabcf1aada4431b2d5a088092ace589535` |
 | `supabase/functions/_shared/gallery/pg-store.ts`                           | `fa5b2c433fa74f30ba6e75d77705053e5c3e795fad1e0906a570d066ff981b3e` |
 
 The two migration hashes match `.hlbos/migration-lineage.json`.
@@ -52,7 +52,9 @@ existing table, policy or function.
    equal the values below exactly.
 5. **Refusal probe** (`supabase/verify/team_galleries_probe.sql`) — rolls
    itself back; must print the expected line, then leave 0 probe rows.
-6. **Advisor counts after.** Net new security findings must be 0.
+6. **Advisor counts after.** No new warnings. The five `gallery` tables will each add one
+   _info_ note, "RLS enabled, no policy", which is the design (no web access at
+   all), so expect +5 info, nothing else.
 7. **Deploy `team-gallery`** with `verify_jwt = false` and the three files
    above. It needs no secrets of its own: `SUPABASE_DB_URL`, `SUPABASE_URL`
    and `SUPABASE_SERVICE_ROLE_KEY` are provided by Supabase to every function.
@@ -131,3 +133,91 @@ real database functions) on 2026-11-05 and gave exactly these answers.
 Unpublish from JerseySort first if anything is online, then a new, approved,
 forward migration: `drop schema gallery cascade;` and delete the two
 buckets. Undeploy the function. No other data is affected.
+
+## Apply record (what actually happened, 2026-11-06)
+
+**Pre-checks, on production, read-only.** Schema `gallery` absent; buckets
+`gallery-photos` and `gallery-covers` absent; `extensions.gen_random_bytes`
+present; PostgreSQL 17.6; 112 migrations recorded. Security advisor: **47**
+findings (12 info, 35 warnings), none about galleries.
+
+**Applied one at a time, from the merged files** (hashes above), as
+`hlbos_0053_team_galleries` then `hlbos_0054_team_gallery_publisher`. After
+0053: 4 tables, 10 functions, both buckets, 113 migrations recorded.
+
+**Fingerprint.** The names fingerprint matched the expected values exactly (tables 5,
+columns 40, checks 21, fks 3, policies 0, functions 13, rls_forced 5, web
+tables 0, web functions 0, anon usage false, buckets
+`gallery-covers:true,gallery-photos:false`, constraint md5 `a4e2e60c…`,
+function md5 `a15963ef…`, connect window open, no publisher yet).
+
+**Full definitions** (`supabase/verify/team_galleries_definitions.sql`):
+functions `99df50f2…`, columns `3da3791d…`, constraints `69012f7e…`,
+identical on production and on the tested local copy. **A false alarm worth
+recording:** the first columns hash differed. Cause: Postgres leaves the
+schema name off `extensions.gen_random_bytes(32)` in a column default when
+`extensions` is on the session's search path, so production _displayed_
+`gen_random_bytes(32)` while storing the same default. Proved by reading it
+with an empty search path (identical), and the script now sets one.
+
+**Refusal probe** (rolled back by its own final error):
+
+```
+PROBE anon_reads=refused web_runs=refused foreign_path=refused foreign_cover=refused takeover=refused bad_fingerprint=refused rows_left=2
+```
+
+Afterwards: 0 galleries, 0 games, 0 photos, 0 probe rows.
+
+**Advisors after.** Security: **52** (47 + 5), the five being info notes "RLS
+Enabled No Policy" on `gallery.galleries`, `games`, `photos`, `settings` and
+`unlock_failures` (by design). Every warning group unchanged; no gallery
+function is runnable by the web roles. Performance: 3 info notes about
+`gallery`, on empty tables (`photos`' foreign key `(game_id, gallery_id)` has no
+covering index; `games_gallery_date` and `unlock_failures_gallery_at` unused).
+Left as they are, matching the 0051 precedent for empty tables; the foreign
+key index is worth adding once photos are real.
+
+**The service's database access** was checked before deploying: the objects
+are owned by `postgres`, which is the role `SUPABASE_DB_URL` uses; it can run
+every function and bypasses row rules; `service_role` cannot reset the
+publisher.
+
+**A real bug, found by the first live check.** Version 1 of `team-gallery`
+answered `/unlock` with a 500: `Buffer is not defined`. The service used
+`Buffer` as a global; Supabase's Edge Runtime has none (the local test
+runtime does, which is why every test passed). It would have broken every
+password check and every publish. Reproduced locally by removing the global
+(`supabase/functions/tests/team_gallery_runtime.test.ts`, 3 of 4 failing),
+fixed with `import { Buffer } from "node:buffer"` in `core.ts` (146 of 146
+passing), and redeployed as version 2 **before this pull request**, so the
+repository's `core.ts` now matches production again (hash above).
+
+**Live checks, version 2** (all as expected): `/listing` 200 `{"games":[]}`;
+`/unlock` with an unknown link 404; `/gallery` with an unknown link 404;
+`/publish/check` without the key 401; CORS allows `https://5starsportsmedia.com`
+and no other origin.
+
+**A complete round trip against the live service,** with a throwaway
+gallery (22 of 22 passed, then everything removed):
+
+- connect with a throwaway key; a second key refused as another computer;
+  the right key accepted on a protected route and a wrong key refused;
+- publish a gallery, 5 uploads through the signed addresses, publish a game
+  with a chosen cover;
+- the listing shows the game with its cover; the cover is publicly readable;
+  nothing private is in the listing;
+- wrong password 401; right password gives a pass; no pass or a forged pass
+  401; with the pass, the games and the photos' signed addresses; a signed
+  address downloads a real 2400 px JPEG; the same file is **not** readable
+  without it (private bucket); a game not in the gallery 404;
+- clean-up: the gallery removed with its files, the listing empty again.
+
+Then `gallery.reset_publisher(24)`: no publisher registered, window open until
+2026-11-07 21:59 UTC; 0 galleries, games, photos, failures; **0 files in
+either bucket**.
+
+**Not done / still to do.** Keith's JerseySort has not connected yet. It has
+to press **Connect to the online galleries** inside the window above; if the
+window is missed, `select gallery.reset_publisher(24);` opens another.
+`.hlbos/canonical.json` was not rewritten (the production-history
+reconciliation noted in `social-publishing-phase-1.md` is still outstanding).
