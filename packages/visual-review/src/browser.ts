@@ -59,6 +59,22 @@ import type {
 } from "./types.ts";
 import { VISUAL_REVIEW_VERSION } from "./types.ts";
 
+/** Why the start address could not be used: a lookup failure is "not found", anything else "unsafe". */
+export function startFailure(e: unknown): {
+  access: "error" | "unsafe_address";
+  detail: string;
+} {
+  const msg = e instanceof Error ? e.message : String(e);
+  if (/ENOTFOUND|EAI_AGAIN|ENODATA|dns_no_records/i.test(msg))
+    return {
+      access: "error",
+      detail: `The website's address could not be found (${msg.split("\n")[0]?.slice(0, 120)}); check the address, or this computer's internet connection.`,
+    };
+  return {
+    access: "unsafe_address",
+    detail: `The address failed the scanner's safety checks (${msg.slice(0, 120)}).`,
+  };
+}
 export interface VisualReviewOptions {
   /** Evidence root. The review is written to <outDir>/<id>/. */
   outDir: string;
@@ -84,8 +100,8 @@ export interface VisualReviewOptions {
   ) => Promise<{ status: number; body: string } | undefined>;
 }
 
-const DESKTOP = { width: 1366, height: 900 };
-const MOBILE = { width: 390, height: 844 };
+export const DESKTOP = { width: 1366, height: 900 };
+export const MOBILE = { width: 390, height: 844 };
 const SAFE_METHODS = new Set(["GET", "HEAD", "OPTIONS"]);
 
 /** Browser not installed (or not launchable) on this computer. */
@@ -166,6 +182,7 @@ export async function runVisualReview(
     const cov = coverageOf(pages, skippedSelected);
     const review: VisualReview = {
       id,
+      method: "automatic",
       startUrl,
       startedAt: started.toISOString(),
       finishedAt: now().toISOString(),
@@ -193,13 +210,14 @@ export async function runVisualReview(
     start = validateUrl(startUrl, urlOpts);
     await checkHost(start.hostname);
   } catch (e) {
+    const why = startFailure(e);
     pages.push(
       blankCapture(
         startUrl,
         "home",
         "homepage",
-        "unsafe_address",
-        `The address failed the scanner's safety checks (${e instanceof Error ? e.message : String(e)}); nothing was requested.`,
+        why.access,
+        `${why.detail} Nothing was requested.`,
         now(),
       ),
     );
@@ -352,76 +370,21 @@ export async function runVisualReview(
       await page
         .waitForLoadState("networkidle", { timeout: 6000 })
         .catch(() => undefined);
-      const loadMs = Date.now() - t0;
-      const status = resp?.status();
-      const headers = resp?.headers() ?? {};
-      const raw = (await resp?.text().catch(() => "")) ?? "";
-      const dom = await readPage(page);
-      const block = detectAccessBlock({
-        status: status ?? 0,
-        headers,
-        title: dom.title,
-        text: dom.text,
-        sources: dom.sources,
-        otherFields: dom.forms.reduce((s, f) => s + f.fields, 0),
+      return capturePage(page, {
+        url,
+        role,
+        reason,
+        at,
+        tag,
+        dir,
+        maxShot,
+        status: resp?.status(),
+        headers: resp?.headers() ?? {},
+        raw: (await resp?.text().catch(() => "")) ?? "",
+        loadMs: Date.now() - t0,
+        counters,
+        openMenu: role === "home",
       });
-      let access: PageAccess = block ? "challenge" : accessFromStatus(status);
-      if (access === "ok" && dom.text.trim().length === 0 && dom.links.length === 0)
-        access = "error";
-      const base: PageCapture = {
-        ...blankCapture(url, role, reason, access, "", at),
-        finalUrl: page.url(),
-        httpStatus: status,
-        title: dom.title || undefined,
-        loadMs,
-        refusedRequests: counters.refused,
-        unsafeRequests: counters.unsafe,
-      };
-      if (access !== "ok") {
-        base.detail = block
-          ? `A ${block.provider ? `${block.provider} ` : ""}${block.kind.replace("_", " ")} page answered instead of the site (${block.evidence}). Nothing on it was read as the site, and nothing was done to get past it.`
-          : describeStatus(access, status);
-        // Evidence of the block itself (the page that answered), never of the site.
-        base.desktop = await shot(
-          page,
-          path.join(dir, `${tag}-blocked.png`),
-          maxShot,
-        ).catch(() => undefined);
-        return base;
-      }
-      const rawText = visibleText(raw).length;
-      base.headings = dom.headings;
-      base.navigation = dom.navigation;
-      base.callsToAction = dom.links
-        .map((l): CallToAction => ({
-          ...l,
-          intent: intentOf(l.text, l.href),
-          provider: providerOf(l.href),
-        }))
-        .filter((c) => c.intent !== "other" || c.provider)
-        .slice(0, 60);
-      base.forms = dom.forms;
-      base.renderedTextLength = dom.text.length;
-      base.rawTextLength = rawText;
-      base.scriptRendered = rawText < 250 && dom.text.length > rawText + 400;
-      base.desktop = await shot(
-        page,
-        path.join(dir, `${tag}-desktop.png`),
-        maxShot,
-      ).catch(() => undefined);
-      await page.setViewportSize(MOBILE);
-      await page.waitForTimeout(400);
-      base.mobileHorizontalScroll = await page.evaluate(
-        () => document.documentElement.scrollWidth > window.innerWidth + 2,
-      );
-      base.mobileMenuOpened = role === "home" ? await openMobileMenu(page) : undefined;
-      base.mobile = await shot(
-        page,
-        path.join(dir, `${tag}-mobile.png`),
-        maxShot,
-      ).catch(() => undefined);
-      base.detail = `Rendered (HTTP ${status ?? "?"}) in ${Math.round(loadMs / 100) / 10}s${base.refusedRequests ? `; ${base.refusedRequests} non-GET request(s) refused` : ""}.`;
-      return base;
     };
 
     // 1. The homepage.
@@ -466,7 +429,103 @@ export async function runVisualReview(
   }
 }
 
-function describeStatus(access: PageAccess, status: number | undefined): string {
+export interface CaptureArgs {
+  url: string;
+  role: PageRole;
+  reason: string;
+  at: Date;
+  /** File-name prefix, "p01". */
+  tag: string;
+  dir: string;
+  maxShot: number;
+  status: number | undefined;
+  headers: Record<string, string>;
+  /** The main document's raw HTML, as received (before scripts ran). */
+  raw: string;
+  loadMs: number | undefined;
+  counters: { refused: number; unsafe: number };
+  /** Click a mobile menu toggle to open it (automatic review only; never in a person's session). */
+  openMenu: boolean;
+}
+
+/** Read and photograph the page that is open now. Shared by the automatic review and a person's own session. */
+export async function capturePage(
+  page: import("playwright").Page,
+  a: CaptureArgs,
+): Promise<PageCapture> {
+  const dom = await readPage(page);
+  const block = detectAccessBlock({
+    status: a.status ?? 0,
+    headers: a.headers,
+    title: dom.title,
+    text: dom.text,
+    sources: dom.sources,
+    otherFields: dom.forms.reduce((s, f) => s + f.fields, 0),
+  });
+  let access: PageAccess = block ? "challenge" : accessFromStatus(a.status ?? 200);
+  if (access === "ok" && dom.text.trim().length === 0 && dom.links.length === 0)
+    access = "error";
+  const base: PageCapture = {
+    ...blankCapture(a.url, a.role, a.reason, access, "", a.at),
+    finalUrl: page.url(),
+    httpStatus: a.status,
+    title: dom.title || undefined,
+    loadMs: a.loadMs,
+    refusedRequests: a.counters.refused,
+    unsafeRequests: a.counters.unsafe,
+  };
+  if (access !== "ok") {
+    base.detail = block
+      ? `A ${block.provider ? `${block.provider} ` : ""}${block.kind.replace("_", " ")} page answered instead of the site (${block.evidence}). Nothing on it was read as the site, and nothing was done to get past it.`
+      : describeStatus(access, a.status);
+    // Evidence of the block itself (the page that answered), never of the site.
+    base.desktop = await shot(
+      page,
+      path.join(a.dir, `${a.tag}-blocked.png`),
+      a.maxShot,
+    ).catch(() => undefined);
+    return base;
+  }
+  const rawText = visibleText(a.raw).length;
+  base.headings = dom.headings;
+  base.navigation = dom.navigation;
+  base.callsToAction = dom.links
+    .map((l): CallToAction => ({
+      ...l,
+      intent: intentOf(l.text, l.href),
+      provider: providerOf(l.href),
+    }))
+    .filter((c) => c.intent !== "other" || c.provider)
+    .slice(0, 60);
+  base.forms = dom.forms;
+  base.renderedTextLength = dom.text.length;
+  base.rawTextLength = a.raw ? rawText : undefined;
+  base.scriptRendered = a.raw
+    ? rawText < 250 && dom.text.length > rawText + 400
+    : undefined;
+  const before = page.viewportSize() ?? DESKTOP;
+  base.desktop = await shot(
+    page,
+    path.join(a.dir, `${a.tag}-desktop.png`),
+    a.maxShot,
+  ).catch(() => undefined);
+  await page.setViewportSize(MOBILE);
+  await page.waitForTimeout(400);
+  base.mobileHorizontalScroll = await page.evaluate(
+    () => document.documentElement.scrollWidth > window.innerWidth + 2,
+  );
+  base.mobileMenuOpened = a.openMenu ? await openMobileMenu(page) : undefined;
+  base.mobile = await shot(
+    page,
+    path.join(a.dir, `${a.tag}-mobile.png`),
+    a.maxShot,
+  ).catch(() => undefined);
+  await page.setViewportSize(before);
+  base.detail = `Rendered (HTTP ${a.status ?? "?"})${a.loadMs !== undefined ? ` in ${Math.round(a.loadMs / 100) / 10}s` : ""}${base.refusedRequests ? `; ${base.refusedRequests} non-GET request(s) refused` : ""}.`;
+  return base;
+}
+
+export function describeStatus(access: PageAccess, status: number | undefined): string {
   switch (access) {
     case "http_blocked":
       return `The site refused the request (HTTP ${status}). No further requests were made to it.`;
@@ -531,7 +590,7 @@ interface DomRead {
 }
 
 /** Read what is on the page. Runs inside the page; changes nothing there. */
-async function readPage(page: import("playwright").Page): Promise<DomRead> {
+export async function readPage(page: import("playwright").Page): Promise<DomRead> {
   return page.evaluate(() => {
     const clean = (s: string | null | undefined) =>
       (s ?? "").replace(/\s+/g, " ").trim();
@@ -629,7 +688,7 @@ async function openMobileMenu(page: import("playwright").Page): Promise<boolean>
   return true;
 }
 
-async function shot(
+export async function shot(
   page: import("playwright").Page,
   file: string,
   maxHeight: number,

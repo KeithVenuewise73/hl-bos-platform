@@ -132,6 +132,23 @@ export async function startFixtureSites(): Promise<FixtureServer> {
           200,
           page("Just a moment...", "<p>Enable JavaScript and cookies to continue</p>"),
         );
+      case "gate.test":
+        // A check that a PERSON passes by clicking; the software itself never does.
+        return p === "/welcome"
+          ? send(
+              200,
+              page(
+                "Gate Rinks — Welcome",
+                `<nav><a href="/welcome">Home</a><a href="/programs">Programs</a></nav><h1>Welcome</h1><p>${lorem}</p>`,
+              ),
+            )
+          : send(
+              200,
+              page(
+                "Just a moment...",
+                '<p>Verify you are human</p><a id="human" href="/welcome">I am human — continue</a>',
+              ),
+            );
       case "wide.test":
         return send(
           200,

@@ -49,13 +49,21 @@ export function visualFindings(r: VisualReview): Finding[] {
   out.push(
     finding(
       "visual.coverage",
-      r.coverage === "complete"
-        ? "Website visually reviewed in a browser"
-        : r.coverage === "partial"
-          ? "Website partly reviewed in a browser"
-          : r.coverage === "blocked"
-            ? "Website could not be viewed in a browser"
-            : "Website not visually reviewed",
+      `${
+        r.coverage === "complete"
+          ? "Website visually reviewed in a browser"
+          : r.coverage === "partial"
+            ? "Website partly reviewed in a browser"
+            : r.coverage === "blocked"
+              ? "Website could not be viewed in a browser"
+              : "Website not visually reviewed"
+      }${
+        r.method !== "guided"
+          ? ""
+          : r.coverage === "complete" || r.coverage === "partial"
+            ? " (viewed by you, in a window you browsed)"
+            : " (in your own browsing session)"
+      }`,
       r.coverage === "complete" || r.coverage === "partial"
         ? "present"
         : r.coverage === "blocked"

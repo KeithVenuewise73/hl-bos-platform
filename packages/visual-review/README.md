@@ -41,10 +41,28 @@ those pages and stated with medium confidence. The Revenue Center
 claims about a working site without `visual.*` evidence from a `complete` or
 `partial` review.
 
+## View it yourself (`guided.ts`)
+
+A visible browser window opens on this computer with the website. A person
+browses it as they normally would, and every page they land on is recorded:
+a screenshot as they see it, a phone-width capture, the menu, headings,
+booking/registration links and forms. Closing the window, or pressing **Done**
+in the console, saves the review onto the lead, marked "viewed by you".
+
+|                                  | Automatic review                | View it yourself                                                                                                                       |
+| -------------------------------- | ------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
+| Who picks the pages              | the software                    | the person                                                                                                                             |
+| Clicks or typing by the software | menu toggle only                | none at all                                                                                                                            |
+| Browser identity                 | announces itself as the scanner | the browser's own (the visitor is a person)                                                                                            |
+| robots.txt                       | obeyed                          | not applied (a person chooses what to look at)                                                                                         |
+| Non-GET requests                 | refused                         | allowed (a person may answer a "verify you are human" check) and counted in the record                                                 |
+| A block or challenge page        | ends requests to that host      | recorded as what it was; if the person gets past it, the site behind it is recorded and the check page is not counted against coverage |
+| Private-network addresses        | refused                         | refused                                                                                                                                |
+
 ## Running it
 
-From the console: open a lead, then **Visual review (real browser)** → **Run
-visual review**. The first time, the console offers **Install the browser**,
+From the console: open a lead, then **Visual review (real browser)** → **View it
+yourself** or **Run automatic review**. The first time, the console offers **Install the browser**,
 a one-time download of about 150 MB. Evidence is kept in
 `apps/control-center/.data/visual-reviews/<id>/`: `review.json` plus the
 screenshots.

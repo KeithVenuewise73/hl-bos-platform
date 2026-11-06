@@ -520,7 +520,7 @@ function VisualReviewCard({
   return (
     <Card
       title="Visual review (real browser)"
-      sub="A real browser on this computer opens the homepage and the most relevant pages it links to, read-only: nothing is submitted, booked or signed up for, and a block or CAPTCHA is recorded, never worked around."
+      sub="Two ways to look at the website in a real browser on this computer. View it yourself: a window opens, you click through the site as you normally would, and every page you land on is recorded. Automatic review: the browser picks the pages itself, read-only. Either way, a block or CAPTCHA is recorded, never worked around by the software."
     >
       {review ? (
         <>
@@ -529,6 +529,11 @@ function VisualReviewCard({
               {COVERAGE[review.coverage][0]}
             </strong>{" "}
             <span style={{ color: C.muted, fontSize: 12 }}>
+              {review.method === "guided"
+                ? review.coverage === "complete" || review.coverage === "partial"
+                  ? "viewed by you · "
+                  : "your own session · "
+                : "automatic · "}
               {review.finishedAt.slice(0, 16).replace("T", " ")} UTC ·{" "}
               {review.environment.browser}
             </span>

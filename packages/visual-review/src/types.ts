@@ -101,6 +101,12 @@ export interface PageCapture {
 export interface VisualReview {
   /** Folder name for the evidence. */
   id: string;
+  /**
+   * "automatic": the browser chose the pages, read-only (non-GET refused, robots.txt obeyed).
+   * "guided": a person browsed the site in a visible window and the software recorded each
+   * page they landed on, without clicking, typing or opening anything itself.
+   */
+  method?: "automatic" | "guided";
   startUrl: string;
   startedAt: string;
   finishedAt: string;

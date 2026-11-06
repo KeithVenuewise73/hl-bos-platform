@@ -179,6 +179,17 @@ describe.skipIf(!HAVE_BROWSER)(
       ).toBe("missing");
     });
 
+    it("an address that cannot be found is 'failed' (not found), not 'blocked'", async () => {
+      const r = await runVisualReview("http://missing.example/", {
+        ...opts(),
+        resolve: () =>
+          Promise.reject(new Error("getaddrinfo ENOTFOUND missing.example")),
+      });
+      expect(r.coverage).toBe("failed");
+      expect(r.pages[0]!.access).toBe("error");
+      expect(r.pages[0]!.detail).toContain("could not be found");
+    });
+
     it("an address on a private network is refused before the browser starts", async () => {
       const r = await runVisualReview(site.url("private.test"), opts());
       expect(r.coverage).toBe("blocked");
