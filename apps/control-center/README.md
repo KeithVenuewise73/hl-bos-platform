@@ -23,6 +23,27 @@ stops and says so rather than overwriting.
 Without Git it still works, by downloading a snapshot — and says plainly that
 the copy cannot update itself until Git is installed.
 
+## Opening it, every day
+
+Double-click **HL-BOS Control Center** on the desktop, or press the Windows key
+and type **HL-BOS** (it is in the Start menu too). The Control Center opens in
+**its own window**, like any app: no address bar, no tabs, its own icon in the
+taskbar.
+
+A black window opens beside it. That window is what runs the console, so leave
+it open (you can minimize it). Closing it shuts the console down.
+
+It uses Microsoft Edge (every Windows computer has it) or Google Chrome. If
+neither can be found, the console opens as a tab in your usual browser
+instead, and the black window says so. Nothing else changes: it is the same
+console either way (`scripts/open-app.mjs` opens the window; it only opens a
+window and never starts or stops anything).
+
+The app window keeps its own small browser profile in `.hlbos/app-profile`
+(ignored by git, like the other files `.hlbos` keeps for this computer) so it
+never touches the windows or settings of the browser you use for everything
+else.
+
 ## If Windows blocks it
 
 Windows marks anything that came from the internet and refuses to run it until

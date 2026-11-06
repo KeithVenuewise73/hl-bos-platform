@@ -1,8 +1,12 @@
 #!/usr/bin/env node
 // Put the HL-BOS icons on the Windows desktop, each ONCE.
 //
-//   "HL-BOS Control Center"  double-click: the console starts and opens
+//   "HL-BOS Control Center"  double-click: the console starts and opens in its
+//                            own window (scripts/open-app.mjs)
 //   "DateSort"               double-click: DateSort starts and opens
+//
+// The Control Center also gets a Start menu entry, so typing "HL-BOS" in the
+// Start menu finds it like any installed app.
 //
 // The first time HL-BOS starts on a computer (from the Control Center or
 // from DateSort.bat) this makes both icons. After that it never makes an
@@ -20,7 +24,8 @@
 // text, so a folder name with quotes or spaces cannot change what runs.
 //
 // Usage: node scripts/desktop-shortcut.mjs   (prints one line per icon, exits 0)
-//   env DATESORT_DESKTOP  desktop folder to use instead of the real one (tests)
+//   env DATESORT_DESKTOP    desktop folder to use instead of the real one (tests)
+//   env DATESORT_STARTMENU  Start menu programs folder to use instead (tests)
 import { execFile } from "node:child_process";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
@@ -33,6 +38,8 @@ const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 export const SHORTCUTS = {
   dateSort: {
     label: "DateSort",
+    place: "on the desktop",
+    folder: "Desktop",
     marker: path.join(ROOT, ".hlbos", "desktop-shortcut.json"),
     target: path.join(ROOT, "scripts", "DateSort.bat"),
     icon: path.join(ROOT, "scripts", "assets", "datesort.ico"),
@@ -41,7 +48,20 @@ export const SHORTCUTS = {
   },
   controlCenter: {
     label: "Control Center",
+    place: "on the desktop",
+    folder: "Desktop",
     marker: path.join(ROOT, ".hlbos", "desktop-shortcut-control-center.json"),
+    target: path.join(ROOT, "scripts", "control-center.bat"),
+    icon: path.join(ROOT, "scripts", "assets", "control-center.ico"),
+    name: "HL-BOS Control Center.lnk",
+    description: "HL-BOS Development Control Center",
+  },
+  // The same program, found by typing its name in the Start menu.
+  controlCenterStart: {
+    label: "Control Center",
+    place: "in the Start menu",
+    folder: "Programs",
+    marker: path.join(ROOT, ".hlbos", "desktop-shortcut-control-center-start.json"),
     target: path.join(ROOT, "scripts", "control-center.bat"),
     icon: path.join(ROOT, "scripts", "assets", "control-center.ico"),
     name: "HL-BOS Control Center.lnk",
@@ -56,7 +76,8 @@ export const SHORTCUTS = {
 export const SCRIPT = [
   "$ErrorActionPreference = 'Stop'",
   "$desk = $env:DS_DESKTOP",
-  "if (-not $desk) { $desk = [Environment]::GetFolderPath('Desktop') }",
+  // 'Desktop' or 'Programs' (the Start menu), chosen by the caller, never typed in.
+  "if (-not $desk) { $desk = [Environment]::GetFolderPath($env:DS_KIND) }",
   "$lnk = Join-Path $desk $env:DS_NAME",
   "$shell = New-Object -ComObject WScript.Shell",
   "if (Test-Path -LiteralPath $lnk) {",
@@ -100,7 +121,11 @@ function runPowerShell(sc) {
         windowsHide: true,
         env: {
           ...process.env,
-          DS_DESKTOP: process.env.DATESORT_DESKTOP ?? "",
+          DS_DESKTOP:
+            (sc.folder === "Programs"
+              ? process.env.DATESORT_STARTMENU
+              : process.env.DATESORT_DESKTOP) ?? "",
+          DS_KIND: sc.folder,
           DS_NAME: sc.name,
           DS_TARGET: sc.target,
           DS_ROOT: ROOT,
@@ -119,13 +144,13 @@ async function ensureShortcut(sc) {
   try {
     if (process.platform !== "win32") return "skipped: not Windows";
     if (readMarker(sc.marker) !== null)
-      return `skipped: the ${sc.label} icon was already made once`;
+      return `skipped: the ${sc.label} icon ${sc.place} was already made once`;
     if (!existsSync(sc.target))
       return `skipped: ${path.basename(sc.target)} is not in this folder`;
     const r = await runPowerShell(sc);
     const line = r.out.split(/\r?\n/).pop() ?? "";
     if (!r.ok || !/^(created|exists|other) /.test(line)) {
-      return `skipped: could not make the ${sc.label} desktop icon (${(r.err || r.out).split(/\r?\n/)[0]})`;
+      return `skipped: could not make the ${sc.label} icon ${sc.place} (${(r.err || r.out).split(/\r?\n/)[0]})`;
     }
     mkdirSync(path.dirname(sc.marker), { recursive: true });
     writeFileSync(
@@ -133,10 +158,10 @@ async function ensureShortcut(sc) {
       `${JSON.stringify({ shortcut: line.replace(/^\w+ /, ""), result: line.split(" ")[0], at: new Date().toISOString() }, null, 2)}\n`,
     );
     return line.startsWith("created")
-      ? `made a ${sc.label} icon on the desktop`
+      ? `made a ${sc.label} icon ${sc.place}`
       : line.startsWith("exists")
-        ? `the ${sc.label} desktop icon is already there`
-        : `a different ${sc.label} shortcut is already on the desktop; left it alone`;
+        ? `the ${sc.label} icon ${sc.place} is already there`
+        : `a different ${sc.label} shortcut is already ${sc.place}; left it alone`;
   } catch (e) {
     return `skipped: ${e instanceof Error ? e.message : String(e)}`;
   }
@@ -145,6 +170,8 @@ async function ensureShortcut(sc) {
 export const ensureDateSortShortcut = () => ensureShortcut(SHORTCUTS.dateSort);
 export const ensureControlCenterShortcut = () =>
   ensureShortcut(SHORTCUTS.controlCenter);
+export const ensureControlCenterStartMenu = () =>
+  ensureShortcut(SHORTCUTS.controlCenterStart);
 
 if (
   process.argv[1] &&
@@ -154,4 +181,5 @@ if (
   // gain nothing and are harder to read when something goes wrong.
   console.log(`  [ok]    Desktop icon: ${await ensureControlCenterShortcut()}`);
   console.log(`  [ok]    Desktop icon: ${await ensureDateSortShortcut()}`);
+  console.log(`  [ok]    Start menu: ${await ensureControlCenterStartMenu()}`);
 }
