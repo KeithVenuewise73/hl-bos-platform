@@ -61,8 +61,11 @@ const fakeConsole = (port) =>
   new Promise((resolve) => {
     const s = http
       .createServer((req, res) => {
-        res.writeHead(200, { "content-type": "text/html" });
-        res.end("<title>Fake Control Center</title><p>ready</p>");
+        // A real console takes a moment to render; so does this one.
+        setTimeout(() => {
+          res.writeHead(200, { "content-type": "text/html" });
+          res.end("<title>Fake Control Center</title><p>ready</p>");
+        }, 1200);
       })
       .listen(port, "127.0.0.1", () => resolve(s));
   });
@@ -253,19 +256,24 @@ async function realBrowser() {
   );
   const server = await fakeConsole(port);
   let page = null;
+  let seen = "no page";
   try {
+    // The window appears at the console's address at once; its title arrives
+    // when the page has loaded, so wait for that rather than read it early.
     page = await until(async () => {
       try {
         const list = await (await fetch(`http://127.0.0.1:${cdp}/json`)).json();
-        return list.find((t) => t.type === "page" && t.url.startsWith(url)) ?? null;
+        const t = list.find((x) => x.type === "page" && x.url.startsWith(url));
+        if (t) seen = JSON.stringify({ url: t.url, title: t.title });
+        return t && t.title === "Fake Control Center" ? t : null;
       } catch {
         return null;
       }
     }, 60000);
     check(
-      "once the console is up, the browser opens its page (title and address)",
-      page !== null && page.title === "Fake Control Center",
-      page ? JSON.stringify({ url: page.url, title: page.title }) : "no page",
+      "once the console is up, the browser opens its page (address, then title once loaded)",
+      page !== null,
+      seen,
     );
     await Promise.race([exited, sleep(20000)]);
     check(
