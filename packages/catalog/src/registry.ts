@@ -181,6 +181,7 @@ const ASSETS: Asset[] = [
       { kind: "consumes", to: "pkg.catalog" },
       { kind: "uses", to: "pkg.presence-scanner" },
       { kind: "uses", to: "pkg.growth-intelligence" },
+      { kind: "uses", to: "pkg.visual-review" },
       { kind: "uses", to: "pkg.site-builder" },
       { kind: "provides", to: "wf.catalog-governance" },
       { kind: "owned_by", to: "repo.hl-bos-platform" },
@@ -581,6 +582,26 @@ const ASSETS: Asset[] = [
     ],
     evidence:
       "packages/growth-intelligence; tests green; no Google connector has been connected or called, and no record has been written to any database",
+  },
+  {
+    id: "pkg.visual-review",
+    kind: "package",
+    name: "@hl-bos/visual-review",
+    summary:
+      "Browser-based visual website review: a real Chromium (Playwright) renders the homepage and the most relevant pages it links to, captures desktop and phone screenshots, and reads back the menu, headings, programs/services pages, calls to action, forms and booking/registration links. Read-only by construction: every non-GET request is refused at the network layer, every address is checked against the scanner's private-network rules, robots.txt is obeyed, and a 401/403/429, security block page or CAPTCHA ends all requests to that host with no retry or workaround. Coverage is complete, partial, blocked, failed or not available, and findings describe only pages that were viewed.",
+    maturity: "built_undeployed",
+    reuse: ["reusable"],
+    owner: "Herman Legacy Platform",
+    layer: "HL-BOS",
+    key: "visual-review",
+    location: "packages/visual-review",
+    tags: ["package", "website-review", "browser", "evidence"],
+    relationships: [
+      { kind: "uses", to: "pkg.presence-scanner" },
+      { kind: "owned_by", to: "repo.hl-bos-platform" },
+    ],
+    evidence:
+      "packages/visual-review; real-browser tests green against local synthetic sites only; never run against a live business website",
   },
   {
     id: "pkg.site-builder",

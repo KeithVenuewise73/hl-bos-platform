@@ -75,7 +75,33 @@ export interface OpportunityReview {
   needsVerification: string[];
   assumptions: Assumption[];
   opportunities: EstimatedOpportunity[];
+  /**
+   * Whether the website was seen in a real browser (packages/visual-review).
+   * "not_run" when no visual review exists. Only "complete" and "partial" allow
+   * any statement about design, navigation or how booking works.
+   */
+  visualCoverage?:
+    "complete" | "partial" | "blocked" | "failed" | "not_available" | "not_run";
 }
+
+/** Offers whose case rests on how the existing site looks and works. */
+export const DESIGN_OFFERS: ReadonlySet<string> = new Set(["hld.website"]);
+
+/** Facts showing there is no working site of its own -- a rebuild needs no visual review then. */
+const NO_WORKING_SITE: Record<string, readonly string[]> = {
+  "website.exists": ["missing", "not_found"],
+  "website.social_only": ["present"],
+  "website.link_in_bio": ["present"],
+  "website.retired_google_site": ["present"],
+  "website.reachable": ["missing"],
+};
+
+/** Words that describe how a site looks or works. Allowed only on visual evidence. */
+const DESIGN_CLAIM =
+  /\b(design|layout|navigation|look(s|ing)? (dated|old|outdated|modern|cluttered)|user experience|mobile experience|hard to (use|navigate)|confusing|booking (flow|process|path)|registration (flow|process|path)|checkout)\b/i;
+
+const visualKeys = (facts: readonly ObservedFact[]) =>
+  facts.filter((f) => f.key.startsWith("visual.")).map((f) => f.key);
 
 /**
  * Operational facts no public source can show. A review may hold them only
@@ -155,14 +181,33 @@ export function buildReview(p: Prospect, opts: ReviewOptions): OpportunityReview
     else notChecked.push(`${f.label}: ${f.evidence}`);
   }
 
+  const visualCoverage: NonNullable<OpportunityReview["visualCoverage"]> =
+    p.visual?.coverage ?? "not_run";
+  const visualSeen = visualCoverage === "complete" || visualCoverage === "partial";
+  const visualNote = p.visual
+    ? `visual review ${visualCoverage}: ${p.visual.coverageReason}`
+    : "no visual review has been run";
   const opportunities: EstimatedOpportunity[] = [];
   const seen = new Set<string>();
   if (opts.line === "hld") {
     for (const s of p.services) {
       const o = offerForService("hld", s.service);
       if (!o || seen.has(o.key)) continue;
-      const basedOn = evidenceFor(p, s.dimension, observed);
+      let basedOn = evidenceFor(p, s.dimension, observed);
       if (basedOn.length === 0) continue; // no observed gap behind it: not offered
+      if (DESIGN_OFFERS.has(o.key) && !citesNoWorkingSite(basedOn, observed)) {
+        // A working site's design is judged only on what a browser showed.
+        const seenInBrowser = visualSeen ? visualKeys(observed) : [];
+        if (seenInBrowser.length === 0) {
+          if (!seen.has(o.key))
+            notChecked.push(
+              `${o.name}: not assessed. The existing website was not viewed in a browser (${visualNote}), so nothing is said about its design or how it works.`,
+            );
+          seen.add(o.key);
+          continue;
+        }
+        basedOn = [...new Set([...basedOn, ...seenInBrowser])];
+      }
       seen.add(o.key);
       opportunities.push({
         offerKey: o.key,
@@ -223,6 +268,17 @@ export function buildReview(p: Prospect, opts: ReviewOptions): OpportunityReview
       howToVerify: "Ask for these figures in the operational assessment.",
     });
   }
+  if (!visualSeen) {
+    assumptions.push({
+      statement: `The website's design, navigation, mobile experience and booking or registration paths were not seen in a browser (${visualNote}). Nothing is claimed about them.`,
+      howToVerify: "Run the visual review from the console.",
+    });
+  } else if (visualCoverage === "partial") {
+    assumptions.push({
+      statement: `The website was only partly seen in a browser (${p.visual?.coverageReason ?? ""}). Statements about it cover the pages viewed only.`,
+      howToVerify: "Open the visual review to see which pages were viewed.",
+    });
+  }
   if (notChecked.length > 0) {
     assumptions.push({
       statement: `${notChecked.length} item(s) could not be checked and are not counted for or against the business.`,
@@ -240,6 +296,7 @@ export function buildReview(p: Prospect, opts: ReviewOptions): OpportunityReview
     notChecked,
     needsVerification,
     assumptions,
+    visualCoverage,
     opportunities: opportunities.sort(
       (a, b) => PRIORITY_RANK[a.priority] - PRIORITY_RANK[b.priority],
     ),
@@ -253,6 +310,15 @@ const PRIORITY_RANK = { critical: 0, high: 1, medium: 2, low: 3 } as const;
  * Scanner's own score cited for the component that maps to this BTI dimension.
  * Uses the scanner's evidence links rather than guessing from key names.
  */
+function citesNoWorkingSite(
+  basedOn: readonly string[],
+  facts: readonly ObservedFact[],
+): boolean {
+  return facts.some(
+    (f) => basedOn.includes(f.key) && NO_WORKING_SITE[f.key]?.includes(f.status),
+  );
+}
+
 function evidenceFor(
   p: Prospect,
   dimension: string,
@@ -311,6 +377,27 @@ export function validateReview(r: OpportunityReview): string[] {
     for (const p of findPromises(o.rationale))
       problems.push(`Opportunity "${o.offerName}" makes a promise (${p}).`);
   }
+  const visualOk = r.visualCoverage === "complete" || r.visualCoverage === "partial";
+  for (const o of r.opportunities) {
+    const cites = o.basedOn.filter((k) => k.startsWith("visual."));
+    if (
+      DESIGN_OFFERS.has(o.offerKey) &&
+      !citesNoWorkingSite(o.basedOn, r.observed) &&
+      (!visualOk || cites.length === 0)
+    )
+      problems.push(
+        `Opportunity "${o.offerName}" judges an existing website without having seen it in a browser (visual coverage: ${r.visualCoverage ?? "unknown"}).`,
+      );
+    if (DESIGN_CLAIM.test(o.rationale) && (!visualOk || cites.length === 0))
+      problems.push(
+        `Opportunity "${o.offerName}" describes design or functionality without a visual-review fact.`,
+      );
+  }
+  const visualFacts = visualKeys(r.observed).filter((k) => k !== "visual.coverage");
+  if (visualFacts.length > 0 && !visualOk)
+    problems.push(
+      "The review cites visual-review facts, but the visual review did not see the site.",
+    );
   if (r.assumptions.length === 0) problems.push("A review must state its assumptions.");
   return problems;
 }
