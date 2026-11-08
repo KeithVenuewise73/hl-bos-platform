@@ -1,0 +1,1 @@
+create policy medical_card_orphan_read on storage.objects for select to authenticated using(bucket_id='hlg-driver-medical-cards' and owner_id=auth.uid()::text and fleet.medical_storage_allowed(name,'delete'));

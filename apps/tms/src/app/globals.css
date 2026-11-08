@@ -1,0 +1,29 @@
+@import "tailwindcss";
+
+/* HLG TMS — calm operations look: slate ink, road-sign amber, clear status colours. */
+@theme {
+  --color-ink: #0f172a;
+  --color-panel: #ffffff;
+  --color-wash: #f1f5f9;
+  --color-line: #e2e8f0;
+  --color-muted: #64748b;
+  --color-brand: #0b4f6c;
+  --color-accent: #f59e0b;
+  --color-ok: #15803d;
+  --color-warn: #b45309;
+  --color-bad: #b91c1c;
+}
+
+body {
+  background: var(--color-wash);
+  color: var(--color-ink);
+  -webkit-font-smoothing: antialiased;
+}
+@media print {
+  .no-print {
+    display: none !important;
+  }
+  body {
+    background: #fff;
+  }
+}

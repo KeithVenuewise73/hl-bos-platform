@@ -1,0 +1,23 @@
+{
+  "name": "@hl-bos/tms",
+  "version": "0.1.0",
+  "private": true,
+  "description": "HLG Transportation Management System core: the module catalog and its dependency graph, the entitlement resolver that decides which screens a tenant may open, the Digital DVIR rules taken from the production fleet backend (fleet.api), and a FleetBackend boundary with an in-memory implementation whose behaviour is tested for parity against the recovered production SQL. No UI, no network.",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "default": "./src/index.ts"
+    }
+  },
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run",
+    "clean": "rm -rf dist *.tsbuildinfo"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  }
+}
