@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import type { IntakeKind } from "@/lib/intake";
 
 function track(event: string, props: Record<string, string> = {}) {
@@ -46,12 +46,11 @@ const label: React.CSSProperties = {
 
 export function IntakeForm({ kind }: { kind: IntakeKind }) {
   const [busy, setBusy] = useState(false);
-  const [done, setDone] = useState<{
-    ref: string;
-    nextStep: string;
-    persisted: boolean;
-  } | null>(null);
+  const [done, setDone] = useState<{ ref: string; nextStep: string } | null>(null);
   const [errors, setErrors] = useState<string[]>([]);
+  // One id per visit: a retry after a failed send is recognisably the same
+  // inquiry, so the destination can avoid storing it twice.
+  const submissionId = useRef<string | null>(null);
 
   useEffect(() => {
     track(
@@ -71,7 +70,9 @@ export function IntakeForm({ kind }: { kind: IntakeKind }) {
       const v = form.get(name);
       return typeof v === "string" ? v : "";
     };
+    submissionId.current ??= crypto.randomUUID();
     const payload = {
+      submissionId: submissionId.current,
       kind,
       businessName: str("businessName"),
       website: str("website"),
@@ -91,11 +92,12 @@ export function IntakeForm({ kind }: { kind: IntakeKind }) {
         body: JSON.stringify(payload),
       });
       const data = (await res.json()) as
-        | { status: "received"; ref: string; nextStep: string; persisted: boolean }
+        | { status: "received"; ref: string; nextStep: string }
+        | { status: "not_delivered"; message: string }
         | { status: "invalid"; errors: string[] };
       setBusy(false);
       if (data.status === "received") {
-        setDone({ ref: data.ref, nextStep: data.nextStep, persisted: data.persisted });
+        setDone({ ref: data.ref, nextStep: data.nextStep });
         track(
           kind === "visibility_assessment"
             ? "assessment_submit"
@@ -104,12 +106,16 @@ export function IntakeForm({ kind }: { kind: IntakeKind }) {
             stage: "submit",
           },
         );
+      } else if (data.status === "not_delivered") {
+        setErrors([data.message]);
       } else {
         setErrors(data.errors);
       }
     } catch {
       setBusy(false);
-      setErrors(["Something went wrong. Please try again or use the Contact page."]);
+      setErrors([
+        "We could not send your request, so it has not been received. Please try again in a few minutes.",
+      ]);
     }
   }
 
@@ -130,12 +136,10 @@ export function IntakeForm({ kind }: { kind: IntakeKind }) {
         <p style={{ fontSize: 12.5, color: "#5b6672" }}>
           Reference: <strong>{done.ref}</strong>
         </p>
-        {!done.persisted ? (
-          <p style={{ fontSize: 11.5, color: "#8a6d1a" }}>
-            Your request is captured; our team will confirm it directly. (No automated
-            assessment has run — a Herman Legacy advisor reviews every request.)
-          </p>
-        ) : null}
+        <p style={{ fontSize: 11.5, color: "#5b6672" }}>
+          No automated assessment has run — a Herman Legacy advisor reviews every
+          request.
+        </p>
       </div>
     );
   }
@@ -191,7 +195,7 @@ export function IntakeForm({ kind }: { kind: IntakeKind }) {
         </span>
       </label>
       {errors.length > 0 ? (
-        <ul style={{ color: "#b42318", fontSize: 13 }}>
+        <ul role="alert" style={{ color: "#b42318", fontSize: 13 }}>
           {errors.map((er) => (
             <li key={er}>{er}</li>
           ))}

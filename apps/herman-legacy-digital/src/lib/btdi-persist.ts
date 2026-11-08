@@ -1,6 +1,7 @@
 import "server-only";
 import { createClient } from "@supabase/supabase-js";
 import type { BtdiRecord } from "./btdi";
+import { deliverInquiry, submissionIdFrom } from "./delivery";
 
 /**
  * BTDI persistence adapter. A valid submission ALWAYS produces a record; whether
@@ -14,9 +15,10 @@ import type { BtdiRecord } from "./btdi";
  * service-role key ever touches this code. Until migration 0031 is applied, the
  * RPC does not exist and we honestly report `persisted: false`.
  *
- * Fallback: an optional delivery webhook (`HLD_INTAKE_WEBHOOK_URL`). When
- * neither is available (dev/CI), the request is captured to the server log and
- * we return `persisted: false` — captured for human follow-up, never dropped.
+ * Fallback: the inquiry delivery destination (`HLD_INTAKE_WEBHOOK_URL`), used
+ * when the RPC is not configured OR fails (e.g. migration 0031 not applied).
+ * When neither stores it, we return `persisted: false` and the route tells the
+ * visitor it was NOT received. Logs never carry the visitor's details.
  */
 export interface PersistResult {
   persisted: boolean;
@@ -58,37 +60,36 @@ export async function persistBtdi(
         payload,
       })) as { data: unknown; error: { message: string } | null };
       const { data, error } = result;
-      if (error) return { persisted: false, reason: error.message };
-      return typeof data === "string"
-        ? { persisted: true, ref: data }
-        : { persisted: true };
+      if (!error) {
+        return typeof data === "string"
+          ? { persisted: true, ref: data }
+          : { persisted: true };
+      }
+      // The RPC's own messages carry no visitor details (see migration 0031).
+      console.info("[btdi] storage refused", { message: error.message.slice(0, 120) });
+      // Its duplicate guard means this same intake was stored moments ago.
+      if (/please wait/i.test(error.message)) return { persisted: true };
+      // A refusal of the input itself is final; anything else (e.g. the
+      // function does not exist yet) falls back to the delivery destination.
+      if (/too large|required|invalid email/i.test(error.message)) {
+        return { persisted: false, reason: error.message };
+      }
     } catch {
-      return { persisted: false, reason: "storage request failed" };
+      console.info("[btdi] storage request failed");
     }
   }
 
-  const webhook = process.env["HLD_INTAKE_WEBHOOK_URL"];
-  if (webhook) {
-    try {
-      const res = await fetch(webhook, {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-      if (!res.ok)
-        return { persisted: false, reason: `delivery returned ${res.status}` };
-      return { persisted: true };
-    } catch {
-      return { persisted: false, reason: "delivery request failed" };
-    }
-  }
+  const submissionId = submissionIdFrom(undefined);
+  const delivery = await deliverInquiry(
+    { schema: "hld.transformation_intake.v1", submissionId, ...payload },
+    { url: process.env["HLD_INTAKE_WEBHOOK_URL"], submissionId },
+  );
+  if (delivery.delivered) return { persisted: true };
 
-  // Honest no-op: captured for follow-up, not silently dropped. No PII beyond
-  // what is needed to reconcile the request from logs.
-  console.info("[btdi] intake captured (storage not configured):", {
-    business: record.summary.businessName,
-    email: record.contact.email,
-    stage: record.summary.businessStage,
+  console.info("[btdi] NOT stored", {
+    submissionId,
+    reason: delivery.reason,
+    httpStatus: delivery.httpStatus ?? null,
   });
-  return { persisted: false, reason: "storage not configured" };
+  return { persisted: false, reason: delivery.reason };
 }
