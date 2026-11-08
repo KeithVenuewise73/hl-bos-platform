@@ -199,6 +199,233 @@ Deno.test("instagram: an unanswered CONTAINER creation is retryable", async () =
   assert(!out.terminal, "container creation is safe to retry");
 });
 
+// --- Instagram carousels ---------------------------------------------------
+const pic = (n: number, position = n - 1) => ({
+  kind: "image" as const,
+  public_url: `https://cdn.test/${n}.jpg`,
+  mime_type: "image/jpeg",
+  position,
+});
+const body = (c: { init: RequestInit }) => JSON.parse(String(c.init.body));
+
+/** The answers for a carousel of n pictures that goes through cleanly. */
+function carouselQueue(n: number) {
+  const q: Array<{ status: number; body: unknown }> = [];
+  for (let i = 1; i <= n; i++) q.push({ status: 200, body: { id: `child_${i}` } });
+  for (let i = 1; i <= n; i++)
+    q.push({ status: 200, body: { status_code: "FINISHED" } });
+  q.push({ status: 200, body: { id: "carousel_1" } });
+  q.push({ status: 200, body: { status_code: "FINISHED" } });
+  q.push({ status: 200, body: { id: "ig_9100" } });
+  return q;
+}
+
+Deno.test(
+  "instagram: several pictures post as ONE carousel, caption on the carousel only",
+  async () => {
+    const { fetcher, calls } = stubFetch(carouselQueue(3));
+    const out = await new InstagramAdapter(fetcher, noSleep).publish(
+      target({
+        platform: "instagram",
+        externalAccountId: "ig-user-1",
+        caption: "Varsity vs Wheatfield",
+        media: [pic(1), pic(2), pic(3)],
+      }),
+      resolve,
+    );
+    assertEquals(out.status, "published", "published");
+    assertEquals(out.externalPostId, "ig_9100", "the carousel's media id");
+    assertEquals(
+      calls.length,
+      3 + 3 + 1 + 1 + 1,
+      "3 pictures, 3 polls, carousel, poll, publish",
+    );
+    // Each picture is a carousel item and carries NO caption.
+    for (let i = 0; i < 3; i++) {
+      assert(calls[i].url.endsWith("/ig-user-1/media"), "picture container");
+      assertEquals(body(calls[i]).is_carousel_item, true, "marked as a carousel item");
+      assertEquals(body(calls[i]).caption, undefined, "no caption on a picture");
+      assertEquals(
+        body(calls[i]).image_url,
+        `https://cdn.test/${i + 1}.jpg`,
+        "its own picture",
+      );
+    }
+    // The carousel joins them, in order, and carries the caption.
+    const parent = body(calls[6]);
+    assertEquals(parent.media_type, "CAROUSEL", "a carousel");
+    assertEquals(
+      parent.children,
+      "child_1,child_2,child_3",
+      "joins the pictures in order",
+    );
+    assertEquals(
+      parent.caption,
+      "Varsity vs Wheatfield",
+      "the caption is on the carousel",
+    );
+    assert(calls[8].url.endsWith("/media_publish"), "the last call publishes");
+    assertEquals(
+      body(calls[8]).creation_id,
+      "carousel_1",
+      "publishes the carousel, not a picture",
+    );
+    assertEquals(
+      out.attempts.map((a) => a.phase).join(),
+      "create_child,create_child,create_child,poll_child,poll_child,poll_child,create_container,poll,publish",
+      "every step is logged, in order",
+    );
+  },
+);
+
+Deno.test(
+  "instagram: the pictures go in the order of their position, not the order given",
+  async () => {
+    const { fetcher, calls } = stubFetch(carouselQueue(3));
+    await new InstagramAdapter(fetcher, noSleep).publish(
+      target({
+        platform: "instagram",
+        media: [pic(3, 2), pic(1, 0), pic(2, 1)],
+      }),
+      resolve,
+    );
+    assertEquals(
+      body(calls[0]).image_url,
+      "https://cdn.test/1.jpg",
+      "first by position",
+    );
+    assertEquals(
+      body(calls[1]).image_url,
+      "https://cdn.test/2.jpg",
+      "second by position",
+    );
+    assertEquals(
+      body(calls[2]).image_url,
+      "https://cdn.test/3.jpg",
+      "third by position",
+    );
+  },
+);
+
+Deno.test("instagram: ten pictures is the most a carousel holds", async () => {
+  const ten = Array.from({ length: 10 }, (_, i) => pic(i + 1));
+  const ok = stubFetch(carouselQueue(10));
+  const out = await new InstagramAdapter(ok.fetcher, noSleep).publish(
+    target({ platform: "instagram", media: ten }),
+    resolve,
+  );
+  assertEquals(out.status, "published", "ten is allowed");
+  const { fetcher, calls } = stubFetch([]);
+  const over = await new InstagramAdapter(fetcher, noSleep).publish(
+    target({ platform: "instagram", media: [...ten, pic(11)] }),
+    resolve,
+  );
+  assertEquals(over.status, "failed", "eleven is refused");
+  assert(over.terminal, "it can never succeed, so it is not retried");
+  assert(over.error?.includes("at most 10 pictures; this post has 11"), "says why");
+  assertEquals(calls.length, 0, "and nothing was sent to Instagram");
+});
+
+Deno.test(
+  "instagram: a video among several pictures is refused, not silently dropped",
+  async () => {
+    const { fetcher, calls } = stubFetch([]);
+    const out = await new InstagramAdapter(fetcher, noSleep).publish(
+      target({ platform: "instagram", media: [pic(1), pic(2), MP4] }),
+      resolve,
+    );
+    assertEquals(out.status, "failed", "failed");
+    assert(out.terminal, "terminal");
+    assert(out.error?.includes("pictures only"), "says why");
+    assertEquals(calls.length, 0, "nothing sent");
+  },
+);
+
+Deno.test(
+  "instagram: an unanswered PICTURE container is retryable, and nothing is live",
+  async () => {
+    const { fetcher, calls } = stubFetch([
+      { status: 200, body: { id: "child_1" } },
+      { throws: "timeout" },
+    ]);
+    const out = await new InstagramAdapter(fetcher, noSleep).publish(
+      target({ platform: "instagram", media: [pic(1), pic(2), pic(3)] }),
+      resolve,
+    );
+    assertEquals(out.status, "failed", "failed");
+    assert(!out.terminal, "containers are not posts: safe to retry");
+    assert(
+      out.error?.includes("picture 2 of 3"),
+      "names the picture that got no answer",
+    );
+    assert(
+      !calls.some((c) => c.url.endsWith("/media_publish")),
+      "nothing was published",
+    );
+  },
+);
+
+Deno.test(
+  "instagram: a picture Instagram cannot process ends the post, unpublished",
+  async () => {
+    const { fetcher, calls } = stubFetch([
+      { status: 200, body: { id: "child_1" } },
+      { status: 200, body: { id: "child_2" } },
+      { status: 200, body: { status_code: "FINISHED" } },
+      { status: 200, body: { status_code: "ERROR" } },
+    ]);
+    const out = await new InstagramAdapter(fetcher, noSleep).publish(
+      target({ platform: "instagram", media: [pic(1), pic(2)] }),
+      resolve,
+    );
+    assertEquals(out.status, "failed", "failed");
+    assert(out.terminal, "terminal");
+    assert(out.error?.includes("carousel picture 2 ERROR"), "names the picture");
+    assert(
+      !calls.some((c) => c.url.endsWith("/media_publish")),
+      "nothing was published",
+    );
+  },
+);
+
+Deno.test(
+  "instagram: an UNANSWERED carousel publish is never retried (it might be live)",
+  async () => {
+    const q: Array<{ status: number; body: unknown } | { throws: string }> =
+      carouselQueue(2);
+    q[q.length - 1] = { throws: "timeout" }; // the media_publish gets no answer
+    const { fetcher, calls } = stubFetch(q);
+    const out = await new InstagramAdapter(fetcher, noSleep).publish(
+      target({ platform: "instagram", media: [pic(1), pic(2)] }),
+      resolve,
+    );
+    assertEquals(out.status, "failed", "failed");
+    assert(out.terminal, "NEVER retried: a retry could make it live twice");
+    assert(
+      out.error?.includes("may or may not be live"),
+      "tells a person to check the account",
+    );
+    assertEquals(
+      calls.filter((c) => c.url.endsWith("/media_publish")).length,
+      1,
+      "exactly one publish request was ever made",
+    );
+  },
+);
+
+Deno.test("instagram: a carousel's log never contains the token", async () => {
+  const { fetcher } = stubFetch(carouselQueue(2));
+  const out = await new InstagramAdapter(fetcher, noSleep).publish(
+    target({ platform: "instagram", media: [pic(1), pic(2)] }),
+    resolve,
+  );
+  assertEquals(out.status, "published", "published");
+  assert(
+    !JSON.stringify(out.attempts).includes(TOKEN),
+    "the token is not in the evidence",
+  );
+});
+
 // --- LinkedIn ---------------------------------------------------------------
 Deno.test("linkedin: publishes as a person urn", async () => {
   const { fetcher, calls } = stubFetch([

@@ -55,9 +55,11 @@ Instagram is public and most of these photos are of minors. A guard worth having
 - The API cannot delete a post. A mistaken post is deleted by hand in the Instagram app. That is why the first real post should be one he is happy to have public.
 - Stories and Reels are not part of this; only photo posts and carousels.
 
-### Order of work, once access is granted
+### Order of work
 
-1. Carousel support in the Instagram code, with tests against the stand-in.
+1. **Done:** carousel support in the Instagram code (`supabase/functions/_shared/social/instagram.ts`): 2 to 10 pictures, the caption on the carousel only, a clear refusal over 10 or with a video among them, and the rule that an unanswered publish is never retried. Tested against the stand-in (not the real Instagram). One picture behaves exactly as before.
+   _Once access is granted:_
+
 2. Migration 0055, applied with approval, then verified.
 3. The connect window (cloud function) and the token in Vault.
 4. The public copies, the **Post to Instagram now** button, and the record of each post.
