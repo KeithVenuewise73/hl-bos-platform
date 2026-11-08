@@ -71,6 +71,26 @@ saved in DateSort's Sports panel (`src/lib/shared-key.ts`, read fresh each time)
 Signing in now returns to the page you were going to (`?next=`), and only to
 a page of this app (`src/lib/next-path.ts`).
 
+## Instagram posts (Stage 1: makes them, does not post them)
+
+On a game's page, **Instagram** → **Start a new Instagram post**: choose up to 10
+photos (they appear in the order they were taken), a shape (portrait 4:5 or
+square) and a fit (fill, or keep the whole photo with dark bars), write the
+caption (it starts from the game; Instagram's 2,200 characters and 30 hashtags
+are counted as you type), and download **the pack**: `01.jpg`, `02.jpg`, … and
+`caption.txt`. Post it yourself from instagram.com. **Nothing is posted from
+JerseySort**, and the page says so.
+
+The pictures are made from the originals (`src/lib/instagram-core.ts`, the
+browser-safe rules in `instagram-rules.ts`) and carry **no camera data and no
+GPS location**: they are meant to be public. Drafts are local
+(`instagram_drafts`, `src/lib/repo/instagram.ts`); the pictures are made on the
+fly, never stored. Proved by `scripts/local-test/verify-instagram.cjs` (a real
+browser, photos that carry a GPS location, the ZIP read back and checked) and
+unit tests. Posting directly to Instagram is planned in
+`docs/operations/instagram-posting-plan.md` and needs the CEO's Instagram
+access first.
+
 ## Publish a game to 5 Star from DateSort
 
 DateSort's **Publish to 5 Star** opens `/publish?folder=…&date=…&sport=…&name=…`
