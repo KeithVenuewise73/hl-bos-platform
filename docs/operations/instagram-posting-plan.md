@@ -58,9 +58,7 @@ Instagram is public and most of these photos are of minors. A guard worth having
 ### Order of work
 
 1. **Done:** carousel support in the Instagram code (`supabase/functions/_shared/social/instagram.ts`): 2 to 10 pictures, the caption on the carousel only, a clear refusal over 10 or with a video among them, and the rule that an unanswered publish is never retried. Tested against the stand-in (not the real Instagram). One picture behaves exactly as before.
-   _Once access is granted:_
-
-2. Migration 0055, applied with approval, then verified.
+2. From here on needs the CEO's access: migration 0055, applied with approval, then verified.
 3. The connect window (cloud function) and the token in Vault.
 4. The public copies, the **Post to Instagram now** button, and the record of each post.
 5. The first real post, together with the CEO, on his account.
