@@ -3,6 +3,11 @@ import path from "node:path";
 import { folderNames, folderPlanForDay, loadSettings } from "@hl-bos/date-sort/copy";
 import { SPORT_LABEL, SPORTS } from "@hl-bos/date-sort/sport-rules";
 
+import {
+  noDestinationMessage,
+  notCopiedMessage,
+  renameMessage,
+} from "@/lib/folder-messages.ts";
 import { guard } from "@/lib/guard.ts";
 import { ensureJerseySort, importUrl } from "@/lib/jersey-sort.ts";
 
@@ -34,7 +39,7 @@ export async function POST(request: Request): Promise<Response> {
   const { destination } = await loadSettings();
   if (destination === null) {
     return Response.json(
-      { error: "Copy this date into its folder first (Copy to dated folders, above)." },
+      { error: noDestinationMessage(publish ? "publish" : "jersey") },
       { status: 409 },
     );
   }
@@ -47,8 +52,8 @@ export async function POST(request: Request): Promise<Response> {
       {
         error:
           plan.kind === "rename"
-            ? "The event name changed since this date was copied. Press Copy first, so its folder has the new name."
-            : `Copy this date into its folder first, then ${publish ? "publish it" : "find the jersey numbers"}.`,
+            ? renameMessage(publish ? "publish" : "jersey", plan.from, plan.name)
+            : notCopiedMessage(publish ? "publish" : "jersey"),
       },
       { status: 409 },
     );

@@ -171,6 +171,48 @@ async function jpeg(file, when, color) {
   );
   const before = fingerprint(folder);
 
+  console.log("\nWhen the name changed after copying (what to press)");
+  // The folder on the drive is "2026-01-13 - Basketball - Zac K". Change the
+  // name on the card WITHOUT copying again, then press each button.
+  await day.locator("[data-testid=event-name]").fill("Basketball - Renamed");
+  await day.locator("[data-testid=publish-5star]").click();
+  const renameMsg = await day
+    .locator("[data-testid=publish-error]")
+    .textContent({ timeout: 60_000 })
+    .catch(() => "no message");
+  check(
+    "Publish says exactly what to press, and which folder is which",
+    renameMsg.includes('folder on your drive is "2026-01-13 - Basketball - Zac K"') &&
+      renameMsg.includes('"2026-01-13 - Basketball - Renamed"') &&
+      renameMsg.includes(
+        'Press the button above that says "Create folder & copy photos"',
+      ) &&
+      renameMsg.includes("nothing is copied twice") &&
+      renameMsg.includes('press "Publish to 5 Star" again'),
+    renameMsg,
+  );
+  await day.locator("[data-testid=find-jersey-numbers]").click();
+  const jerseyMsg = await day
+    .locator("[data-testid=jersey-error]")
+    .textContent({ timeout: 60_000 })
+    .catch(() => "no message");
+  check(
+    "Find jersey numbers says the same, naming its own button to come back to",
+    jerseyMsg.includes(
+      'Press the button above that says "Create folder & copy photos"',
+    ) && jerseyMsg.includes('press "Find jersey numbers" again'),
+    jerseyMsg,
+  );
+  check(
+    "and nothing was changed on the drive by pressing them",
+    fingerprint(folder) === before &&
+      fs.readdirSync(dest).length === 1 &&
+      fs.readdirSync(dest)[0] === "2026-01-13 - Basketball - Zac K",
+  );
+  await shot(page, "00-what-to-press");
+  // Put the name back, as it was when the folder was made.
+  await day.locator("[data-testid=event-name]").fill("Basketball - Zac K");
+
   console.log("\nFind jersey numbers");
   const t0 = Date.now();
   await day.locator("[data-testid=find-jersey-numbers]").click();
