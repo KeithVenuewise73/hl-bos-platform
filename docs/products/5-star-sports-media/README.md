@@ -1,6 +1,7 @@
 # 5 Star Sports Media — brand brief (manageable scope)
 
 Status: **draft for CEO decision.** Nothing here is deployed or published.
+Stage: **pilot. No paying customers yet** (CEO, 2026-11-09).
 
 ## Who does the work
 
@@ -16,12 +17,27 @@ team, so the brand is scoped to what two people can deliver by hand.
 | Offer | How it is delivered | Tooling that already exists |
 | --- | --- | --- |
 | Game photo gallery per team | Private gallery on 5starsportsmedia.com | DateSort, JerseySort, "Publish online" (backend live, no data yet) |
-| Short highlight / hype video | Edited by hand by the two of them | Hype Video engine can draft the script, caption and hashtags; it does not make the video |
+| Short highlight video | Edited by hand by the two of them | None needed |
 | Social-ready posts | Download pack from JerseySort, posted by hand | Instagram post maker (posts nothing itself) |
+
+## Hype Video: a self-serve tool for viewers (the goal)
+
+Viewers (parents, athletes) use Hype Video to make a hype video from their own
+photos or clips. It is a tool they run, not work the two of us do.
+
+**Honest state today:** it runs only on the CEO's computer (`localhost:4602`),
+not on the web. It writes the package (title, scripts, voiceover, caption,
+hashtags, video and music prompts) but renders **no video**: the video, music
+and voice services are "not connected", and nothing charges.
+
+**Missing before viewers can use it:** a public home on the web; a video
+rendering service and its cost per video; minors' consent handled for
+strangers' uploads; pricing decided. That is a separate project from the
+galleries, so it comes after the first gallery is delivered.
 
 ## Not part of the brand for now
 
-- Automated or AI-generated video as a product.
+- Public launch of Hype Video (see above).
 - Direct posting to Instagram (needs CEO-granted access and migration 0055).
 - Broadcasting, live streaming, or any "media network" claim.
 - Paid plans: Hype Video pricing is a placeholder and nothing charges.
@@ -33,10 +49,9 @@ Take on only as many teams as two people can turn around. A promise of
 
 ## Open questions for the CEO
 
-1. Is there a paying team or program today, or is this still a pilot? (Not in the repo.)
-2. Which program is first? (Cazenovia Hockey appears in test data only.)
-3. Are videos sold to families, to teams, or both?
-4. Parents' and minors' photos: should each team be "cleared for public posting" before anything goes public? (Proposed in `docs/operations/instagram-posting-plan.md`.)
+1. Which program is first? (Cazenovia Hockey appears in test data only.)
+2. Are videos sold to families, to teams, or both?
+3. Parents' and minors' photos: should each team be "cleared for public posting" before anything goes public? (Proposed in `docs/operations/instagram-posting-plan.md`.)
 
 ## Next steps once answered
 
