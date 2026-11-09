@@ -53,6 +53,8 @@ export async function POST(request: Request): Promise<Response> {
     folder?: unknown;
     kind?: unknown;
     days?: unknown;
+    size?: unknown;
+    preview?: unknown;
   };
   if (body.kind !== "photos" && body.kind !== "videos") {
     return Response.json(
@@ -62,6 +64,8 @@ export async function POST(request: Request): Promise<Response> {
   }
   const kind: IphoneKind = body.kind;
   const days = parseDays(body.days);
+  const size = body.size === "small" || body.size === "large" ? body.size : "all";
+  const preview = body.preview === true;
   const folder = typeof body.folder === "string" ? body.folder.trim() : "";
   if (!/^[A-Za-z]:[\\/]|^\\\\|^\//.test(folder)) {
     return Response.json(
@@ -97,7 +101,14 @@ export async function POST(request: Request): Promise<Response> {
         const awake = await keepAwake();
         send({ type: "awake", held: awake.held });
         try {
-          await copyFromIphone(folder, kind, days, send, request.signal);
+          await copyFromIphone(
+            folder,
+            kind,
+            days,
+            { size, preview },
+            send,
+            request.signal,
+          );
         } finally {
           awake.release();
         }

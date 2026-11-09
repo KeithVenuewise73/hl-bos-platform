@@ -65,6 +65,29 @@ describe("the iPhone copy script", () => {
     expect(IPHONE_SCRIPT).toContain("older = $older");
   });
 
+  it("brings the smallest files in first, can split small from large, and can only look", () => {
+    // Smallest first, so the quick ones are across before the giant ones start;
+    // earlier failures still go last, after this sort.
+    const sort = IPHONE_SCRIPT.indexOf("Sort-Object -Property size");
+    const failedLast = IPHONE_SCRIPT.indexOf("$pending.ContainsKey($_.folder");
+    expect(sort).toBeGreaterThan(0);
+    expect(failedLast).toBeGreaterThan(sort);
+    // Small is up to the split, large is over it; the other half is counted, not hidden.
+    expect(IPHONE_SCRIPT).toContain(
+      "if ($size -eq 'small' -and $sz -gt $split) { $held += 1; continue }",
+    );
+    expect(IPHONE_SCRIPT).toContain(
+      "if ($size -eq 'large' -and $sz -le $split) { $held += 1; continue }",
+    );
+    // "Check size first" reports and stops before anything is created or copied.
+    const preview = IPHONE_SCRIPT.indexOf("$env:DS_PREVIEW -eq '1'");
+    expect(preview).toBeGreaterThan(IPHONE_SCRIPT.indexOf("type = 'found'"));
+    expect(preview).toBeLessThan(
+      IPHONE_SCRIPT.indexOf("New-Item -ItemType Directory -Force -Path $incoming"),
+    );
+    expect(preview).toBeLessThan(IPHONE_SCRIPT.indexOf("CopyHere("));
+  });
+
   it("takes paths only from the environment, never pasted into the script", () => {
     expect(IPHONE_SCRIPT).toContain("$env:DS_DEST");
     expect(IPHONE_SCRIPT).not.toMatch(/[A-Z]:\\/);

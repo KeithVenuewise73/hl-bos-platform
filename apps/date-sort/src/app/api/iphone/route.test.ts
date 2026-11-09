@@ -11,6 +11,8 @@ interface Call {
   folder: string;
   kind: string;
   days: number | null;
+  size: string;
+  preview: boolean;
 }
 const calls: Call[] = [];
 const order: string[] = [];
@@ -22,9 +24,10 @@ vi.mock("@/lib/iphone.ts", () => ({
     folder: string,
     kind: string,
     days: number | null,
+    options: { size: string; preview: boolean },
     onLine: (l: { type: string }) => void,
   ) => {
-    calls.push({ folder, kind, days });
+    calls.push({ folder, kind, days, ...options });
     order.push(`start ${kind}`);
     onLine({ type: "done" });
     return new Promise<void>((resolve) => {
@@ -81,6 +84,25 @@ describe("bringing in the iPhone's photos and videos", () => {
     await lines(c);
     expect(calls.map((x) => x.days)).toEqual([30, null, null]);
     expect(calls.every((x) => x.kind === "photos")).toBe(true);
+  });
+
+  it("passes the size choice and the check-only request, and ignores nonsense", async () => {
+    calls.length = 0;
+    for (const body of [
+      { size: "small", preview: true },
+      { size: "large" },
+      { size: "everything; del *", preview: "yes" },
+    ]) {
+      const res = await press({ folder: "D:\\V", kind: "videos", ...body });
+      expect(res.status).toBe(200);
+      gates.get("videos")?.();
+      await lines(res);
+    }
+    expect(calls.map((c) => [c.size, c.preview])).toEqual([
+      ["small", true],
+      ["large", false],
+      ["all", false],
+    ]);
   });
 
   it("makes a video press wait for a running photo copy, then start by itself", async () => {

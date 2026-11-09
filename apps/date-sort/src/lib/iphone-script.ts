@@ -24,6 +24,13 @@
  * separate folders, so each has its own .datesort-incoming and its own list of
  * earlier failures.
  *
+ * DS_SIZE is "all", "small" or "large": small is up to DS_SPLIT_MB (1 GB if
+ * not given), large is over it. Files are always brought in smallest first, so
+ * a day's worth of short clips is across long before the giant ones start, and
+ * the giant ones can be left for the night ("large"). DS_PREVIEW=1 only looks:
+ * it reports what would come across and its size, then stops, copying and
+ * creating nothing.
+ *
  * Output: one line of JSON per event (see IphoneLine). Paths come in through
  * environment variables, never pasted into the script.
  *
@@ -82,6 +89,12 @@ try {
   $videoExt = '\.(mov|mp4|m4v)$'
   $photoExt = '\.(heic|heif|jpg|jpeg|png|dng|gif|tif|tiff)$'
   $older = 0
+  $size = [string]$env:DS_SIZE
+  $splitMb = 1024
+  [void][int]::TryParse([string]$env:DS_SPLIT_MB, [ref]$splitMb)
+  if ($splitMb -le 0) { $splitMb = 1024 }
+  $split = [int64]$splitMb * 1048576
+  $held = 0
   $files = New-Object System.Collections.ArrayList
   foreach ($sub in @($root.Items())) {
     # A phone's folders do not always say IsFolder; one that opens is one.
@@ -102,12 +115,27 @@ try {
         try { $when = [datetime]$f.ModifyDate } catch { }
         if ($when -and $when.Year -gt 1980 -and $when -lt $cutoff) { $older += 1; continue }
       }
-      [void]$files.Add([pscustomobject]@{ folder = $sub.Name; item = $f; name = $name; size = [int64]$f.Size })
+      $sz = [int64]$f.Size
+      if ($size -eq 'small' -and $sz -gt $split) { $held += 1; continue }
+      if ($size -eq 'large' -and $sz -le $split) { $held += 1; continue }
+      [void]$files.Add([pscustomobject]@{ folder = $sub.Name; item = $f; name = $name; size = $sz })
     }
   }
+  # Smallest first: the quick ones are across before the big ones begin.
+  $files = @($files | Sort-Object -Property size)
   $bytes = [int64]0
   foreach ($x in $files) { $bytes += $x.size }
-  Say @{ type = 'found'; device = $device; total = $files.Count; bytes = $bytes; older = $older }
+  # How much is actually still to come: not counting what the folder already has.
+  function Have($x) {
+    $d = Join-Path $dest $x.folder
+    if (Test-Path -LiteralPath (Join-Path $d $x.name)) { return $true }
+    if ($x.name -match '^(.*)\.heic$') { return (Test-Path -LiteralPath (Join-Path $d ($Matches[1] + '.JPG'))) }
+    return $false
+  }
+  $todo = 0; $todoBytes = [int64]0
+  foreach ($x in $files) { if (-not (Have $x)) { $todo += 1; $todoBytes += $x.size } }
+  Say @{ type = 'found'; device = $device; total = $files.Count; bytes = $bytes; older = $older; held = $held; todo = $todo; todoBytes = $todoBytes }
+  if ($env:DS_PREVIEW -eq '1') { Say @{ type = 'previewed' }; exit 0 }
 
   $incoming = Join-Path $dest '.datesort-incoming'
   New-Item -ItemType Directory -Force -Path $incoming | Out-Null
@@ -222,6 +250,11 @@ export type IphoneLine =
       readonly bytes: number;
       /** Left out because the phone dates them older than the chosen days. */
       readonly older?: number;
+      /** Left out because of the size choice (the other half, for another time). */
+      readonly held?: number;
+      /** Not in the folder yet, and how big they are together. */
+      readonly todo?: number;
+      readonly todoBytes?: number;
     }
   | {
       readonly type: "file";
@@ -231,6 +264,8 @@ export type IphoneLine =
       readonly bytes?: number;
     }
   | { readonly type: "done" }
+  /** Preview only: what would come across was reported, and nothing was copied. */
+  | { readonly type: "previewed" }
   /** Several files in a row failed: the phone has stopped answering. */
   | { readonly type: "stuck" }
   | { readonly type: "error"; readonly message: string };
@@ -261,6 +296,7 @@ export function parseIphoneLine(line: string): IphoneLine | null {
       case "found":
       case "file":
       case "done":
+      case "previewed":
       case "stuck":
       case "error":
         return o as IphoneLine;

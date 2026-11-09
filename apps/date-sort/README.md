@@ -196,6 +196,17 @@ videos from iPhone**.
 5. Then it scans that folder by itself. From there it works as usual: date
    cards, **Videos only** to `Hockey Videos`, and so on.
 
+**Small first, large overnight.** Files always come in smallest first, so a
+day's short clips are across before the giant ones start. Each button also has
+a size choice: **all sizes** (smallest first), **small files only (under 1
+GB)** for now, or **large files only (over 1 GB)** to leave running overnight.
+The other half is counted on the page, not hidden. **Check size first** looks
+at the phone and says what is still to come ("12 videos to bring in, 48 GB in
+all: between 20 and 41 minutes at typical cable speed (20 to 40 MB/s; yours may
+differ)") and copies and creates nothing. While copying, the page shows how
+much has come across and the time left at the speed actually seen, once enough
+has been copied for that to mean something.
+
 **One cable, so they take turns.** Pressing videos while photos are copying (or
 the other way round) is not refused: the second says it is waiting and starts by
 itself when the first ends. Pressing the same button twice is refused.
@@ -213,6 +224,8 @@ the same Shell calls against a folder laid out like an iPhone's DCIM:
 
 - everything comes across, byte for byte;
 - photos only brings photos, videos only brings videos, into separate folders;
+- files come in smallest first; small-only and large-only each bring their half
+  and count the other; "Check size first" reports the size and creates nothing;
 - "the last 30 days" leaves out a video the phone dates years ago, and counts it;
 - pressing both together: neither is refused, both finish;
 - a second run brings nothing twice;
