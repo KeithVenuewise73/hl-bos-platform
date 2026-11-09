@@ -3,6 +3,13 @@
 import { useEffect, useState } from "react";
 
 import { count } from "@/lib/format.ts";
+import {
+  durationText,
+  previewSentence,
+  secondsLeft,
+  sizeText,
+  type SizeChoice,
+} from "@/lib/iphone-progress.ts";
 import type { IphoneKind, IphonePageLine } from "@/lib/iphone-script.ts";
 
 interface Tally {
@@ -10,6 +17,14 @@ interface Tally {
   total: number;
   /** Left out because the phone dates them older than the chosen days. */
   older: number;
+  /** Left out because of the size choice: the other half, for another time. */
+  held: number;
+  /** Not in the folder yet when it started, and how big that is together. */
+  todo: number;
+  todoBytes: number;
+  /** Bytes copied so far, and when the first file began, for the speed seen. */
+  copiedBytes: number;
+  startedAt: number;
   done: number;
   copied: number;
   already: number;
@@ -30,6 +45,8 @@ type State =
       readonly looking?: { readonly folder: string; readonly sofar: number };
     }
   | { readonly kind: "done"; readonly tally: Tally }
+  /** "Check size first": what would come across; nothing was copied. */
+  | { readonly kind: "checked"; readonly text: string }
   | { readonly kind: "problem"; readonly message: string; readonly detail?: string };
 
 /** The two buttons: photos and videos are kept in separate folders. */
@@ -73,6 +90,13 @@ const LABELS = {
 } as const;
 
 /** How far back to bring in. The first press should not drag in years of old clips. */
+/** Smallest files always come first. These choices split the job in two. */
+const SIZES: ReadonlyArray<{ readonly value: SizeChoice; readonly label: string }> = [
+  { value: "all", label: "all sizes, smallest first" },
+  { value: "small", label: "small files only (under 1 GB): now" },
+  { value: "large", label: "large files only (over 1 GB): overnight" },
+];
+
 const RANGES: ReadonlyArray<{ readonly days: number | null; readonly label: string }> =
   [
     { days: 30, label: "from the last 30 days" },
@@ -97,6 +121,9 @@ function IphoneCopy({
 }) {
   const label = LABELS[kind];
   const [days, setDays] = useState<number | null>(30);
+  const [size, setSize] = useState<SizeChoice>("all");
+  /** Ticks while copying so the time left keeps up with the clock. */
+  const [, setNow] = useState(0);
   const [folder, setFolder] = useState<string | null>(null);
   const [state, setState] = useState<State>({ kind: "idle" });
   /** Whether Windows agreed to stay awake for this copy; null until it answers. */
@@ -140,7 +167,13 @@ function IphoneCopy({
     return null;
   }
 
-  async function bringIn() {
+  useEffect(() => {
+    if (state.kind !== "copying" || state.tally === null) return;
+    const id = setInterval(() => setNow((n) => n + 1), 5_000);
+    return () => clearInterval(id);
+  }, [state.kind, state.kind === "copying" && state.tally !== null]);
+
+  async function bringIn(preview = false) {
     const into = folder ?? (await chooseFolder());
     if (into === null) return;
     setState({ kind: "copying", tally: null });
@@ -151,7 +184,7 @@ function IphoneCopy({
       const res = await fetch("/api/iphone", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ folder: into, kind, days }),
+        body: JSON.stringify({ folder: into, kind, days, size, preview }),
       });
       if (!res.ok || res.body === null) {
         const out = (await res.json().catch(() => ({}))) as { error?: string };
@@ -209,6 +242,11 @@ function IphoneCopy({
               device: m.device,
               total: m.total,
               older: m.older ?? 0,
+              held: m.held ?? 0,
+              todo: m.todo ?? m.total,
+              todoBytes: m.todoBytes ?? m.bytes,
+              copiedBytes: 0,
+              startedAt: Date.now(),
               done: 0,
               copied: 0,
               already: 0,
@@ -217,10 +255,24 @@ function IphoneCopy({
               failed: [],
             };
             setState({ kind: "copying", tally: { ...tally } });
+          } else if (m.type === "previewed" && tally !== null) {
+            ended = true;
+            setState({
+              kind: "checked",
+              text: previewSentence(label.plural, size, {
+                total: tally.total,
+                todo: tally.todo,
+                todoBytes: tally.todoBytes,
+                older: tally.older,
+                held: tally.held,
+              }),
+            });
           } else if (m.type === "file" && tally !== null) {
             tally.done += 1;
-            if (m.result === "copied") tally.copied += 1;
-            else if (m.result === "already") tally.already += 1;
+            if (m.result === "copied") {
+              tally.copied += 1;
+              tally.copiedBytes += m.bytes ?? 0;
+            } else if (m.result === "already") tally.already += 1;
             else if (m.result === "conflict") tally.conflicts += 1;
             else if (m.result === "short") tally.short.push(`${m.folder}\\${m.name}`);
             else tally.failed.push(`${m.folder}\\${m.name}`);
@@ -272,6 +324,29 @@ function IphoneCopy({
         >
           {busy ? label.busy : label.button}
         </button>
+        <button
+          type="button"
+          className="underline text-sm"
+          data-testid={id("check")}
+          disabled={disabled || busy}
+          onClick={() => void bringIn(true)}
+        >
+          Check size first
+        </button>
+        <select
+          className="rounded border border-line bg-transparent px-2 py-1 text-sm"
+          data-testid={id("size")}
+          aria-label={`Which ${label.plural} to bring in by size`}
+          disabled={busy}
+          value={size}
+          onChange={(e) => setSize(e.target.value as SizeChoice)}
+        >
+          {SIZES.map((z) => (
+            <option key={z.value} value={z.value}>
+              {z.label}
+            </option>
+          ))}
+        </select>
         <select
           className="rounded border border-line bg-transparent px-2 py-1 text-sm"
           data-testid={id("range")}
@@ -306,6 +381,11 @@ function IphoneCopy({
           )}
         </span>
       </div>
+      {state.kind === "checked" ? (
+        <p className="text-sm" data-testid={id("checked")}>
+          {state.text}
+        </p>
+      ) : null}
       {busy && state.waitingFor ? (
         <p className="text-sm" data-testid={id("waiting")}>
           The iPhone&apos;s {state.waitingFor} are being brought in right now. This
@@ -338,6 +418,24 @@ function IphoneCopy({
             ? ` · ${t.short.length} already in the folder but smaller than on the phone, probably cut short by an earlier copy (${t.short.slice(0, 3).join(", ")}${t.short.length > 3 ? "…" : ""})`
             : ""}
           {state.kind === "done" ? ". Scanning them now." : ""}
+        </p>
+      ) : null}
+      {t !== null && state.kind === "copying" ? (
+        <p className="text-sm" data-testid={id("left")}>
+          {sizeText(t.copiedBytes)} of {sizeText(t.todoBytes)} brought in
+          {(() => {
+            const left = secondsLeft(
+              t.todoBytes,
+              t.copiedBytes,
+              (Date.now() - t.startedAt) / 1000,
+            );
+            return left === null
+              ? ". The time left appears once a little has been copied."
+              : `, ${durationText(left)} left at the speed so far.`;
+          })()}
+          {t.held > 0
+            ? ` ${count(t.held, "other-size file")} left for another time.`
+            : ""}
         </p>
       ) : null}
       {busy && awake !== null ? (

@@ -628,6 +628,18 @@ async function iphoneChecks(page, work) {
       /0 copied · 2 already there/.test(secondVideos),
     JSON.stringify({ secondPhotos, secondVideos }),
   );
+  // "Check size first" only looks: it says what is still to come and copies nothing.
+  await page.click("[data-testid=iphone-videos-check]");
+  const checkedText = await page
+    .waitForSelector("[data-testid=iphone-videos-checked]", { timeout: 120_000 })
+    .then((el) => el.textContent())
+    .catch(() => "no answer");
+  const checkOnly = check(
+    "Check size first says what is left to bring in, and copies nothing",
+    /Nothing new to bring in \(2 videos/.test(checkedText || "") &&
+      listing(keptVideos).length === 2,
+    String(checkedText),
+  );
   // Both pressed back to back: neither is refused; the second waits its turn.
   await page.click("[data-testid=iphone-photos-button]");
   await page.click("[data-testid=iphone-videos-button]");
@@ -648,6 +660,7 @@ async function iphoneChecks(page, work) {
     same,
     autoScan,
     again,
+    checkOnly,
     together,
     untouched,
   );
