@@ -207,6 +207,18 @@ differ)") and copies and creates nothing. While copying, the page shows how
 much has come across and the time left at the speed actually seen, once enough
 has been copied for that to mean something.
 
+**Windows' error boxes no longer stop an overnight run.** When the phone drops a
+file, Windows opens "Error Copying File or Folder" over its own "Copying..."
+window and waits for someone to click OK. While a file is copying, DateSort
+closes that box (the same as OK), counts the file as failed at once (tried last
+next time), shows what the box said, and goes on. It touches only a box with
+that exact title that belongs to a "Copying..." window; any other dialog is left
+alone. Three files in a row still ends the run with "the iPhone stopped
+answering". This is tested on Windows with a stand-in box (closed when owned by
+a "Copying..." window, left alone when not); whether Windows' real box is owned
+the same way is confirmed by the first real run, so if you ever see the box stay
+open, tell me. It assumes Windows is set to English.
+
 **One cable, so they take turns.** Pressing videos while photos are copying (or
 the other way round) is not refused: the second says it is waiting and starts by
 itself when the first ends. Pressing the same button twice is refused.

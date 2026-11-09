@@ -11,6 +11,8 @@ on:
     paths:
       - "apps/date-sort/src/lib/iphone-script.ts"
       - "scripts/local-test/run-iphone-script.ps1"
+      - "scripts/local-test/run-dialog-dismiss.ps1"
+      - "scripts/local-test/fake-copy-error.ps1"
       - ".github/workflows/iphone-script-windows.yml"
   workflow_dispatch:
 
@@ -33,3 +35,5 @@ jobs:
           package-manager-cache: false
       - name: Run the script against an iPhone-like folder, twice
         run: scripts/local-test/run-iphone-script.ps1
+      - name: Close Windows' copy-error box only when it belongs to our copy
+        run: scripts/local-test/run-dialog-dismiss.ps1

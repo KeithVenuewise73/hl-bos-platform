@@ -32,6 +32,8 @@ interface Tally {
   /** Already in the folder but smaller than on the phone: cut short earlier. */
   short: string[];
   failed: string[];
+  /** Windows error boxes closed during this copy, with what each said. */
+  boxes: string[];
 }
 
 type State =
@@ -253,8 +255,20 @@ function IphoneCopy({
               conflicts: 0,
               short: [],
               failed: [],
+              boxes: [],
             };
             setState({ kind: "copying", tally: { ...tally } });
+          } else if (m.type === "dialog" && tally !== null) {
+            tally.boxes.push(`${m.folder}\\${m.name}: ${m.text}`);
+            setState({
+              kind: "copying",
+              tally: {
+                ...tally,
+                short: [...tally.short],
+                failed: [...tally.failed],
+                boxes: [...tally.boxes],
+              },
+            });
           } else if (m.type === "previewed" && tally !== null) {
             ended = true;
             setState({
@@ -278,7 +292,12 @@ function IphoneCopy({
             else tally.failed.push(`${m.folder}\\${m.name}`);
             setState({
               kind: "copying",
-              tally: { ...tally, short: [...tally.short], failed: [...tally.failed] },
+              tally: {
+                ...tally,
+                short: [...tally.short],
+                failed: [...tally.failed],
+                boxes: [...tally.boxes],
+              },
             });
           } else if (m.type === "stuck") {
             ended = true;
@@ -436,6 +455,15 @@ function IphoneCopy({
           {t.held > 0
             ? ` ${count(t.held, "other-size file")} left for another time.`
             : ""}
+        </p>
+      ) : null}
+      {t !== null && t.boxes.length > 0 ? (
+        <p className="text-sm" data-testid={id("boxes")}>
+          Windows showed {count(t.boxes.length, "error box", "error boxes")}; DateSort
+          closed {t.boxes.length === 1 ? "it" : "them"} and skipped{" "}
+          {t.boxes.length === 1 ? "that file" : "those files"} (tried again last next
+          time): {t.boxes.slice(0, 3).join(" · ")}
+          {t.boxes.length > 3 ? "…" : ""}
         </p>
       ) : null}
       {busy && awake !== null ? (
