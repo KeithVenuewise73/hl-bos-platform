@@ -17,9 +17,11 @@
 export const PICKER_TITLE = "DateSort - choose the folder with your photos";
 /** The window for choosing where the date folders go. */
 export const DESTINATION_TITLE = "DateSort - choose where the date folders go";
-/** The window for choosing where the iPhone's photos and videos are kept. */
-export const IPHONE_TITLE =
-  "DateSort - choose where to keep the iPhone's photos and videos";
+/** The window for choosing where the iPhone's photos are kept. */
+export const IPHONE_TITLE = "DateSort - choose where to keep the iPhone's photos";
+/** The window for choosing where the iPhone's videos are kept. */
+export const IPHONE_VIDEOS_TITLE =
+  "DateSort - choose where to keep the iPhone's videos";
 
 const CSHARP = String.raw`
 using System;

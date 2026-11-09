@@ -44,6 +44,27 @@ describe("the iPhone copy script", () => {
     expect(IPHONE_SCRIPT).toContain("if ($inARow -ge 3) { $stuck = $true; break }");
   });
 
+  it("brings in only photos or only videos, and only what is recent, when asked", () => {
+    // Which kind and how far back come from the environment, like the paths.
+    expect(IPHONE_SCRIPT).toContain("$env:DS_KIND");
+    expect(IPHONE_SCRIPT).toContain("$env:DS_DAYS");
+    // Videos are MOV, MP4, M4V; photos are the picture formats. Nothing else
+    // (sidecar files, say) comes across in either.
+    expect(IPHONE_SCRIPT).toContain("\\.(mov|mp4|m4v)$");
+    expect(IPHONE_SCRIPT).toContain("heic|heif|jpg|jpeg|png|dng|gif|tif|tiff");
+    expect(IPHONE_SCRIPT).toContain(
+      "if ($kind -eq 'videos' -and $name -notmatch $videoExt) { continue }",
+    );
+    expect(IPHONE_SCRIPT).toContain(
+      "if ($kind -eq 'photos' -and $name -notmatch $photoExt) { continue }",
+    );
+    // A file whose date the phone does not give is kept, never silently
+    // dropped: only a real date older than the cutoff leaves it out.
+    expect(IPHONE_SCRIPT).toContain("$when.Year -gt 1980 -and $when -lt $cutoff");
+    // The number of files left out for age is reported, not hidden.
+    expect(IPHONE_SCRIPT).toContain("older = $older");
+  });
+
   it("takes paths only from the environment, never pasted into the script", () => {
     expect(IPHONE_SCRIPT).toContain("$env:DS_DEST");
     expect(IPHONE_SCRIPT).not.toMatch(/[A-Z]:\\/);

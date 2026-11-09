@@ -17,8 +17,10 @@ export interface Settings {
   readonly destination: string | null;
   /** Event name per date ("2026-10-04" -> "Caz vs Wheatfield"). */
   readonly eventNames: Readonly<Record<string, string>>;
-  /** Where the iPhone's photos and videos are kept (copied from the phone). */
+  /** Where the iPhone's PHOTOS are kept (copied from the phone). */
   readonly iphoneFolder?: string | null;
+  /** Where the iPhone's VIDEOS are kept: its own folder, so the two never mix. */
+  readonly iphoneVideoFolder?: string | null;
 }
 
 /** Only real dates and short names are kept from whatever is in the file. */
@@ -50,14 +52,22 @@ export async function loadSettings(dir: string = settingsDir()): Promise<Setting
       destination?: unknown;
       eventNames?: unknown;
       iphoneFolder?: unknown;
+      iphoneVideoFolder?: unknown;
     };
     return {
       destination: typeof raw.destination === "string" ? raw.destination : null,
       eventNames: cleanEventNames(raw.eventNames),
       iphoneFolder: typeof raw.iphoneFolder === "string" ? raw.iphoneFolder : null,
+      iphoneVideoFolder:
+        typeof raw.iphoneVideoFolder === "string" ? raw.iphoneVideoFolder : null,
     };
   } catch {
-    return { destination: null, eventNames: {}, iphoneFolder: null };
+    return {
+      destination: null,
+      eventNames: {},
+      iphoneFolder: null,
+      iphoneVideoFolder: null,
+    };
   }
 }
 

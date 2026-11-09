@@ -28,7 +28,11 @@ const post = (body: unknown) =>
 const read = async () =>
   (await (
     await GET(new Request("http://127.0.0.1:4604/api/settings", { headers: local }))
-  ).json()) as { destination: string | null; iphoneFolder: string | null };
+  ).json()) as {
+    destination: string | null;
+    iphoneFolder: string | null;
+    iphoneVideoFolder: string | null;
+  };
 
 describe("remembering the iPhone's folder", () => {
   beforeAll(() => {
@@ -50,5 +54,18 @@ describe("remembering the iPhone's folder", () => {
     const after = await read();
     expect(after.destination).toBe("D:\\Seagate\\Sorted");
     expect(after.iphoneFolder).toBe("D:\\Seagate\\iPhone Photos");
+  });
+
+  it("keeps the video folder separately, and neither save forgets the other", async () => {
+    expect(
+      (await post({ iphoneVideoFolder: "D:\\Seagate\\iPhone Videos" })).status,
+    ).toBe(200);
+    const a = await read();
+    expect(a.iphoneVideoFolder).toBe("D:\\Seagate\\iPhone Videos");
+    expect(a.iphoneFolder).toBe("D:\\Seagate\\iPhone Photos");
+    expect((await post({ iphoneFolder: "D:\\Seagate\\More Photos" })).status).toBe(200);
+    const b = await read();
+    expect(b.iphoneFolder).toBe("D:\\Seagate\\More Photos");
+    expect(b.iphoneVideoFolder).toBe("D:\\Seagate\\iPhone Videos");
   });
 });

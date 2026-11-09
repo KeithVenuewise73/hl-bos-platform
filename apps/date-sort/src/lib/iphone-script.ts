@@ -17,6 +17,13 @@
  *     again only brings what is new. A different file with that name is
  *     left alone and reported.
  *
+ * Which files: DS_KIND is "photos" (HEIC, JPG, PNG, DNG...), "videos" (MOV,
+ * MP4, M4V) or empty for everything. DS_DAYS, when a number, leaves out files
+ * the phone dates older than that many days (a file whose date the phone does
+ * not give is kept, never silently dropped). Photos and videos are kept in
+ * separate folders, so each has its own .datesort-incoming and its own list of
+ * earlier failures.
+ *
  * Output: one line of JSON per event (see IphoneLine). Paths come in through
  * environment variables, never pasted into the script.
  *
@@ -67,6 +74,14 @@ try {
   }
   if (-not $root) { Say @{ type = 'locked'; device = $device; seen = ($seen -join '; ') }; exit 0 }
 
+  $kind = [string]$env:DS_KIND
+  $days = 0
+  [void][int]::TryParse([string]$env:DS_DAYS, [ref]$days)
+  $cutoff = $null
+  if ($days -gt 0) { $cutoff = (Get-Date).AddDays(-$days) }
+  $videoExt = '\.(mov|mp4|m4v)$'
+  $photoExt = '\.(heic|heif|jpg|jpeg|png|dng|gif|tif|tiff)$'
+  $older = 0
   $files = New-Object System.Collections.ArrayList
   foreach ($sub in @($root.Items())) {
     # A phone's folders do not always say IsFolder; one that opens is one.
@@ -80,12 +95,19 @@ try {
       $name = $null
       try { $name = [string]$f.ExtendedProperty('System.FileName') } catch { }
       if (-not $name) { $name = $f.Name }
+      if ($kind -eq 'videos' -and $name -notmatch $videoExt) { continue }
+      if ($kind -eq 'photos' -and $name -notmatch $photoExt) { continue }
+      if ($cutoff) {
+        $when = $null
+        try { $when = [datetime]$f.ModifyDate } catch { }
+        if ($when -and $when.Year -gt 1980 -and $when -lt $cutoff) { $older += 1; continue }
+      }
       [void]$files.Add([pscustomobject]@{ folder = $sub.Name; item = $f; name = $name; size = [int64]$f.Size })
     }
   }
   $bytes = [int64]0
   foreach ($x in $files) { $bytes += $x.size }
-  Say @{ type = 'found'; device = $device; total = $files.Count; bytes = $bytes }
+  Say @{ type = 'found'; device = $device; total = $files.Count; bytes = $bytes; older = $older }
 
   $incoming = Join-Path $dest '.datesort-incoming'
   New-Item -ItemType Directory -Force -Path $incoming | Out-Null
@@ -198,6 +220,8 @@ export type IphoneLine =
       readonly device: string;
       readonly total: number;
       readonly bytes: number;
+      /** Left out because the phone dates them older than the chosen days. */
+      readonly older?: number;
     }
   | {
       readonly type: "file";
@@ -213,12 +237,18 @@ export type IphoneLine =
 
 /**
  * What the page receives from /api/iphone: the script's lines, plus one line
- * DateSort itself adds before copying, saying whether Windows agreed to stay
- * awake (keep-awake.ts). parseIphoneLine never accepts "awake", so the
+ * DateSort itself adds (whether Windows agreed to stay awake, keep-awake.ts, and
+ * that this copy is waiting for another). parseIphoneLine never accepts those two, so the
  * script cannot claim it.
  */
 export type IphonePageLine =
-  IphoneLine | { readonly type: "awake"; readonly held: boolean };
+  | IphoneLine
+  | { readonly type: "awake"; readonly held: boolean }
+  /** Another copy from this phone is running; this one starts when it ends. */
+  | { readonly type: "waiting"; readonly for: IphoneKind };
+
+/** Photos and videos are brought in by separate buttons, into separate folders. */
+export type IphoneKind = "photos" | "videos";
 
 /** One line of the script's output, or null for anything else it printed. */
 export function parseIphoneLine(line: string): IphoneLine | null {
