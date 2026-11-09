@@ -150,6 +150,9 @@ importers:
       '@hl-bos/catalog':
         specifier: workspace:*
         version: link:../../packages/catalog
+      '@hl-bos/growth-intelligence':
+        specifier: workspace:*
+        version: link:../../packages/growth-intelligence
       '@hl-bos/presence-scanner':
         specifier: workspace:*
         version: link:../../packages/presence-scanner
@@ -162,6 +165,12 @@ importers:
       '@hl-bos/video-studio':
         specifier: workspace:*
         version: link:../../packages/video-studio
+      '@supabase/ssr':
+        specifier: 'catalog:'
+        version: 0.12.3(@supabase/supabase-js@2.110.6)
+      '@supabase/supabase-js':
+        specifier: 'catalog:'
+        version: 2.110.6
       next:
         specifier: 'catalog:'
         version: 16.2.10(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
@@ -739,6 +748,22 @@ importers:
       zod:
         specifier: 'catalog:'
         version: 4.4.3
+    devDependencies:
+      '@types/node':
+        specifier: 'catalog:'
+        version: 22.20.1
+      typescript:
+        specifier: 'catalog:'
+        version: 6.0.3
+      vitest:
+        specifier: 'catalog:'
+        version: 4.1.10(@types/node@22.20.1)(@vitest/coverage-v8@4.1.10)(jiti@2.7.0)
+
+  packages/growth-intelligence:
+    dependencies:
+      '@hl-bos/presence-scanner':
+        specifier: workspace:*
+        version: link:../presence-scanner
     devDependencies:
       '@types/node':
         specifier: 'catalog:'

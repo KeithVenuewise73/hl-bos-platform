@@ -1,0 +1,792 @@
+{
+  "$comment": "Production HL-BOS Core (mvvtngiopdrgiedjmhfb) migration ledger, from PR #113's recovery manifest; statements_md5 re-verified against production read-only on 2026-11-05 (111/111). normalized_sha256 = SHA-256 of the SQL with comments and whitespace removed. Used by scripts/check-replay-safety.mjs. Never applied; data about history only. 2026-11-05: row 112 (S-B2, applied in Phase 9) added after verifying it in production.",
+  "project": "mvvtngiopdrgiedjmhfb",
+  "verifiedAt": "2026-11-05",
+  "count": 112,
+  "migrations": [
+    {
+      "version": "20260718013452",
+      "name": "hlbos_0001_extensions_and_schemas",
+      "statements_md5": "3f5d9590235c4265602110588bd9f83c",
+      "stamp_only": false,
+      "normalized_sha256": "e394aa8ebd168a5558659b4dd3a29f383b869eccda07fd5f6c4cda3e439832ff"
+    },
+    {
+      "version": "20260718013536",
+      "name": "hlbos_0002_identity_and_tenancy",
+      "statements_md5": "0d2b3c28c6e9520842631c3216c515dc",
+      "stamp_only": false,
+      "normalized_sha256": "d59c7711be40c3acf222cac5bb3229954c2adbf90ae11349a11e62e2f4808777"
+    },
+    {
+      "version": "20260718013724",
+      "name": "hlbos_0003_roles_and_permissions",
+      "statements_md5": "3aa352ce1efc209470f6fd3cd5036eeb",
+      "stamp_only": false,
+      "normalized_sha256": "9e4a4e0912d95796510bc7b93f729eb1f8cad758e89c134b126608ef7b4a05e4"
+    },
+    {
+      "version": "20260718013813",
+      "name": "hlbos_0004_audit_foundation",
+      "statements_md5": "491abe76cd7e8d04143c2346c463cd0e",
+      "stamp_only": false,
+      "normalized_sha256": "e6b4a02111ddd64a94f52429a9106de3999cdd31f3dc9e9b64744eb4f6a17b9a"
+    },
+    {
+      "version": "20260718013850",
+      "name": "hlbos_0005_seed_platform_reference_data",
+      "statements_md5": "5cb2753180b88d447c330193f39b973a",
+      "stamp_only": false,
+      "normalized_sha256": "0301375cf94649af5b8b48fdadbc2905839909a310661bd6a281638589ace31f"
+    },
+    {
+      "version": "20260718013955",
+      "name": "hlbos_0006_provisioning_and_invitation_flow",
+      "statements_md5": "03db4e7ebe75f428069d6c40dcf8c78a",
+      "stamp_only": false,
+      "normalized_sha256": "a51440601658af04f99138ae1db63c739e4534f6fbd8fde853f471859788bd68"
+    },
+    {
+      "version": "20260718014016",
+      "name": "hlbos_0007_tenant_class",
+      "statements_md5": "159e1746b49d0b54d12514585b4abeff",
+      "stamp_only": false,
+      "normalized_sha256": "2e9c2a19863f7e8249b5acc628399ffbf6ab6f7204a6a226ba255c6750fbb5cb"
+    },
+    {
+      "version": "20260718014042",
+      "name": "hlbos_0008_provision_tenant_class",
+      "statements_md5": "6afb05839af7eca867f0bb8e0c9b5087",
+      "stamp_only": false,
+      "normalized_sha256": "c55a4f35bae8bd44e71328e0bf7a3ac40728a370226fbe403f8e00ff1dd0af75"
+    },
+    {
+      "version": "20260725100000",
+      "name": "hlbos_0009_events",
+      "statements_md5": "900f008b0fac03cd37d4b835bb716af9",
+      "stamp_only": true,
+      "normalized_sha256": null
+    },
+    {
+      "version": "20260725100100",
+      "name": "hlbos_0010_entitlements",
+      "statements_md5": "900f008b0fac03cd37d4b835bb716af9",
+      "stamp_only": true,
+      "normalized_sha256": null
+    },
+    {
+      "version": "20260725100200",
+      "name": "hlbos_0011_integrations",
+      "statements_md5": "900f008b0fac03cd37d4b835bb716af9",
+      "stamp_only": true,
+      "normalized_sha256": null
+    },
+    {
+      "version": "20260725100300",
+      "name": "hlbos_0012_ai_gateway",
+      "statements_md5": "900f008b0fac03cd37d4b835bb716af9",
+      "stamp_only": true,
+      "normalized_sha256": null
+    },
+    {
+      "version": "20260725100400",
+      "name": "hlbos_0013_workflows_gate",
+      "statements_md5": "900f008b0fac03cd37d4b835bb716af9",
+      "stamp_only": true,
+      "normalized_sha256": null
+    },
+    {
+      "version": "20260725100500",
+      "name": "hlbos_0014_visibility_core",
+      "statements_md5": "900f008b0fac03cd37d4b835bb716af9",
+      "stamp_only": true,
+      "normalized_sha256": null
+    },
+    {
+      "version": "20260726090000",
+      "name": "hlbos_0015_billing_core",
+      "statements_md5": "1a97859b4d8f006ddf142c06f3206d20",
+      "stamp_only": true,
+      "normalized_sha256": null
+    },
+    {
+      "version": "20260726090100",
+      "name": "hlbos_0016_billing_subscriptions",
+      "statements_md5": "1a97859b4d8f006ddf142c06f3206d20",
+      "stamp_only": true,
+      "normalized_sha256": null
+    },
+    {
+      "version": "20260726090200",
+      "name": "hlbos_0017_visibility_assessments",
+      "statements_md5": "1a97859b4d8f006ddf142c06f3206d20",
+      "stamp_only": true,
+      "normalized_sha256": null
+    },
+    {
+      "version": "20260726090300",
+      "name": "hlbos_0018_storage_meta",
+      "statements_md5": "7580524245b938da669cd3afb5128456",
+      "stamp_only": false,
+      "normalized_sha256": "dfc04a4ae5515e1a1347c73cd23384f0a4a74342e5d5ea4e67d20225e61b8d0e"
+    },
+    {
+      "version": "20260726090400",
+      "name": "hlbos_0019_communications",
+      "statements_md5": "ac0da5b01eb6031a6d5471212a824f5e",
+      "stamp_only": false,
+      "normalized_sha256": "94931eec6ecbc6baee4f86bfb8d0206dbf0f020979becda37a9a7a5f8b8f7f08"
+    },
+    {
+      "version": "20260726090500",
+      "name": "hlbos_0020_discovery",
+      "statements_md5": "2efb04aa16963f41548fa5ac2d0fae19",
+      "stamp_only": false,
+      "normalized_sha256": "8a5f0abebf4f5f5610e73e3941eaffd703138a2a456bf28f75e73c2b155c3de1"
+    },
+    {
+      "version": "20260726090600",
+      "name": "hlbos_0021_events_handlers",
+      "statements_md5": "802f39f03451695ece6003a53657d7cb",
+      "stamp_only": false,
+      "normalized_sha256": "4d395dfc332cb521b0e393e55d213bdbfd3639ad5561f71e73e603ac8e171c92"
+    },
+    {
+      "version": "20260726090700",
+      "name": "hlbos_0022_website_assessment",
+      "statements_md5": "a6cc7d56fd3b127927a38d6a8eb10553",
+      "stamp_only": false,
+      "normalized_sha256": "3dacc93d70163eef27bd6bd387db004a9915da51381b09dcbbf72da8bdeb9e8d"
+    },
+    {
+      "version": "20260728181327",
+      "name": "hlbos_0023_blueprint_engine",
+      "statements_md5": "4d781f59349993e68243e5d323e9b65f",
+      "stamp_only": false,
+      "normalized_sha256": "80e13160880e557e3f7371a526be0cbe5f898a8c0f6eaa34004596db89dda75a"
+    },
+    {
+      "version": "20260728182035",
+      "name": "hlbos_0024_commerce_provisioning",
+      "statements_md5": "eadf338127a8863e5f86dd2ecd8d4c9a",
+      "stamp_only": false,
+      "normalized_sha256": "f17eb39c94619d207e943cc6bcebd616711992e2cdaf97f9c2c07745616d75e5"
+    },
+    {
+      "version": "20260728182459",
+      "name": "hlbos_0025_hlvs_factory",
+      "statements_md5": "10c6532738c59d427faaec7482737476",
+      "stamp_only": false,
+      "normalized_sha256": "5573aff1150756d550bd585754feebecd53048268c4d27edf1667ad3ea71fd47"
+    },
+    {
+      "version": "20260728182832",
+      "name": "hlbos_0026_bti_platform",
+      "statements_md5": "4be49847ae8950428f5a8d24b3fbc6e9",
+      "stamp_only": false,
+      "normalized_sha256": "885da4428349f2d9bf0b2e72beb1f21582269ce972c0b148db46971ba86ceb5f"
+    },
+    {
+      "version": "20260728182949",
+      "name": "hlbos_0027_bti_intake_and_public_api",
+      "statements_md5": "8a69a81c09fcbe800a92fa0160ecbead",
+      "stamp_only": false,
+      "normalized_sha256": "11f45e94cd41ac660e29a6efac50c5123f1ae34eaae8d71b3f30aa37733059dc"
+    },
+    {
+      "version": "20260731090000",
+      "name": "hlbos_0028_knowledge_graph_read_model",
+      "statements_md5": "7291293eb375d03f32128fa0d364fcd5",
+      "stamp_only": false,
+      "normalized_sha256": "24a43541e345d77f8a99675a2b51ef53fac6a2b8e3a3902122bb5a013f4cf8ab"
+    },
+    {
+      "version": "20260801233354",
+      "name": "hlbos_0029_venture_studio_foundation",
+      "statements_md5": "71d9a323e9ef541fb117e118c5ec0bc0",
+      "stamp_only": false,
+      "normalized_sha256": "21192ec3150de29227c22bae2578f4b806a94cd5369d5dcc564ce85ad01728e5"
+    },
+    {
+      "version": "20260808175737",
+      "name": "dma_0001_foundation",
+      "statements_md5": "9a3e7c297169f05bf383888d6835666e",
+      "stamp_only": false,
+      "normalized_sha256": "ca034b50fad7073cedeedde358c55bdaea9c53a4e57325993a2995334aab7c06"
+    },
+    {
+      "version": "20260808180126",
+      "name": "dma_0002_seed",
+      "statements_md5": "76e82fdd74dff077b18f9407c679fb36",
+      "stamp_only": false,
+      "normalized_sha256": "bb2962b12b7d8f7f403d0297e666a524205b7035a76de591646fcc45088f6bcc"
+    },
+    {
+      "version": "20260808180340",
+      "name": "dma_0003_fix_missing_array",
+      "statements_md5": "78eff64cf4085bbbe714e58e35f392c2",
+      "stamp_only": false,
+      "normalized_sha256": "0e40f2910288ddc5abe9ecdecb506424de4bafc2b172632bb9ca71023bd71405"
+    },
+    {
+      "version": "20260808180516",
+      "name": "dma_0004_harden_internal_functions",
+      "statements_md5": "9b1677fc8b1b7d2d679c2e4cf3d6b951",
+      "stamp_only": false,
+      "normalized_sha256": "06e1d6377305c59398293c6268c309ee590ed39707ef8aac7e0843a4a7360068"
+    },
+    {
+      "version": "20260808201117",
+      "name": "dma_0005a_verification_enums",
+      "statements_md5": "0d3ca3d2cf780eae0b29e65367b823e8",
+      "stamp_only": false,
+      "normalized_sha256": "f8fe46abb776c9125fbfebc3c46021c966ed735d5da677cb6b7539f1992a55fe"
+    },
+    {
+      "version": "20260808201146",
+      "name": "dma_0005b_verification_workflow",
+      "statements_md5": "f0565c3026de84785861dea2b6fe1cbe",
+      "stamp_only": false,
+      "normalized_sha256": "673a9fd4c0f521a6f559c2ae4e550b839a0c4bdc4bdb1b93d894647ee94dc1d9"
+    },
+    {
+      "version": "20260808201239",
+      "name": "dma_0005c_verify_fact_citext_fix",
+      "statements_md5": "ade8c227038d6d7bab8d3879cc288565",
+      "stamp_only": false,
+      "normalized_sha256": "f22eab083ef4d38593f852e8c59f585132abf61d50ac3f65ee9bd1302d04de43"
+    },
+    {
+      "version": "20260808201314",
+      "name": "dma_0005d_verify_fact_citext_qualified",
+      "statements_md5": "5dc3ccf360fb3a8b096f497cbfdc9e56",
+      "stamp_only": false,
+      "normalized_sha256": "b0d169db5113befc70cf863f9b93e5ca6eb8237537c3c204fdb3da7a129f3d66"
+    },
+    {
+      "version": "20260808201516",
+      "name": "dma_0006_client_zero_completion",
+      "statements_md5": "dd2ce4fc3183692bbb978cf0a304d220",
+      "stamp_only": false,
+      "normalized_sha256": "e612e1253ad0c727a7ea3ff9dc1065711bd5be8c2d57e6ed805693b01a361c89"
+    },
+    {
+      "version": "20260808202049",
+      "name": "dma_0007_context_include_ids",
+      "statements_md5": "d86e6618841201f9c69a320826dc727f",
+      "stamp_only": false,
+      "normalized_sha256": "ada4cb2b3a0cf006edd1cb168b6433e7607af31a532cd452ccd8c19ed829815d"
+    },
+    {
+      "version": "20260808204457",
+      "name": "dma_0009_venuewise_homehuddle",
+      "statements_md5": "9fb36fc4668c1532824278f3eefa5d8e",
+      "stamp_only": false,
+      "normalized_sha256": "2946d832626c48241fc6adb8b89be0a40828db49e4f0fd8e452b1deda30bbfb1"
+    },
+    {
+      "version": "20260808205502",
+      "name": "dma_0008_offering_scoped_intelligence",
+      "statements_md5": "2cb4b7d6dc2455e6853f843fada503c5",
+      "stamp_only": false,
+      "normalized_sha256": "fc1ae68e342a48606b18b2f0124077f992f0a069f8452f52fbbeba172f54210f"
+    },
+    {
+      "version": "20260808210142",
+      "name": "dma_0010_market_intelligence",
+      "statements_md5": "7a7de024294de04885efdf6e87044ed2",
+      "stamp_only": false,
+      "normalized_sha256": "188f09cfb69d6f248a8abb3841cb06e0ac7fd80700f982b619994026fe9770e7"
+    },
+    {
+      "version": "20260808210613",
+      "name": "dma_0011_hh001_market_seed",
+      "statements_md5": "edce3e619ced1fe9d573492bb77c2f86",
+      "stamp_only": false,
+      "normalized_sha256": "1bead98363a733a8be8e4e79e3488fa2f1f3e1ae81ff149a0dbdd8c68ffbc22f"
+    },
+    {
+      "version": "20260808210643",
+      "name": "dma_0012_fix_opportunity_map",
+      "statements_md5": "e1c805db5c4717657ecd27a1273df8e2",
+      "stamp_only": false,
+      "normalized_sha256": "491f7dfa6dfb0e0e11e103e220cdd2ca181735d49515078b2dad66d9e62a50bd"
+    },
+    {
+      "version": "20260808212421",
+      "name": "dma_0013_visibility",
+      "statements_md5": "0ad8351161c332a2ae3a05ee2f958f09",
+      "stamp_only": false,
+      "normalized_sha256": "f9d26dcba8d8d2c414d69df7b044489c343666de6764a7645e0808f9c5cdd961"
+    },
+    {
+      "version": "20260808212627",
+      "name": "dma_0014_hh001_visibility_seed",
+      "statements_md5": "792087688afe6085167edd0e965c215d",
+      "stamp_only": false,
+      "normalized_sha256": "0e74765062460a37030b04aad9f5fce9d898a9cf595905146d0139c3cd5f3efb"
+    },
+    {
+      "version": "20260808214122",
+      "name": "dma_0015_search_intelligence",
+      "statements_md5": "8b389d42fe81c71efb888e124c6223c1",
+      "stamp_only": false,
+      "normalized_sha256": "0d010a48a72f7a6bec63b9660b4a1f63dd1650b98615a73f65469da87346c4a6"
+    },
+    {
+      "version": "20260808214519",
+      "name": "dma_0016_hh001_search_seed",
+      "statements_md5": "a131bc1c3f1df21394c763d298990876",
+      "stamp_only": false,
+      "normalized_sha256": "01bfc4de7328ed0006d54f70acc572d7b10f9a55ffd2ee15f8c8174d83e6e6a5"
+    },
+    {
+      "version": "20260817152602",
+      "name": "disco_0001_opportunity_discovery_layer",
+      "statements_md5": "376da83806a58acb193c9980572c3a20",
+      "stamp_only": false,
+      "normalized_sha256": "82c0b89fe41a9b736a179d38cdc5ad01f32f79f5f859f82fd3aa2fc7361fc3ac"
+    },
+    {
+      "version": "20260817152711",
+      "name": "disco_0002_render_builder_prompt",
+      "statements_md5": "80f9b52a7d3c4a10be39f0e3945bcbc1",
+      "stamp_only": false,
+      "normalized_sha256": "255f0067495058fce42f347647b39d3e05bc4206bbaff2009737d0d34e8d5a97"
+    },
+    {
+      "version": "20260818020752",
+      "name": "disco_0003_portal_api",
+      "statements_md5": "707cebe63612dd3c8f427cb3c6b70067",
+      "stamp_only": false,
+      "normalized_sha256": "6369a0393f6b9eaf89878d2121a5838dfcdff9652e0e6378381a5b782cf384c1"
+    },
+    {
+      "version": "20260818021047",
+      "name": "disco_0004_fix_decision_column",
+      "statements_md5": "5db95bb12f91c5a456382fc4d93c2d94",
+      "stamp_only": false,
+      "normalized_sha256": "c338f5f138f9758f9b48ed941cd80e8f5d0871f6ca7cb3a6a6b94f1ad73982c3"
+    },
+    {
+      "version": "20260818021113",
+      "name": "disco_0005_fix_evaluation_column",
+      "statements_md5": "8910f194667bb0af5fe0a1a0ce7ac6ed",
+      "stamp_only": false,
+      "normalized_sha256": "310bb0d9e0cb84906514ffad7193801e192d6681935f2311abc4941641efe1cc"
+    },
+    {
+      "version": "20260818040409",
+      "name": "disco_0006_github_discovery_run",
+      "statements_md5": "45c330bb0942a7d33aff08fbe186cb1f",
+      "stamp_only": false,
+      "normalized_sha256": "196bc69b147da81f406b42c9ed2c8a5ce815ed05e54968a20ecec9017a24186a"
+    },
+    {
+      "version": "20260818165255",
+      "name": "disco_0003_search_pattern_and_navigation_indexes",
+      "statements_md5": "d750c47a683046b588e12f68fc410721",
+      "stamp_only": false,
+      "normalized_sha256": "21e3737e16da5ca5ec121708ef396973d621a6bed03e8e225ca1228b5b1c494a"
+    },
+    {
+      "version": "20260818165318",
+      "name": "hlvs_board_page_server_side_navigation",
+      "statements_md5": "09232cf89c57efe6b5c36e2552d2236b",
+      "stamp_only": false,
+      "normalized_sha256": "9d65bf98a282fd92d569cb2275d4154ee4623b49401249171ebc7ef51a889f5b"
+    },
+    {
+      "version": "20260818165331",
+      "name": "hlvs_board_facets",
+      "statements_md5": "415043d9b6d4f1852bde4be239d99afd",
+      "stamp_only": false,
+      "normalized_sha256": "a11435d6b0a5e833dbf76723894677ba9a4d1cece37d43072610a66b3bb69422"
+    },
+    {
+      "version": "20260818165446",
+      "name": "temp_perftest_page_twin",
+      "statements_md5": "83f1e6fec8db5b7c38701d56e040134a",
+      "stamp_only": false,
+      "normalized_sha256": "3481a1f81d0a8b930362e98172ee8bb1bf19a351d2a1ee775d8dae78e48a7132"
+    },
+    {
+      "version": "20260818165652",
+      "name": "ingest_capture_search_pattern",
+      "statements_md5": "e95a64278ab262a2a5191faf268796d4",
+      "stamp_only": false,
+      "normalized_sha256": "1c26d66bb8345547cc5a8ea0b1da1e396ff6282c2bdb5ee4530933b0ee13359c"
+    },
+    {
+      "version": "20260818203419",
+      "name": "hlbos_0032_vstudio_discovery_metadata",
+      "statements_md5": "cf7864e65813b297b1c28e81fbad351f",
+      "stamp_only": false,
+      "normalized_sha256": "0d738e43d47ece028fdb99849e82496baa3c97a02b1c9223b7d6128ea38c29c5"
+    },
+    {
+      "version": "20260820011152",
+      "name": "hlbos_0033_vstudio_intelligence_layer",
+      "statements_md5": "5d291046e4d1f78c8a72cb61c049ab85",
+      "stamp_only": false,
+      "normalized_sha256": "20eda0deb0735c8aec67e71c799d20cc9febdf2b535f642b31d6a5809af41894"
+    },
+    {
+      "version": "20260820012431",
+      "name": "hlbos_0034_vstudio_level1_triage",
+      "statements_md5": "930d05b7c8f66d35baf08de17a6d356f",
+      "stamp_only": false,
+      "normalized_sha256": "581f3b788799232ea4a0e0f4d439ea97e08b9f507bbc20c618befc26d8612752"
+    },
+    {
+      "version": "20260820012941",
+      "name": "hlbos_0035_vstudio_portfolios",
+      "statements_md5": "e17823504b12c8251ae6444297b8ca12",
+      "stamp_only": false,
+      "normalized_sha256": "1d02975ac09ba1a8c4be69eb05aa61df1ba5983a1942a3d746bb0cb67489bafc"
+    },
+    {
+      "version": "20260820013335",
+      "name": "hlbos_0034r01_vstudio_level1_triage_core_terms",
+      "statements_md5": "6068ce792230334f1746eb59efa19e0a",
+      "stamp_only": false,
+      "normalized_sha256": "e6fdd0bb492133cdc532be98b87187eef190dcaf0010a6943fa8ab858ecf6d2d"
+    },
+    {
+      "version": "20260820013903",
+      "name": "hlbos_0034r02_vstudio_level1_triage_two_term_rule",
+      "statements_md5": "6f786bce55e399e86f653cded6f14485",
+      "stamp_only": false,
+      "normalized_sha256": "272b17a84812741217ef2aa4d8e652f6de4cc53638786a78a9b8735046ce3aa2"
+    },
+    {
+      "version": "20260820014408",
+      "name": "hlbos_0036_vstudio_rising",
+      "statements_md5": "8d70d7c2d79e77c7e83f9faa9228dc1e",
+      "stamp_only": false,
+      "normalized_sha256": "76c793b1b657deb7da6287212c476e8d3a52f56df46bb54edbced3c190328091"
+    },
+    {
+      "version": "20260820015400",
+      "name": "hlbos_0037_vstudio_pain_clusters",
+      "statements_md5": "c50adb3fabe22e43f915dc2a119de591",
+      "stamp_only": false,
+      "normalized_sha256": "5cc41491f5bce4c583e4438df85f3df502a7c9da64123428d282a0d8ccce4d19"
+    },
+    {
+      "version": "20260820022340",
+      "name": "hlbos_0038_vstudio_analysis_levels",
+      "statements_md5": "11d1cc5cf1180ecd3a93866c400e6e03",
+      "stamp_only": false,
+      "normalized_sha256": "079b58d6ffe76de6e0b9bdf0dce562c7c2e03b64bf9e3e8b1d12792c42f3424d"
+    },
+    {
+      "version": "20260820152634",
+      "name": "hlbos_0039_vstudio_provable_gate",
+      "statements_md5": "5d833ebc623a6f21bd361347cc86ee60",
+      "stamp_only": false,
+      "normalized_sha256": "be87ced04fbad3aa570786539842a01f862e749db3aa4257c77ce35101e391e0"
+    },
+    {
+      "version": "20260820152914",
+      "name": "hlbos_0040_pain_signal_url_whitespace",
+      "statements_md5": "0c293b8203e15366df7eb5954e103530",
+      "stamp_only": false,
+      "normalized_sha256": "be7e3f081304c7bcef33faef1a0cf976665dd674c5983382c4fdfcdac4896ab4"
+    },
+    {
+      "version": "20260820171407",
+      "name": "hlbos_0041_pain_discovery_foundation",
+      "statements_md5": "d09f9b68b2773bfd07d1b2ed7b94faa9",
+      "stamp_only": false,
+      "normalized_sha256": "3cf9a228f483fb81706a5a9c849e9d0d8aeede1afc47b1afc331df57d5edde89"
+    },
+    {
+      "version": "20260820171438",
+      "name": "hlbos_0042_pain_evidence_backfill",
+      "statements_md5": "3b80d7dd6caa1004859ee1fa58e950d3",
+      "stamp_only": false,
+      "normalized_sha256": "ad3af85d91a9ea38774643a54209d08576f947a68d47b002ede52c7f3f807295"
+    },
+    {
+      "version": "20260820171552",
+      "name": "hlbos_0043_capability_intelligence",
+      "statements_md5": "2de03034db5227e5b0b674effcb98cc8",
+      "stamp_only": false,
+      "normalized_sha256": "b8ed3062e08ac72306698e5d95189cda4d803d76feb7acb872131634763ff5eb"
+    },
+    {
+      "version": "20260820171812",
+      "name": "hlbos_0044a_capability_vocabulary",
+      "statements_md5": "df68ad38feabae2935852ebeda90a20c",
+      "stamp_only": false,
+      "normalized_sha256": "c13590512acf31c0e6f6d5fe4b159c07bb25ad5f7a889c1ae8832a07dc83e8b1"
+    },
+    {
+      "version": "20260820171902",
+      "name": "hlbos_0044b_capability_extraction_function",
+      "statements_md5": "037fc7f2252a7378e530cf972485f37b",
+      "stamp_only": false,
+      "normalized_sha256": "67a0a830187a1da615676de3a3f8c8de164166420f711060874253bee385fafb"
+    },
+    {
+      "version": "20260820172440",
+      "name": "hlbos_0045_reframe_pain_portfolio_honestly",
+      "statements_md5": "63cf59c332745a1838e4b8b40d328d5c",
+      "stamp_only": false,
+      "normalized_sha256": "b5409e1fa4b2e2e469984d9079953f109dfdede642b5e217c21111a3059b4689"
+    },
+    {
+      "version": "20260825170723",
+      "name": "jobscout_0001_schema",
+      "statements_md5": "f20582f5e113080dc9b064f6beaabc11",
+      "stamp_only": false,
+      "normalized_sha256": "73135156379b1f6890c55bc3fb7f2bb17cf7b146af999c6d4317bc9f4137b1c7"
+    },
+    {
+      "version": "20260825171100",
+      "name": "jobscout_0002a_pg_net_only",
+      "statements_md5": "e0b28d676f47c88a1f46819f061b93cb",
+      "stamp_only": false,
+      "normalized_sha256": "9723d84266f22e78f4399d5b273b8d9e0f74abfc36a7c208ddb8b440a2e14c55"
+    },
+    {
+      "version": "20260825171403",
+      "name": "jobscout_0003_grants_and_rls",
+      "statements_md5": "acf7f9bb07fc9920763a4a290ff04a1f",
+      "stamp_only": false,
+      "normalized_sha256": "5884ba709fdeed9f88d050e513449819ebc93023a022a6143940d01646f296e3"
+    },
+    {
+      "version": "20260825191410",
+      "name": "jobscout_0004_target_level_and_comp_band",
+      "statements_md5": "0154f332d1b4e63f7ddf0a375fdf335f",
+      "stamp_only": false,
+      "normalized_sha256": "b8ee54d273562e9c4e66b6f2493a13281f48751b460937cdc356cc88c5186d6e"
+    },
+    {
+      "version": "20260825193602",
+      "name": "jobscout_0005_alert_sources",
+      "statements_md5": "e2d9b8dbaa7d0b31ffdb59ed8cc6de5c",
+      "stamp_only": false,
+      "normalized_sha256": "87fc466f2ba071478a0ceb66c68a73f805afa67154c307d883e9b3ec1267b0c0"
+    },
+    {
+      "version": "20260825235038",
+      "name": "jobscout_0006_schedule",
+      "statements_md5": "52ca47c77d53109c10b2822ec7aaf419",
+      "stamp_only": false,
+      "normalized_sha256": "4b6fdaa79ddeaa3ae1ceba70278042a9920a1c202fe903dbc15f559c6a24a846"
+    },
+    {
+      "version": "20260826001510",
+      "name": "jobscout_0007_view_token",
+      "statements_md5": "c160bf6b41d067359858e71a59bb71cf",
+      "stamp_only": false,
+      "normalized_sha256": "16a38e8a7c7c87589abceef47d637d2a8d0c066114cdf3cd56efe9e257dc9f34"
+    },
+    {
+      "version": "20260826025511",
+      "name": "jobscout_0010_tailorings",
+      "statements_md5": "813036737ed0159c3c7ead2a73a40857",
+      "stamp_only": false,
+      "normalized_sha256": "8231352ed2c66a9c34626951ab662fcf49e4ca4a7201ff47b198da5a19235178"
+    },
+    {
+      "version": "20260826160814",
+      "name": "hlbos_0046_social_publishing",
+      "statements_md5": "a66dd66373ce8b0103a8b75a3c9afca6",
+      "stamp_only": false,
+      "normalized_sha256": "cfae86282fa76511599443306ea9282dbfce189d0ca484ad8c0efa26db8b2344"
+    },
+    {
+      "version": "20260826161134",
+      "name": "hlbos_0047_social_deny_mutation_search_path",
+      "statements_md5": "793eb91d91f180989d8a2147b84d550e",
+      "stamp_only": false,
+      "normalized_sha256": "d83dd97327d373fb1f6d21ce4efba8727b9ae87e44590f08e97624bbc8936baf"
+    },
+    {
+      "version": "20260909203027",
+      "name": "hlbos_0048_barberos_capability_catalog",
+      "statements_md5": "8af46e918e8a677198e10b15f2e53884",
+      "stamp_only": false,
+      "normalized_sha256": "8b3d9196a562755c6665446ba490d0a33c8770b3f9d4ae269446003650f53a4d"
+    },
+    {
+      "version": "20260909203607",
+      "name": "hlbos_0049_transform_audit",
+      "statements_md5": "90416d903f02f66699c4d97570c1101d",
+      "stamp_only": false,
+      "normalized_sha256": "2ac24b69a1faddead8bb620a5a3a07c9db0575de328e7abf34e4084738d66f01"
+    },
+    {
+      "version": "20260909203954",
+      "name": "hlbos_0050_citext_guard_semantics",
+      "statements_md5": "099e9b67e188efa78b9b807d9a9e9036",
+      "stamp_only": false,
+      "normalized_sha256": "d45c54d1b9efc5d5a8ededcc3b6c5868803728bbac16395ddfe2d56bd32ae111"
+    },
+    {
+      "version": "20260909205112",
+      "name": "hlbos_0051_unknown_is_not_complete",
+      "statements_md5": "de07350c66a0474b0e515a549e1f0894",
+      "stamp_only": false,
+      "normalized_sha256": "0abd662f46b2bcc6ad88cc2ba4f533a536ee9bad2ecbfc4e5e29f2b8a546c4d1"
+    },
+    {
+      "version": "20260910215806",
+      "name": "hlbos_0052_barberos_owned_website",
+      "statements_md5": "bdcdc6e2f0eac5d1bea823d52102e417",
+      "stamp_only": false,
+      "normalized_sha256": "ceadf3f1a9f96652bfff2e87645874798c1c46aa601a485b35340ff9646dee38"
+    },
+    {
+      "version": "20260910223719",
+      "name": "hlbos_0053_barberos_public_site_read",
+      "statements_md5": "c6e013c1e80e2367cae198fa614a0a4d",
+      "stamp_only": false,
+      "normalized_sha256": "e850df35fed547dc6379764aedd8041142b2598d7d65c774b175e7510ef55f8c"
+    },
+    {
+      "version": "20260911175642",
+      "name": "hlbos_0054_discovery_call",
+      "statements_md5": "dccee159239459d25dc6751fc3885cb9",
+      "stamp_only": false,
+      "normalized_sha256": "9d92fd652442446babc41218de537a289751006474dcc76cea85b2c95d3392e8"
+    },
+    {
+      "version": "20260911185433",
+      "name": "hlbos_0055_proposal",
+      "statements_md5": "f05fa1f9bd0d4ebe127ff0b4a1d50061",
+      "stamp_only": false,
+      "normalized_sha256": "de256fc7526d2699fa3304decf12a1754e7090e0ec789277391ebce50e306fc6"
+    },
+    {
+      "version": "20260913003755",
+      "name": "hlbos_0056_barberos_shop_api",
+      "statements_md5": "4fc8c08a23a8a9335b72fc4c6bc8c6c1",
+      "stamp_only": false,
+      "normalized_sha256": "2f87afd3f02cebb63639bce006430ca71bb0df7c2f144d63a330eb38938e6652"
+    },
+    {
+      "version": "20260913023845",
+      "name": "hlbos_0057_barberos_product_map",
+      "statements_md5": "a790b8030f0c7cb7e4c1f85c3e508c98",
+      "stamp_only": false,
+      "normalized_sha256": "fcab9d73b990904a7ecd35c57f672bbbd07ca01843bfd19cc717fcd4441022ac"
+    },
+    {
+      "version": "20260913025202",
+      "name": "hlbos_0058_barberos_client_crm",
+      "statements_md5": "d9c4ebba3312ffd14271423d13368b7d",
+      "stamp_only": false,
+      "normalized_sha256": "6333cc23be3322b1d614459a495f39396e533c36fb1f32858240e5aab7fc08be"
+    },
+    {
+      "version": "20260916190643",
+      "name": "hlbos_0048_ats_resume_optimizer",
+      "statements_md5": "3f11afda6318b9d3076c88830874d3e1",
+      "stamp_only": false,
+      "normalized_sha256": "9f9a8e634fec934c4e6c53dba1d23c303dc2c810360ab91e3b2822217d559eda"
+    },
+    {
+      "version": "20260916210000",
+      "name": "hlbos_0049_playtime_tracker",
+      "statements_md5": "484bfe028bb1d5f453ebd1d649068318",
+      "stamp_only": false,
+      "normalized_sha256": "5565cde19ae76c95c822d0f61f8829f490d14bfe5949da33b8bf3e107c52192f"
+    },
+    {
+      "version": "20260917212122",
+      "name": "hlbos_0055_barberos_audit_public_api",
+      "statements_md5": "3d65a144339e8d99a0cbcac7efc9570f",
+      "stamp_only": false,
+      "normalized_sha256": "4fee4fda9d5f4782c71bc6bc26ef15e9b67eadd08ccee0d9200d6fd6a144b8fd"
+    },
+    {
+      "version": "20260917212337",
+      "name": "hlbos_0055r01_barberos_audit_body_parity",
+      "statements_md5": "a90b9df69c851be70947a377d502c2a7",
+      "stamp_only": false,
+      "normalized_sha256": "a9cf77d702be5868eb4333ee08c5e86942c1555d315da4f11a012d83435bab8b"
+    },
+    {
+      "version": "20260917212543",
+      "name": "hlbos_0055r02_runs_for_comment_parity",
+      "statements_md5": "f84b781442766dfcf0e0b8479e440685",
+      "stamp_only": false,
+      "normalized_sha256": "39164e760b400190a020c0890891ba2cfdc95d229d8471f5605c642c5bba0f39"
+    },
+    {
+      "version": "20260930183702",
+      "name": "hlbos_0051_hype_video",
+      "statements_md5": "fcc0712c4e7e8f986d84b4a994dc5f54",
+      "stamp_only": false,
+      "normalized_sha256": "0c634d3317f4fb0cb4679af2886bfd9683e64b3b575de0596daff1322733c46f"
+    },
+    {
+      "version": "20261007005544",
+      "name": "hlbos_0031_transformation_intake",
+      "statements_md5": "1095b7ad1528fe46409562ee71a2ad4f",
+      "stamp_only": false,
+      "normalized_sha256": "c544c6ef29afe799153d91876ccb2a79de140ed77b99cc67ea1f6c424f185d34"
+    },
+    {
+      "version": "20261017180151",
+      "name": "hlg_fleet_module",
+      "statements_md5": "985a8c54b7bfb5b7f347347254215360",
+      "stamp_only": false,
+      "normalized_sha256": "0cac1f500f50328b1c7a0a89dd769fdcfd544d816f6c747483ba34744fe72201"
+    },
+    {
+      "version": "20261017180946",
+      "name": "hlg_fleet_query_scoping",
+      "statements_md5": "25045884ebaa93f3566b8133225bb201",
+      "stamp_only": false,
+      "normalized_sha256": "f55f2ccaf38955539c1a618b6bdb5ea47f392d71eed92888002b2180fce9398e"
+    },
+    {
+      "version": "20261017182143",
+      "name": "hlg_fleet_validation_guards",
+      "statements_md5": "0c55f209ad84b2720c21df12a07dd613",
+      "stamp_only": false,
+      "normalized_sha256": "3cd47e987d838fd689c1f5be6c9b696cab423597439085002094c4a480085490"
+    },
+    {
+      "version": "20261017185208",
+      "name": "hscs_company_scorecards",
+      "statements_md5": "4a7022364ffbf400c57145bcb3644a3c",
+      "stamp_only": false,
+      "normalized_sha256": "695613e85780cb67d2d41de5410c2e19015213cd2c5183d8d100ef7b6123d094"
+    },
+    {
+      "version": "20261017191105",
+      "name": "independent_scorecards",
+      "statements_md5": "a17fdc09cdd8aa9484cb6ca753ff410d",
+      "stamp_only": false,
+      "normalized_sha256": "08922bbd9724b29f577f0d9f5ed45f807ed012a1f562b3042ab301bbe46b9a06"
+    },
+    {
+      "version": "20261017210755",
+      "name": "driver_medical_cards",
+      "statements_md5": "5640c6e875207102c560a8483d39d1fe",
+      "stamp_only": false,
+      "normalized_sha256": "d4167ead9ad2e6fb591efaa0ef09c6f9a2b86dcd7c497068d98da26c83df83bb"
+    },
+    {
+      "version": "20261017210958",
+      "name": "medical_card_orphan_cleanup",
+      "statements_md5": "34232767ab82b53a2ed5bc6e1ee53359",
+      "stamp_only": false,
+      "normalized_sha256": "404a52c8c929138bd4c28d8bb97d3650d7003a6a24771bd7635512176500089e"
+    },
+    {
+      "version": "20261105185109",
+      "name": "hlbos_sec_b2_jobscout_views_invoker",
+      "statements_md5": "6f86fca6b0ff779517504383f9c4aeb1",
+      "stamp_only": false,
+      "normalized_sha256": "ad03249e3f5169a852d5f59b2c0165d433ab761592876008c686861c8ec6dd5d"
+    }
+  ]
+}

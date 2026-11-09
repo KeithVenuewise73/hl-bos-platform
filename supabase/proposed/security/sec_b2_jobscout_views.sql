@@ -1,0 +1,33 @@
+-- ===========================================================================
+-- SECURITY PACKAGE B2 — APPLIED TO PRODUCTION 2026-11-05 as version 20261105185109
+-- (owner-authorized; see supabase/applied/ and phase9-execution-results.md §1).
+--
+-- WHAT IS EXPOSED TODAY (production, read-only catalog checks, 2026-11-05; VERIFIED
+-- from privileges, not exercised over HTTP):
+--   * PostgREST serves schema jobscout (pgrst.db_schemas includes it).
+--   * anon has USAGE on jobscout and SELECT on jobscout.v_shortlist and
+--     jobscout.v_last_runs.
+--   * Both views run with their owner's rights, so they skip the base tables' RLS.
+--   => Anyone holding the project's public (anon) key can read the shortlist
+--      (74 rows: fit score, why it fits, the catch, the resume angle, application
+--      status) and the last run reports.
+--
+-- WHO NEEDS THE VIEWS (VERIFIED by reading the deployed function source):
+--   jobscout-dashboard -> _shared/page.ts collect() reads both views with the
+--   SERVICE ROLE client. apps/viewer holds no credentials. No repository code
+--   reads them. The retired HTML dashboard that asked for an anon key is the
+--   only anon reader there ever was.
+--
+-- IMPACT (demonstrated on the production-equivalent copy,
+-- packages/growth-intelligence/src/security-packages.db.test.ts):
+--   service_role reads both views before and after -> dashboard unaffected.
+--   anon: before = rows; after = "permission denied".
+--
+-- Rollback (restores today's exposure exactly):
+--   alter view jobscout.v_shortlist reset (security_invoker);
+--   alter view jobscout.v_last_runs reset (security_invoker);
+--   grant select on jobscout.v_shortlist, jobscout.v_last_runs to anon;
+-- ===========================================================================
+alter view jobscout.v_shortlist set (security_invoker = true);
+alter view jobscout.v_last_runs set (security_invoker = true);
+revoke select on jobscout.v_shortlist, jobscout.v_last_runs from anon, authenticated;

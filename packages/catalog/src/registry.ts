@@ -180,6 +180,7 @@ const ASSETS: Asset[] = [
     relationships: [
       { kind: "consumes", to: "pkg.catalog" },
       { kind: "uses", to: "pkg.presence-scanner" },
+      { kind: "uses", to: "pkg.growth-intelligence" },
       { kind: "uses", to: "pkg.site-builder" },
       { kind: "provides", to: "wf.catalog-governance" },
       { kind: "owned_by", to: "repo.hl-bos-platform" },
@@ -553,6 +554,33 @@ const ASSETS: Asset[] = [
     ],
     evidence:
       "packages/presence-scanner; tests green; the Google Places client tested with an injected fetch only — never run against the live API (no key configured)",
+  },
+  {
+    id: "pkg.growth-intelligence",
+    kind: "package",
+    name: "@hl-bos/growth-intelligence",
+    summary:
+      "HLG Growth Intelligence: Herman Legacy Digital and Herman Supply Chain Solutions as two isolated business lines over the existing Presence Scanner. Routes each lead to one line by campaign, then inbound website, then industry (a person decides when they disagree); keeps line records apart (a line lead sees only their line; consolidated is owner-only); builds opportunity reviews that separate observed facts, assumptions and estimated opportunities, refusing private HSCS operating figures the customer did not supply; builds proposals that block until the owner sets prices and reject savings or ranking promises; classifies lead attribution from UTM/gclid/referrer; reports Google connector readiness from evidence only; gates every external action on an owner approval tied to the exact content; and computes HLD, HSCS and consolidated dashboards and a feedback loop that exclude demo records and refuse figures (CAC, LTV, revenue totals) the data cannot support. Pure TypeScript; no storage, network or AI calls.",
+    maturity: "built_undeployed",
+    reuse: ["reusable"],
+    owner: "Herman Legacy Platform",
+    layer: "HL-BOS",
+    key: "growth-intelligence",
+    location: "packages/growth-intelligence",
+    tags: [
+      "package",
+      "domain-logic",
+      "growth",
+      "crm-routing",
+      "attribution",
+      "reporting",
+    ],
+    relationships: [
+      { kind: "uses", to: "pkg.presence-scanner" },
+      { kind: "owned_by", to: "repo.hl-bos-platform" },
+    ],
+    evidence:
+      "packages/growth-intelligence; tests green; no Google connector has been connected or called, and no record has been written to any database",
   },
   {
     id: "pkg.site-builder",
