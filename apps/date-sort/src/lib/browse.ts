@@ -6,6 +6,7 @@ import {
   DESTINATION_TITLE,
   encodeForPowerShell,
   IPHONE_TITLE,
+  IPHONE_VIDEOS_TITLE,
   parsePickerOutput,
   pickerScript,
   type PickerOutcome,
@@ -25,7 +26,7 @@ let open = false;
 const PICK_TIMEOUT_MS = 15 * 60 * 1000;
 
 export async function browseForFolder(
-  purpose: "source" | "destination" | "iphone" = "source",
+  purpose: "source" | "destination" | "iphone" | "iphone-videos" = "source",
 ): Promise<PickerOutcome | { kind: "busy" } | { kind: "unavailable"; reason: string }> {
   if (process.platform !== "win32") {
     return {
@@ -53,7 +54,9 @@ export async function browseForFolder(
                 ? DESTINATION_TITLE
                 : purpose === "iphone"
                   ? IPHONE_TITLE
-                  : undefined,
+                  : purpose === "iphone-videos"
+                    ? IPHONE_VIDEOS_TITLE
+                    : undefined,
             ),
           ),
         ],

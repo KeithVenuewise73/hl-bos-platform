@@ -9,7 +9,9 @@ export async function POST(request: Request): Promise<Response> {
   if (refused !== null) return refused;
   const body = (await request.json().catch(() => ({}))) as { purpose?: unknown };
   const outcome = await browseForFolder(
-    body.purpose === "destination" || body.purpose === "iphone"
+    body.purpose === "destination" ||
+      body.purpose === "iphone" ||
+      body.purpose === "iphone-videos"
       ? body.purpose
       : "source",
   );

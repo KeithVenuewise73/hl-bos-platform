@@ -544,6 +544,7 @@ describe("remembering the destination and event names", () => {
       destination: null,
       eventNames: {},
       iphoneFolder: null,
+      iphoneVideoFolder: null,
     });
     await saveSettings(
       {
@@ -556,6 +557,7 @@ describe("remembering the destination and event names", () => {
       destination: "D:\\5-Star Sports Media\\Games",
       eventNames: { "2025-11-08": "Zac K" },
       iphoneFolder: null,
+      iphoneVideoFolder: null,
     });
   });
 
