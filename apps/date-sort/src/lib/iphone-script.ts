@@ -31,6 +31,12 @@
  * it reports what would come across and its size, then stops, copying and
  * creating nothing.
  *
+ * While a file is copying, a Windows "Error Copying File or Folder" box that
+ * belongs to OUR copy window is closed (the same as pressing OK), its words are
+ * reported, and the file is counted as failed at once and tried last next time.
+ * Without this an overnight run sits at that box until someone clicks OK. Only
+ * a box with that exact title whose owner is a "Copying..." window is touched.
+ *
  * Output: one line of JSON per event (see IphoneLine). Paths come in through
  * environment variables, never pasted into the script.
  *
@@ -41,9 +47,62 @@
  * iPhone" in This PC is the one part only a real phone can prove.
  */
 
+/**
+ * Closes the "Error Copying File or Folder" box that Windows opens over its own
+ * "Copying..." window when the phone drops a file. Windows PowerShell 5.1
+ * compiles this with an old C# compiler: no string interpolation, no newer
+ * syntax. Exported so the Windows test can compile and run the same source.
+ */
+export const DIALOG_CSHARP = String.raw`
+using System;
+using System.Runtime.InteropServices;
+using System.Text;
+public static class DateSortDialogs {
+  private delegate bool EnumProc(IntPtr h, IntPtr p);
+  [DllImport("user32.dll")] private static extern bool EnumWindows(EnumProc cb, IntPtr p);
+  [DllImport("user32.dll")] private static extern bool EnumChildWindows(IntPtr parent, EnumProc cb, IntPtr p);
+  [DllImport("user32.dll", CharSet = CharSet.Unicode)] private static extern int GetWindowText(IntPtr h, StringBuilder s, int n);
+  [DllImport("user32.dll")] private static extern bool IsWindowVisible(IntPtr h);
+  [DllImport("user32.dll")] private static extern IntPtr GetWindow(IntPtr h, uint cmd);
+  [DllImport("user32.dll")] private static extern bool PostMessage(IntPtr h, uint msg, IntPtr w, IntPtr l);
+  private static string TitleOf(IntPtr h) {
+    StringBuilder s = new StringBuilder(512);
+    GetWindowText(h, s, 512);
+    return s.ToString();
+  }
+  /// Closes one such box if there is one; returns what it said, or null.
+  public static string DismissCopyError() {
+    string found = null;
+    EnumWindows(delegate (IntPtr h, IntPtr p) {
+      if (found != null || !IsWindowVisible(h)) return true;
+      if (TitleOf(h) != "Error Copying File or Folder") return true;
+      IntPtr owner = GetWindow(h, 4); // GW_OWNER: the window the box belongs to
+      if (owner == IntPtr.Zero || !TitleOf(owner).StartsWith("Copying")) return true;
+      StringBuilder said = new StringBuilder();
+      EnumChildWindows(h, delegate (IntPtr c, IntPtr q) {
+        string t = TitleOf(c);
+        if (t.Length > 2) { if (said.Length > 0) said.Append(" "); said.Append(t); }
+        return true;
+      }, IntPtr.Zero);
+      PostMessage(h, 0x0010, IntPtr.Zero, IntPtr.Zero); // WM_CLOSE: same as OK on this box
+      found = said.Length > 0 ? said.ToString() : "(Windows gave no words)";
+      return true;
+    }, IntPtr.Zero);
+    return found;
+  }
+}
+`;
+
 export const IPHONE_SCRIPT = String.raw`
 $ErrorActionPreference = 'Stop'
 function Say($o) { [Console]::Out.WriteLine(($o | ConvertTo-Json -Compress)); [Console]::Out.Flush() }
+$canDismiss = $false
+try {
+  Add-Type -TypeDefinition @'
+${DIALOG_CSHARP}
+'@
+  $canDismiss = $true
+} catch { }
 try {
   $shell = New-Object -ComObject Shell.Application
   $dest = $env:DS_DEST
@@ -195,6 +254,15 @@ try {
     $moved = Get-Date
     while (((Get-Date) - $moved).TotalSeconds -lt 120) {
       Start-Sleep -Milliseconds 300
+      # Windows' own error box over our copy window: close it, say what it said,
+      # and count this file as failed now instead of waiting two minutes.
+      if ($canDismiss) {
+        $boxText = [DateSortDialogs]::DismissCopyError()
+        if ($boxText) {
+          Say @{ type = 'dialog'; folder = $x.folder; name = $x.name; text = $boxText }
+          break
+        }
+      }
       if (-not (Test-Path -LiteralPath $part)) {
         if (-not $converted) { continue }
         $alt = Join-Path $incoming $converted
@@ -264,6 +332,13 @@ export type IphoneLine =
       readonly bytes?: number;
     }
   | { readonly type: "done" }
+  /** Windows' error box over our copy was closed (as OK); this is what it said. */
+  | {
+      readonly type: "dialog";
+      readonly folder: string;
+      readonly name: string;
+      readonly text: string;
+    }
   /** Preview only: what would come across was reported, and nothing was copied. */
   | { readonly type: "previewed" }
   /** Several files in a row failed: the phone has stopped answering. */
@@ -297,6 +372,7 @@ export function parseIphoneLine(line: string): IphoneLine | null {
       case "file":
       case "done":
       case "previewed":
+      case "dialog":
       case "stuck":
       case "error":
         return o as IphoneLine;

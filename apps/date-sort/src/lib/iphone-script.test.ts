@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { IPHONE_SCRIPT, parseIphoneLine } from "./iphone-script";
+import { DIALOG_CSHARP, IPHONE_SCRIPT, parseIphoneLine } from "./iphone-script";
 
 describe("the iPhone copy script", () => {
   it("never changes anything on the phone", () => {
@@ -86,6 +86,31 @@ describe("the iPhone copy script", () => {
       IPHONE_SCRIPT.indexOf("New-Item -ItemType Directory -Force -Path $incoming"),
     );
     expect(preview).toBeLessThan(IPHONE_SCRIPT.indexOf("CopyHere("));
+  });
+
+  it("closes only Windows' own copy-error box, and only one that belongs to our copy", () => {
+    // The exact title, and an owner whose title starts with "Copying": a
+    // dialog from anything else, or an unowned one, is left alone.
+    expect(DIALOG_CSHARP).toContain('TitleOf(h) != "Error Copying File or Folder"');
+    expect(DIALOG_CSHARP).toContain("GetWindow(h, 4)");
+    expect(DIALOG_CSHARP).toContain('StartsWith("Copying")');
+    expect(DIALOG_CSHARP).toContain("owner == IntPtr.Zero");
+    // Closing is WM_CLOSE (same as OK on a one-button box); nothing else is sent.
+    expect(DIALOG_CSHARP.match(/PostMessage\(/g)).toHaveLength(2); // declaration + one call
+    expect(DIALOG_CSHARP).toContain("0x0010");
+    // Windows PowerShell 5.1's old compiler: no string interpolation, no newer syntax.
+    expect(DIALOG_CSHARP).not.toMatch(/\$"|=>|\?\.|nameof/);
+    // The script compiles it, only watches while a file is copying, reports
+    // what the box said, and counts the file as failed right away.
+    expect(IPHONE_SCRIPT).toContain("Add-Type -TypeDefinition @'");
+    expect(IPHONE_SCRIPT).toContain("[DateSortDialogs]::DismissCopyError()");
+    expect(IPHONE_SCRIPT).toContain("type = 'dialog'");
+    expect(
+      parseIphoneLine('{"type":"dialog","folder":"a","name":"b","text":"c"}'),
+    ).toMatchObject({
+      type: "dialog",
+      text: "c",
+    });
   });
 
   it("takes paths only from the environment, never pasted into the script", () => {
