@@ -8,6 +8,19 @@ Stage: **pilot. No paying customers yet** (CEO, 2026-11-09).
 The CEO and his son shoot the photos and videos. That is the whole production
 team, so the brand is scoped to what two people can deliver by hand.
 
+## Teams you already shoot (CEO, 2026-11-09)
+
+| Team | Sport |
+| --- | --- |
+| West Seneca West Varsity Football | Football |
+| West Seneca West JV Football | Football |
+| Cazenovia Chiefs 14U Travel Hockey | Hockey |
+| West Seneca Varsity Volleyball | Volleyball |
+
+Not yet known: whether any team has agreed to public galleries, who the
+contact is for each, and how many games are shot per season. No galleries for
+these teams exist online yet.
+
 ## The brand in one line
 
 **Local game photos and highlight videos, delivered online within days.**
@@ -49,7 +62,7 @@ Take on only as many teams as two people can turn around. A promise of
 
 ## Open questions for the CEO
 
-1. Which program is first? (Cazenovia Hockey appears in test data only.)
+1. Which of the four teams is first? (Suggest the one with the next game and an easy contact.)
 2. Are videos sold to families, to teams, or both?
 3. Parents' and minors' photos: should each team be "cleared for public posting" before anything goes public? (Proposed in `docs/operations/instagram-posting-plan.md`.)
 
