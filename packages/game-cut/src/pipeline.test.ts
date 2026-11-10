@@ -21,7 +21,14 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { analyze } from "./analyze.ts";
 import { totalSeconds } from "./moments.ts";
-import { probe, type Tools } from "./ffmpeg.ts";
+import {
+  Cancelled,
+  loudnessSeries,
+  motionSeries,
+  probe,
+  type Tools,
+} from "./ffmpeg.ts";
+import { planHighlights } from "./plan-highlights.ts";
 import { render } from "./render.ts";
 
 const tools: Tools = { ffmpeg: "ffmpeg", ffprobe: "ffprobe" };
@@ -266,5 +273,148 @@ describe.skipIf(!haveFfmpeg)("two cameras in, one video of the action out", () =
     const out = await probe(tools, piece);
     expect(out.width).toBe(1920);
     expect(out.isHdr).toBe(false);
+  }, 120_000);
+
+  it("highlights from times: reads the list, picks the camera that saw each moment, keeps the order", async () => {
+    // Game time. 1:55 is where camera B (near that end) saw the action; the others are A's.
+    const plan = await planHighlights(
+      tools,
+      fileA,
+      fileB,
+      [
+        "0:15 first hit",
+        "1:00 goal",
+        "1:55 big shot",
+        "bad line",
+        "99:00 past the end",
+      ].join("\n"),
+    );
+    expect(plan.hasSecondCamera).toBe(true);
+    expect(plan.alignment!.sync.offsetSeconds).toBeGreaterThan(OFFSET - 0.2);
+    expect(plan.alignment!.sync.offsetSeconds).toBeLessThan(OFFSET + 0.2);
+    expect(plan.clips.map((c) => c.label)).toEqual(["first hit", "goal", "big shot"]);
+    expect(plan.clips.map((c) => c.camera)).toEqual(["A", "A", "B"]);
+    expect(plan.clips[2]!.clipStartSeconds).toBeCloseTo(
+      plan.clips[2]!.startSeconds - plan.alignment!.sync.offsetSeconds,
+      5,
+    );
+    expect(plan.problems.map((p) => p.line)).toEqual([4]);
+    expect(plan.skipped.map((x) => x.line)).toEqual([5]);
+  }, 180_000);
+
+  it("highlights with one camera: no lining up needed, everything from that camera", async () => {
+    const plan = await planHighlights(tools, fileA, null, "0:15\n1:00");
+    expect(plan.hasSecondCamera).toBe(false);
+    expect(plan.alignment).toBeNull();
+    expect(plan.clips.map((c) => c.camera)).toEqual(["A", "A"]);
+  }, 120_000);
+
+  it("refuses a list with no readable time, saying what a line should look like", async () => {
+    await expect(planHighlights(tools, fileA, null, "nothing here")).rejects.toThrow(
+      /start with a time/,
+    );
+    await expect(planHighlights(tools, fileA, null, "")).rejects.toThrow(
+      /No times were given/,
+    );
+  }, 60_000);
+
+  it("draft quality is a smaller picture; progress only moves forward and ends at 1", async () => {
+    const plan = await planHighlights(tools, fileA, null, "0:15\n1:00");
+    const out = join(dir, "draft.mp4");
+    const seen: number[] = [];
+    await render(
+      tools,
+      { moments: plan.clips, factsA: plan.factsA, factsB: plan.factsB },
+      {
+        fileA,
+        fileB: fileA,
+        outFile: out,
+        workDir: join(dir, "work-draft2"),
+        quality: "draft",
+        onProgress: (f) => seen.push(f),
+      },
+    );
+    const facts = await probe(tools, out);
+    expect(facts.width).toBe(1280);
+    expect(facts.height).toBe(720);
+    expect(seen.length).toBeGreaterThan(1);
+    for (let i = 1; i < seen.length; i += 1)
+      expect(seen[i]!).toBeGreaterThanOrEqual(seen[i - 1]! - 1e-9);
+    expect(seen[seen.length - 1]).toBe(1);
+  }, 180_000);
+
+  it("a job stopped part-way leaves nothing behind: no result, no half-written file, no pieces", async () => {
+    const plan = await planHighlights(
+      tools,
+      fileA,
+      null,
+      "0:15\n0:40\n1:00\n1:55\n2:30",
+    );
+    const out = join(dir, "stopped.mp4");
+    const work = join(dir, "work-stopped");
+    const stop = new AbortController();
+    const running = render(
+      tools,
+      { moments: plan.clips, factsA: plan.factsA, factsB: plan.factsB },
+      {
+        fileA,
+        fileB: fileA,
+        outFile: out,
+        workDir: work,
+        signal: stop.signal,
+        onStep: (m) => {
+          if (/piece 2 /.test(m)) stop.abort();
+        },
+      },
+    );
+    await expect(running).rejects.toBeInstanceOf(Cancelled);
+    expect(existsSync(out)).toBe(false);
+    expect(existsSync(`${out}.partial`)).toBe(false);
+    expect(existsSync(work)).toBe(false);
+  }, 180_000);
+
+  it("reads only the window asked for, with the moment in the right place", async () => {
+    // Camera B's own clock has the moving square at 107.7-109.7 s.
+    const whole = await motionSeries(tools, fileB, 0.5);
+    const window = await motionSeries(
+      tools,
+      fileB,
+      0.5,
+      {},
+      { startSeconds: 100, lengthSeconds: 14 },
+    );
+    expect(whole.length).toBeGreaterThan(400);
+    expect(window.length).toBeGreaterThan(25);
+    expect(window.length).toBeLessThan(31); // about 14 s at two readings a second
+    const firstMoving = window.findIndex((v, i) => i > 0 && v > 1);
+    // 107.7 s is 7.7 s into a window that starts at 100 s: about reading 15.
+    expect(firstMoving).toBeGreaterThanOrEqual(13);
+    expect(firstMoving).toBeLessThanOrEqual(17);
+    // A window with nothing in it reads as still.
+    const quiet = await motionSeries(
+      tools,
+      fileB,
+      0.5,
+      {},
+      { startSeconds: 10, lengthSeconds: 10 },
+    );
+    expect(Math.max(...quiet)).toBeLessThan(0.5);
+  }, 120_000);
+
+  it("reports progress while reading sound and pictures, and can be stopped", async () => {
+    const heard: number[] = [];
+    await loudnessSeries(tools, fileA, 0.1, { onProgress: (s) => heard.push(s) });
+    expect(heard.length).toBeGreaterThan(0);
+    expect(Math.max(...heard)).toBeGreaterThan(GAME * 0.5); // seconds of the input processed
+
+    const seen: number[] = [];
+    await motionSeries(tools, fileA, 0.5, { onProgress: (s) => seen.push(s) });
+    expect(seen.length).toBeGreaterThan(0);
+
+    const stop = new AbortController();
+    stop.abort();
+    await expect(
+      motionSeries(tools, fileA, 0.5, { signal: stop.signal }),
+    ).rejects.toBeInstanceOf(Cancelled);
   }, 120_000);
 });

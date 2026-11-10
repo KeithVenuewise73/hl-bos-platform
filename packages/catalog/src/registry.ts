@@ -535,6 +535,23 @@ const ASSETS: Asset[] = [
       "packages/date-sort; date readers checked against ExifTool on real Canon EOS M50 (CR3) and EOS 350D (CR2) files; a source test fails the build if the scanner ever gains a write",
   },
   {
+    id: "pkg.game-cut",
+    kind: "package",
+    name: "@hl-bos/game-cut",
+    summary:
+      "Two whole-game camera recordings in, one video out. Lines the two cameras up by the sound they share, follows the play from one end of the ice to the other (holding each camera a few seconds, leaving out long quiet stretches), and joins the pieces in game order; or cuts highlights around times a person types, using the camera that saw each moment best. Needs ffmpeg. Reads the videos and writes only its result, under a temporary name until it is whole; never changes an original.",
+    maturity: "prototype",
+    reuse: ["reusable"],
+    owner: "Herman Legacy Platform",
+    layer: "HL-BOS",
+    key: "game-cut",
+    location: "packages/game-cut",
+    tags: ["package", "domain-logic", "video", "sports", "local-first"],
+    relationships: [{ kind: "owned_by", to: "repo.hl-bos-platform" }],
+    evidence:
+      "packages/game-cut; tested end to end with ffmpeg on made-up two-camera recordings with known sounds and movements (one started 7.3 s late): it recovers the offset, picks the right camera per moment, follows the play, cancels without leaving a half-written file, and never changes an original. NOT yet run on a real game: loudness and movement only stand in for where the puck is",
+  },
+  {
     id: "pkg.presence-scanner",
     kind: "package",
     name: "@hl-bos/presence-scanner",

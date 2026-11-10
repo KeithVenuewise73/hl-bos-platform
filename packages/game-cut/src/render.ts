@@ -1,15 +1,25 @@
 /**
  * Cut the chosen moments and join them into one video, and write the list of
- * every pick beside it. Writes only inside `workDir` and to the two output
- * files; never touches the originals.
+ * every pick beside it. Writes only inside `workDir` and to the output file;
+ * never touches the originals.
+ *
+ * The result is written under a temporary name and renamed when it is whole, so
+ * a job that is stopped or fails never leaves something that looks finished.
  */
 
-import { mkdir, rm, writeFile } from "node:fs/promises";
+import { mkdir, rename, rm, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 
 import type { Analysis } from "./analyze.ts";
-import { cutSegment, joinSegments, type Tools } from "./ffmpeg.ts";
-import { totalSeconds } from "./moments.ts";
+import {
+  Cancelled,
+  cutSegment,
+  joinSegments,
+  type Quality,
+  type Tools,
+  type VideoFacts,
+} from "./ffmpeg.ts";
+import { totalSeconds, type Moment } from "./moments.ts";
 
 export function clock(seconds: number): string {
   const s = Math.max(0, Math.round(seconds));
@@ -48,52 +58,89 @@ export function describePicks(
   return lines.join("\n");
 }
 
+/** What rendering needs to know about a plan; an Analysis and a highlight plan both fit. */
+export interface RenderPlan {
+  readonly moments: readonly Moment[];
+  readonly factsA: VideoFacts;
+  readonly factsB: VideoFacts;
+}
+
 export interface RenderOptions {
   readonly fileA: string;
   readonly fileB: string;
   readonly outFile: string;
   /** Where the small pieces are made. Pick a roomy drive: it holds roughly as much as the result. */
   readonly workDir: string;
+  /** "draft" is smaller and quicker, for a first look. */
+  readonly quality?: Quality;
   readonly keepWork?: boolean;
   readonly onStep?: (message: string) => void;
+  /** How far along rendering is, 0 to 1. */
+  readonly onProgress?: (fraction: number) => void;
+  readonly signal?: AbortSignal;
 }
 
 export async function render(
   tools: Tools,
-  analysis: Analysis,
+  plan: RenderPlan,
   o: RenderOptions,
 ): Promise<void> {
   const say = o.onStep ?? (() => undefined);
-  if (analysis.moments.length === 0) {
+  const tell = o.onProgress ?? (() => undefined);
+  const quality = o.quality ?? "full";
+  if (plan.moments.length === 0) {
     throw new Error("No action was found, so there is nothing to join.");
   }
-  await mkdir(o.workDir, { recursive: true });
-  const names: string[] = [];
-  for (let i = 0; i < analysis.moments.length; i += 1) {
-    const m = analysis.moments[i]!;
-    const name = join(o.workDir, `piece_${String(i + 1).padStart(4, "0")}.mp4`);
-    say(`Cutting piece ${i + 1} of ${analysis.moments.length}…`);
-    const [file, facts] =
-      m.camera === "A" ? [o.fileA, analysis.factsA] : [o.fileB, analysis.factsB];
-    await cutSegment(
-      tools,
-      file,
-      facts,
-      m.clipStartSeconds,
-      m.endSeconds - m.startSeconds,
-      name,
+  const lengths = plan.moments.map((m) => m.endSeconds - m.startSeconds);
+  const total = lengths.reduce((a, b) => a + b, 0);
+  // Joining is quick next to cutting, so cutting is the first 97% of the bar.
+  const CUT_SHARE = 0.97;
+  const partial = `${o.outFile}.partial`;
+  try {
+    await mkdir(o.workDir, { recursive: true });
+    const names: string[] = [];
+    let doneSeconds = 0;
+    for (let i = 0; i < plan.moments.length; i += 1) {
+      const m = plan.moments[i]!;
+      const name = join(o.workDir, `piece_${String(i + 1).padStart(4, "0")}.mp4`);
+      say(`Cutting piece ${i + 1} of ${plan.moments.length}…`);
+      const [file, facts] =
+        m.camera === "A" ? [o.fileA, plan.factsA] : [o.fileB, plan.factsB];
+      await cutSegment(
+        tools,
+        file,
+        facts,
+        m.clipStartSeconds,
+        lengths[i]!,
+        name,
+        quality,
+        {
+          ...(o.signal ? { signal: o.signal } : {}),
+          onProgress: (sec) =>
+            tell((CUT_SHARE * (doneSeconds + Math.min(sec, lengths[i]!))) / total),
+        },
+      );
+      doneSeconds += lengths[i]!;
+      tell((CUT_SHARE * doneSeconds) / total);
+      names.push(name);
+    }
+    const list = join(o.workDir, "pieces.txt");
+    // The concat list wants forward slashes and escaped quotes.
+    await writeFile(
+      list,
+      names
+        .map((n) => `file '${n.replace(/\\/g, "/").replace(/'/g, "'\\''")}'`)
+        .join("\n") + "\n",
     );
-    names.push(name);
+    say("Joining the pieces into one video…");
+    await joinSegments(tools, list, partial, o.signal ? { signal: o.signal } : {});
+    await rename(partial, o.outFile);
+    tell(1);
+  } catch (e) {
+    await rm(partial, { force: true });
+    if (e instanceof Cancelled) say("Stopped. Nothing was kept.");
+    throw e;
+  } finally {
+    if (o.keepWork !== true) await rm(o.workDir, { recursive: true, force: true });
   }
-  const list = join(o.workDir, "pieces.txt");
-  // The concat list wants forward slashes and escaped quotes.
-  await writeFile(
-    list,
-    names
-      .map((n) => `file '${n.replace(/\\/g, "/").replace(/'/g, "'\\''")}'`)
-      .join("\n") + "\n",
-  );
-  say("Joining the pieces into one video…");
-  await joinSegments(tools, list, o.outFile);
-  if (o.keepWork !== true) await rm(o.workDir, { recursive: true, force: true });
 }

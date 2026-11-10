@@ -3,9 +3,11 @@
  */
 
 import {
+  capabilities,
   loudnessSeries,
   motionSeries,
   probe,
+  type JobOptions,
   type Tools,
   type VideoFacts,
 } from "./ffmpeg.ts";
@@ -18,11 +20,11 @@ import {
   type MomentOptions,
 } from "./moments.ts";
 import { robustScores, shrinkByMax } from "./series.ts";
-import { findOffset, type SyncResult } from "./sync.ts";
+import { alignCameras, SYNC_STEP_SECONDS } from "./align.ts";
+import type { SyncResult } from "./sync.ts";
 
 export const STEP_SECONDS = 0.5;
 /** Finer loudness readings for lining up: whistles are short. */
-const SYNC_STEP_SECONDS = 0.1;
 
 export interface Analysis {
   readonly factsA: VideoFacts;
@@ -48,6 +50,41 @@ export interface AnalyzeOptions {
   /** Skip lining up and use this offset (B started this many seconds after A). */
   readonly forcedOffsetSeconds?: number;
   readonly onStep?: (message: string) => void;
+  /** How far along the whole analysis is, 0 to 1, for a progress bar. */
+  readonly onProgress?: (fraction: number) => void;
+  /** Stops the work (and the ffmpeg running it). */
+  readonly signal?: AbortSignal;
+}
+
+/**
+ * Weights for the progress bar. Listening is quick (sound only); watching has to
+ * read every picture and takes most of the time.
+ */
+const WEIGHTS = {
+  details: 1,
+  listenA: 6,
+  listenB: 6,
+  sync: 1,
+  watchA: 40,
+  watchB: 40,
+  choose: 1,
+} as const;
+const TOTAL_WEIGHT = Object.values(WEIGHTS).reduce((a, b) => a + b, 0);
+
+/** Turns "phase P is f done" into one overall fraction. */
+export function overallProgress(
+  done: readonly (keyof typeof WEIGHTS)[],
+  current: keyof typeof WEIGHTS,
+  f: number,
+): number {
+  const before = done.reduce((t, k) => t + WEIGHTS[k], 0);
+  return Math.max(
+    0,
+    Math.min(
+      1,
+      (before + WEIGHTS[current] * Math.max(0, Math.min(1, f))) / TOTAL_WEIGHT,
+    ),
+  );
 }
 
 /** Loudness and motion together, one score per half second, for one camera. */
@@ -75,7 +112,18 @@ export async function analyze(
   options: AnalyzeOptions = {},
 ): Promise<Analysis> {
   const say = options.onStep ?? (() => undefined);
+  const tell = options.onProgress ?? (() => undefined);
   const notes: string[] = [];
+  const done: (keyof typeof WEIGHTS)[] = [];
+  const job = (phase: keyof typeof WEIGHTS, length: number): JobOptions => ({
+    ...(options.signal ? { signal: options.signal } : {}),
+    onProgress: (seconds) =>
+      tell(overallProgress(done, phase, length > 0 ? seconds / length : 0)),
+  });
+  const finish = (phase: keyof typeof WEIGHTS) => {
+    done.push(phase);
+    tell(overallProgress(done, "choose", 0));
+  };
 
   say("Reading the two videos' details…");
   const [factsA, factsB] = [await probe(tools, fileA), await probe(tools, fileB)];
@@ -84,58 +132,61 @@ export async function analyze(
       "Both videos need sound, because the sound is how they are lined up.",
     );
   }
-
-  say("Measuring loudness in the first video…");
-  const loudA = await loudnessSeries(tools, fileA, SYNC_STEP_SECONDS);
-  say("Measuring loudness in the second video…");
-  const loudB = await loudnessSeries(tools, fileB, SYNC_STEP_SECONDS);
-
-  const guessed =
-    factsA.startedAtEpoch !== null && factsB.startedAtEpoch !== null
-      ? factsB.startedAtEpoch - factsA.startedAtEpoch
-      : 0;
-  if (factsA.startedAtEpoch === null || factsB.startedAtEpoch === null) {
+  const caps = await capabilities(tools);
+  if ((factsA.isHdr || factsB.isHdr) && !caps.hdrConversion) {
     notes.push(
-      "A video did not say when it started, so the search for the alignment began from zero.",
+      "These videos are HDR, and this copy of ffmpeg cannot convert HDR colours, so the result will look washed out. A fuller build of ffmpeg fixes that.",
     );
   }
+  finish("details");
 
-  let sync: SyncResult;
-  if (options.forcedOffsetSeconds !== undefined) {
-    sync = { offsetSeconds: options.forcedOffsetSeconds, confidence: 1 };
-    notes.push("The alignment was set by hand, not measured.");
-  } else {
-    say("Lining the two videos up by their shared sound…");
-    // The timestamps are usually right to within a few seconds; look well beyond that anyway.
-    sync = findOffset(
-      loudA,
-      loudB,
-      SYNC_STEP_SECONDS,
-      guessed,
-      options.searchSeconds ?? 120,
-    );
-    if (sync.confidence < 0.15) {
-      notes.push(
-        `The two videos could not be lined up with confidence (${sync.confidence.toFixed(2)} out of 1). The picks may be off by seconds; check them before trusting them.`,
-      );
-    }
-    // The files' own start times are normally right to within a few seconds. If the
-    // sound disagrees by much more, one of the two is wrong, and it is not clear which.
-    if (
-      factsA.startedAtEpoch !== null &&
-      factsB.startedAtEpoch !== null &&
-      Math.abs(sync.offsetSeconds - guessed) > 20
-    ) {
-      notes.push(
-        `The sound says the second video started ${sync.offsetSeconds.toFixed(1)} s after the first, but the files' own start times say ${guessed.toFixed(1)} s. They should agree to within a few seconds; check the picks, and pass --offset if you know the true difference.`,
-      );
-    }
-  }
+  say("Listening to the first video…");
+  const loudA = await loudnessSeries(
+    tools,
+    fileA,
+    SYNC_STEP_SECONDS,
+    job("listenA", factsA.durationSeconds),
+  );
+  finish("listenA");
+  say("Listening to the second video…");
+  const loudB = await loudnessSeries(
+    tools,
+    fileB,
+    SYNC_STEP_SECONDS,
+    job("listenB", factsB.durationSeconds),
+  );
+  finish("listenB");
 
-  say("Measuring movement in the first video…");
-  const motionA = await motionSeries(tools, fileA, STEP_SECONDS);
-  say("Measuring movement in the second video…");
-  const motionB = await motionSeries(tools, fileB, STEP_SECONDS);
+  say("Lining the two videos up by their shared sound…");
+  const aligned = alignCameras(factsA, factsB, loudA, loudB, {
+    ...(options.searchSeconds !== undefined
+      ? { searchSeconds: options.searchSeconds }
+      : {}),
+    ...(options.forcedOffsetSeconds !== undefined
+      ? { forcedOffsetSeconds: options.forcedOffsetSeconds }
+      : {}),
+  });
+  const { sync, guessedOffsetSeconds: guessed } = aligned;
+  notes.push(...aligned.notes);
+
+  finish("sync");
+
+  say("Watching the first video…");
+  const motionA = await motionSeries(
+    tools,
+    fileA,
+    STEP_SECONDS,
+    job("watchA", factsA.durationSeconds),
+  );
+  finish("watchA");
+  say("Watching the second video…");
+  const motionB = await motionSeries(
+    tools,
+    fileB,
+    STEP_SECONDS,
+    job("watchB", factsB.durationSeconds),
+  );
+  finish("watchB");
 
   const mode = options.mode ?? "broadcast";
   // Which end the play is at shows mostly in movement (the near camera sees it big);
@@ -149,11 +200,6 @@ export async function analyze(
     scores: cameraScores(loudB, motionB, audioWeight),
     durationSeconds: factsB.durationSeconds,
   };
-  if (sync.offsetSeconds < 0) {
-    notes.push(
-      `The second video started ${(-sync.offsetSeconds).toFixed(1)} s BEFORE the first, and that opening stretch is not used.`,
-    );
-  }
 
   say(
     mode === "broadcast"
