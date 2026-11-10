@@ -239,7 +239,10 @@ describe.skipIf(!haveFfmpeg)("two cameras in, one video of the action out", () =
   }, 120_000);
 
   it("turns an HDR source into ordinary colours instead of failing", async () => {
-    const hdr = join(dir, "hdr.mp4");
+    // An iPhone HDR clip says "HLG, BT.2020" in the video stream itself. Encoders differ in whether
+    // they pass those flags on (ffmpeg 6 does, 9 may not), so the tag is written into the stream
+    // directly with a bitstream filter, which does not depend on the encoder.
+    const plain = join(dir, "hdr-plain.mp4");
     ff([
       "-f",
       "lavfi",
@@ -253,20 +256,41 @@ describe.skipIf(!haveFfmpeg)("two cameras in, one video of the action out", () =
       "libx265",
       "-pix_fmt",
       "yuv420p10le",
-      "-color_primaries",
-      "bt2020",
-      "-color_trc",
-      "arib-std-b67",
-      "-colorspace",
-      "bt2020nc",
+      "-x265-params",
+      "colorprim=bt2020:transfer=arib-std-b67:colormatrix=bt2020nc",
       "-tag:v",
       "hvc1",
       "-c:a",
       "aac",
+      plain,
+    ]);
+    const hdr = join(dir, "hdr.mp4");
+    ff([
+      "-i",
+      plain,
+      "-c",
+      "copy",
+      "-bsf:v",
+      "hevc_metadata=colour_primaries=9:transfer_characteristics=18:matrix_coefficients=9",
+      "-tag:v",
+      "hvc1",
       hdr,
     ]);
     const facts = await probe(tools, hdr);
-    expect(facts.isHdr).toBe(true);
+    const said = execFileSync("ffprobe", [
+      "-v",
+      "error",
+      "-select_streams",
+      "v:0",
+      "-show_entries",
+      "stream=codec_name,pix_fmt,color_transfer,color_primaries,color_space",
+      "-of",
+      "csv=p=0",
+      hdr,
+    ])
+      .toString()
+      .trim();
+    expect(facts.isHdr, `ffprobe reported: ${said}`).toBe(true);
     const { cutSegment } = await import("./ffmpeg.ts");
     const piece = join(dir, "hdr-piece.mp4");
     await cutSegment(tools, hdr, facts, 0, 2, piece);
