@@ -1,7 +1,9 @@
 import { guard } from "@/lib/guard.ts";
+import { freeBytes } from "@/lib/free-space.ts";
 import { copyFromIphone } from "@/lib/iphone.ts";
+import { checkSpace } from "@/lib/iphone-space.ts";
 import { keepAwake } from "@/lib/keep-awake.ts";
-import type { IphoneKind, IphonePageLine } from "@/lib/iphone-script.ts";
+import type { IphoneKind, IphoneLine, IphonePageLine } from "@/lib/iphone-script.ts";
 
 export const dynamic = "force-dynamic";
 
@@ -101,13 +103,28 @@ export async function POST(request: Request): Promise<Response> {
         const awake = await keepAwake();
         send({ type: "awake", held: awake.held });
         try {
+          // Read once, before anything is copied: what is to come is compared
+          // with this the moment the phone has been listed. A copy that cannot
+          // fit is stopped before it starts, not when the drive is full.
+          const free = await freeBytes(folder);
+          const stop = new AbortController();
+          request.signal.addEventListener("abort", () => stop.abort(), { once: true });
+          const watch = (line: IphoneLine) => {
+            send(line);
+            if (line.type !== "found") return;
+            const needed = line.todoBytes ?? line.bytes;
+            const room = checkSpace(needed, free);
+            send({ type: "space", needed, free, enough: room.enough });
+            // "Check size first" only reports; a real copy stops here if it will not fit.
+            if (!preview && !room.enough) stop.abort();
+          };
           await copyFromIphone(
             folder,
             kind,
             days,
             { size, preview },
-            send,
-            request.signal,
+            watch,
+            stop.signal,
           );
         } finally {
           awake.release();

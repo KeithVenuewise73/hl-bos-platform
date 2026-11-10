@@ -355,7 +355,18 @@ export type IphonePageLine =
   | IphoneLine
   | { readonly type: "awake"; readonly held: boolean }
   /** Another copy from this phone is running; this one starts when it ends. */
-  | { readonly type: "waiting"; readonly for: IphoneKind };
+  | { readonly type: "waiting"; readonly for: IphoneKind }
+  /**
+   * Whether what is about to come across fits in the chosen folder's drive.
+   * `free` is null when the drive's free space could not be read. When it does
+   * not fit and this is a real copy (not "Check size first"), nothing is copied.
+   */
+  | {
+      readonly type: "space";
+      readonly needed: number;
+      readonly free: number | null;
+      readonly enough: boolean;
+    };
 
 /** Photos and videos are brought in by separate buttons, into separate folders. */
 export type IphoneKind = "photos" | "videos";

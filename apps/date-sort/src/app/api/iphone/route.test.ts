@@ -38,6 +38,9 @@ vi.mock("@/lib/iphone.ts", () => ({
     });
   },
 }));
+vi.mock("@/lib/free-space.ts", () => ({
+  freeBytes: () => Promise.resolve(null),
+}));
 vi.mock("@/lib/keep-awake.ts", () => ({
   keepAwake: () => Promise.resolve({ held: true, release: () => undefined }),
 }));
@@ -63,6 +66,14 @@ async function lines(res: Response): Promise<{ type: string }[]> {
     .map((l) => JSON.parse(l) as { type: string });
 }
 const tick = () => new Promise((r) => setTimeout(r, 20));
+/** Let a copy finish once it has actually started (it starts a moment after the press). */
+async function open(kind: string): Promise<void> {
+  for (let i = 0; i < 200 && !gates.has(kind); i += 1) {
+    await new Promise((r) => setTimeout(r, 2));
+  }
+  gates.get(kind)?.();
+  gates.delete(kind);
+}
 
 describe("bringing in the iPhone's photos and videos", () => {
   it("refuses a press that does not say photos or videos", async () => {
@@ -74,13 +85,13 @@ describe("bringing in the iPhone's photos and videos", () => {
   it("passes the kind and how far back to the copy, and ignores nonsense days", async () => {
     const a = await press({ folder: "D:\\P", kind: "photos", days: 30 });
     expect(a.status).toBe(200);
-    gates.get("photos")?.();
+    await open("photos");
     await lines(a);
     const b = await press({ folder: "D:\\P", kind: "photos", days: -5 });
-    gates.get("photos")?.();
+    await open("photos");
     await lines(b);
     const c = await press({ folder: "D:\\P", kind: "photos", days: "30; rm -rf" });
-    gates.get("photos")?.();
+    await open("photos");
     await lines(c);
     expect(calls.map((x) => x.days)).toEqual([30, null, null]);
     expect(calls.every((x) => x.kind === "photos")).toBe(true);
@@ -95,7 +106,7 @@ describe("bringing in the iPhone's photos and videos", () => {
     ]) {
       const res = await press({ folder: "D:\\V", kind: "videos", ...body });
       expect(res.status).toBe(200);
-      gates.get("videos")?.();
+      await open("videos");
       await lines(res);
     }
     expect(calls.map((c) => [c.size, c.preview])).toEqual([
@@ -115,10 +126,10 @@ describe("bringing in the iPhone's photos and videos", () => {
     const videoLines = lines(videos);
     await tick();
     expect(order).toEqual(["start photos"]); // the video copy has not started
-    gates.get("photos")?.();
+    await open("photos");
     await tick();
     expect(order).toEqual(["start photos", "end photos", "start videos"]);
-    gates.get("videos")?.();
+    await open("videos");
     const seen = (await videoLines).map((l) => l.type);
     expect(seen[0]).toBe("waiting");
     expect(seen).toContain("done");
@@ -134,12 +145,12 @@ describe("bringing in the iPhone's photos and videos", () => {
     const first = await press({ folder: "D:\\Videos", kind: "videos", days: null });
     const again = await press({ folder: "D:\\Videos", kind: "videos", days: null });
     expect(again.status).toBe(409);
-    gates.get("videos")?.();
+    await open("videos");
     await lines(first);
     // ...and it is free again afterwards.
     const later = await press({ folder: "D:\\Videos", kind: "videos", days: null });
     expect(later.status).toBe(200);
-    gates.get("videos")?.();
+    await open("videos");
     await lines(later);
   });
 });
