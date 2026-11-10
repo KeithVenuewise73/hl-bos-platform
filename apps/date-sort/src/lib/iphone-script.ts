@@ -174,7 +174,11 @@ try {
         try { $when = [datetime]$f.ModifyDate } catch { }
         if ($when -and $when.Year -gt 1980 -and $when -lt $cutoff) { $older += 1; continue }
       }
-      $sz = [int64]$f.Size
+      # FolderItem.Size is 0 for files on an iPhone; the Size column Explorer shows
+      # is the System.Size property, so ask for that and fall back to .Size.
+      $sz = [int64]0
+      try { $sz = [int64]$f.ExtendedProperty('System.Size') } catch { }
+      if ($sz -le 0) { try { $sz = [int64]$f.Size } catch { } }
       if ($size -eq 'small' -and $sz -gt $split) { $held += 1; continue }
       if ($size -eq 'large' -and $sz -le $split) { $held += 1; continue }
       [void]$files.Add([pscustomobject]@{ folder = $sub.Name; item = $f; name = $name; size = $sz })
@@ -366,6 +370,10 @@ export type IphonePageLine =
       readonly needed: number;
       readonly free: number | null;
       readonly enough: boolean;
+      /** False when the phone reported no sizes, so "needed" could not be known. */
+      readonly sizeKnown?: boolean;
+      /** The copy was stopped part-way: the drive was nearly full. `needed` is what was copied so far. */
+      readonly live?: boolean;
     };
 
 /** Photos and videos are brought in by separate buttons, into separate folders. */

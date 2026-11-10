@@ -110,3 +110,27 @@ export function defaultVideoFolder(
   const candidate = `${parent}${sep}Iphone Videos`;
   return folderWarning(candidate, "videos") === null ? candidate : null;
 }
+
+/**
+ * Kept free while a copy is running, on top of what has been copied. Bigger
+ * than the margin before a copy because one file in flight (a whole hockey
+ * game is over 5 GB) is not counted yet.
+ */
+export const LIVE_MARGIN_BYTES = 8 * GB;
+
+/** When the phone gave no sizes: say so, and say what protects the drive instead. */
+export function unknownSizeSentence(folder: string, free: number | null): string {
+  const drive = driveOf(folder);
+  const room = free === null ? "" : ` ${drive} has ${size(free)} free.`;
+  return `The phone did not report how big these files are, so DateSort cannot say whether they will fit.${room} It will stop by itself if ${drive} gets nearly full.`;
+}
+
+/** Shown when a copy was stopped part-way to keep the drive from filling up. */
+export function driveNearlyFullMessage(
+  folder: string,
+  copiedBytes: number,
+  left: number,
+): string {
+  const drive = driveOf(folder);
+  return `Stopped to keep ${drive} from filling up: ${size(copiedBytes)} has been copied so far and ${drive} has only ${size(Math.max(0, left))} left. Everything already copied is kept, and nothing on the iPhone was touched. Free some space or choose a folder on a drive with more room (press "change"), then press the button again: files already copied are skipped.`;
+}

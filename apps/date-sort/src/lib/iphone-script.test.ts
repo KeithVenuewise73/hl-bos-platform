@@ -28,6 +28,9 @@ describe("the iPhone copy script", () => {
     // that ("IMG_0042" for IMG_0042.MOV): the real name must come from
     // System.FileName, or the script waits for a file that never appears.
     expect(IPHONE_SCRIPT).toContain("ExtendedProperty('System.FileName')");
+    // FolderItem.Size is 0 for files on an iPhone (a 5.44 GB video read as 0 MB,
+    // so "305 videos, 0 MB" and no room check). The size comes from System.Size.
+    expect(IPHONE_SCRIPT).toContain("ExtendedProperty('System.Size')");
     // A copy that stops part-way must never be kept as whole: when the phone
     // gave a size, only that exact size counts as complete. (On Keith's
     // iPhone, a video copy failed at about 60%.)

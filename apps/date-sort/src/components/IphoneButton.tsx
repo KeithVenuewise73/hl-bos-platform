@@ -13,9 +13,11 @@ import {
 import type { IphoneKind, IphonePageLine } from "@/lib/iphone-script.ts";
 import {
   defaultVideoFolder,
+  driveNearlyFullMessage,
   folderWarning,
   noRoomMessage,
   roomSentence,
+  unknownSizeSentence,
 } from "@/lib/iphone-space.ts";
 
 interface Tally {
@@ -251,14 +253,26 @@ function IphoneCopy({
           } else if (m.type === "waiting") {
             setState({ kind: "copying", tally: null, waitingFor: m.for });
           } else if (m.type === "space") {
-            roomNote = roomSentence(into, m.needed, m.free, m.enough);
-            if (!m.enough && !preview) {
-              // Nothing is copied: the server stopped it before it began.
+            if (m.live) {
+              // Stopped part-way to keep the drive from filling up.
               ended = true;
               setState({
                 kind: "problem",
-                message: noRoomMessage(into, m.needed, m.free),
+                message: driveNearlyFullMessage(into, m.needed, m.free ?? 0),
               });
+            } else {
+              roomNote =
+                m.sizeKnown === false
+                  ? unknownSizeSentence(into, m.free)
+                  : roomSentence(into, m.needed, m.free, m.enough);
+              if (!m.enough && !preview) {
+                // Nothing is copied: the server stopped it before it began.
+                ended = true;
+                setState({
+                  kind: "problem",
+                  message: noRoomMessage(into, m.needed, m.free),
+                });
+              }
             }
           } else if (m.type === "none") {
             ended = true;

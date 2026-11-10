@@ -1,7 +1,7 @@
 import { guard } from "@/lib/guard.ts";
 import { freeBytes } from "@/lib/free-space.ts";
 import { copyFromIphone } from "@/lib/iphone.ts";
-import { checkSpace } from "@/lib/iphone-space.ts";
+import { checkSpace, LIVE_MARGIN_BYTES } from "@/lib/iphone-space.ts";
 import { keepAwake } from "@/lib/keep-awake.ts";
 import type { IphoneKind, IphoneLine, IphonePageLine } from "@/lib/iphone-script.ts";
 
@@ -109,14 +109,45 @@ export async function POST(request: Request): Promise<Response> {
           const free = await freeBytes(folder);
           const stop = new AbortController();
           request.signal.addEventListener("abort", () => stop.abort(), { once: true });
+          let copiedBytes = 0;
+          let stopped = false;
           const watch = (line: IphoneLine) => {
             send(line);
-            if (line.type !== "found") return;
-            const needed = line.todoBytes ?? line.bytes;
-            const room = checkSpace(needed, free);
-            send({ type: "space", needed, free, enough: room.enough });
-            // "Check size first" only reports; a real copy stops here if it will not fit.
-            if (!preview && !room.enough) stop.abort();
+            if (stopped) return;
+            if (line.type === "found") {
+              const needed = line.todoBytes ?? line.bytes;
+              const todo = line.todo ?? line.total;
+              // Files to bring in but no sizes: the phone gave none, so the
+              // total says nothing. Say so; the live guard below protects the drive.
+              const sizeKnown = !(todo > 0 && needed === 0);
+              const room = checkSpace(needed, free);
+              send({ type: "space", needed, free, enough: room.enough, sizeKnown });
+              // "Check size first" only reports; a real copy stops here if it will not fit.
+              if (!preview && !room.enough) {
+                stopped = true;
+                stop.abort();
+              }
+            } else if (
+              line.type === "file" &&
+              line.result === "copied" &&
+              free !== null &&
+              !preview
+            ) {
+              // Whatever the phone reported, stop before the drive is full.
+              copiedBytes += line.bytes ?? 0;
+              const left = free - copiedBytes;
+              if (left < LIVE_MARGIN_BYTES) {
+                stopped = true;
+                send({
+                  type: "space",
+                  needed: copiedBytes,
+                  free: left,
+                  enough: false,
+                  live: true,
+                });
+                stop.abort();
+              }
+            }
           };
           await copyFromIphone(
             folder,

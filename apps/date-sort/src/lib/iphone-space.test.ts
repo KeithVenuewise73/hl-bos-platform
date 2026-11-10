@@ -3,11 +3,13 @@ import { describe, expect, it } from "vitest";
 import {
   checkSpace,
   defaultVideoFolder,
+  driveNearlyFullMessage,
   driveOf,
   folderWarning,
   noRoomMessage,
   roomSentence,
   SPACE_MARGIN_BYTES,
+  unknownSizeSentence,
 } from "./iphone-space";
 
 const GB = 1024 ** 3;
@@ -96,5 +98,22 @@ describe("where the videos go when none was chosen", () => {
     expect(defaultVideoFolder(null)).toBeNull();
     expect(defaultVideoFolder("")).toBeNull();
     expect(defaultVideoFolder("D:")).toBeNull();
+  });
+});
+
+describe("when sizes are unknown or the drive fills part-way", () => {
+  it("says the size is unknown and what protects the drive instead", () => {
+    const t = unknownSizeSentence("C:\\V", 30 * GB);
+    expect(t).toMatch(/did not report how big/);
+    expect(t).toMatch(/C: has 30\.0 GB free/);
+    expect(t).toMatch(/stop by itself if C: gets nearly full/);
+  });
+
+  it("explains a copy stopped part-way, and that nothing was lost or touched", () => {
+    const t = driveNearlyFullMessage("C:\\V", 24 * GB, 6 * GB);
+    expect(t).toMatch(/^Stopped to keep C: from filling up/);
+    expect(t).toMatch(/24\.0 GB has been copied/);
+    expect(t).toMatch(/only 6\.0 GB left/);
+    expect(t).toMatch(/already copied is kept/);
   });
 });
