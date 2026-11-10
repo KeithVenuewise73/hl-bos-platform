@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { IPHONE_SCRIPT, parseIphoneLine } from "./iphone-script";
+import { DIALOG_CSHARP, IPHONE_SCRIPT, parseIphoneLine } from "./iphone-script";
 
 describe("the iPhone copy script", () => {
   it("never changes anything on the phone", () => {
@@ -42,6 +42,75 @@ describe("the iPhone copy script", () => {
     // the run with a plain message instead of an error box per file.
     expect(IPHONE_SCRIPT).toContain("failed-before.txt");
     expect(IPHONE_SCRIPT).toContain("if ($inARow -ge 3) { $stuck = $true; break }");
+  });
+
+  it("brings in only photos or only videos, and only what is recent, when asked", () => {
+    // Which kind and how far back come from the environment, like the paths.
+    expect(IPHONE_SCRIPT).toContain("$env:DS_KIND");
+    expect(IPHONE_SCRIPT).toContain("$env:DS_DAYS");
+    // Videos are MOV, MP4, M4V; photos are the picture formats. Nothing else
+    // (sidecar files, say) comes across in either.
+    expect(IPHONE_SCRIPT).toContain("\\.(mov|mp4|m4v)$");
+    expect(IPHONE_SCRIPT).toContain("heic|heif|jpg|jpeg|png|dng|gif|tif|tiff");
+    expect(IPHONE_SCRIPT).toContain(
+      "if ($kind -eq 'videos' -and $name -notmatch $videoExt) { continue }",
+    );
+    expect(IPHONE_SCRIPT).toContain(
+      "if ($kind -eq 'photos' -and $name -notmatch $photoExt) { continue }",
+    );
+    // A file whose date the phone does not give is kept, never silently
+    // dropped: only a real date older than the cutoff leaves it out.
+    expect(IPHONE_SCRIPT).toContain("$when.Year -gt 1980 -and $when -lt $cutoff");
+    // The number of files left out for age is reported, not hidden.
+    expect(IPHONE_SCRIPT).toContain("older = $older");
+  });
+
+  it("brings the smallest files in first, can split small from large, and can only look", () => {
+    // Smallest first, so the quick ones are across before the giant ones start;
+    // earlier failures still go last, after this sort.
+    const sort = IPHONE_SCRIPT.indexOf("Sort-Object -Property size");
+    const failedLast = IPHONE_SCRIPT.indexOf("$pending.ContainsKey($_.folder");
+    expect(sort).toBeGreaterThan(0);
+    expect(failedLast).toBeGreaterThan(sort);
+    // Small is up to the split, large is over it; the other half is counted, not hidden.
+    expect(IPHONE_SCRIPT).toContain(
+      "if ($size -eq 'small' -and $sz -gt $split) { $held += 1; continue }",
+    );
+    expect(IPHONE_SCRIPT).toContain(
+      "if ($size -eq 'large' -and $sz -le $split) { $held += 1; continue }",
+    );
+    // "Check size first" reports and stops before anything is created or copied.
+    const preview = IPHONE_SCRIPT.indexOf("$env:DS_PREVIEW -eq '1'");
+    expect(preview).toBeGreaterThan(IPHONE_SCRIPT.indexOf("type = 'found'"));
+    expect(preview).toBeLessThan(
+      IPHONE_SCRIPT.indexOf("New-Item -ItemType Directory -Force -Path $incoming"),
+    );
+    expect(preview).toBeLessThan(IPHONE_SCRIPT.indexOf("CopyHere("));
+  });
+
+  it("closes only Windows' own copy-error box, and only one that belongs to our copy", () => {
+    // The exact title, and an owner whose title starts with "Copying": a
+    // dialog from anything else, or an unowned one, is left alone.
+    expect(DIALOG_CSHARP).toContain('TitleOf(h) != "Error Copying File or Folder"');
+    expect(DIALOG_CSHARP).toContain("GetWindow(h, 4)");
+    expect(DIALOG_CSHARP).toContain('StartsWith("Copying")');
+    expect(DIALOG_CSHARP).toContain("owner == IntPtr.Zero");
+    // Closing is WM_CLOSE (same as OK on a one-button box); nothing else is sent.
+    expect(DIALOG_CSHARP.match(/PostMessage\(/g)).toHaveLength(2); // declaration + one call
+    expect(DIALOG_CSHARP).toContain("0x0010");
+    // Windows PowerShell 5.1's old compiler: no string interpolation, no newer syntax.
+    expect(DIALOG_CSHARP).not.toMatch(/\$"|=>|\?\.|nameof/);
+    // The script compiles it, only watches while a file is copying, reports
+    // what the box said, and counts the file as failed right away.
+    expect(IPHONE_SCRIPT).toContain("Add-Type -TypeDefinition @'");
+    expect(IPHONE_SCRIPT).toContain("[DateSortDialogs]::DismissCopyError()");
+    expect(IPHONE_SCRIPT).toContain("type = 'dialog'");
+    expect(
+      parseIphoneLine('{"type":"dialog","folder":"a","name":"b","text":"c"}'),
+    ).toMatchObject({
+      type: "dialog",
+      text: "c",
+    });
   });
 
   it("takes paths only from the environment, never pasted into the script", () => {

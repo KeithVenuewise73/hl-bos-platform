@@ -2,16 +2,29 @@ import "server-only";
 
 import { spawn } from "node:child_process";
 
-import { IPHONE_SCRIPT, parseIphoneLine, type IphoneLine } from "./iphone-script";
+import {
+  IPHONE_SCRIPT,
+  parseIphoneLine,
+  type IphoneKind,
+  type IphoneLine,
+} from "./iphone-script";
+import { SPLIT_MB } from "./iphone-progress";
 import { encodeForPowerShell } from "./picker-script";
 
 /**
- * Run the iPhone copy (iphone-script.ts) into `folder`, reporting each line.
- * Runs only powershell.exe, with a fixed script; the folder goes in through
- * an environment variable. Windows only.
+ * Run the iPhone copy (iphone-script.ts) into `folder`, reporting each line:
+ * only the `kind` of file (photos or videos), and, when `days` is given, only
+ * what the phone dates within that many days, only the small, only the large
+ * (over SPLIT_MB) or all files, smallest first; with `preview`, only report
+ * what would come across. Runs only powershell.exe, with a
+ * fixed script; the folder, kind and days go in through environment variables.
+ * Windows only.
  */
 export function copyFromIphone(
   folder: string,
+  kind: IphoneKind,
+  days: number | null,
+  options: { readonly size: "all" | "small" | "large"; readonly preview: boolean },
   onLine: (line: IphoneLine) => void,
   signal: AbortSignal,
 ): Promise<void> {
@@ -44,6 +57,11 @@ export function copyFromIphone(
         env: {
           ...inherited,
           DS_DEST: folder,
+          DS_KIND: kind,
+          DS_DAYS: days === null ? "" : String(days),
+          DS_SIZE: options.size,
+          DS_SPLIT_MB: String(SPLIT_MB),
+          DS_PREVIEW: options.preview ? "1" : "",
           // Windows CI only: an ordinary folder standing in for the phone,
           // walked through the same Shell calls (no CI machine has an iPhone).
           // Set by the CI workflow when it starts DateSort; never by the page.

@@ -171,19 +171,59 @@ Videos are sorted by date just like photos.
 ## Bring in from iPhone (built; first real test is the CEO's phone)
 
 On Windows, an iPhone plugged in by USB shows up as "Apple iPhone", not as a
-drive letter, so DateSort cannot read it the way it reads a camera card.
-**Bring in from iPhone** (under the folder box) reads it through Windows' own
-Shell (`src/lib/iphone-script.ts`):
+drive letter, so DateSort cannot read it the way it reads a camera card. Two
+buttons under the folder box read it through Windows' own Shell
+(`src/lib/iphone-script.ts`): **Bring in photos from iPhone** and **Bring in
+videos from iPhone**.
 
-1. The first time, you choose the folder that keeps the phone's photos and
-   videos (for example `iPhone Photos` on the Seagate). DateSort remembers it.
-2. DateSort copies everything in the phone's DCIM folders into that folder, in
-   the phone's own subfolders (`100APPLE`, ...), skipping what is already there.
-   It runs again whenever you like and only brings what is new. Each file
-   arrives in `.datesort-incoming` and gets its real name only once complete.
-   The scanner ignores `.datesort-incoming`.
-3. Then it scans that folder by itself. From there it works as usual: date
+1. Each keeps its own folder, chosen the first time and remembered (for example
+   `iPhone Photos` and `iPhone Videos` on the Seagate), so the two never mix
+   and each has its own `.datesort-incoming` and its own list of earlier
+   failures.
+2. Each has a **how far back** choice: the last 30 days (the default), 90 days,
+   a year, or everything on the phone. A phone's camera roll can go back
+   years; a first press should not drag in every old clip. Files left out for
+   age are counted on the page ("N older files left on the phone"). A file
+   whose date the phone does not give is brought in, never silently skipped.
+3. Photos means HEIC, JPG, PNG, DNG and the like; videos means MOV, MP4, M4V.
+   Anything else on the phone is left alone by both.
+4. DateSort copies from the phone's folders (`DCIM\100APPLE`, or the month
+   folders newer iPhones show, `202610_a`...) into that folder, in the phone's
+   own subfolders, skipping what is already there. It runs again whenever you
+   like and only brings what is new. Each file arrives in `.datesort-incoming`
+   and gets its real name only once complete. The scanner ignores
+   `.datesort-incoming`.
+5. Then it scans that folder by itself. From there it works as usual: date
    cards, **Videos only** to `Hockey Videos`, and so on.
+
+**Small first, large overnight.** Files always come in smallest first, so a
+day's short clips are across before the giant ones start. Each button also has
+a size choice: **all sizes** (smallest first), **small files only (under 1
+GB)** for now, or **large files only (over 1 GB)** to leave running overnight.
+The other half is counted on the page, not hidden. **Check size first** looks
+at the phone and says what is still to come ("12 videos to bring in, 48 GB in
+all: between 20 and 41 minutes at typical cable speed (20 to 40 MB/s; yours may
+differ)") and copies and creates nothing. While copying, the page shows how
+much has come across and the time left at the speed actually seen, once enough
+has been copied for that to mean something.
+
+**Windows' error boxes no longer stop an overnight run.** When the phone drops a
+file, Windows opens "Error Copying File or Folder" over its own "Copying..."
+window and waits for someone to click OK. While a file is copying, DateSort
+closes that box (the same as OK), counts the file as failed at once (tried last
+next time), shows what the box said, and goes on. It touches only a box with
+that exact title that belongs to a "Copying..." window; any other dialog is left
+alone. Three files in a row still ends the run with "the iPhone stopped
+answering". This is tested on Windows with a stand-in box (closed when owned by
+a "Copying..." window, left alone when not); whether Windows' real box is owned
+the same way is confirmed by the first real run, so if you ever see the box stay
+open, tell me. It assumes Windows is set to English.
+
+**One cable, so they take turns.** Pressing videos while photos are copying (or
+the other way round) is not refused: the second says it is waiting and starts by
+itself when the first ends. Pressing the same button twice is refused.
+Windows shows its own "Copying..." window for a large video (a long video can
+take many minutes); do not cancel it.
 
 **The phone is only read.** The script contains no delete or move call; a test
 checks that. Delete photos on the phone yourself, after checking them. If the
@@ -195,6 +235,11 @@ phone to get the original HEIC files with their dates.
 the same Shell calls against a folder laid out like an iPhone's DCIM:
 
 - everything comes across, byte for byte;
+- photos only brings photos, videos only brings videos, into separate folders;
+- files come in smallest first; small-only and large-only each bring their half
+  and count the other; "Check size first" reports the size and creates nothing;
+- "the last 30 days" leaves out a video the phone dates years ago, and counts it;
+- pressing both together: neither is refused, both finish;
 - a second run brings nothing twice;
 - the source is unchanged;
 - the scan follows by itself.

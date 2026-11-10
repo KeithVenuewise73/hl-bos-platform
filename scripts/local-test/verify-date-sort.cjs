@@ -503,21 +503,59 @@ async function iphoneChecks(page, work) {
     fs.copyFileSync(path.join(FIXTURES, from), path.join(source, sub, to));
   }
   const phoneBefore = fingerprint(phone);
-  const kept = path.join(work, "Seagate", "iPhone Photos");
-  fs.mkdirSync(kept, { recursive: true });
+  // Photos and videos are brought in by separate buttons, into separate folders.
+  const keptPhotos = path.join(work, "Seagate", "iPhone Photos");
+  const keptVideos = path.join(work, "Seagate", "iPhone Videos");
+  fs.mkdirSync(keptPhotos, { recursive: true });
+  fs.mkdirSync(keptVideos, { recursive: true });
   await fetch(`${BASE}/api/settings`, {
     method: "POST",
     headers: { "Content-Type": "application/json", Origin: BASE },
-    body: JSON.stringify({ iphoneFolder: kept }),
+    body: JSON.stringify({ iphoneFolder: keptPhotos, iphoneVideoFolder: keptVideos }),
   });
   await page.reload();
-  const run = async () => {
+  // Press a button and wait for its line to say Done (or a problem).
+  const finished = (kind, timeout = 300_000) =>
+    page
+      .waitForFunction(
+        (k) => {
+          const t =
+            document.querySelector(`[data-testid=iphone-${k}-progress]`)?.textContent ||
+            "";
+          const p =
+            document.querySelector(`[data-testid=iphone-${k}-problem]`)?.textContent ||
+            "";
+          return /^Done/.test(t) || p !== "" ? t || p : null;
+        },
+        kind,
+        { timeout },
+      )
+      .then((h) => h.jsonValue())
+      .catch(async () => {
+        // Say what the page was showing when it gave up, not just "no answer".
+        const seen = await page
+          .evaluate(
+            (k) =>
+              ["button", "progress", "problem", "folder", "waiting"]
+                .map((id) => {
+                  const el = document.querySelector(`[data-testid=iphone-${k}-${id}]`);
+                  return `${id}=${el ? JSON.stringify(el.textContent) : "absent"}`;
+                })
+                .join(" "),
+            kind,
+          )
+          .catch((e) => String(e));
+        return `no answer (${seen})`;
+      });
+  const run = async (kind) => {
     // The keep-awake line shows only while copying, which can be brief here:
     // record the first thing it says.
     await page.evaluate(() => {
       window.__iphoneAwake = null;
       const seen = () => {
-        const el = document.querySelector("[data-testid=iphone-awake]");
+        const el = document.querySelector(
+          "[data-testid^=iphone-][data-testid$=-awake]",
+        );
         if (el && window.__iphoneAwake === null) window.__iphoneAwake = el.textContent;
       };
       new MutationObserver(seen).observe(document.body, {
@@ -526,50 +564,27 @@ async function iphoneChecks(page, work) {
         characterData: true,
       });
     });
-    await page.click("[data-testid=iphone-button]");
-    return page
-      .waitForFunction(
-        () => {
-          const t =
-            document.querySelector("[data-testid=iphone-progress]")?.textContent || "";
-          const p =
-            document.querySelector("[data-testid=iphone-problem]")?.textContent || "";
-          return /^Done/.test(t) || p !== "" ? t || p : null;
-        },
-        null,
-        { timeout: 300_000 },
-      )
-      .then((h) => h.jsonValue())
-      .catch(async () => {
-        // Say what the page was showing when it gave up, not just "no answer".
-        const seen = await page
-          .evaluate(() =>
-            ["iphone-button", "iphone-progress", "iphone-problem", "iphone-folder"]
-              .map((id) => {
-                const el = document.querySelector(`[data-testid=${id}]`);
-                return `${id}=${el ? JSON.stringify(el.textContent) : "absent"}`;
-              })
-              .join(" "),
-          )
-          .catch((e) => String(e));
-        return `no answer (${seen})`;
-      });
+    await page.click(`[data-testid=iphone-${kind}-button]`);
+    return finished(kind);
   };
-  const first = await run();
-  const keptFiles = walk(kept)
-    .map((f) => path.relative(kept, f).replace(/\\/g, "/"))
-    .sort();
+  const listing = (dir) =>
+    walk(dir)
+      .map((f) => path.relative(dir, f).replace(/\\/g, "/"))
+      .filter((f) => !f.startsWith(".datesort-incoming"))
+      .sort();
+  const firstPhotos = await run("photos");
+  const photoFiles = listing(keptPhotos);
+  const firstVideos = await run("videos");
+  const videoFiles = listing(keptVideos);
   const copied = check(
-    "every photo and video comes across into the kept folder, in the phone's own folders",
-    /4 copied · 0 already there/.test(first) &&
-      JSON.stringify(keptFiles) ===
-        JSON.stringify([
-          "100APPLE/IMG_0042.MOV",
-          "100APPLE/IMG_0043.MP4",
-          "100APPLE/IMG_0044.HEIC",
-          "101APPLE/IMG_0050.JPG",
-        ]),
-    JSON.stringify({ first, keptFiles }),
+    "photos and videos each come across into their own folder, in the phone's own folders",
+    /2 copied · 0 already there/.test(firstPhotos) &&
+      /2 copied · 0 already there/.test(firstVideos) &&
+      JSON.stringify(photoFiles) ===
+        JSON.stringify(["100APPLE/IMG_0044.HEIC", "101APPLE/IMG_0050.JPG"]) &&
+      JSON.stringify(videoFiles) ===
+        JSON.stringify(["100APPLE/IMG_0042.MOV", "100APPLE/IMG_0043.MP4"]),
+    JSON.stringify({ firstPhotos, firstVideos, photoFiles, videoFiles }),
   );
   const awakeSaid = await page.evaluate(() => window.__iphoneAwake);
   const awakeOk = check(
@@ -581,9 +596,9 @@ async function iphoneChecks(page, work) {
   );
   const same = check(
     "each copy is byte for byte the original",
-    sha(path.join(kept, "100APPLE", "IMG_0042.MOV")) ===
+    sha(path.join(keptVideos, "100APPLE", "IMG_0042.MOV")) ===
       sha(path.join(source, "100APPLE", "IMG_0042.MOV")) &&
-      sha(path.join(kept, "101APPLE", "IMG_0050.JPG")) ===
+      sha(path.join(keptPhotos, "101APPLE", "IMG_0050.JPG")) ===
         sha(path.join(source, "101APPLE", "IMG_0050.JPG")),
   );
   const scanned = await page
@@ -600,16 +615,39 @@ async function iphoneChecks(page, work) {
     .then(() => true)
     .catch(() => false);
   const autoScan = check(
-    "then it scans the kept folder by itself (the report shows the 2 videos)",
-    scanned && (await page.inputValue("[data-testid=source-input]")) === kept,
+    "then it scans the videos folder by itself (the report shows the 2 videos)",
+    scanned && (await page.inputValue("[data-testid=source-input]")) === keptVideos,
     await page.textContent("[data-testid=headline]").catch(() => ""),
   );
   await shot(page, "12-iphone");
-  const second = await run();
+  const secondPhotos = await run("photos");
+  const secondVideos = await run("videos");
   const again = check(
-    "pressing it again brings nothing twice: all 4 already there",
-    /0 copied · 4 already there/.test(second),
-    second,
+    "pressing each again brings nothing twice: both already there",
+    /0 copied · 2 already there/.test(secondPhotos) &&
+      /0 copied · 2 already there/.test(secondVideos),
+    JSON.stringify({ secondPhotos, secondVideos }),
+  );
+  // "Check size first" only looks: it says what is still to come and copies nothing.
+  await page.click("[data-testid=iphone-videos-check]");
+  const checkedText = await page
+    .waitForSelector("[data-testid=iphone-videos-checked]", { timeout: 120_000 })
+    .then((el) => el.textContent())
+    .catch(() => "no answer");
+  const checkOnly = check(
+    "Check size first says what is left to bring in, and copies nothing",
+    /Nothing new to bring in \(2 videos/.test(checkedText || "") &&
+      listing(keptVideos).length === 2,
+    String(checkedText),
+  );
+  // Both pressed back to back: neither is refused; the second waits its turn.
+  await page.click("[data-testid=iphone-photos-button]");
+  await page.click("[data-testid=iphone-videos-button]");
+  const [bothP, bothV] = await Promise.all([finished("photos"), finished("videos")]);
+  const together = check(
+    "pressing photos and videos together: neither is refused, both finish",
+    /^Done/.test(bothP) && /^Done/.test(bothV),
+    JSON.stringify({ bothP, bothV }),
   );
   const untouched = check(
     "nothing on the phone side changed (every file fingerprinted)",
@@ -622,6 +660,8 @@ async function iphoneChecks(page, work) {
     same,
     autoScan,
     again,
+    checkOnly,
+    together,
     untouched,
   );
 }

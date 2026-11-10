@@ -17,6 +17,26 @@
  *     again only brings what is new. A different file with that name is
  *     left alone and reported.
  *
+ * Which files: DS_KIND is "photos" (HEIC, JPG, PNG, DNG...), "videos" (MOV,
+ * MP4, M4V) or empty for everything. DS_DAYS, when a number, leaves out files
+ * the phone dates older than that many days (a file whose date the phone does
+ * not give is kept, never silently dropped). Photos and videos are kept in
+ * separate folders, so each has its own .datesort-incoming and its own list of
+ * earlier failures.
+ *
+ * DS_SIZE is "all", "small" or "large": small is up to DS_SPLIT_MB (1 GB if
+ * not given), large is over it. Files are always brought in smallest first, so
+ * a day's worth of short clips is across long before the giant ones start, and
+ * the giant ones can be left for the night ("large"). DS_PREVIEW=1 only looks:
+ * it reports what would come across and its size, then stops, copying and
+ * creating nothing.
+ *
+ * While a file is copying, a Windows "Error Copying File or Folder" box that
+ * belongs to OUR copy window is closed (the same as pressing OK), its words are
+ * reported, and the file is counted as failed at once and tried last next time.
+ * Without this an overnight run sits at that box until someone clicks OK. Only
+ * a box with that exact title whose owner is a "Copying..." window is touched.
+ *
  * Output: one line of JSON per event (see IphoneLine). Paths come in through
  * environment variables, never pasted into the script.
  *
@@ -27,9 +47,62 @@
  * iPhone" in This PC is the one part only a real phone can prove.
  */
 
+/**
+ * Closes the "Error Copying File or Folder" box that Windows opens over its own
+ * "Copying..." window when the phone drops a file. Windows PowerShell 5.1
+ * compiles this with an old C# compiler: no string interpolation, no newer
+ * syntax. Exported so the Windows test can compile and run the same source.
+ */
+export const DIALOG_CSHARP = String.raw`
+using System;
+using System.Runtime.InteropServices;
+using System.Text;
+public static class DateSortDialogs {
+  private delegate bool EnumProc(IntPtr h, IntPtr p);
+  [DllImport("user32.dll")] private static extern bool EnumWindows(EnumProc cb, IntPtr p);
+  [DllImport("user32.dll")] private static extern bool EnumChildWindows(IntPtr parent, EnumProc cb, IntPtr p);
+  [DllImport("user32.dll", CharSet = CharSet.Unicode)] private static extern int GetWindowText(IntPtr h, StringBuilder s, int n);
+  [DllImport("user32.dll")] private static extern bool IsWindowVisible(IntPtr h);
+  [DllImport("user32.dll")] private static extern IntPtr GetWindow(IntPtr h, uint cmd);
+  [DllImport("user32.dll")] private static extern bool PostMessage(IntPtr h, uint msg, IntPtr w, IntPtr l);
+  private static string TitleOf(IntPtr h) {
+    StringBuilder s = new StringBuilder(512);
+    GetWindowText(h, s, 512);
+    return s.ToString();
+  }
+  /// Closes one such box if there is one; returns what it said, or null.
+  public static string DismissCopyError() {
+    string found = null;
+    EnumWindows(delegate (IntPtr h, IntPtr p) {
+      if (found != null || !IsWindowVisible(h)) return true;
+      if (TitleOf(h) != "Error Copying File or Folder") return true;
+      IntPtr owner = GetWindow(h, 4); // GW_OWNER: the window the box belongs to
+      if (owner == IntPtr.Zero || !TitleOf(owner).StartsWith("Copying")) return true;
+      StringBuilder said = new StringBuilder();
+      EnumChildWindows(h, delegate (IntPtr c, IntPtr q) {
+        string t = TitleOf(c);
+        if (t.Length > 2) { if (said.Length > 0) said.Append(" "); said.Append(t); }
+        return true;
+      }, IntPtr.Zero);
+      PostMessage(h, 0x0010, IntPtr.Zero, IntPtr.Zero); // WM_CLOSE: same as OK on this box
+      found = said.Length > 0 ? said.ToString() : "(Windows gave no words)";
+      return true;
+    }, IntPtr.Zero);
+    return found;
+  }
+}
+`;
+
 export const IPHONE_SCRIPT = String.raw`
 $ErrorActionPreference = 'Stop'
 function Say($o) { [Console]::Out.WriteLine(($o | ConvertTo-Json -Compress)); [Console]::Out.Flush() }
+$canDismiss = $false
+try {
+  Add-Type -TypeDefinition @'
+${DIALOG_CSHARP}
+'@
+  $canDismiss = $true
+} catch { }
 try {
   $shell = New-Object -ComObject Shell.Application
   $dest = $env:DS_DEST
@@ -67,6 +140,20 @@ try {
   }
   if (-not $root) { Say @{ type = 'locked'; device = $device; seen = ($seen -join '; ') }; exit 0 }
 
+  $kind = [string]$env:DS_KIND
+  $days = 0
+  [void][int]::TryParse([string]$env:DS_DAYS, [ref]$days)
+  $cutoff = $null
+  if ($days -gt 0) { $cutoff = (Get-Date).AddDays(-$days) }
+  $videoExt = '\.(mov|mp4|m4v)$'
+  $photoExt = '\.(heic|heif|jpg|jpeg|png|dng|gif|tif|tiff)$'
+  $older = 0
+  $size = [string]$env:DS_SIZE
+  $splitMb = 1024
+  [void][int]::TryParse([string]$env:DS_SPLIT_MB, [ref]$splitMb)
+  if ($splitMb -le 0) { $splitMb = 1024 }
+  $split = [int64]$splitMb * 1048576
+  $held = 0
   $files = New-Object System.Collections.ArrayList
   foreach ($sub in @($root.Items())) {
     # A phone's folders do not always say IsFolder; one that opens is one.
@@ -80,12 +167,34 @@ try {
       $name = $null
       try { $name = [string]$f.ExtendedProperty('System.FileName') } catch { }
       if (-not $name) { $name = $f.Name }
-      [void]$files.Add([pscustomobject]@{ folder = $sub.Name; item = $f; name = $name; size = [int64]$f.Size })
+      if ($kind -eq 'videos' -and $name -notmatch $videoExt) { continue }
+      if ($kind -eq 'photos' -and $name -notmatch $photoExt) { continue }
+      if ($cutoff) {
+        $when = $null
+        try { $when = [datetime]$f.ModifyDate } catch { }
+        if ($when -and $when.Year -gt 1980 -and $when -lt $cutoff) { $older += 1; continue }
+      }
+      $sz = [int64]$f.Size
+      if ($size -eq 'small' -and $sz -gt $split) { $held += 1; continue }
+      if ($size -eq 'large' -and $sz -le $split) { $held += 1; continue }
+      [void]$files.Add([pscustomobject]@{ folder = $sub.Name; item = $f; name = $name; size = $sz })
     }
   }
+  # Smallest first: the quick ones are across before the big ones begin.
+  $files = @($files | Sort-Object -Property size)
   $bytes = [int64]0
   foreach ($x in $files) { $bytes += $x.size }
-  Say @{ type = 'found'; device = $device; total = $files.Count; bytes = $bytes }
+  # How much is actually still to come: not counting what the folder already has.
+  function Have($x) {
+    $d = Join-Path $dest $x.folder
+    if (Test-Path -LiteralPath (Join-Path $d $x.name)) { return $true }
+    if ($x.name -match '^(.*)\.heic$') { return (Test-Path -LiteralPath (Join-Path $d ($Matches[1] + '.JPG'))) }
+    return $false
+  }
+  $todo = 0; $todoBytes = [int64]0
+  foreach ($x in $files) { if (-not (Have $x)) { $todo += 1; $todoBytes += $x.size } }
+  Say @{ type = 'found'; device = $device; total = $files.Count; bytes = $bytes; older = $older; held = $held; todo = $todo; todoBytes = $todoBytes }
+  if ($env:DS_PREVIEW -eq '1') { Say @{ type = 'previewed' }; exit 0 }
 
   $incoming = Join-Path $dest '.datesort-incoming'
   New-Item -ItemType Directory -Force -Path $incoming | Out-Null
@@ -145,6 +254,15 @@ try {
     $moved = Get-Date
     while (((Get-Date) - $moved).TotalSeconds -lt 120) {
       Start-Sleep -Milliseconds 300
+      # Windows' own error box over our copy window: close it, say what it said,
+      # and count this file as failed now instead of waiting two minutes.
+      if ($canDismiss) {
+        $boxText = [DateSortDialogs]::DismissCopyError()
+        if ($boxText) {
+          Say @{ type = 'dialog'; folder = $x.folder; name = $x.name; text = $boxText }
+          break
+        }
+      }
       if (-not (Test-Path -LiteralPath $part)) {
         if (-not $converted) { continue }
         $alt = Join-Path $incoming $converted
@@ -198,6 +316,13 @@ export type IphoneLine =
       readonly device: string;
       readonly total: number;
       readonly bytes: number;
+      /** Left out because the phone dates them older than the chosen days. */
+      readonly older?: number;
+      /** Left out because of the size choice (the other half, for another time). */
+      readonly held?: number;
+      /** Not in the folder yet, and how big they are together. */
+      readonly todo?: number;
+      readonly todoBytes?: number;
     }
   | {
       readonly type: "file";
@@ -207,18 +332,33 @@ export type IphoneLine =
       readonly bytes?: number;
     }
   | { readonly type: "done" }
+  /** Windows' error box over our copy was closed (as OK); this is what it said. */
+  | {
+      readonly type: "dialog";
+      readonly folder: string;
+      readonly name: string;
+      readonly text: string;
+    }
+  /** Preview only: what would come across was reported, and nothing was copied. */
+  | { readonly type: "previewed" }
   /** Several files in a row failed: the phone has stopped answering. */
   | { readonly type: "stuck" }
   | { readonly type: "error"; readonly message: string };
 
 /**
  * What the page receives from /api/iphone: the script's lines, plus one line
- * DateSort itself adds before copying, saying whether Windows agreed to stay
- * awake (keep-awake.ts). parseIphoneLine never accepts "awake", so the
+ * DateSort itself adds (whether Windows agreed to stay awake, keep-awake.ts, and
+ * that this copy is waiting for another). parseIphoneLine never accepts those two, so the
  * script cannot claim it.
  */
 export type IphonePageLine =
-  IphoneLine | { readonly type: "awake"; readonly held: boolean };
+  | IphoneLine
+  | { readonly type: "awake"; readonly held: boolean }
+  /** Another copy from this phone is running; this one starts when it ends. */
+  | { readonly type: "waiting"; readonly for: IphoneKind };
+
+/** Photos and videos are brought in by separate buttons, into separate folders. */
+export type IphoneKind = "photos" | "videos";
 
 /** One line of the script's output, or null for anything else it printed. */
 export function parseIphoneLine(line: string): IphoneLine | null {
@@ -231,6 +371,8 @@ export function parseIphoneLine(line: string): IphoneLine | null {
       case "found":
       case "file":
       case "done":
+      case "previewed":
+      case "dialog":
       case "stuck":
       case "error":
         return o as IphoneLine;
