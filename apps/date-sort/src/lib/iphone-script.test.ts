@@ -132,3 +132,16 @@ describe("the iPhone copy script", () => {
     expect(parseIphoneLine('{"type":"surprise"}')).toBeNull();
   });
 });
+
+describe("the script fits on a Windows command line", () => {
+  // Windows allows about 32,767 characters in a command line. The script is sent
+  // as UTF-16 turned into base64 (-EncodedCommand), which is 2.67 times longer.
+  // main had only 330 characters to spare, and a few added lines made the copy
+  // fail to start ("The filename or extension is too long"). This fails well
+  // before the limit, so the next edit cannot do that silently.
+  const encoded = Buffer.from(IPHONE_SCRIPT, "utf16le").toString("base64");
+  const OTHER_ARGUMENTS = 150; // powershell.exe -NoProfile -NonInteractive -STA ...
+  it("is far enough under the limit to leave room to grow", () => {
+    expect(encoded.length + OTHER_ARGUMENTS).toBeLessThan(28_000);
+  });
+});

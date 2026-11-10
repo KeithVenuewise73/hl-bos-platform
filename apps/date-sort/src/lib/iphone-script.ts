@@ -47,13 +47,15 @@
  * iPhone" in This PC is the one part only a real phone can prove.
  */
 
+import { squeezeCSharp, squeezePowerShell } from "./squeeze.ts";
+
 /**
  * Closes the "Error Copying File or Folder" box that Windows opens over its own
  * "Copying..." window when the phone drops a file. Windows PowerShell 5.1
  * compiles this with an old C# compiler: no string interpolation, no newer
  * syntax. Exported so the Windows test can compile and run the same source.
  */
-export const DIALOG_CSHARP = String.raw`
+const DIALOG_CSHARP_SOURCE = String.raw`
 using System;
 using System.Runtime.InteropServices;
 using System.Text;
@@ -93,7 +95,10 @@ public static class DateSortDialogs {
 }
 `;
 
-export const IPHONE_SCRIPT = String.raw`
+/** What is compiled and sent: the source above without comments and indentation (see squeeze.ts). */
+export const DIALOG_CSHARP = squeezeCSharp(DIALOG_CSHARP_SOURCE);
+
+const IPHONE_SCRIPT_SOURCE = String.raw`
 $ErrorActionPreference = 'Stop'
 function Say($o) { [Console]::Out.WriteLine(($o | ConvertTo-Json -Compress)); [Console]::Out.Flush() }
 $canDismiss = $false
@@ -305,6 +310,13 @@ try {
   exit 1
 }
 `;
+
+/**
+ * What is sent to PowerShell: the source above without comments and indentation.
+ * Sent encoded on a command line that Windows limits to about 32,767 characters;
+ * see squeeze.ts, and the length test in iphone-script.test.ts.
+ */
+export const IPHONE_SCRIPT = squeezePowerShell(IPHONE_SCRIPT_SOURCE);
 
 export type IphoneLine =
   | { readonly type: "none" }

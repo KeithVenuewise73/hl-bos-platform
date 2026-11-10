@@ -3,6 +3,7 @@
 Nothing here is built or tested. No sample footage has been seen yet.
 
 ## Setup
+
 - Two iPhones on the glass behind each goalie, facing out. Each records an
   ~1h20 file (confirm length). Teams switch ends each period.
 - Photos: Canon EOS T7 (JPEG; maybe RAW). Capture times are in the photo EXIF.
@@ -14,12 +15,14 @@ Nothing here is built or tested. No sample footage has been seen yet.
   (FAT32 cannot hold files over 4 GB) not yet checked.
 
 ## Goals, in priority order
+
 1. One continuous game video, switched between the two cameras to follow the
    action (a "switched edit").
 2. Highlight clips (goals, hits, breakaways), moderate length (10-30 s), so
    nobody watches the raw footage.
 
 ## Approach to test first
+
 1. Sync the two videos using shared sounds (whistles, puck on boards).
 2. Find moments: audio spikes and motion on each camera, the CEO's Canon photo
    burst times, and game-sheet goal times if available.
@@ -29,6 +32,7 @@ Nothing here is built or tested. No sample footage has been seen yet.
    Success means the tool finds it unaided.
 
 ## Constraints
+
 - Review must take minutes, not hours: the CEO approves or skips short clips.
 - Breakaway detection is the hardest and is unproven.
 - Parents and minors: public posting needs team/school approval.

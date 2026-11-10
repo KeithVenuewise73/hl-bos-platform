@@ -10,12 +10,12 @@ team, so the brand is scoped to what two people can deliver by hand.
 
 ## Teams you already shoot (CEO, 2026-11-09)
 
-| Team | Sport |
-| --- | --- |
-| West Seneca West Varsity Football | Football |
-| West Seneca West JV Football | Football |
-| Cazenovia Chiefs 14U Travel Hockey | Hockey |
-| West Seneca Varsity Volleyball | Volleyball |
+| Team                               | Sport      |
+| ---------------------------------- | ---------- |
+| West Seneca West Varsity Football  | Football   |
+| West Seneca West JV Football       | Football   |
+| Cazenovia Chiefs 14U Travel Hockey | Hockey     |
+| West Seneca Varsity Volleyball     | Volleyball |
 
 Not yet known: whether any team has agreed to public galleries, who the
 contact is for each, and how many games are shot per season. No galleries for
@@ -27,11 +27,11 @@ these teams exist online yet.
 
 ## What we offer (and can honestly deliver)
 
-| Offer | How it is delivered | Tooling that already exists |
-| --- | --- | --- |
-| Game photo gallery per team | Private gallery on 5starsportsmedia.com | DateSort, JerseySort, "Publish online" (backend live, no data yet) |
-| Short highlight video | Edited by hand by the two of them | None needed |
-| Social-ready posts | Download pack from JerseySort, posted by hand | Instagram post maker (posts nothing itself) |
+| Offer                       | How it is delivered                           | Tooling that already exists                                        |
+| --------------------------- | --------------------------------------------- | ------------------------------------------------------------------ |
+| Game photo gallery per team | Private gallery on 5starsportsmedia.com       | DateSort, JerseySort, "Publish online" (backend live, no data yet) |
+| Short highlight video       | Edited by hand by the two of them             | None needed                                                        |
+| Social-ready posts          | Download pack from JerseySort, posted by hand | Instagram post maker (posts nothing itself)                        |
 
 ## Hype Video: a self-serve tool for viewers (the goal)
 
