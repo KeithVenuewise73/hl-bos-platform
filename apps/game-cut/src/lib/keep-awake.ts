@@ -35,7 +35,7 @@ export interface Awake {
 
 // ES_CONTINUOUS | ES_SYSTEM_REQUIRED | ES_DISPLAY_REQUIRED (see above for why the screen too).
 export const AWAKE_SCRIPT = `
-$k = Add-Type -Name Power -Namespace Game Cut -PassThru -MemberDefinition '[DllImport("kernel32.dll")] public static extern uint SetThreadExecutionState(uint flags);'
+$k = Add-Type -Name Power -Namespace GameCut -PassThru -MemberDefinition '[DllImport("kernel32.dll")] public static extern uint SetThreadExecutionState(uint flags);'
 if ($k::SetThreadExecutionState([uint32]"0x80000003") -eq 0) { exit 3 }
 [Console]::Out.WriteLine("awake")
 [Console]::Out.Flush()

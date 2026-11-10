@@ -81,7 +81,12 @@ describe("room on the drive, checked before a long job starts", () => {
   it("allows it with room to spare, with no warning", async () => {
     free = 500 * GB;
     const r = await checkMake({ planId: "plan-x", outFile: out(), quality: "full" });
-    expect(r).toMatchObject({ ok: true, warning: null, seconds: 7200 });
+    expect(r).toMatchObject({ ok: true, seconds: 7200 });
+    // On Windows the temp folder is on C:, and saving there is warned about, correctly.
+    if (r.ok) {
+      if (/^c:/i.test(out())) expect(r.warning).toMatch(/laptop's own drive \(C:\)/);
+      else expect(r.warning).toBeNull();
+    }
   });
 
   it("does not block when the free space cannot be read, and says it could not", async () => {

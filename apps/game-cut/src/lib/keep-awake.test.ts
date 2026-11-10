@@ -10,7 +10,7 @@ import { describe, expect, it, vi } from "vitest";
 
 vi.mock("server-only", () => ({}));
 
-const { keepAwake } = await import("./keep-awake");
+const { AWAKE_SCRIPT, keepAwake } = await import("./keep-awake");
 
 /** A section of powercfg /requests: who is keeping the screen / computer on. */
 function requests(section: "DISPLAY" | "SYSTEM"): string {
@@ -46,5 +46,20 @@ describe.runIf(process.platform !== "win32")("keeping awake elsewhere", () => {
     const awake = await keepAwake();
     expect(awake.held).toBe(false);
     awake.release();
+  });
+});
+
+describe("the keep-awake script itself", () => {
+  // A find-and-replace of the app's name once turned `-Namespace DateSort` into
+  // `-Namespace Game Cut`: a space splits one name into two, the command is
+  // invalid, and Windows is never held awake. This fails on any machine if that
+  // happens again.
+  it("names its PowerShell type with a single word, so the command is valid", () => {
+    expect(AWAKE_SCRIPT).toMatch(/-Name Power -Namespace [A-Za-z]+ -PassThru/);
+  });
+
+  it("asks for the system AND the screen to stay on, and closes cleanly", () => {
+    expect(AWAKE_SCRIPT).toContain("0x80000003");
+    expect(AWAKE_SCRIPT).toContain("[Console]::In.ReadToEnd()");
   });
 });
