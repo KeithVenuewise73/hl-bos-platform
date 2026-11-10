@@ -93,6 +93,34 @@ describe("lining up two cameras", () => {
     expect(found.offsetSeconds).toBeCloseTo(-4.0, 1);
   });
 
+  it("finds the offset on steady, realistic recordings with a quiet floor, loud events and a short last block", () => {
+    // A sanity check on data shaped like real files: a floor near -43 dB, events near -6 dB,
+    // B quieter than A, and the last reading of each file far lower. (The regression test for the
+    // "tiny overlap" mistake is the end-to-end one in apps/game-cut, on real audio.)
+    const step = 0.1;
+    const r = rng(5);
+    // Measured from real files: a floor near -43 dB, events near -6 dB, B quieter than A,
+    // and the LAST reading of every file is a short block that comes out far lower.
+    const steady = (length: number, events: number[], floor: number, burst: number) => {
+      const out = Array.from({ length }, () => floor + 0.3 * r());
+      for (const e of events)
+        for (let k = 0; k < 20; k += 1)
+          if (e + k >= 0 && e + k < length) out[e + k] = burst + 0.05 * r();
+      out[length - 1] = floor - 24;
+      return out;
+    };
+    const events = [150, 600, 1150];
+    const a = steady(1500, events, -43, -6.1);
+    const b = steady(
+      1500 - 73,
+      events.map((e) => e - 73),
+      -48.6,
+      -12.1,
+    );
+    const found = findOffset(a, b, step, 7, 120);
+    expect(found.offsetSeconds).toBeCloseTo(7.3, 1);
+  });
+
   it("says it is unsure when the two have nothing in common", () => {
     const r = rng(9);
     const a = Array.from({ length: 3000 }, () => -40 + 5 * r());

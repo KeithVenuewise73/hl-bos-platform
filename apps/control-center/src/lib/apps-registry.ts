@@ -57,6 +57,14 @@ export const LOCAL_APPS: readonly LocalApp[] = [
     port: 4604,
     healthPath: "/api/health",
   },
+  {
+    key: "game-cut",
+    name: "Game Cut",
+    what: "Choose two whole-game camera recordings and get one broadcast-style video that follows the play, or cut highlights from a list of times. Nothing is uploaded; it reads the videos where they are.",
+    filter: "@hl-bos/game-cut-app",
+    port: 4605,
+    healthPath: "/api/health",
+  },
 ];
 
 /** Is `version` (e.g. "v22.12.0" or "22.12.0") at least `minimum`? */

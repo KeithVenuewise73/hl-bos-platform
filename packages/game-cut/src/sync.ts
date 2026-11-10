@@ -67,7 +67,9 @@ export function findOffset(
     }
     // Needs a real overlap, or two short tails will "match" by luck.
     if (count < Math.min(a.length, b.length) * 0.3) continue;
-    scores.push({ lag, score: sum / count });
+    // Divided by the length of the whole recording, not by the overlap: a small
+    // overlap then scores proportionally lower, and cannot beat a full one by luck.
+    scores.push({ lag, score: sum / Math.min(a.length, b.length) });
   }
   if (scores.length === 0) return { offsetSeconds: centerSeconds, confidence: 0 };
 

@@ -275,6 +275,26 @@ const ASSETS: Asset[] = [
       "apps/date-sort; end-to-end browser checks with every source file fingerprinted before and after each scan; Step 1 of 4 (scan and report)",
   },
   {
+    id: "app.game-cut",
+    kind: "application",
+    name: "Game Cut",
+    summary:
+      "Turns two whole-game camera recordings into one broadcast-style video that follows the play from one end of the ice to the other, or cuts highlights from a typed list of times using the camera that saw each moment best. Runs on the operator's machine with no account, database or network; the videos are read where they are, never uploaded. Long jobs run in the background and survive closing the page.",
+    maturity: "prototype",
+    reuse: ["internal_only"],
+    owner: "Herman Legacy Software Ventures",
+    layer: "HL-BOS",
+    key: "game-cut",
+    location: "apps/game-cut",
+    tags: ["game-cut", "sports", "video", "local-first"],
+    relationships: [
+      { kind: "uses", to: "pkg.game-cut" },
+      { kind: "owned_by", to: "repo.hl-bos-platform" },
+    ],
+    evidence:
+      "apps/game-cut; driven in a real browser end to end on made-up two-camera recordings (plan, make, reload, highlights, refusals). NOT yet run on a real game, and the Windows file windows have not been run by CI",
+  },
+  {
     id: "app.ats-resume-optimizer",
     kind: "application",
     name: "ATS Resume Optimizer",

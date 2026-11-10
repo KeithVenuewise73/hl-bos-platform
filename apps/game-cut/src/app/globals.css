@@ -1,0 +1,47 @@
+@import "tailwindcss";
+
+/*
+ * Game Cut: a dark, quiet editing-room look with a gold accent (5 Star) and an
+ * amber that means "check this".
+ */
+@theme {
+  --color-ink: #0c0d10;
+  --color-panel: #14171d;
+  --color-panel-2: #1b2029;
+  --color-line: #29303d;
+  --color-muted: #8e98aa;
+  --color-text: #eceff4;
+  --color-brand: #f5c542;
+  --color-brand-ink: #2a2005;
+  --color-estimate: #f5b041;
+  --color-good: #4ade80;
+  --color-bad: #f87171;
+}
+
+html {
+  color-scheme: dark;
+}
+body {
+  background: var(--color-ink);
+  color: var(--color-text);
+  font-family:
+    "Segoe UI",
+    system-ui,
+    -apple-system,
+    "Helvetica Neue",
+    Arial,
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+@utility btn {
+  @apply inline-flex items-center justify-center gap-2 rounded-md px-4 py-2 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-50;
+}
+@utility btn-primary {
+  @apply btn bg-brand text-brand-ink hover:brightness-110;
+}
+@utility btn-ghost {
+  @apply btn border border-line bg-transparent text-text hover:bg-panel-2;
+}
+@utility card {
+  @apply rounded-lg border border-line bg-panel p-4;
+}

@@ -165,6 +165,14 @@ export const PORTFOLIO: readonly Product[] = [
       "this repository (apps/date-sort, packages/date-sort, scripts/DateSort.bat)",
   },
   {
+    name: "Game Cut",
+    stage: "development",
+    status:
+      "Built in this repository and proven in a real browser on MADE-UP two-camera game recordings with known sounds and movements, NOT yet on a real game. Choose two whole-game videos (nothing is uploaded; they are read where they are) and get one broadcast-style video that follows the play from one end of the ice to the other, leaving out long quiet stretches; or type a list of times (12:34 big hit) and get highlights, using whichever camera saw each moment best. It shows exactly what it picked before anything is made, checks the drive has room before a long job starts, runs as a background job that survives closing the page, can be stopped (nothing half-finished is left), and offers a quick Draft quality for a first look. Loudness and movement only stand in for where the puck is, so a loud board hit at the far end can pull the picture to the wrong end; the first real result is a draft to judge. The Windows file windows and Show-in-folder are written but have not been run on Windows by CI. Needs ffmpeg, which is looked for on the PATH and in the usual install places.",
+    version: null,
+    location: "this repository (apps/game-cut, packages/game-cut)",
+  },
+  {
     name: "Venuewise",
     stage: "not-started",
     status: "Planned. No code yet.",

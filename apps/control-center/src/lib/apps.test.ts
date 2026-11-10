@@ -82,3 +82,13 @@ describe("DateSort in the console", () => {
     expect(ds?.healthPath).toBe("/api/health");
   });
 });
+
+describe("Game Cut in the console", () => {
+  it("can be started from the home page, on its own port", () => {
+    const gc = findApp("game-cut");
+    expect(gc?.name).toBe("Game Cut");
+    expect(gc?.filter).toBe("@hl-bos/game-cut-app");
+    expect(gc?.port).toBe(4605);
+    expect(gc?.healthPath).toBe("/api/health");
+  });
+});
