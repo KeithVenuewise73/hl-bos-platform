@@ -1,0 +1,104 @@
+name: Game Cut on Windows
+
+# Proves what can be proven about Game Cut on a real Windows machine without a
+# person at the keyboard:
+#   - real ffmpeg installed with Chocolatey, then FOUND by Game Cut the way it finds
+#     it on the CEO's laptop (the PATH, then the usual install places)
+#   - the engine's and the app's tests, including the end-to-end ones that plan,
+#     make and stop real video, run on Windows paths
+#   - the file-window PowerShell is valid PowerShell, and its file filters are
+#     accepted by Windows' own open and save window classes
+#
+# NOT proven here: pressing buttons in the real Windows file windows, and "Show it
+# in its folder". Those need a person. Pasting a path works instead.
+
+on:
+  pull_request:
+    paths:
+      - "apps/game-cut/**"
+      - "packages/game-cut/**"
+      - ".github/workflows/game-cut-windows.yml"
+      - "pnpm-lock.yaml"
+  push:
+    branches: [main]
+    paths:
+      - "apps/game-cut/**"
+      - "packages/game-cut/**"
+      - ".github/workflows/game-cut-windows.yml"
+  workflow_dispatch:
+
+concurrency:
+  group: game-cut-windows-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  PNPM_VERSION: "10.34.5"
+
+jobs:
+  windows:
+    name: Game Cut on Windows (ffmpeg, tests, file windows)
+    runs-on: windows-latest
+    timeout-minutes: 40
+    defaults:
+      run:
+        shell: pwsh
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Setup Node
+        uses: actions/setup-node@v5
+        with:
+          node-version: "22"
+          package-manager-cache: false
+
+      - name: Build tool, installed inside the repo
+        run: |
+          npm install "pnpm@$env:PNPM_VERSION" --prefix .hlbos\toolchain --no-save --no-fund --no-audit
+          "PNPM_CJS=$PWD\.hlbos\toolchain\node_modules\pnpm\bin\pnpm.cjs" >> $env:GITHUB_ENV
+
+      - name: Libraries
+        run: node $env:PNPM_CJS install --frozen-lockfile
+
+      - name: Install ffmpeg (free), as a person would
+        run: |
+          choco install ffmpeg --yes --no-progress
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          # A new shim folder is not on this session's PATH until it is refreshed.
+          $machine = [Environment]::GetEnvironmentVariable('Path', 'Machine')
+          $user = [Environment]::GetEnvironmentVariable('Path', 'User')
+          "PATH=$machine;$user" >> $env:GITHUB_ENV
+          ffmpeg -version | Select-Object -First 1
+          ffprobe -version | Select-Object -First 1
+
+      - name: Game Cut's engine tests, on Windows
+        run: |
+          node $env:PNPM_CJS --filter @hl-bos/game-cut test
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Game Cut's app tests, on Windows (finds ffmpeg, plans, makes, stops)
+        run: |
+          node $env:PNPM_CJS --filter @hl-bos/game-cut-app test
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: The file windows are valid PowerShell with filters Windows accepts
+        run: |
+          $json = node --experimental-strip-types -e "import('./apps/game-cut/src/lib/pick-script.ts').then(m => process.stdout.write(JSON.stringify({ script: m.PICK_SCRIPT, video: m.VIDEO_FILTER, save: m.SAVE_FILTER })))"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          $p = $json | ConvertFrom-Json
+          $tokens = $null; $errors = $null
+          [void][System.Management.Automation.Language.Parser]::ParseInput($p.script, [ref]$tokens, [ref]$errors)
+          if ($errors.Count -gt 0) {
+            $errors | ForEach-Object { Write-Host "PowerShell does not accept the file-window script: $($_.Message) (line $($_.Extent.StartLineNumber))" }
+            exit 1
+          }
+          Write-Host "The file-window script parses with no errors ($($tokens.Count) tokens)."
+          Add-Type -AssemblyName System.Windows.Forms
+          # A bad filter string throws when it is set, so setting it IS the check.
+          $open = New-Object System.Windows.Forms.OpenFileDialog
+          $open.Filter = $p.video
+          $save = New-Object System.Windows.Forms.SaveFileDialog
+          $save.Filter = $p.save
+          Write-Host "Windows accepts the open filter ($($open.Filter)) and the save filter ($($save.Filter))."

@@ -322,15 +322,19 @@ describe.skipIf(!haveFfmpeg)("Game Cut's API, end to end", () => {
     expect((await readFile(fileA)).length).toBeGreaterThan(1000);
   }, 240_000);
 
-  it("a finished video can be revealed (on this computer it says where it is), and only that one", async () => {
-    const r = await call(reveal.POST, "POST", "/api/reveal", {
-      path: "C:\\Windows\\System32\\cmd.exe",
-    });
-    // Not Windows here: it names the file the job made, never the path in the request.
-    expect(r.status).toBe(501);
-    expect(r.json["error"]).toMatch(/Broadcast\.mp4/);
-    expect(JSON.stringify(r.json)).not.toMatch(/System32/);
-  });
+  // On Windows this would open a real Explorer window, so it is only run where it just answers.
+  it.skipIf(process.platform === "win32")(
+    "a finished video can be revealed (here it says where it is), and only that one",
+    async () => {
+      const r = await call(reveal.POST, "POST", "/api/reveal", {
+        path: "C:\\Windows\\System32\\cmd.exe",
+      });
+      // Not Windows here: it names the file the job made, never the path in the request.
+      expect(r.status).toBe(501);
+      expect(r.json["error"]).toMatch(/Broadcast\.mp4/);
+      expect(JSON.stringify(r.json)).not.toMatch(/System32/);
+    },
+  );
 
   it("highlights from times: reads the list, uses the camera that saw each moment, makes a video", async () => {
     const started = await call(plan.POST, "POST", "/api/jobs/plan", {

@@ -2,6 +2,10 @@ import "server-only";
 
 import { execFile } from "node:child_process";
 
+import { PICK_SCRIPT, SAVE_FILTER, VIDEO_FILTER } from "./pick-script.ts";
+
+export { PICK_SCRIPT };
+
 /**
  * Windows' own "choose a file" and "save as" windows.
  *
@@ -12,40 +16,6 @@ import { execFile } from "node:child_process";
  * browser instead of hiding behind it.
  */
 
-export const PICK_SCRIPT = `
-Add-Type -AssemblyName System.Windows.Forms
-[System.Windows.Forms.Application]::EnableVisualStyles()
-$owner = New-Object System.Windows.Forms.Form
-$owner.TopMost = $true
-$owner.ShowInTaskbar = $false
-$owner.Opacity = 0
-$owner.StartPosition = 'CenterScreen'
-$owner.Size = New-Object System.Drawing.Size(1, 1)
-$owner.Show()
-$owner.Activate()
-try {
-  if ($env:GC_MODE -eq 'save') {
-    $d = New-Object System.Windows.Forms.SaveFileDialog
-    $d.OverwritePrompt = $true
-    $d.DefaultExt = 'mp4'
-    $d.AddExtension = $true
-    $d.FileName = $env:GC_NAME
-  } else {
-    $d = New-Object System.Windows.Forms.OpenFileDialog
-    $d.CheckFileExists = $true
-    $d.Multiselect = $false
-  }
-  $d.Title = $env:GC_TITLE
-  $d.Filter = $env:GC_FILTER
-  if ($env:GC_DIR -and (Test-Path -LiteralPath $env:GC_DIR)) { $d.InitialDirectory = $env:GC_DIR }
-  if ($d.ShowDialog($owner) -eq [System.Windows.Forms.DialogResult]::OK) {
-    [Console]::Out.WriteLine((@{ path = $d.FileName } | ConvertTo-Json -Compress))
-  } else {
-    [Console]::Out.WriteLine('{"cancelled":true}')
-  }
-} finally { $owner.Close() }
-`;
-
 export type PickOutcome =
   | { readonly kind: "picked"; readonly path: string }
   | { readonly kind: "cancelled" }
@@ -55,7 +25,6 @@ export type PickOutcome =
 /** What the page may ask for. Anything else is refused. */
 export type PickPurpose = "video-a" | "video-b" | "video" | "save";
 
-const VIDEO_FILTER = "Video (*.mov;*.mp4;*.m4v)|*.mov;*.mp4;*.m4v|All files (*.*)|*.*";
 const TITLES: Record<PickPurpose, string> = {
   "video-a": "Game Cut - choose the FIRST game video",
   "video-b": "Game Cut - choose the SECOND game video",
@@ -72,7 +41,7 @@ export function pickEnvironment(
   return {
     GC_MODE: purpose === "save" ? "save" : "open",
     GC_TITLE: TITLES[purpose],
-    GC_FILTER: purpose === "save" ? "MP4 video (*.mp4)|*.mp4" : VIDEO_FILTER,
+    GC_FILTER: purpose === "save" ? SAVE_FILTER : VIDEO_FILTER,
     GC_NAME: suggestedName,
     GC_DIR: startFolder,
   };
