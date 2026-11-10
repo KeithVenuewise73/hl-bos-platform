@@ -1,0 +1,23 @@
+{
+  "name": "@hl-bos/game-cut",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Turns two whole-game camera recordings into one video of the action. Lines the two cameras up by the sound they share, finds the moments that matter from loudness and motion, picks the camera with the bigger action for each, and joins them in game order. Needs ffmpeg. Every pick is written to a list so a person can review it.",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "default": "./src/index.ts"
+    }
+  },
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run",
+    "clean": "rm -rf dist *.tsbuildinfo"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  }
+}
