@@ -179,7 +179,13 @@ function IphoneCopy({
       }).catch(() => undefined);
       return out.path;
     }
-    if (out.kind !== "cancelled") {
+    if (out.kind === "busy") {
+      setState({
+        kind: "problem",
+        message:
+          "A folder window is already open, probably behind this page. Look for it on the taskbar (or press Alt+Tab), then choose a folder or press Cancel in it. If you cannot find it, close DateSort and start it again.",
+      });
+    } else if (out.kind !== "cancelled") {
       setState({
         kind: "problem",
         message: out.reason ?? "The folder window could not be opened.",
