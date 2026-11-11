@@ -21,6 +21,8 @@ export default tseslint.config(
       "**/coverage/**",
       "**/*.tsbuildinfo",
       "supabase/functions/**", // Deno runtime, different lint target
+      "supabase/recovery/**", // verbatim production archive (2026-11-04), must not be edited
+      "security/stage0/functions/**", // proposed Deno sources, not part of the TS build
       "scripts/local-test/**", // local pgTAP runners: plain CommonJS, not part of the TS build
       // Python virtualenvs. Installed dependencies, not our source -- and some
       // of them (urllib3's emscripten worker) ship browser JS that fails a

@@ -1,0 +1,36 @@
+{
+ "slug": "discovery-run",
+ "id": "04e81858-3813-40ca-b7c0-0965502eca06",
+ "name": "discovery-run",
+ "status": "ACTIVE",
+ "version": 5,
+ "verify_jwt": false,
+ "import_map": false,
+ "entrypoint_path": "file:///tmp/user_fn_mvvtngiopdrgiedjmhfb_04e81858-3813-40ca-b7c0-0965502eca06_4/source/index.ts",
+ "ezbr_sha256": "7c819642209cbb6e4309329a384c53646a0f0753135f782a47407a5531560e09",
+ "created_at_ms": 1786980486164,
+ "created_at_iso": "2026-08-17T15:28:06.164Z",
+ "updated_at_ms": 1787028997386,
+ "updated_at_iso": "2026-08-18T04:56:37.386Z",
+ "files": [
+  "index.ts"
+ ],
+ "cmp_vs_phase3": {
+  "index.ts": "SAME"
+ },
+ "matches_phase3": true,
+ "env_var_names": [
+  "GITHUB_TOKEN",
+  "SUPABASE_SERVICE_ROLE_KEY",
+  "SUPABASE_URL"
+ ],
+ "phase3_meta": {
+  "v": 5,
+  "jwt": false,
+  "created": "2026-08-17",
+  "updated": "2026-08-18",
+  "sha": "7c819642209c"
+ },
+ "change_vs_phase3": "none",
+ "verified_at_utc": "2026-11-04T14:44:14Z"
+}

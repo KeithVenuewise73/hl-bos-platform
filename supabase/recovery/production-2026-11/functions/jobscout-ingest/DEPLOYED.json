@@ -1,0 +1,48 @@
+{
+ "slug": "jobscout-ingest",
+ "id": "74467aac-5ece-468c-8ccd-619a32f3b70a",
+ "name": "jobscout-ingest",
+ "status": "ACTIVE",
+ "version": 3,
+ "verify_jwt": true,
+ "import_map": false,
+ "entrypoint_path": "file:///tmp/user_fn_mvvtngiopdrgiedjmhfb_74467aac-5ece-468c-8ccd-619a32f3b70a_3/source/jobscout-ingest/index.ts",
+ "ezbr_sha256": "1c582baacbb6fe533ba3b8d4f0330402dccfdff0a8c61f1da52b7797eec7e1f5",
+ "created_at_ms": 1787697671383,
+ "created_at_iso": "2026-08-25T22:41:11.383Z",
+ "updated_at_ms": 1787702253557,
+ "updated_at_iso": "2026-08-25T23:57:33.557Z",
+ "files": [
+  "_shared/adapters.ts",
+  "_shared/auth.ts",
+  "_shared/http.ts",
+  "_shared/ingest.ts",
+  "_shared/titles.ts",
+  "_shared/url.ts",
+  "jobscout-ingest/index.ts"
+ ],
+ "cmp_vs_phase3": {
+  "_shared/adapters.ts": "SAME",
+  "_shared/auth.ts": "SAME",
+  "_shared/http.ts": "SAME",
+  "_shared/ingest.ts": "SAME",
+  "_shared/titles.ts": "SAME",
+  "_shared/url.ts": "SAME",
+  "jobscout-ingest/index.ts": "SAME"
+ },
+ "matches_phase3": true,
+ "env_var_names": [
+  "JOBSCOUT_INGEST_BUDGET_MS",
+  "SUPABASE_SERVICE_ROLE_KEY",
+  "SUPABASE_URL"
+ ],
+ "phase3_meta": {
+  "v": 3,
+  "jwt": true,
+  "created": "2026-08-25",
+  "updated": "2026-08-25",
+  "sha": "1c582baacbb6"
+ },
+ "change_vs_phase3": "none",
+ "verified_at_utc": "2026-11-04T14:44:14Z"
+}
