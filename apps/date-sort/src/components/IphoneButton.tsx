@@ -11,6 +11,14 @@ import {
   type SizeChoice,
 } from "@/lib/iphone-progress.ts";
 import type { IphoneKind, IphonePageLine } from "@/lib/iphone-script.ts";
+import {
+  defaultVideoFolder,
+  driveNearlyFullMessage,
+  folderWarning,
+  noRoomMessage,
+  roomSentence,
+  unknownSizeSentence,
+} from "@/lib/iphone-space.ts";
 
 interface Tally {
   device: string;
@@ -127,6 +135,8 @@ function IphoneCopy({
   /** Ticks while copying so the time left keeps up with the clock. */
   const [, setNow] = useState(0);
   const [folder, setFolder] = useState<string | null>(null);
+  /** The folder was suggested (beside the photos), not chosen or saved yet. */
+  const [suggested, setSuggested] = useState(false);
   const [state, setState] = useState<State>({ kind: "idle" });
   /** Whether Windows agreed to stay awake for this copy; null until it answers. */
   const [awake, setAwake] = useState<boolean | null>(null);
@@ -134,11 +144,21 @@ function IphoneCopy({
   useEffect(() => {
     void fetch("/api/settings", { headers: { "Content-Type": "application/json" } })
       .then((r) => r.json())
-      .then((s: Record<string, string | null | undefined>) =>
-        setFolder(s[label.folderKey] ?? null),
-      )
+      .then((s: Record<string, string | null | undefined>) => {
+        const saved = s[label.folderKey] ?? null;
+        if (saved !== null) {
+          setFolder(saved);
+          return;
+        }
+        // Videos with no folder yet: beside the photos, never on C: or in OneDrive.
+        const beside = kind === "videos" ? defaultVideoFolder(s["iphoneFolder"]) : null;
+        if (beside !== null) {
+          setFolder(beside);
+          setSuggested(true);
+        }
+      })
       .catch(() => undefined);
-  }, [label.folderKey]);
+  }, [label.folderKey, kind]);
 
   async function chooseFolder(): Promise<string | null> {
     const res = await fetch("/api/browse", {
@@ -153,6 +173,7 @@ function IphoneCopy({
     };
     if (out.kind === "picked" && out.path) {
       setFolder(out.path);
+      setSuggested(false);
       await fetch("/api/settings", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -160,7 +181,13 @@ function IphoneCopy({
       }).catch(() => undefined);
       return out.path;
     }
-    if (out.kind !== "cancelled") {
+    if (out.kind === "busy") {
+      setState({
+        kind: "problem",
+        message:
+          "A folder window is already open, probably behind this page. Look for it on the taskbar (or press Alt+Tab), then choose a folder or press Cancel in it. If you cannot find it, close DateSort and start it again.",
+      });
+    } else if (out.kind !== "cancelled") {
       setState({
         kind: "problem",
         message: out.reason ?? "The folder window could not be opened.",
@@ -178,10 +205,21 @@ function IphoneCopy({
   async function bringIn(preview = false) {
     const into = folder ?? (await chooseFolder());
     if (into === null) return;
+    if (suggested) {
+      // The suggestion becomes the remembered choice the first time it is used.
+      await fetch("/api/settings", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ [label.folderKey]: into }),
+      }).catch(() => undefined);
+      setSuggested(false);
+    }
     setState({ kind: "copying", tally: null });
     setAwake(null);
     let tally: Tally | null = null;
     let ended = false;
+    /** What the drive has, once known: added to the size check's answer. */
+    let roomNote = "";
     try {
       const res = await fetch("/api/iphone", {
         method: "POST",
@@ -214,6 +252,28 @@ function IphoneCopy({
             setState({ kind: "copying", tally: null });
           } else if (m.type === "waiting") {
             setState({ kind: "copying", tally: null, waitingFor: m.for });
+          } else if (m.type === "space") {
+            if (m.live) {
+              // Stopped part-way to keep the drive from filling up.
+              ended = true;
+              setState({
+                kind: "problem",
+                message: driveNearlyFullMessage(into, m.needed, m.free ?? 0),
+              });
+            } else {
+              roomNote =
+                m.sizeKnown === false
+                  ? unknownSizeSentence(into, m.free)
+                  : roomSentence(into, m.needed, m.free, m.enough);
+              if (!m.enough && !preview) {
+                // Nothing is copied: the server stopped it before it began.
+                ended = true;
+                setState({
+                  kind: "problem",
+                  message: noRoomMessage(into, m.needed, m.free),
+                });
+              }
+            }
           } else if (m.type === "none") {
             ended = true;
             setState({
@@ -273,13 +333,13 @@ function IphoneCopy({
             ended = true;
             setState({
               kind: "checked",
-              text: previewSentence(label.plural, size, {
+              text: `${previewSentence(label.plural, size, {
                 total: tally.total,
                 todo: tally.todo,
                 todoBytes: tally.todoBytes,
                 older: tally.older,
                 held: tally.held,
-              }),
+              })}${roomNote === "" ? "" : ` ${roomNote}`}`,
             });
           } else if (m.type === "file" && tally !== null) {
             tally.done += 1;
@@ -387,7 +447,8 @@ function IphoneCopy({
             `Plug in and unlock the iPhone first. You'll choose where its ${label.plural} are kept.`
           ) : (
             <>
-              Kept in <span className="font-mono">{folder}</span> ·{" "}
+              {suggested ? "Will be kept in" : "Kept in"}{" "}
+              <span className="font-mono">{folder}</span> ·{" "}
               <button
                 type="button"
                 className="underline"
@@ -400,6 +461,11 @@ function IphoneCopy({
           )}
         </span>
       </div>
+      {folder !== null && folderWarning(folder, label.plural) !== null ? (
+        <p className="text-sm text-amber-500" data-testid={id("folder-warning")}>
+          {folderWarning(folder, label.plural)}
+        </p>
+      ) : null}
       {state.kind === "checked" ? (
         <p className="text-sm" data-testid={id("checked")}>
           {state.text}

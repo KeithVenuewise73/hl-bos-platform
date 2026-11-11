@@ -80,9 +80,11 @@ export function previewSentence(
 ): string {
   const other = size === "small" ? "larger" : "smaller";
   const lead =
-    f.todo === 0
-      ? `Nothing new to bring in (${f.total.toLocaleString("en-US")} ${plural} here are already copied).`
-      : `${f.todo.toLocaleString("en-US")} ${f.todo === 1 ? plural.slice(0, -1) : plural} to bring in, ${sizeText(f.todoBytes)} in all: ${estimateText(f.todoBytes)} at typical cable speed (20 to 40 MB/s; yours may differ).`;
+    f.todo > 0 && f.todoBytes === 0
+      ? `${f.todo.toLocaleString("en-US")} ${f.todo === 1 ? plural.slice(0, -1) : plural} to bring in. The phone did not report their sizes, so DateSort cannot say how big they are or how long this will take.`
+      : f.todo === 0
+        ? `Nothing new to bring in (${f.total.toLocaleString("en-US")} ${plural} here are already copied).`
+        : `${f.todo.toLocaleString("en-US")} ${f.todo === 1 ? plural.slice(0, -1) : plural} to bring in, ${sizeText(f.todoBytes)} in all: ${estimateText(f.todoBytes)} at typical cable speed (20 to 40 MB/s; yours may differ).`;
   const parts = [lead];
   if (f.held > 0 && size !== "all") {
     parts.push(`${f.held.toLocaleString("en-US")} ${other} files are left for later.`);

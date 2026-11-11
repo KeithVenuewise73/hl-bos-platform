@@ -28,6 +28,9 @@ describe("the iPhone copy script", () => {
     // that ("IMG_0042" for IMG_0042.MOV): the real name must come from
     // System.FileName, or the script waits for a file that never appears.
     expect(IPHONE_SCRIPT).toContain("ExtendedProperty('System.FileName')");
+    // FolderItem.Size is 0 for files on an iPhone (a 5.44 GB video read as 0 MB,
+    // so "305 videos, 0 MB" and no room check). The size comes from System.Size.
+    expect(IPHONE_SCRIPT).toContain("ExtendedProperty('System.Size')");
     // A copy that stops part-way must never be kept as whole: when the phone
     // gave a size, only that exact size counts as complete. (On Keith's
     // iPhone, a video copy failed at about 60%.)
@@ -127,5 +130,18 @@ describe("the iPhone copy script", () => {
     ).toMatchObject({ result: "copied" });
     expect(parseIphoneLine("WARNING: something")).toBeNull();
     expect(parseIphoneLine('{"type":"surprise"}')).toBeNull();
+  });
+});
+
+describe("the script fits on a Windows command line", () => {
+  // Windows allows about 32,767 characters in a command line. The script is sent
+  // as UTF-16 turned into base64 (-EncodedCommand), which is 2.67 times longer.
+  // main had only 330 characters to spare, and a few added lines made the copy
+  // fail to start ("The filename or extension is too long"). This fails well
+  // before the limit, so the next edit cannot do that silently.
+  const encoded = Buffer.from(IPHONE_SCRIPT, "utf16le").toString("base64");
+  const OTHER_ARGUMENTS = 150; // powershell.exe -NoProfile -NonInteractive -STA ...
+  it("is far enough under the limit to leave room to grow", () => {
+    expect(encoded.length + OTHER_ARGUMENTS).toBeLessThan(28_000);
   });
 });

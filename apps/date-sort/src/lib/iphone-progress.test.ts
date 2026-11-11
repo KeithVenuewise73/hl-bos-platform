@@ -79,3 +79,19 @@ describe("sizes and times for the iPhone copy", () => {
     ).toContain("1 video to bring in");
   });
 });
+
+describe("when the phone gives no sizes", () => {
+  it("does not claim '0 MB in all' or a time: it says the sizes are unknown", () => {
+    const text = previewSentence("videos", "all", {
+      total: 305,
+      todo: 305,
+      todoBytes: 0,
+      older: 0,
+      held: 0,
+    });
+    expect(text).toContain("305 videos to bring in");
+    expect(text).toMatch(/did not report their sizes/);
+    expect(text).not.toMatch(/0 MB/);
+    expect(text).not.toMatch(/minute/);
+  });
+});

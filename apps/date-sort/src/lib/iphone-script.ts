@@ -47,13 +47,15 @@
  * iPhone" in This PC is the one part only a real phone can prove.
  */
 
+import { squeezeCSharp, squeezePowerShell } from "./squeeze.ts";
+
 /**
  * Closes the "Error Copying File or Folder" box that Windows opens over its own
  * "Copying..." window when the phone drops a file. Windows PowerShell 5.1
  * compiles this with an old C# compiler: no string interpolation, no newer
  * syntax. Exported so the Windows test can compile and run the same source.
  */
-export const DIALOG_CSHARP = String.raw`
+const DIALOG_CSHARP_SOURCE = String.raw`
 using System;
 using System.Runtime.InteropServices;
 using System.Text;
@@ -93,7 +95,10 @@ public static class DateSortDialogs {
 }
 `;
 
-export const IPHONE_SCRIPT = String.raw`
+/** What is compiled and sent: the source above without comments and indentation (see squeeze.ts). */
+export const DIALOG_CSHARP = squeezeCSharp(DIALOG_CSHARP_SOURCE);
+
+const IPHONE_SCRIPT_SOURCE = String.raw`
 $ErrorActionPreference = 'Stop'
 function Say($o) { [Console]::Out.WriteLine(($o | ConvertTo-Json -Compress)); [Console]::Out.Flush() }
 $canDismiss = $false
@@ -174,7 +179,11 @@ try {
         try { $when = [datetime]$f.ModifyDate } catch { }
         if ($when -and $when.Year -gt 1980 -and $when -lt $cutoff) { $older += 1; continue }
       }
-      $sz = [int64]$f.Size
+      # FolderItem.Size is 0 for files on an iPhone; the Size column Explorer shows
+      # is the System.Size property, so ask for that and fall back to .Size.
+      $sz = [int64]0
+      try { $sz = [int64]$f.ExtendedProperty('System.Size') } catch { }
+      if ($sz -le 0) { try { $sz = [int64]$f.Size } catch { } }
       if ($size -eq 'small' -and $sz -gt $split) { $held += 1; continue }
       if ($size -eq 'large' -and $sz -le $split) { $held += 1; continue }
       [void]$files.Add([pscustomobject]@{ folder = $sub.Name; item = $f; name = $name; size = $sz })
@@ -302,6 +311,13 @@ try {
 }
 `;
 
+/**
+ * What is sent to PowerShell: the source above without comments and indentation.
+ * Sent encoded on a command line that Windows limits to about 32,767 characters;
+ * see squeeze.ts, and the length test in iphone-script.test.ts.
+ */
+export const IPHONE_SCRIPT = squeezePowerShell(IPHONE_SCRIPT_SOURCE);
+
 export type IphoneLine =
   | { readonly type: "none" }
   | {
@@ -355,7 +371,22 @@ export type IphonePageLine =
   | IphoneLine
   | { readonly type: "awake"; readonly held: boolean }
   /** Another copy from this phone is running; this one starts when it ends. */
-  | { readonly type: "waiting"; readonly for: IphoneKind };
+  | { readonly type: "waiting"; readonly for: IphoneKind }
+  /**
+   * Whether what is about to come across fits in the chosen folder's drive.
+   * `free` is null when the drive's free space could not be read. When it does
+   * not fit and this is a real copy (not "Check size first"), nothing is copied.
+   */
+  | {
+      readonly type: "space";
+      readonly needed: number;
+      readonly free: number | null;
+      readonly enough: boolean;
+      /** False when the phone reported no sizes, so "needed" could not be known. */
+      readonly sizeKnown?: boolean;
+      /** The copy was stopped part-way: the drive was nearly full. `needed` is what was copied so far. */
+      readonly live?: boolean;
+    };
 
 /** Photos and videos are brought in by separate buttons, into separate folders. */
 export type IphoneKind = "photos" | "videos";

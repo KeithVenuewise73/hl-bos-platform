@@ -51,8 +51,10 @@ export default tseslint.config(
           ],
           // One default-project config file per app/package (next/vitest configs)
           // plus the repo root; the default cap of 8 is exceeded as the workspace
-          // grows. These files are tiny, so the lint cost is negligible.
-          maximumDefaultProjectFileMatchCount_THIS_WILL_SLOW_DOWN_LINTING: 40,
+          // grows. These files are tiny, so the lint cost is negligible. There were
+          // 41 when the cap was 40 and a new package tipped it over, so it is set
+          // well above the count: a new package must not break lint by existing.
+          maximumDefaultProjectFileMatchCount_THIS_WILL_SLOW_DOWN_LINTING: 80,
         },
         tsconfigRootDir: import.meta.dirname,
       },

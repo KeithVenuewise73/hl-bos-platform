@@ -419,6 +419,36 @@ export const APPLICATIONS: ApplicationRecord[] = [
       "apps/date-sort + packages/date-sort; engine tests against real Canon EOS M50 CR3 / EOS 350D CR2 files agree with ExifTool; end-to-end browser checks (scripts/local-test/verify-date-sort.cjs) fingerprint every source file before and after each scan",
   },
   {
+    key: "game-cut",
+    name: "Game Cut",
+    description:
+      "Turns two whole-game camera recordings (two phones on the glass, one behind each goalie) into one broadcast-style video that follows the play from one end of the ice to the other, or cuts highlights from a typed list of times using the camera that saw each moment best. Shows exactly what it picked before anything is made, checks the drive has room before a long job starts, runs as a background job that survives closing the page, and can be stopped without leaving a half-written file.",
+    category: "executive_tooling",
+    repository: REPO,
+    owner: "KeithVenuewise73",
+    executiveOwner: "Keith Herman (CEO)",
+    currentBranch: "claude/nifty-archimedes-m9gbmv",
+    environment: "local",
+    developmentStatus: "prototype",
+    deploymentStatus: "not_deployed",
+    productionUrl: null,
+    stagingUrl: null,
+    localUrl: "http://localhost:4605",
+    // None by design: Game Cut has no database, no account and no network.
+    supabaseProject: null,
+    version: "0.1.0",
+    health: "unknown",
+    hosting: "local only (127.0.0.1); started by the Control Center",
+    dependencies: ["@hl-bos/game-cut"],
+    reusableModules: [],
+    softwareFactoryIntegration:
+      "None. Independent of DateSort and JerseySort; it imports none of their code.",
+    notes:
+      "Proven only on MADE-UP two-camera recordings with known sounds and movements, not yet on a real game: loudness and movement stand in for where the puck is, so a loud board hit at the far end can pull the picture to the wrong end. The Windows file windows and Show-in-folder are written but not yet run on Windows by CI. Needs ffmpeg (free), looked for on the PATH and in the usual install places. Reads the videos where they are; nothing is uploaded.",
+    evidence:
+      "apps/game-cut + packages/game-cut; driven in a real browser end to end (plan, make a draft, reload, highlights, refusals) on made-up recordings; the alignment mistake that picked 107 s instead of 7.3 s was found by the end-to-end test and fixed",
+  },
+  {
     key: "control-center",
     name: "CEO Development Control Center",
     description:

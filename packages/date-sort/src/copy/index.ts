@@ -3,6 +3,7 @@
 export { copyDays, checkDestination, CopyError, folderPlanForDay } from "./copy-day";
 export type { FolderPlan } from "./copy-day";
 export type { CopyProgress, CopyRequest, DayRequest, DayResult } from "./copy-day";
+export { freeBytes } from "./free-space";
 export { cleanEventName, folderName, isInside, planDay } from "./plan";
 export type { PlannedCopy } from "./plan";
 export { cleanEventNames, loadSettings, saveSettings, settingsDir } from "./settings";
