@@ -1,4 +1,4 @@
-import type { Quality } from "@hl-bos/game-cut";
+import type { ClockBasis, Quality } from "@hl-bos/game-cut";
 
 /**
  * Reading what the page sent. Everything is checked: the page is ours, but the
@@ -35,4 +35,14 @@ export function asPadding(v: unknown, fallback: number): number {
 /** The typed list of times: text, at most 20,000 characters. */
 export function asTimesText(v: unknown): string | null {
   return typeof v === "string" && v.length <= 20_000 ? v : null;
+}
+
+/** Which clock a typed time was read from. Anything else is the first video's. */
+export function asClock(v: unknown): ClockBasis {
+  return v === "second" || v === "finished" ? v : "first";
+}
+
+/** A plan id as this app makes them: only letters, digits and dashes. */
+export function asPlanId(v: unknown): string | null {
+  return typeof v === "string" && /^plan-[a-z0-9-]+$/.test(v) ? v : null;
 }

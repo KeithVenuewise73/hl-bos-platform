@@ -147,6 +147,12 @@ export function GameCutApp() {
   const [after, setAfter] = useState(6);
   const [quality, setQuality] = useState<Quality>("draft");
   const [outPath, setOutPath] = useState("");
+  const [incText, setIncText] = useState("");
+  const [incClock, setIncClock] = useState<"first" | "second" | "finished">("first");
+  const [incBefore, setIncBefore] = useState(8);
+  const [incAfter, setIncAfter] = useState(6);
+  /** The plan the last finished video was made from (a time on that video can be turned back into game time). */
+  const [watchedPlanId, setWatchedPlanId] = useState<string | null>(null);
   const [plan, setPlan] = useState<PlanSummary | null>(null);
   const [showAll, setShowAll] = useState(false);
   const lastPlanJob = useRef<number | null>(null);
@@ -161,6 +167,15 @@ export function GameCutApp() {
       setTools((r.json["tools"] as ToolStatus | undefined) ?? null);
       setJob((r.json["job"] as JobSnapshot | null | undefined) ?? null);
     });
+    // Planning a long game takes the better part of an hour: get the latest plan back after a
+    // reload, or after Game Cut was closed and started again, instead of losing it.
+    void api("/api/plans/latest").then((r) => {
+      const saved = r.json["plan"] as PlanSummary | null | undefined;
+      if (saved) {
+        setPlan((now) => now ?? saved);
+        setTab((t) => (t === "broadcast" || t === "times" ? saved.mode : t));
+      }
+    });
   }, []);
 
   // While a job runs, ask how it is going. The job lives on the server: this page can be
@@ -174,6 +189,11 @@ export function GameCutApp() {
     }, 1000);
     return () => clearInterval(id);
   }, [running, refresh]);
+
+  useEffect(() => {
+    if (job?.state === "done" && job.result?.kind === "make")
+      setWatchedPlanId(job.result.made.planId);
+  }, [job]);
 
   // A finished planning job becomes the plan on screen (also after the page was reopened).
   useEffect(() => {
@@ -249,6 +269,26 @@ export function GameCutApp() {
     await refresh();
   }
 
+  async function addMoments() {
+    if (plan === null) return;
+    setProblem(null);
+    setWarning(null);
+    const r = await api("/api/jobs/adjust", {
+      planId: plan.planId,
+      watchedPlanId,
+      timesText: incText,
+      clock: incClock,
+      beforeSeconds: incBefore,
+      afterSeconds: incAfter,
+    });
+    if (!r.ok) {
+      setProblem(text(r.json["error"]) || "That could not be started.");
+      return;
+    }
+    setNow(Date.now());
+    await refresh();
+  }
+
   async function stop() {
     await api("/api/jobs/cancel", {});
     await refresh();
@@ -261,6 +301,8 @@ export function GameCutApp() {
     job !== null && job.state === "running" && job.kind === "make"
       ? secondsLeft(job.fraction, elapsed)
       : null;
+  const showNames =
+    plan !== null && (plan.mode === "times" || plan.rows.some((r) => r.label !== ""));
   const made =
     job?.state === "done" && job.result?.kind === "make" ? job.result.made : null;
   const rows = plan === null ? [] : showAll ? plan.rows : plan.rows.slice(0, 15);
@@ -360,6 +402,16 @@ export function GameCutApp() {
               <p className="text-sm">
                 Done. {clock(made.seconds)} of video, {sizeText(made.bytes)}, saved as{" "}
                 <span className="break-all font-mono text-xs">{made.outFile}</span>
+              </p>
+              <p className="text-xs text-muted" data-testid="picks-file">
+                {made.picksFile !== null ? (
+                  <>
+                    A list of exactly what it picked, with times, was saved beside it as{" "}
+                    <span className="break-all font-mono">{made.picksFile}</span>.
+                  </>
+                ) : (
+                  "The list of what it picked could not be saved beside the video."
+                )}
               </p>
               <button
                 type="button"
@@ -597,7 +649,7 @@ export function GameCutApp() {
                 <th>To</th>
                 <th>Length</th>
                 <th>Camera</th>
-                {plan.mode === "times" ? <th>Name</th> : null}
+                {showNames ? <th>Name</th> : null}
               </tr>
             </thead>
             <tbody>
@@ -608,7 +660,7 @@ export function GameCutApp() {
                   <td>{clock(r.endSeconds)}</td>
                   <td>{Math.round(r.lengthSeconds)} s</td>
                   <td>{r.camera === "A" ? "First video" : "Second video"}</td>
-                  {plan.mode === "times" ? <td>{r.label}</td> : null}
+                  {showNames ? <td>{r.label}</td> : null}
                 </tr>
               ))}
             </tbody>
@@ -621,6 +673,77 @@ export function GameCutApp() {
             >
               {showAll ? "Show fewer" : `Show all ${plan.rows.length}`}
             </button>
+          ) : null}
+          {plan.mode === "broadcast" ? (
+            <div className="space-y-3 border-t border-line pt-4" data-testid="include">
+              <h3 className="text-sm font-semibold">
+                Moments you want to be sure of (optional)
+              </h3>
+              <p className="text-xs text-muted">
+                Missed a hit or a goal? Type its time and Game Cut puts that moment in,
+                from the camera nearer to it, without looking at the videos again. Then
+                make the video again.
+              </p>
+              <textarea
+                className="block h-20 w-full rounded border border-line bg-transparent p-2 font-mono text-sm"
+                placeholder={"53:25 big hit"}
+                value={incText}
+                onChange={(e) => setIncText(e.target.value)}
+                data-testid="include-times"
+              />
+              <label className="block space-y-1 text-sm">
+                <span className="font-semibold">Those times were read from</span>
+                <select
+                  className="block rounded border border-line bg-transparent px-2 py-1"
+                  value={incClock}
+                  onChange={(e) =>
+                    setIncClock(e.target.value as "first" | "second" | "finished")
+                  }
+                  data-testid="include-clock"
+                >
+                  <option value="first">The first video (its own player clock)</option>
+                  <option value="second">
+                    The second video (its own player clock)
+                  </option>
+                  <option value="finished">
+                    The finished video I made, played from its start
+                  </option>
+                </select>
+              </label>
+              <div className="flex flex-wrap gap-4 text-sm">
+                <label>
+                  Seconds before{" "}
+                  <input
+                    type="number"
+                    min={0}
+                    max={120}
+                    className="ml-1 w-16 rounded border border-line bg-transparent px-2 py-1"
+                    value={incBefore}
+                    onChange={(e) => setIncBefore(Number(e.target.value))}
+                  />
+                </label>
+                <label>
+                  Seconds after{" "}
+                  <input
+                    type="number"
+                    min={0}
+                    max={120}
+                    className="ml-1 w-16 rounded border border-line bg-transparent px-2 py-1"
+                    value={incAfter}
+                    onChange={(e) => setIncAfter(Number(e.target.value))}
+                  />
+                </label>
+              </div>
+              <button
+                type="button"
+                className="btn-ghost"
+                disabled={busy || ffmpegMissing || incText.trim() === ""}
+                onClick={() => void addMoments()}
+                data-testid="include-add"
+              >
+                Add these moments to the plan
+              </button>
+            </div>
           ) : null}
           <div className="space-y-2 border-t border-line pt-4">
             <label className="block space-y-1 text-sm">

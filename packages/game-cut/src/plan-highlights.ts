@@ -8,9 +8,9 @@
  */
 
 import { alignCameras, SYNC_STEP_SECONDS, type Alignment } from "./align.ts";
+import { chooseCamera, type CameraChoice, type CameraRig } from "./cameras.ts";
 import {
   loudnessSeries,
-  motionSeries,
   probe,
   type JobOptions,
   type Tools,
@@ -42,27 +42,6 @@ export interface PlanHighlightsOptions extends Partial<HighlightOptions> {
   readonly onStep?: (message: string) => void;
   readonly onProgress?: (fraction: number) => void;
   readonly signal?: AbortSignal;
-}
-
-/** The mean picture change over a short stretch of one file, or 0 if there is no such stretch. */
-async function activityAround(
-  tools: Tools,
-  file: string,
-  facts: VideoFacts,
-  startSeconds: number,
-  endSeconds: number,
-  job: JobOptions,
-): Promise<number> {
-  const start = Math.max(0, startSeconds);
-  const end = Math.min(facts.durationSeconds, endSeconds);
-  if (end - start < 1) return 0;
-  const series = await motionSeries(tools, file, 0.5, job, {
-    startSeconds: start,
-    lengthSeconds: end - start,
-  });
-  // The first reading of any run is a placeholder 0 (nothing before it to compare with).
-  const real = series.slice(1);
-  return real.length === 0 ? 0 : real.reduce((a, b) => a + b, 0) / real.length;
 }
 
 export async function planHighlights(
@@ -118,48 +97,25 @@ export async function planHighlights(
   }
   tell(0.65);
 
-  const offset = alignment?.sync.offsetSeconds ?? 0;
+  const rig: CameraRig = {
+    tools,
+    fileA,
+    fileB,
+    factsA,
+    factsB,
+    offsetSeconds: alignment?.sync.offsetSeconds ?? 0,
+  };
   // Decide each clip's camera first (async), then lay the clips out (pure).
   const preliminary = clipsFromTimes(times, factsA.durationSeconds, options);
-  const choices = new Map<
-    number,
-    { camera: "A" | "B"; clipStartSeconds: number } | null
-  >();
+  const choices = new Map<number, CameraChoice | null>();
   for (let i = 0; i < preliminary.clips.length; i += 1) {
     const c = preliminary.clips[i]!;
     say(`Choosing the camera for clip ${i + 1} of ${preliminary.clips.length}…`);
     tell(0.65 + (0.35 * i) / Math.max(1, preliminary.clips.length));
-    if (fileB === null || alignment === null) {
-      choices.set(c.startSeconds, { camera: "A", clipStartSeconds: c.startSeconds });
-      continue;
-    }
-    const aCovers = c.endSeconds <= factsA.durationSeconds;
-    const bStart = c.startSeconds - offset;
-    const bEnd = c.endSeconds - offset;
-    const bCovers = bStart >= 0 && bEnd <= factsB.durationSeconds;
-    if (!aCovers && !bCovers) {
-      choices.set(c.startSeconds, null);
-    } else if (!bCovers) {
-      choices.set(c.startSeconds, { camera: "A", clipStartSeconds: c.startSeconds });
-    } else if (!aCovers) {
-      choices.set(c.startSeconds, { camera: "B", clipStartSeconds: bStart });
-    } else {
-      const a = await activityAround(
-        tools,
-        fileA,
-        factsA,
-        c.startSeconds,
-        c.endSeconds,
-        jobOf(),
-      );
-      const b = await activityAround(tools, fileB, factsB, bStart, bEnd, jobOf());
-      choices.set(
-        c.startSeconds,
-        b > a
-          ? { camera: "B", clipStartSeconds: bStart }
-          : { camera: "A", clipStartSeconds: c.startSeconds },
-      );
-    }
+    choices.set(
+      c.startSeconds,
+      await chooseCamera(rig, c.startSeconds, c.endSeconds, jobOf()),
+    );
   }
   const plan = clipsFromTimes(
     times,

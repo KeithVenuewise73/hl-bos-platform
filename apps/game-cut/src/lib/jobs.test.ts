@@ -5,7 +5,14 @@ import type { JobResult } from "./types.ts";
 
 const result: JobResult = {
   kind: "make",
-  made: { outFile: "D:\\x.mp4", seconds: 10, bytes: 100, quality: "full" },
+  made: {
+    planId: "plan-x",
+    picksFile: null,
+    outFile: "D:\\x.mp4",
+    seconds: 10,
+    bytes: 100,
+    quality: "full",
+  },
 };
 const tick = () => new Promise((r) => setTimeout(r, 5));
 class Stop extends Error {}

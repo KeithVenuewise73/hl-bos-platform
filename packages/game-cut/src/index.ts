@@ -32,3 +32,7 @@ export { formatTime, parseTimestamps } from "./timestamps.ts";
 export type { TimedMoment, TimestampProblem } from "./timestamps.ts";
 export { overallProgress } from "./analyze.ts";
 export type { RenderPlan } from "./render.ts";
+export { chooseCamera } from "./cameras.ts";
+export type { CameraChoice, CameraRig } from "./cameras.ts";
+export { applyForced, toGameSeconds } from "./forced.ts";
+export type { ClockBasis, ClockContext } from "./forced.ts";
