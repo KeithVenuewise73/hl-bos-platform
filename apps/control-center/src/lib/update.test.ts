@@ -82,7 +82,8 @@ describe("scripts/update.mjs --json, against real git", () => {
     const r = runUpdater(laptop, "--json");
     expect(r.code).toBe(10);
     expect(JSON.parse(r.out)).toMatchObject({ kind: "updated", rebuild: true });
-    expect(readFileSync(join(laptop, "feature.txt"), "utf8")).toBe("v2\n");
+    // Windows git may check files out with CRLF; the content is what matters.
+    expect(readFileSync(join(laptop, "feature.txt"), "utf8").trim()).toBe("v2");
     expect(existsSync(join(laptop, ".hlbos", "console-needs-rebuild"))).toBe(true);
     expect(describeUpdate(r.out).ok).toBe(true);
 
