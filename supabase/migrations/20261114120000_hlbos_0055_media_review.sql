@@ -46,14 +46,16 @@ alter default privileges in schema review revoke all on functions from public, a
 
 -- --- Tables -----------------------------------------------------------------
 
--- The teams photos can be filed under. A team's page is private (team password)
--- unless the owner makes it public.
+-- The teams photos can be filed under. A team's page is PUBLIC, because this is
+-- media coverage of the team: the photos are meant to be seen. The owner can
+-- still make one team private (team password). Nothing reaches a public page
+-- until the owner has approved it.
 create table if not exists review.teams (
   id          uuid primary key default gen_random_uuid(),
   slug        text not null unique
               check (slug ~ '^[a-z0-9]+(-[a-z0-9]+)*$' and length(slug) <= 120),
   name        text not null unique check (length(name) between 1 and 120),
-  visibility  text not null default 'private' check (visibility in ('private', 'public')),
+  visibility  text not null default 'public' check (visibility in ('private', 'public')),
   created_at  timestamptz not null default now()
 );
 
@@ -390,7 +392,7 @@ end $$;
 
 -- --- Teams (the owner, through the Edge Function) ---------------------------
 
--- A new client to shoot for: add a team. Its page starts private. The slug (the
+-- A new client to shoot for: add a team. Its page starts public. The slug (the
 -- page's web address) is made from the name; a clash gets -2, -3...
 create or replace function review.create_team(p_name text)
 returns uuid language plpgsql set search_path = '' as $$

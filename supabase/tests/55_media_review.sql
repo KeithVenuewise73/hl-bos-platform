@@ -9,7 +9,7 @@
 --   4. Reviewing: approve, reject, back to waiting; "approve the rest" never
 --      overrides a rejection; hints and statuses are constrained.
 --   5. Folders: rename, move (back to waiting), a new folder from photos.
---   6. Teams: the four, private to start; a new one gets its own address.
+--   6. Teams: the four, public to start (media coverage); a new one gets its own address.
 -- ===========================================================================
 begin;
 select plan(67);
@@ -56,7 +56,7 @@ select is(review.register_publisher(repeat('c', 64)), 'closed', 't_after_the_win
 
 -- --- 6a. Teams: the four, private ------------------------------------------
 select is((select count(*)::int from review.teams), 4, 't_four_teams_to_start');
-select is((select count(*)::int from review.teams where visibility = 'private'), 4, 't_every_team_starts_private');
+select is((select count(*)::int from review.teams where visibility = 'public'), 4, 't_every_team_page_starts_public');
 select ok(exists (select 1 from review.teams where slug = 'cazenovia-chiefs' and name = 'Cazenovia Chiefs'),
   't_team_names_and_addresses');
 
@@ -169,14 +169,14 @@ select is((select waiting || '/' || approved || '/' || rejected from review.fold
 -- --- 6b. Teams: a new client ------------------------------------------------
 select lives_ok($$ insert into ctx select 't', review.create_team('  Orchard Park Quakers ')::text $$, 't_create_a_team');
 select is((select slug || '|' || visibility from review.teams where name = 'Orchard Park Quakers'),
-  'orchard-park-quakers|private', 't_the_new_team_gets_an_address_and_starts_private');
+  'orchard-park-quakers|public', 't_the_new_team_gets_an_address_and_starts_public');
 select throws_ok($$ select review.create_team('orchard park quakers') $$, '23505', null, 't_no_two_teams_with_one_name');
 insert into ctx select 'clash', review.create_team('West Seneca High School!')::text;
 select is((select slug from review.teams where id = (select v from ctx where k = 'clash')::uuid),
   'west-seneca-high-school-2', 't_two_names_that_make_one_address_get_a_number');
 select throws_ok($$ select review.create_team('!!!') $$, '22023', null, 't_a_name_needs_letters_or_numbers');
-select review.set_team_visibility((select v from ctx where k = 't')::uuid, 'public');
-select is((select visibility from review.teams where name = 'Orchard Park Quakers'), 'public', 't_the_owner_can_make_a_team_public');
+select review.set_team_visibility((select v from ctx where k = 't')::uuid, 'private');
+select is((select visibility from review.teams where name = 'Orchard Park Quakers'), 'private', 't_the_owner_can_make_one_team_private');
 select throws_ok($$ select review.set_team_visibility((select id from review.teams limit 1), 'secret') $$, '22023', null,
   't_a_team_is_private_or_public');
 select review.set_folder_team((select id from review.folders where name = 'Varsity vs Wheatfield (Hockey)'),
