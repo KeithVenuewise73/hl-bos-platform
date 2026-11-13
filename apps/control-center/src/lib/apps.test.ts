@@ -111,16 +111,22 @@ describe("what is sitting on an app's port", () => {
   it("clears away only a stale refusing copy of our own app", () => {
     expect(classifyPort({ reached: false, ok: false, refusing: false })).toBe("free");
     expect(classifyPort({ reached: true, ok: true, refusing: false })).toBe("healthy");
-    expect(classifyPort({ reached: true, ok: false, refusing: true })).toBe("stale-refusing");
+    expect(classifyPort({ reached: true, ok: false, refusing: true })).toBe(
+      "stale-refusing",
+    );
   });
 
   it("does not call a refusing app healthy just because it answered 200", () => {
     // ok is computed as (HTTP ok && not refusing) before it reaches here.
-    expect(classifyPort({ reached: true, ok: false, refusing: true })).not.toBe("healthy");
+    expect(classifyPort({ reached: true, ok: false, refusing: true })).not.toBe(
+      "healthy",
+    );
   });
 
   it("never stops something that is merely unhealthy and unidentified", () => {
-    expect(classifyPort({ reached: true, ok: false, refusing: false })).toBe("someone-else");
+    expect(classifyPort({ reached: true, ok: false, refusing: false })).toBe(
+      "someone-else",
+    );
   });
 
   it("says plainly when it will not touch the port", () => {
@@ -132,7 +138,9 @@ describe("what is sitting on an app's port", () => {
   });
 
   it("builds the stop command for a real port and refuses anything else", () => {
-    expect(stopListenerCommand(4600).join(" ")).toContain("-LocalPort 4600 -State Listen");
+    expect(stopListenerCommand(4600).join(" ")).toContain(
+      "-LocalPort 4600 -State Listen",
+    );
     expect(() => stopListenerCommand(0)).toThrow();
     expect(() => stopListenerCommand(4600.5)).toThrow();
     expect(() => stopListenerCommand(Number.NaN)).toThrow();
