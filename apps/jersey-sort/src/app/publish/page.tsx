@@ -73,7 +73,7 @@ export default async function PublishPage({
     created_at: "",
   };
   const n = contents?.photos.length ?? 0;
-  const submit = `Publish to 5 Star (${count(n, "photo")})`;
+  const submit = `Send for review (${count(n, "photo")})`;
   const jerseySwitch = (
     <label
       className="flex items-start gap-2 text-sm sm:col-span-2"
@@ -89,7 +89,7 @@ export default async function PublishPage({
       <span>
         <span className="font-semibold text-text">Also find jersey numbers</span>
         <span className="block text-muted" data-testid="publish-reader">
-          Off: the photos are published without reading them, which costs nothing. On:
+          Off: the photos are brought in without reading them, which costs nothing. On:
           every photo is read by {reader.label}
           {reader.choice === "claude"
             ? " (each photo is sent to Anthropic as a 1600 px preview, which costs a little per photo)"
@@ -127,7 +127,7 @@ export default async function PublishPage({
   return (
     <div className="mx-auto max-w-2xl space-y-4">
       <div>
-        <h1 className="display text-2xl">Publish to 5 Star</h1>
+        <h1 className="display text-2xl">Send to 5 Star for review</h1>
         <p className="mt-1 text-sm text-muted">
           From DateSort. Choose the team gallery, check the game, and publish it to
           5starsportsmedia.com.
@@ -167,7 +167,7 @@ export default async function PublishPage({
             <Link className="underline" href="/galleries">
               Create the team gallery
             </Link>{" "}
-            (its name and team password), then press <em>Publish to 5 Star</em> in
+            (its name and team password), then press <em>Send for review</em> in
             DateSort again.
           </p>
         </section>

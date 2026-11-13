@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 import { Nav } from "@/components/Nav.tsx";
 import { db } from "@/lib/db.ts";
 import { kickQueue } from "@/lib/queue.ts";
+import { pendingTotal } from "@/lib/repo/approvals.ts";
 import { progress } from "@/lib/repo/dashboard.ts";
 import { currentUser } from "@/lib/session.ts";
 import "./globals.css";
@@ -31,6 +32,7 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
       <Nav
         user={user}
         reviewCount={p.needsReview}
+        approveCount={pendingTotal(db(), user.organizationId)}
         processing={p.queued + p.processing}
       />
     );

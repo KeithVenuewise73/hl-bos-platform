@@ -19,6 +19,7 @@ import {
   type PhotoRow,
 } from "../../../../supabase/functions/_shared/gallery/core.ts";
 import { ingestPhoto } from "./ingest.ts";
+import { approvePhotos, rejectPhotos } from "./repo/approvals.ts";
 import {
   connect,
   newPublishProgress,
@@ -320,7 +321,7 @@ async function setup() {
   });
   const a = createEvent(db, org, userId, game("Varsity vs Wheatfield", "2026-10-24"));
   const b = createEvent(db, org, userId, game("Varsity vs Lockport", "2026-10-31"));
-  const add = async (eventId: string, name: string, n: string) => {
+  const add = async (eventId: string, name: string, n: string, approve = true) => {
     const r = await ingestPhoto(db, dataDir, {
       org,
       userId,
@@ -329,6 +330,8 @@ async function setup() {
       bytes: await wide(n),
     });
     if (!r.ok) throw new Error(r.reason);
+    // Publishing sends only approved photos; these tests are about publishing.
+    if (approve) approvePhotos(db, org, userId, "owner", [r.photoId]);
     return r.photoId;
   };
   const a1 = await add(a, "A_0001.JPG", "24");
@@ -458,6 +461,44 @@ describe("publishing team galleries online", () => {
     ]); // old cover removed
     const listing = (await (await svc.get("/listing")).json()) as { games: unknown[] };
     expect(listing.games).toHaveLength(1);
+  });
+
+  it("sends only approved photos: pending and rejected stay home, and un-approving takes one down", async () => {
+    const t = await setup();
+    const svc = onlineService();
+    svc.settings.windowOpen = true;
+    await connect(SERVICE, t.dataDir, svc.fetch);
+    const pending = await t.add(t.a, "A_0004.JPG", "55", false);
+    const rejected = await t.add(t.a, "A_0005.JPG", "56", false);
+    rejectPhotos(t.db, t.org, t.userId, "owner", [rejected], "blurry");
+    const publish = async () => {
+      const p = newPublishProgress();
+      await publishGallery(t.db, t.dataDir, {
+        org: t.org,
+        galleryId: t.gallery,
+        serviceUrl: SERVICE,
+        fetch: svc.fetch,
+        progress: p,
+      });
+      expect(p.phase).toBe("done");
+    };
+    await publish();
+    const online = () => [...svc.files.keys()].join("\n");
+    expect(online()).toContain(t.a1);
+    expect(online()).not.toContain(pending);
+    expect(online()).not.toContain(rejected);
+    // A photo is approved later: it goes up. Then it is sent back to pending: it comes down.
+    approvePhotos(t.db, t.org, t.userId, "owner", [pending]);
+    await publish();
+    expect(online()).toContain(pending);
+    t.db.run("delete from photo_approvals where photo_id = :id", { id: pending });
+    await publish();
+    expect(online()).not.toContain(pending);
+    expect(online()).toContain(t.a1);
+    // A photo that is not approved cannot be this game's cover.
+    expect(() => setCover(t.db, t.org, t.gallery, t.a, pending)).toThrow(
+      ValidationError,
+    );
   });
 
   it("a gallery switched off here is switched off online; deleting it removes it", async () => {

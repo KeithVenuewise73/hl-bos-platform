@@ -344,6 +344,36 @@ create table if not exists instagram_drafts (
 create index if not exists instagram_drafts_event
   on instagram_drafts (organization_id, event_id, updated_at desc);
 
+-- Review before publishing. LOCAL-ONLY, like instagram_drafts: these tables do
+-- not exist in migration 0052, and the photos table is not touched, so the
+-- local store still mirrors 0052 column for column.
+--
+-- A photo is PENDING until a row here says otherwise: no row, no approval.
+-- That is deliberate. Every photo that was in JerseySort before this existed,
+-- and every photo that arrives later, starts pending, so nothing reaches the
+-- website that a person has not looked at. Only the owner writes these rows.
+create table if not exists photo_approvals (
+  photo_id text primary key references photos(id) on delete cascade,
+  organization_id text not null references organizations(id) on delete cascade,
+  status text not null check (status in ('approved','rejected')),
+  reason text,
+  decided_by text references users(id) on delete set null,
+  decided_at text not null
+);
+create index if not exists photo_approvals_org_status
+  on photo_approvals (organization_id, status);
+
+-- Quality hints worked out from a photo's preview, so they are computed once.
+-- A hint, never a decision: a person approves or rejects.
+create table if not exists photo_quality (
+  photo_id text primary key references photos(id) on delete cascade,
+  sharpness real,
+  brightness real,
+  long_edge integer,
+  flags text not null,
+  computed_at text not null
+);
+
 -- The review queue is a VIEW, not a table: a photo is in it exactly when its
 -- status says so, so the queue cannot drift from the photos it describes.
 create view if not exists review_queue as

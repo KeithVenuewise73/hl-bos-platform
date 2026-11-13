@@ -91,15 +91,36 @@ unit tests. Posting directly to Instagram is planned in
 `docs/operations/instagram-posting-plan.md` and needs the CEO's Instagram
 access first.
 
+## Approve before publishing (`/approve`)
+
+Nothing reaches 5starsportsmedia.com until the **owner** approves it. Every photo
+is _waiting_ until decided (photos from before this page existed too). On a
+game's page (`/approve/<game>`) the owner ticks photos and **Approves**,
+**Rejects** (kept here, never published, optional reason) or sends them **Back
+to waiting**; **Approve all waiting** never overrides a rejection. If photos are
+under the wrong game, **Move** them to another game or **Start a new game from
+the ticked photos**; a long pause between photos is marked as a likely break
+between games. A moved photo goes back to waiting. Each photo carries
+quality hints (_Possibly soft_, _Very dark_, _Very bright_, _Low resolution_,
+from `src/lib/quality-core.ts`); they are hints for the reviewer only, and the
+cut-offs are first guesses, to be tuned on real photos.
+
+The rules live in the data layer, not the page: only the owner can decide or
+move (`repo/approvals.ts`, `repo/relabel.ts`, tested), and publishing
+(`online-core.ts`) uploads only approved photos and takes down any that stop
+being approved. Decisions are kept in local tables (`photo_approvals`,
+`photo_quality`) and do not change the Supabase schema (migration 0052).
+Local share links are not gated. **Videos are not part of this yet**: they need
+a decision on how they reach the website.
+
 ## Publish a game to 5 Star from DateSort
 
 DateSort's **Publish to 5 Star** opens `/publish?folder=…&date=…&sport=…&name=…`
 (`src/app/publish/page.tsx`, `src/actions/publish-folder.ts`). Choose the team
-gallery and press **Publish to 5 Star**: the folder's game is found by its
+gallery and press **Send for review**: the folder's game is found by its
 photos' bytes if it is already in JerseySort (`src/lib/folder-event.ts`), or
-created; it is added to the team gallery; the photos are brought in; and once
-every one has been tried the gallery is published online (connecting first if
-this computer never has). Jersey numbers are read only if **Also find jersey
+created; it is added to the team gallery; the photos are brought in and wait on
+the approval page; you publish the gallery from its page once they are approved. Jersey numbers are read only if **Also find jersey
 numbers** is ticked: otherwise the photos come in as `uploaded` ("Not read
 yet"), are not queued and not counted as being analysed, and the game's page
 offers **Find jersey numbers** to read them later (`readUnread`). The team

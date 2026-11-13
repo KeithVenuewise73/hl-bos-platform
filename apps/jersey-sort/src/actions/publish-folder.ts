@@ -6,7 +6,7 @@ import { db } from "@/lib/db.ts";
 import { eventForFolder } from "@/lib/folder-event.ts";
 import { ImportError, readImportFolder } from "@/lib/folder-import.ts";
 import { startImport } from "@/lib/imports.ts";
-import { connectOnline, isConnected, startPublish } from "@/lib/online.ts";
+import { connectOnline, isConnected } from "@/lib/online.ts";
 import { kickQueue } from "@/lib/queue.ts";
 import { readUnread } from "@/lib/queue-core.ts";
 import { createEvent, ValidationError } from "@/lib/repo/events.ts";
@@ -20,13 +20,13 @@ const text = (f: FormData, k: string) => {
 
 /**
  * "Publish to 5 Star", from DateSort: put a date's folder in a team gallery
- * and publish that gallery to 5starsportsmedia.com.
+ * and send its photos for review. Nothing is published until the owner approves.
  *
  *   1. the folder's photos are found in JerseySort already (same event used
  *      again), or a new event is made for them;
  *   2. the event is added to the chosen team gallery (its other games stay);
- *   3. the photos are brought in (only the missing ones), and once every one
- *      has been tried, the gallery is published online.
+ *   3. the photos are brought in (only the missing ones) and wait on the
+ *      approval page; only approved photos can be published.
  *
  * Jersey numbers are NOT read unless the switch is ticked: reading means
  * every photo is analysed, which costs money with Claude as the reader. The
@@ -103,11 +103,10 @@ export async function publishFolderAction(form: FormData): Promise<void> {
     eventId,
     contents,
     analyze: jerseys,
-    onDone: () => startPublish(org, gallery.id),
   });
   redirect(
-    `/galleries/${gallery.id}?notice=${encodeURIComponent(
-      `${reused ? "This game was already in JerseySort; it is now in this team gallery." : "Game created and added to this team gallery."} Bringing in ${contents.photos.length.toLocaleString("en-US")} photos from ${contents.folder}; the gallery goes online on 5starsportsmedia.com as soon as they are all in. ${jerseys ? "Jersey numbers are being read too." : "Jersey numbers are not being read: do that from the game's page if you want them."}`,
-    )}#online`,
+    `/approve/${eventId}?notice=${encodeURIComponent(
+      `${reused ? "This game was already in JerseySort; it is now in this team gallery." : "Game created and added to this team gallery."} Bringing in ${contents.photos.length.toLocaleString("en-US")} photos from ${contents.folder}. Nothing goes on 5starsportsmedia.com until you approve it here: check the quality and the game label, then publish the gallery from its page. ${jerseys ? "Jersey numbers are being read too." : "Jersey numbers are not being read: do that from the game's page if you want them."}`,
+    )}`,
   );
 }

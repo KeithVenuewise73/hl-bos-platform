@@ -14,16 +14,19 @@ const LINKS = [
   { href: "/albums", label: "Albums" },
   { href: "/galleries", label: "Team galleries" },
   { href: "/review", label: "Review" },
+  { href: "/approve", label: "Approve" },
   { href: "/settings", label: "Settings" },
 ];
 
 export function Nav({
   user,
   reviewCount,
+  approveCount,
   processing,
 }: {
   user: SessionUser;
   reviewCount: number;
+  approveCount: number;
   processing: number;
 }) {
   return (
@@ -65,6 +68,11 @@ export function Nav({
             {l.href === "/review" && reviewCount > 0 ? (
               <span className="ml-1.5 rounded-full bg-brand px-1.5 py-0.5 text-[10px] text-white">
                 {reviewCount.toLocaleString()}
+              </span>
+            ) : null}
+            {l.href === "/approve" && approveCount > 0 ? (
+              <span className="ml-1.5 rounded-full bg-brand px-1.5 py-0.5 text-[10px] text-white">
+                {approveCount.toLocaleString()}
               </span>
             ) : null}
           </Link>

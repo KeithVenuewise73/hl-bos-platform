@@ -26,6 +26,7 @@ import path from "node:path";
 
 import { nowIso, type Db } from "./db-core.ts";
 import { renderWebVariants, sniff } from "./media-core.ts";
+import { APPROVED_PHOTO } from "./repo/approvals.ts";
 import { ValidationError } from "./repo/events.ts";
 import { getObject } from "./storage.ts";
 
@@ -174,11 +175,13 @@ export function setCover(
     }
     const photo = db.get(
       `select 1 from photos where id = :p and event_id = :e and organization_id = :org
-          and unusable = 0 and preview_path is not null`,
+          and unusable = 0 and preview_path is not null and ${APPROVED_PHOTO}`,
       { p: photoId, e: eventId, org },
     );
     if (photo === undefined)
-      throw new ValidationError("That photo is not in this game.");
+      throw new ValidationError(
+        "That photo is not in this game, or has not been approved yet.",
+      );
     db.run(
       `insert into shared_gallery_covers (gallery_id, event_id, photo_id) values (:g, :e, :p)
        on conflict (gallery_id, event_id) do update set photo_id = excluded.photo_id`,
@@ -395,6 +398,7 @@ export async function publishGallery(
       }>(
         `select id, original_filename, captured_at, storage_path, preview_path from photos
           where event_id = :e and organization_id = :org and unusable = 0 and preview_path is not null
+            and ${APPROVED_PHOTO}
           order by captured_at, original_filename`,
         { e: e.id, org },
       ),
@@ -534,7 +538,7 @@ export async function publishGallery(
       // Photos removed here are gone online now; forget them.
       db.run(
         `delete from published_photos where gallery_id = :g and event_id = :e
-           and photo_id not in (select id from photos where event_id = :e and unusable = 0)`,
+           and photo_id not in (select id from photos where event_id = :e and unusable = 0 and ${APPROVED_PHOTO})`,
         { g: galleryId, e: event.id },
       );
       if (coverOk) {
