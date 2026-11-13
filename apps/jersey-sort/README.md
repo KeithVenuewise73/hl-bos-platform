@@ -93,7 +93,12 @@ access first.
 
 ## Publish a game to 5 Star from DateSort
 
-DateSort's **Publish to 5 Star** opens `/publish?folder=…&date=…&sport=…&name=…`
+> DateSort no longer has a button that opens this page: its **Publish to 5 Star**
+> button was removed so nothing reaches the website without review (DateSort's
+> **Send for review**). The page below still exists inside JerseySort and still
+> publishes directly, with no review step.
+
+The page `/publish?folder=…&date=…&sport=…&name=…`
 (`src/app/publish/page.tsx`, `src/actions/publish-folder.ts`). Choose the team
 gallery and press **Publish to 5 Star**: the folder's game is found by its
 photos' bytes if it is already in JerseySort (`src/lib/folder-event.ts`), or

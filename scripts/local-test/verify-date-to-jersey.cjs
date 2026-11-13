@@ -4,7 +4,7 @@
  *
  *   DateSort scans a card, copies a game into its date folder, has
  *   "Basketball - Zac K" added (the folder is renamed, nothing copied twice),
- *   then "Find jersey numbers" starts JerseySort if it is not running and
+ *   then the "JerseySort" button starts JerseySort if it is not running and
  *   gives the import link. That link goes through JerseySort's sign-up and
  *   back to the import page with the date, sport and name filled in; creating
  *   the event brings every photo in. The game folder is fingerprinted before
@@ -13,6 +13,8 @@
  *   node scripts/local-test/verify-date-to-jersey.cjs [DateSort URL]
  *
  * DateSort must be running. JerseySort may or may not be: the button starts it.
+ * The card has no button that publishes straight to the website (that is
+ * "Send for review", checked by verify-send-for-review.cjs).
  * Reading numbers is left to whatever reader JerseySort's organization uses;
  * this checks the hand-off, not the reading.
  */
@@ -173,34 +175,18 @@ async function jpeg(file, when, color) {
 
   console.log("\nWhen the name changed after copying (what to press)");
   // The folder on the drive is "2026-01-13 - Basketball - Zac K". Change the
-  // name on the card WITHOUT copying again, then press each button.
+  // name on the card WITHOUT copying again, then press the button.
   await day.locator("[data-testid=event-name]").fill("Basketball - Renamed");
-  await day.locator("[data-testid=publish-5star]").click();
-  const renameMsg = await day
-    .locator("[data-testid=publish-error]")
-    .textContent({ timeout: 60_000 })
-    .catch(() => "no message");
-  check(
-    "Publish says exactly what to press, and which folder is which",
-    renameMsg.includes('folder on your drive is "2026-01-13 - Basketball - Zac K"') &&
-      renameMsg.includes('"2026-01-13 - Basketball - Renamed"') &&
-      renameMsg.includes(
-        'Press the button above that says "Create folder & copy photos"',
-      ) &&
-      renameMsg.includes("nothing is copied twice") &&
-      renameMsg.includes('press "Publish to 5 Star" again'),
-    renameMsg,
-  );
-  await day.locator("[data-testid=find-jersey-numbers]").click();
+  await day.locator("[data-testid=jersey-sort-button]").click();
   const jerseyMsg = await day
     .locator("[data-testid=jersey-error]")
     .textContent({ timeout: 60_000 })
     .catch(() => "no message");
   check(
-    "Find jersey numbers says the same, naming its own button to come back to",
+    "JerseySort says what to press, naming its own button to come back to",
     jerseyMsg.includes(
       'Press the button above that says "Create folder & copy photos"',
-    ) && jerseyMsg.includes('press "Find jersey numbers" again'),
+    ) && jerseyMsg.includes('press "JerseySort" again'),
     jerseyMsg,
   );
   check(
@@ -213,9 +199,14 @@ async function jpeg(file, when, color) {
   // Put the name back, as it was when the folder was made.
   await day.locator("[data-testid=event-name]").fill("Basketball - Zac K");
 
-  console.log("\nFind jersey numbers");
+  check(
+    "the card has no button that publishes straight to the website",
+    (await day.locator("button:has-text('Publish to 5 Star')").count()) === 0 &&
+      (await day.locator("[data-testid=publish-5star]").count()) === 0,
+  );
+  console.log("\nJerseySort button");
   const t0 = Date.now();
-  await day.locator("[data-testid=find-jersey-numbers]").click();
+  await day.locator("[data-testid=jersey-sort-button]").click();
   const link = await day
     .locator("[data-testid=open-jersey-sort]")
     .getAttribute("href", { timeout: 420_000 })
@@ -239,29 +230,6 @@ async function jpeg(file, when, color) {
   );
   await shot(page, "01-datesort-jersey-link");
 
-  console.log("\nPublish to 5 Star");
-  await day.locator("[data-testid=publish-5star]").click();
-  const pub = await day
-    .locator("[data-testid=open-publish]")
-    .getAttribute("href", { timeout: 420_000 })
-    .catch(
-      async () =>
-        `ERROR: ${await day
-          .locator("[data-testid=publish-error]")
-          .textContent()
-          .catch(() => "no link")}`,
-    );
-  const pubUrl = pub && !pub.startsWith("ERROR") ? new URL(pub) : null;
-  check(
-    "Publish to 5 Star gives the publish link for the same date folder",
-    pubUrl !== null &&
-      pubUrl.pathname === "/publish" &&
-      pubUrl.searchParams.get("folder") === folder &&
-      pubUrl.searchParams.get("date") === "2026-01-13" &&
-      pubUrl.searchParams.get("sport") === "Basketball" &&
-      pubUrl.searchParams.get("name") === "Zac K",
-    pub,
-  );
   if (url === null) return finish(browser, work);
 
   console.log("\nJerseySort: sign up on the way, then import");

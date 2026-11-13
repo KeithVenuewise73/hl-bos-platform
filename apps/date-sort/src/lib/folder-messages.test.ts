@@ -14,8 +14,8 @@ describe("what to press when a date's folder is not ready", () => {
   it("names the real label of the card's copy button, not a vaguer word", () => {
     expect(COPY_BUTTON).toBe('"Create folder & copy photos"');
     for (const m of [
-      noDestinationMessage("publish"),
-      renameMessage("publish", "2026-11-03", "2026-11-03 - Volleyball_Boys"),
+      noDestinationMessage("review"),
+      renameMessage("review", "2026-11-03", "2026-11-03 - Volleyball_Boys"),
       notCopiedMessage("jersey"),
     ]) {
       expect(m).toContain('"Create folder & copy photos"');
@@ -24,14 +24,14 @@ describe("what to press when a date's folder is not ready", () => {
   });
 
   it("says which button to come back to, by its label", () => {
-    expect(actionButton("publish")).toBe('"Publish to 5 Star"');
-    expect(actionButton("jersey")).toBe('"Find jersey numbers"');
-    expect(notCopiedMessage("publish")).toContain('press "Publish to 5 Star" again');
-    expect(notCopiedMessage("jersey")).toContain('press "Find jersey numbers" again');
+    expect(actionButton("review")).toBe('"Send for review"');
+    expect(actionButton("jersey")).toBe('"JerseySort"');
+    expect(notCopiedMessage("review")).toContain('press "Send for review" again');
+    expect(notCopiedMessage("jersey")).toContain('press "JerseySort" again');
   });
 
   it("for a renamed folder, shows both names and says it only renames", () => {
-    const m = renameMessage("publish", "2026-11-03", "2026-11-03 - Volleyball_Boys");
+    const m = renameMessage("review", "2026-11-03", "2026-11-03 - Volleyball_Boys");
     expect(m).toContain('folder on your drive is "2026-11-03"');
     expect(m).toContain('"2026-11-03 - Volleyball_Boys"');
     expect(m).toContain("to rename the folder to match");

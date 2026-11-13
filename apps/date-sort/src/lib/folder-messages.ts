@@ -1,13 +1,12 @@
 /**
- * What DateSort says when "Publish to 5 Star" or "Find jersey numbers" is
- * pressed for a date whose folder is not ready. Each message names the exact
+ * What DateSort says when "JerseySort" or "Send for review" is pressed for a date whose folder is not ready. Each message names the exact
  * button to press (as it is labelled on the screen) and what that button does,
  * so nobody has to work out which "Copy" is meant.
  *
  * Free of `server-only` so it can be tested.
  */
 
-export type Purpose = "publish" | "jersey" | "review";
+export type Purpose = "jersey" | "review";
 
 /** The button on the date card that makes the folder, or renames and finishes it. */
 export const COPY_BUTTON = '"Create folder & copy photos"';
@@ -16,8 +15,7 @@ const COPY_AGAIN = '"Copy again…"';
 
 /** The button that was pressed, as labelled on the card. */
 export function actionButton(purpose: Purpose): string {
-  if (purpose === "review") return '"Send for review"';
-  return purpose === "publish" ? '"Publish to 5 Star"' : '"Find jersey numbers"';
+  return purpose === "review" ? '"Send for review"' : '"JerseySort"';
 }
 
 /** No destination folder has ever been chosen. */

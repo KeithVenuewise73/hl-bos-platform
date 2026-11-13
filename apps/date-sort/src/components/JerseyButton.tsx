@@ -10,38 +10,16 @@ type State =
   | { readonly kind: "ready"; readonly url: string }
   | { readonly kind: "error"; readonly message: string };
 
-const WORDS = {
-  jersey: {
-    button: "Find jersey numbers",
-    open: "Open this game in JerseySort ↗",
-    test: "find-jersey-numbers",
-    openTest: "open-jersey-sort",
-  },
-  publish: {
-    button: "Publish to 5 Star",
-    open: "Choose the team gallery and publish ↗",
-    test: "publish-5star",
-    openTest: "open-publish",
-  },
-} as const;
-
 /**
- * "Find jersey numbers" and "Publish to 5 Star" on a date card: hands the
- * date's folder to JerseySort (starting it if needed) and gives a link to the
- * page where the game becomes an event, or is published to
- * 5starsportsmedia.com. Only for the games the CEO picks: nothing is read
- * until he confirms there.
+ * "JerseySort" on a date card: hands the date's folder to JerseySort (starting
+ * it if needed) and gives a link to the page where the game becomes an event
+ * and its jersey numbers can be read. Only for the games the CEO picks:
+ * nothing is read until he confirms there.
+ *
+ * Getting photos onto the website is NOT done from here: that is "Send for
+ * review", which puts them in a private review area first.
  */
-export function CardJersey({
-  day,
-  copy,
-  purpose = "jersey",
-}: {
-  day: string;
-  copy: CopyState;
-  purpose?: "jersey" | "publish";
-}) {
-  const words = WORDS[purpose];
+export function CardJersey({ day, copy }: { day: string; copy: CopyState }) {
   const [state, setState] = useState<State>({ kind: "idle" });
 
   async function go() {
@@ -50,7 +28,7 @@ export function CardJersey({
       const res = await fetch("/api/jersey-sort", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ day, eventName: copy.names[day] ?? "", purpose }),
+        body: JSON.stringify({ day, eventName: copy.names[day] ?? "" }),
       });
       const out = (await res.json().catch(() => ({}))) as {
         url?: string;
@@ -70,38 +48,32 @@ export function CardJersey({
   }
 
   return (
-    <div
-      className="space-y-1 text-xs"
-      data-testid={purpose === "publish" ? "card-publish" : "card-jersey"}
-    >
+    <div className="space-y-1 text-xs" data-testid="card-jersey">
       {state.kind === "ready" ? (
         <a
           className="btn-primary block w-full text-center"
-          data-testid={words.openTest}
+          data-testid="open-jersey-sort"
           href={state.url}
           target="_blank"
           rel="noopener noreferrer"
         >
-          {words.open}
+          Open this game in JerseySort ↗
         </a>
       ) : (
         <button
           type="button"
           className="btn-ghost w-full"
-          data-testid={words.test}
+          data-testid="jersey-sort-button"
           disabled={state.kind === "starting" || copy.running !== null}
           onClick={() => void go()}
         >
           {state.kind === "starting"
             ? "Starting JerseySort… (about a minute the first time)"
-            : words.button}
+            : "JerseySort"}
         </button>
       )}
       {state.kind === "error" ? (
-        <p
-          className="text-bad"
-          data-testid={purpose === "publish" ? "publish-error" : "jersey-error"}
-        >
+        <p className="text-bad" data-testid="jersey-error">
           {state.message}
         </p>
       ) : null}
