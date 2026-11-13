@@ -92,3 +92,14 @@ describe("Game Cut in the console", () => {
     expect(gc?.healthPath).toBe("/api/health");
   });
 });
+
+describe("ATS Resume Optimizer in the console", () => {
+  it("is started as a local app, so it does not mistake his laptop for a public deployment", () => {
+    expect(findApp("ats-resume-optimizer")?.env).toEqual({ HL_BOS_ENV: "local" });
+  });
+
+  it("is the only app that needs it", () => {
+    const others = LOCAL_APPS.filter((a) => a.key !== "ats-resume-optimizer");
+    expect(others.every((a) => a.env === undefined)).toBe(true);
+  });
+});

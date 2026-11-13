@@ -98,6 +98,7 @@ export async function startApp(key: string): Promise<StartResult> {
 
   const spawned = spawnPnpm(["--filter", app.filter, "start"], {
     cwd: REPO_ROOT,
+    ...(app.env !== undefined ? { env: app.env } : {}),
   });
   if (!spawned.ok) {
     return {

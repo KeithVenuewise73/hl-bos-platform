@@ -20,6 +20,13 @@ export interface LocalApp {
    * instead of surfacing as "started but never answered".
    */
   readonly minNode?: string;
+  /**
+   * Environment the console sets when it starts this app on this computer.
+   * An app that refuses to serve a production build with no declared
+   * environment (the ATS app, which holds a career database) needs to be told
+   * that this is the operator's own machine, not a public deployment.
+   */
+  readonly env?: Readonly<Record<string, string>>;
 }
 
 export const LOCAL_APPS: readonly LocalApp[] = [
@@ -30,6 +37,9 @@ export const LOCAL_APPS: readonly LocalApp[] = [
     filter: "@hl-bos/ats-resume-optimizer",
     port: 4600,
     healthPath: "/api/health",
+    // Started here, on his own computer, for him alone. Without this the app
+    // sees a production build with no login configured and correctly refuses.
+    env: { HL_BOS_ENV: "local" },
   },
   {
     key: "hype-video",
