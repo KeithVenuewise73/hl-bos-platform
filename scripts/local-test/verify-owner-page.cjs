@@ -288,8 +288,16 @@ async function api(route, body, headers) {
             return { data: { subscription: {} } };
           },
           signInWithOtp: (o) => {
-            window.__otp.push(o.email);
-            return Promise.resolve({ error: null });
+            window.__otp.push({
+              email: o.email,
+              create: o.options && o.options.shouldCreateUser,
+            });
+            // Like Supabase with account creation off: only an existing account is emailed.
+            return Promise.resolve(
+              o.email === "owner@example.test"
+                ? { error: null }
+                : { error: { message: "Signups not allowed for otp" } },
+            );
           },
           signOut: () => {
             window.__session = null;
@@ -329,9 +337,26 @@ async function api(route, body, headers) {
     await page.waitForFunction(() =>
       /Check your email/.test(document.getElementById("sign-msg").textContent),
     );
+    const asked = await page.evaluate(() => window.__otp);
     check(
-      "the sign-in link is requested for that email",
-      (await page.evaluate(() => window.__otp))[0] === "owner@example.test",
+      "the sign-in link is requested for that email, and never asks to create an account",
+      asked[0].email === "owner@example.test" && asked[0].create === false,
+      JSON.stringify(asked),
+    );
+    await page.reload();
+    await page.waitForSelector("#email");
+    await page.fill("#email", "stranger@example.test");
+    await page.click("button[type=submit]");
+    await page.waitForFunction(() =>
+      /could not be sent/.test(document.getElementById("sign-msg").textContent),
+    );
+    const refusal = await page.locator("#sign-msg").innerText();
+    check(
+      "an address with no account is told plainly, without saying why, and no link is claimed",
+      /Only the owner's account can sign in here/.test(refusal) &&
+        !/Check your email/.test(refusal) &&
+        !/Signups/.test(refusal),
+      refusal,
     );
 
     console.log("\nA signed-in person who is not the owner");
