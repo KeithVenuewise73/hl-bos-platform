@@ -128,3 +128,45 @@ export function describeHealth(
   }
   return { running: true, detail: "Running. Click to open it." };
 }
+
+/**
+ * What is on an app's port, as far as a start request needs to know.
+ *
+ * `refusing` is the ATS health endpoint's own word for "alive, and
+ * deliberately not serving" (see its /api/health route). It is the one state
+ * the console may clear away: it is demonstrably one of OUR apps, holding the
+ * port without doing anything, usually a copy started before a fix. Anything
+ * else that answers on the port is not ours to stop.
+ */
+export type PortState = "free" | "healthy" | "stale-refusing" | "someone-else";
+
+export function classifyPort(probe: {
+  reached: boolean;
+  ok: boolean;
+  refusing: boolean;
+}): PortState {
+  if (!probe.reached) return "free";
+  if (probe.ok) return "healthy";
+  return probe.refusing ? "stale-refusing" : "someone-else";
+}
+
+/** Plain English for the one case where the console will not touch the port. */
+export function portTakenMessage(app: LocalApp): string {
+  return `Something that is not ${app.name} is using port ${app.port}, so ${app.name} was not started. Nothing was stopped, because it is not this console's to stop. Close whatever is using that port (or restart the computer), then press Start again.`;
+}
+
+/**
+ * PowerShell that stops whatever is LISTENING on a port. The port is a number
+ * from the registry, validated here so nothing else can reach the command.
+ */
+export function stopListenerCommand(port: number): string[] {
+  if (!Number.isInteger(port) || port < 1 || port > 65535) {
+    throw new Error(`not a port: ${String(port)}`);
+  }
+  return [
+    "-NoProfile",
+    "-NonInteractive",
+    "-Command",
+    `Get-NetTCPConnection -LocalPort ${port} -State Listen -ErrorAction SilentlyContinue | Select-Object -ExpandProperty OwningProcess -Unique | ForEach-Object { Stop-Process -Id $_ -Force -ErrorAction SilentlyContinue }`,
+  ];
+}
