@@ -56,18 +56,21 @@ export function decide(facts) {
 
   if (!isRepo) {
     return {
+      kind: "blocked",
       rebuild: false,
       message: "This folder is not connected to GitHub. Starting with what is here.",
     };
   }
   if (!hasOrigin) {
     return {
+      kind: "blocked",
       rebuild: false,
       message: "No GitHub address is set for this folder. Starting with what is here.",
     };
   }
   if (dirty) {
     return {
+      kind: "blocked",
       rebuild: false,
       message:
         "You have unsaved changes in this folder, so nothing was touched. Starting as-is.",
@@ -75,6 +78,7 @@ export function decide(facts) {
   }
   if (!fetchOk) {
     return {
+      kind: "blocked",
       rebuild: false,
       message:
         "Could not reach GitHub just now. Starting with the copy already on this machine.",
@@ -82,21 +86,24 @@ export function decide(facts) {
   }
   if (!hasUpstream) {
     return {
+      kind: "blocked",
       rebuild: false,
       message: "This branch is not tracking anything on GitHub yet. Starting as-is.",
     };
   }
   if (behind === 0 && ahead === 0) {
-    return { rebuild: false, message: "Already up to date." };
+    return { kind: "current", rebuild: false, message: "Already up to date." };
   }
   if (behind === 0) {
     return {
+      kind: "current",
       rebuild: false,
       message: `Up to date. You have ${ahead} change${ahead === 1 ? "" : "s"} here that GitHub does not.`,
     };
   }
   if (ahead > 0) {
     return {
+      kind: "blocked",
       rebuild: false,
       message:
         `This folder and GitHub have both moved on (${ahead} here, ${behind} there). ` +
@@ -104,6 +111,7 @@ export function decide(facts) {
     };
   }
   return {
+    kind: "updated",
     rebuild: true,
     pull: true,
     message: `Collected ${behind} new change${behind === 1 ? "" : "s"} from GitHub.`,
@@ -158,13 +166,26 @@ async function gather() {
 }
 
 async function main() {
+  // --json: the Control Center's "Update from GitHub" button asks for one line
+  // of JSON instead of the launcher's console text. Exit codes are identical.
+  const asJson = process.argv.includes("--json");
   const decision = decide(await gather());
   if (decision.pull) {
     const merged = await git(["merge", "--ff-only", "@{u}"]);
     if (!merged.ok) {
-      console.log(
-        "   [..]   Could not apply the update cleanly. Starting with what is here.",
-      );
+      if (asJson) {
+        console.log(
+          JSON.stringify({
+            kind: "blocked",
+            rebuild: false,
+            message: "Could not apply the update cleanly. Nothing was changed.",
+          }),
+        );
+      } else {
+        console.log(
+          "   [..]   Could not apply the update cleanly. Starting with what is here.",
+        );
+      }
       process.exit(NOTHING_CHANGED);
     }
     try {
@@ -178,7 +199,17 @@ async function main() {
       // until its own next update.
     }
   }
-  console.log(`   [ok]   ${decision.message}`);
+  if (asJson) {
+    console.log(
+      JSON.stringify({
+        kind: decision.kind,
+        rebuild: decision.rebuild === true,
+        message: decision.message,
+      }),
+    );
+  } else {
+    console.log(`   [ok]   ${decision.message}`);
+  }
   process.exit(decision.rebuild ? CODE_CHANGED : NOTHING_CHANGED);
 }
 
