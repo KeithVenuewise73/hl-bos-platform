@@ -89,7 +89,7 @@ export async function cmd(
 export function spawnDetached(
   bin: string,
   args: readonly string[],
-  opts: { cwd?: string } = {},
+  opts: { cwd?: string; env?: Readonly<Record<string, string>> } = {},
 ): { ok: boolean; pid?: number; error?: string } {
   if (!ALLOWED.has(bin)) {
     return { ok: false, error: `refusing to run "${bin}": not in the allow-list` };
@@ -100,9 +100,13 @@ export function spawnDetached(
       detached: true,
       stdio: "ignore",
       windowsHide: true,
-      // No env override: the child inherits this process's environment and
-      // nothing in this app is allowed to read or rewrite it (see the
-      // no-restricted-properties rule).
+      // The child inherits this process's environment. A caller may ADD named
+      // variables (never read or remove any); the only thing that does so is a
+      // LocalApp's declared `env`, e.g. HL_BOS_ENV=local.
+      ...(opts.env !== undefined
+        ? // eslint-disable-next-line no-restricted-properties -- inherit-and-extend only; nothing is read.
+          { env: { ...process.env, ...opts.env } }
+        : {}),
     });
     child.unref();
     return child.pid === undefined
@@ -130,7 +134,7 @@ export async function pnpm(
 /** Same resolution, for a server that has to outlive the request. */
 export function spawnPnpm(
   args: readonly string[],
-  opts: { cwd?: string } = {},
+  opts: { cwd?: string; env?: Readonly<Record<string, string>> } = {},
 ): { ok: boolean; pid?: number; error?: string } {
   const invocation = pnpmInvocation(args, bundledPnpm());
   return spawnDetached(invocation.bin, invocation.args, opts);

@@ -5,6 +5,7 @@ import { cmd } from "@/lib/shell";
 import { startApp } from "@/lib/apps";
 import { repoStatus } from "@/lib/git";
 import { explain, type Explained } from "@/lib/translate";
+import { describeUpdate } from "@/lib/update-report";
 
 export interface ActionResult {
   ok: boolean;
@@ -87,6 +88,28 @@ export async function pushChanges(): Promise<ActionResult> {
       ? `https://github.com/${status.slug}/pull/new/${status.branch}`
       : undefined,
   );
+}
+
+/**
+ * Collect finished work from GitHub onto this computer.
+ *
+ * Runs scripts/update.mjs -- the launcher's own updater -- so there is exactly
+ * one definition of a safe update. Its exit code 10 means "code changed", which
+ * execFile reports as a failure; the answer is in its JSON line either way, so
+ * stdout is read regardless of the exit code.
+ */
+export async function collectUpdates(): Promise<ActionResult> {
+  const r = await cmd("node", ["scripts/update.mjs", "--json"], {
+    timeoutMs: 180_000,
+  });
+  revalidatePath("/");
+  const report = describeUpdate(r.stdout);
+  return {
+    ok: report.ok,
+    headline: report.headline,
+    meaning: report.meaning,
+    detail: r.output,
+  };
 }
 
 /** Save work in progress. */

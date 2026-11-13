@@ -1,7 +1,13 @@
 "use client";
 
 import { ActionBar } from "./Actions";
-import { buildProject, runTests, checkQuality, pushChanges } from "@/app/actions";
+import {
+  buildProject,
+  runTests,
+  checkQuality,
+  pushChanges,
+  collectUpdates,
+} from "@/app/actions";
 
 /**
  * The one-click actions that are REAL today.
@@ -33,6 +39,11 @@ export function ActionsIsland() {
           label: "Send to GitHub",
           run: pushChanges,
           hint: "Push this machine's work and start the automated checks.",
+        },
+        {
+          label: "Update from GitHub",
+          run: collectUpdates,
+          hint: "Collect finished work from GitHub. Never touches unsaved work.",
         },
       ]}
     />

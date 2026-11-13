@@ -1,13 +1,16 @@
 import "server-only";
 
-import { REPO_ROOT, pnpm, spawnPnpm } from "./shell";
+import { REPO_ROOT, cmd, pnpm, spawnPnpm } from "./shell";
 import {
   LOCAL_APPS,
   appUrl,
+  classifyPort,
   describeHealth,
   findApp,
   type LocalApp,
   nodeTooOld,
+  portTakenMessage,
+  stopListenerCommand,
 } from "./apps-registry";
 
 export { LOCAL_APPS, appUrl, findApp } from "./apps-registry";
@@ -35,21 +38,44 @@ export interface AppStatus {
 }
 
 /** Ask the app whether it is up. A short timeout: this runs on a page render. */
-export async function appStatus(app: LocalApp): Promise<AppStatus> {
-  const url = appUrl(app);
-  let probe: { reached: boolean; ok: boolean };
+async function probeApp(
+  app: LocalApp,
+): Promise<{ reached: boolean; ok: boolean; refusing: boolean }> {
   try {
-    const response = await fetch(`${url}${app.healthPath}`, {
+    const response = await fetch(`${appUrl(app)}${app.healthPath}`, {
       cache: "no-store",
       signal: AbortSignal.timeout(1500),
     });
-    probe = { reached: true, ok: response.ok };
+    // The refusing state answers HTTP 200 on purpose (the container is alive),
+    // so the status code alone would report a refusal page as "healthy". Read
+    // the app's own word for its state.
+    let refusing = false;
+    try {
+      const body = (await response.clone().json()) as { status?: unknown };
+      refusing = body.status === "refusing";
+    } catch {
+      refusing = false;
+    }
+    return { reached: true, ok: response.ok && !refusing, refusing };
   } catch {
     // Connection refused, DNS, timeout — from the operator's point of view
     // these are all one thing: it is not running.
-    probe = { reached: false, ok: false };
+    return { reached: false, ok: false, refusing: false };
   }
-  return { app, url, ...describeHealth(app, probe) };
+}
+
+export async function appStatus(app: LocalApp): Promise<AppStatus> {
+  return { app, url: appUrl(app), ...describeHealth(app, await probeApp(app)) };
+}
+
+/** Wait for the port to stop answering, so the new copy can have it. */
+async function waitUntilFree(app: LocalApp, budgetMs: number): Promise<boolean> {
+  const deadline = Date.now() + budgetMs;
+  while (Date.now() < deadline) {
+    if (!(await probeApp(app)).reached) return true;
+    await new Promise((resolve) => setTimeout(resolve, 500));
+  }
+  return false;
 }
 
 export async function localAppStatuses(): Promise<AppStatus[]> {
@@ -77,9 +103,25 @@ export async function startApp(key: string): Promise<StartResult> {
     return { ok: false, url: "", message: `No local app called "${key}".` };
   }
 
-  const already = await appStatus(app);
-  if (already.running) {
-    return { ok: true, url: already.url, message: "It was already running." };
+  const port = classifyPort(await probeApp(app));
+  if (port === "healthy") {
+    return { ok: true, url: appUrl(app), message: "It was already running." };
+  }
+  if (port === "someone-else") {
+    return { ok: false, url: appUrl(app), message: portTakenMessage(app) };
+  }
+  if (port === "stale-refusing") {
+    // An old copy of this very app is holding the port and refusing to serve.
+    // Left alone, the new copy cannot bind and the console reports "never
+    // answered" while he keeps seeing the old refusal page.
+    await cmd("powershell", stopListenerCommand(app.port), { timeoutMs: 20_000 });
+    if (!(await waitUntilFree(app, 8_000))) {
+      return {
+        ok: false,
+        url: appUrl(app),
+        message: `An old copy of ${app.name} is still holding port ${app.port} and could not be stopped. Nothing new was started. Restarting the computer clears it.`,
+      };
+    }
   }
 
   const tooOld = nodeTooOld(app, process.version);
@@ -98,6 +140,7 @@ export async function startApp(key: string): Promise<StartResult> {
 
   const spawned = spawnPnpm(["--filter", app.filter, "start"], {
     cwd: REPO_ROOT,
+    ...(app.env !== undefined ? { env: app.env } : {}),
   });
   if (!spawned.ok) {
     return {
