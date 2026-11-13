@@ -7,7 +7,7 @@
  * Free of `server-only` so it can be tested.
  */
 
-export type Purpose = "publish" | "jersey";
+export type Purpose = "publish" | "jersey" | "review";
 
 /** The button on the date card that makes the folder, or renames and finishes it. */
 export const COPY_BUTTON = '"Create folder & copy photos"';
@@ -16,6 +16,7 @@ const COPY_AGAIN = '"Copy again…"';
 
 /** The button that was pressed, as labelled on the card. */
 export function actionButton(purpose: Purpose): string {
+  if (purpose === "review") return '"Send for review"';
   return purpose === "publish" ? '"Publish to 5 Star"' : '"Find jersey numbers"';
 }
 

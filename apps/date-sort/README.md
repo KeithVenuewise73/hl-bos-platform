@@ -287,6 +287,35 @@ Proved by `scripts/local-test/verify-publish-to-5star.cjs` (JerseySort and a
 local copy of the gallery service) and `verify-date-to-jersey.cjs` (the
 button).
 
+## Send for review (built; the website side is not built yet)
+
+Each date card has **Send for review**: it sends that date's photos to a
+**private review area on 5starsportsmedia.com**, where the owner checks quality
+and game labels and approves before anything is public. Nothing sent is
+public.
+
+What it sends, per photo (`packages/date-sort/src/review/`): a web-size copy
+(2400 px), a thumbnail (480 px) and quality hints (_Possibly soft_, _Very
+dark_, _Very bright_, _Low resolution_; first-guess cut-offs in `quality.ts`,
+to be tuned on real photos), plus the game's name, sport and date and when each
+photo was taken. The copies carry **no camera details or GPS location**
+(tested). Originals are only read, through the read-only module; the folder is
+checked byte for byte before and after. A fingerprint of each original means a
+photo is never sent twice: pressing it again sends only what is new, and an
+interrupted send carries on where it stopped. **Videos are counted but not
+sent yet**; raw Canon files are listed as not sent.
+
+It is honest about its state. Until the website's review area exists, the
+button is off and says so. Once it exists, the card asks to **connect this
+computer** (once, while the website's connect window is open); only the key's
+fingerprint is sent, and the key stays in `review.json` beside DateSort's
+settings. The address of the review service is stored there too.
+
+The contract the website's review service must meet is written at the top of
+`packages/date-sort/src/review/client.ts` and is enforced by a stand-in service
+in its tests. **That service, its database tables and the admin review tab on
+the website are the next piece**; nothing here has been applied to any database.
+
 ## Not built yet
 
 | Step | What                                                                                                 |
@@ -304,3 +333,5 @@ node scripts/local-test/verify-date-sort.cjs   # end to end in a browser, agains
 ```
 
 The Windows run is `.github/workflows/date-sort-windows.yml`.
+
+Send for review, in a real browser against a stand-in service: `node scripts/local-test/verify-send-for-review.cjs` (starts its own DateSort on port 4614 and its own settings folder).

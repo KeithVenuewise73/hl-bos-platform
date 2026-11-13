@@ -13,6 +13,10 @@
       "types": "./src/scan.ts",
       "default": "./src/scan.ts"
     },
+    "./review": {
+      "types": "./src/review/index.ts",
+      "default": "./src/review/index.ts"
+    },
     "./copy": {
       "types": "./src/copy/index.ts",
       "default": "./src/copy/index.ts"
