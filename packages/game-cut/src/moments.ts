@@ -56,6 +56,8 @@ export interface Moment {
   readonly peak: number;
   readonly scoreA: number;
   readonly scoreB: number;
+  /** What the person called it (a moment they asked for), if anything. */
+  readonly label?: string;
 }
 
 function valueAt(cam: CameraScores, clipSeconds: number, step: number): number {

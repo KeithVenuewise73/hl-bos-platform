@@ -31,6 +31,31 @@ the page says so plainly and offers **Look again**.
 The result is about one game long, not two: both videos show the same game from
 opposite ends, and each moment uses the camera nearer the action.
 
+## Moments you want to be sure of
+
+A plan can miss a moment, like a hit by your son. Game Cut cannot see where the puck is,
+only how loud and busy things are. Under the list of picks, type the times that matter,
+one per line (`53:25 big hit`), and say which clock you read them from: the first video,
+the second video, or the finished video you watched, played from its start. Game Cut turns
+each into game time, picks the camera nearer it, and puts that moment in over whatever the
+plan had there, **including time it had cut out**. The rest of the plan is untouched. It
+does not look at the videos again, so it takes seconds, not half an hour. Then make the
+video again.
+
+## Plans are saved
+
+Looking at two long games takes the better part of an hour, so the plan is saved on this
+computer (`%LOCALAPPDATA%\GameCut\plans`, the last ten). Close Game Cut, restart it, or let
+Windows restart: the page shows the latest plan again, and you can make the video or add
+moments to it without looking again. A plan names the video files; if they have moved,
+making says so.
+
+## A list of what it picked
+
+Beside every finished video Game Cut saves `<name> - picks.txt`: every piece, its camera,
+and its time on the first video's clock and on the second's, plus any name you gave a
+moment. It is the way to say exactly which moment was missed.
+
 ## Highlights from times
 
 Type the times of the moments you want, one per line, on the FIRST video's clock:

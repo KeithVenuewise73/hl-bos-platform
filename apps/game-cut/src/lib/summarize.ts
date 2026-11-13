@@ -16,7 +16,7 @@ function rowsOf(
     endSeconds: m.endSeconds,
     lengthSeconds: m.endSeconds - m.startSeconds,
     camera: m.camera,
-    label: labels?.[i] ?? "",
+    label: labels?.[i] ?? m.label ?? "",
   }));
 }
 
@@ -72,4 +72,62 @@ export function summarizeTimes(
     skipped: plan.skipped,
     problems: plan.problems,
   };
+}
+
+const clockText = (seconds: number): string => {
+  const s = Math.max(0, Math.round(seconds));
+  const h = Math.floor(s / 3600);
+  const m = Math.floor((s % 3600) / 60);
+  return `${h}:${String(m).padStart(2, "0")}:${String(s % 60).padStart(2, "0")}`;
+};
+
+/**
+ * The picks as a plain text file, saved beside the finished video so a person can see
+ * exactly what was chosen and when, and name a moment that was missed.
+ * Times are on the FIRST video's clock, and the second video's equivalent is given too.
+ */
+export function picksFileText(plan: PlanSummary, madeAt: Date = new Date()): string {
+  const cam = (c: "A" | "B") =>
+    c === "A"
+      ? `first video (${plan.names.a})`
+      : `second video (${plan.names.b ?? ""})`;
+  const lines: string[] = [];
+  lines.push(
+    plan.mode === "broadcast"
+      ? "Game Cut: whole game, one broadcast"
+      : "Game Cut: highlights from times",
+  );
+  lines.push(`Made ${madeAt.toISOString().slice(0, 16).replace("T", " ")} (UTC)`);
+  lines.push("");
+  lines.push(
+    `${plan.rows.length} pieces, ${clockText(plan.keptSeconds)} kept of a ${clockText(plan.gameSeconds)} recording, ${plan.switches} camera switches.`,
+  );
+  if (plan.offsetSeconds !== null) {
+    const off = plan.offsetSeconds;
+    lines.push(
+      off < 0
+        ? `The second video started ${(-off).toFixed(1)} s BEFORE the first. A time on the first video plus ${(-off).toFixed(1)} s is the same moment on the second.`
+        : `The second video started ${off.toFixed(1)} s after the first. A time on the first video minus ${off.toFixed(1)} s is the same moment on the second.`,
+    );
+  }
+  for (const n of plan.notes) lines.push(`Note: ${n}`);
+  lines.push("");
+  lines.push(
+    "All times below are on the FIRST video's clock. Pieces are in game order.",
+  );
+  lines.push("");
+  for (const r of plan.rows) {
+    const secondTime =
+      plan.offsetSeconds === null ? null : r.startSeconds - plan.offsetSeconds;
+    const second =
+      secondTime === null || !plan.hasSecondCamera
+        ? ""
+        : secondTime < 0
+          ? "  (second video had not started yet)"
+          : `  (second video: ${clockText(secondTime)})`;
+    lines.push(
+      `${String(r.n).padStart(3)}. ${clockText(r.startSeconds)} to ${clockText(r.endSeconds)}  ${String(Math.round(r.lengthSeconds)).padStart(4)} s  ${cam(r.camera)}${second}${r.label === "" ? "" : `  <- ${r.label}`}`,
+    );
+  }
+  return lines.join("\n") + "\n";
 }

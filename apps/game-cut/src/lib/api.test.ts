@@ -29,9 +29,10 @@ interface PlanView {
   offsetSeconds: number | null;
   keptSeconds: number;
   names: { a: string; b: string | null };
-  rows: { camera: string; label: string }[];
+  rows: { camera: string; label: string; startSeconds: number; endSeconds: number }[];
   problems: { line: number }[];
   skipped: { line: number }[];
+  notes: string[];
 }
 interface JobView {
   state: string;
@@ -84,6 +85,9 @@ describe.skipIf(!haveFfmpeg)("Game Cut's API, end to end", () => {
   let current: typeof import("@/app/api/jobs/current/route");
   let cancel: typeof import("@/app/api/jobs/cancel/route");
   let reveal: typeof import("@/app/api/reveal/route");
+  let adjust: typeof import("@/app/api/jobs/adjust/route");
+  let latest: typeof import("@/app/api/plans/latest/route");
+  let plansLib: typeof import("@/lib/plans");
 
   async function until(
     pred: (job: JobView) => boolean,
@@ -108,7 +112,11 @@ describe.skipIf(!haveFfmpeg)("Game Cut's API, end to end", () => {
     current = await import("@/app/api/jobs/current/route");
     cancel = await import("@/app/api/jobs/cancel/route");
     reveal = await import("@/app/api/reveal/route");
+    adjust = await import("@/app/api/jobs/adjust/route");
+    latest = await import("@/app/api/plans/latest/route");
+    plansLib = await import("@/lib/plans");
     dir = await mkdtemp(join(tmpdir(), "game-cut-app-"));
+    plansLib.setPlansDir(join(dir, "saved-plans"));
     const sound = join(dir, "sound.wav");
     const gate = BURSTS.map((b) => `between(t,${b},${b + 2})`).join("+");
     ff([
@@ -322,6 +330,152 @@ describe.skipIf(!haveFfmpeg)("Game Cut's API, end to end", () => {
     expect((await readFile(fileA)).length).toBeGreaterThan(1000);
   }, 240_000);
 
+  it("the picks list is saved beside the finished video and names the plan it came from", async () => {
+    const out = join(dir, "Broadcast.mp4");
+    const picks = join(dir, "Broadcast - picks.txt");
+    expect(existsSync(picks)).toBe(true);
+    const text = await readFile(picks, "utf8");
+    expect(text).toMatch(/whole game, one broadcast/);
+    expect(text).toMatch(/second video started 7\.\d s after the first/);
+    expect(text).toMatch(/first video \(Game A\.mp4\)/);
+    expect(existsSync(out)).toBe(true);
+    const { json } = await call(current.GET, "GET", "/api/jobs/current");
+    expect(madeOf(json["job"] as JobView)).toMatchObject({
+      planId: broadcastPlanId,
+      picksFile: picks,
+    });
+  });
+
+  it("adds a moment to the plan without looking at the videos again, from the nearer camera, and keeps the rest", async () => {
+    const started = Date.now();
+    // 1:56 on the first video's clock is where camera B (near that end) sees the action.
+    const r = await call(adjust.POST, "POST", "/api/jobs/adjust", {
+      planId: broadcastPlanId,
+      timesText: "1:56 shot by my son\nnot a time\n99:00 far too late",
+      clock: "first",
+      beforeSeconds: 4,
+      afterSeconds: 4,
+    });
+    expect(r.status).toBe(200);
+    const job = await until(finished);
+    expect(job.state).toBe("done");
+    expect(Date.now() - started).toBeLessThan(60_000); // seconds, not the half hour of looking again
+    const p = planOf(job);
+    expect(p.planId).not.toBe(broadcastPlanId); // the plan it came from is kept
+    const mine = p.rows.find((x) => x.label === "shot by my son");
+    expect(mine).toBeDefined();
+    expect(mine!.camera).toBe("B");
+    expect(mine!.startSeconds).toBeLessThanOrEqual(112);
+    expect(mine!.endSeconds).toBeGreaterThanOrEqual(120);
+    expect(p.notes.join(" ")).toMatch(/Added: shot by my son/);
+    expect(p.problems.map((x) => x.line)).toEqual([2]);
+    expect(p.skipped.map((x) => x.line)).toEqual([3]);
+    expect(p.mode).toBe("broadcast");
+  }, 120_000);
+
+  it("a time on the SECOND video's clock lands on the same moment: it started 7.3 s after the first", async () => {
+    // Game time 1:56 = 116 s. On the second video that is 116 - 7.3 = 108.7 s, typed as 1:49 (109 s).
+    await call(adjust.POST, "POST", "/api/jobs/adjust", {
+      planId: broadcastPlanId,
+      timesText: "1:49 from the second clock",
+      clock: "second",
+      beforeSeconds: 2,
+      afterSeconds: 2,
+    });
+    const p = planOf(await until(finished));
+    const mine = p.rows.find((x) => x.label === "from the second clock")!;
+    expect(mine.startSeconds).toBeGreaterThan(114);
+    expect(mine.startSeconds).toBeLessThan(115);
+    expect(mine.camera).toBe("B");
+  }, 120_000);
+
+  it("a time on the FINISHED video's clock is turned back into game time, across time the plan cut out", async () => {
+    // A plan that cuts the quiet stretches out, so the finished video has gaps in game time.
+    await call(plan.POST, "POST", "/api/jobs/plan", {
+      mode: "broadcast",
+      fileA,
+      fileB,
+      quietCutSeconds: 30,
+    });
+    const gappy = planOf(await until(finished));
+    for (let i = 1; i < gappy.rows.length; i += 1) {
+      // sanity: the plan really has a gap, or this test proves nothing
+      if (gappy.rows[i]!.startSeconds > gappy.rows[i - 1]!.endSeconds + 1) break;
+      if (i === gappy.rows.length - 1)
+        throw new Error("the plan has no gap to test across");
+    }
+    const first = gappy.rows[0]!;
+    const second = gappy.rows[1]!;
+    const into = first.endSeconds - first.startSeconds + 3; // 3 s into the SECOND piece of the finished video
+    const expected = second.startSeconds + 3;
+    await call(adjust.POST, "POST", "/api/jobs/adjust", {
+      planId: gappy.planId,
+      watchedPlanId: gappy.planId,
+      clock: "finished",
+      beforeSeconds: 1,
+      afterSeconds: 1,
+      timesText: `${Math.floor(into / 60)}:${String(Math.round(into % 60)).padStart(2, "0")} watched in the draft`,
+    });
+    const p = planOf(await until(finished));
+    const mine = p.rows.find((x) => x.label === "watched in the draft")!;
+    expect(mine).toBeDefined();
+    expect(Math.abs((mine.startSeconds + mine.endSeconds) / 2 - expected)).toBeLessThan(
+      1.5,
+    );
+  }, 180_000);
+
+  it("refuses to add moments to a plan that is not there, or with nothing typed, in words", async () => {
+    expect(
+      (await call(adjust.POST, "POST", "/api/jobs/adjust", { timesText: "1:00 x" }))
+        .json["error"],
+    ).toMatch(/no plan/);
+    expect(
+      (
+        await call(adjust.POST, "POST", "/api/jobs/adjust", {
+          planId: broadcastPlanId,
+          timesText: "  ",
+        })
+      ).json["error"],
+    ).toMatch(/at least one time/);
+    await call(adjust.POST, "POST", "/api/jobs/adjust", {
+      planId: "plan-doesnotexist",
+      timesText: "1:00 x",
+    });
+    expect((await until(finished)).error ?? "").toMatch(/no longer available/);
+    await call(adjust.POST, "POST", "/api/jobs/adjust", {
+      planId: broadcastPlanId,
+      timesText: "nothing readable",
+    });
+    expect((await until(finished)).error ?? "").toMatch(
+      /None of the lines could be read/,
+    );
+    await call(adjust.POST, "POST", "/api/jobs/adjust", {
+      planId: broadcastPlanId,
+      timesText: "99:00 late",
+    });
+    expect((await until(finished)).error ?? "").toMatch(
+      /None of those moments could be added/,
+    );
+  }, 120_000);
+
+  it("a plan survives a restart: the page can get it back, and the video can still be made from it", async () => {
+    plansLib.setPlansDir(join(dir, "saved-plans")); // what a restart does: memory empty, folder kept
+    const got = await call(latest.GET, "GET", "/api/plans/latest");
+    const back = got.json["plan"] as PlanView | null;
+    expect(back).not.toBeNull();
+    expect(back!.rows.length).toBeGreaterThan(0);
+    const out = join(dir, "After restart.mp4");
+    const m = await call(make.POST, "POST", "/api/jobs/make", {
+      planId: back!.planId,
+      outFile: out,
+      quality: "draft",
+    });
+    expect(m.status).toBe(200);
+    expect((await until(finished)).state).toBe("done");
+    expect(existsSync(out)).toBe(true);
+    expect(existsSync(join(dir, "After restart - picks.txt"))).toBe(true);
+  }, 240_000);
+
   // On Windows this would open a real Explorer window, so it is only run where it just answers.
   it.skipIf(process.platform === "win32")(
     "a finished video can be revealed (here it says where it is), and only that one",
@@ -331,7 +485,7 @@ describe.skipIf(!haveFfmpeg)("Game Cut's API, end to end", () => {
       });
       // Not Windows here: it names the file the job made, never the path in the request.
       expect(r.status).toBe(501);
-      expect(r.json["error"]).toMatch(/Broadcast\.mp4/);
+      expect(r.json["error"]).toMatch(/After restart\.mp4/); // the last video made
       expect(JSON.stringify(r.json)).not.toMatch(/System32/);
     },
   );

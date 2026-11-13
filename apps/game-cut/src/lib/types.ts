@@ -44,7 +44,11 @@ export interface PlanSummary {
 }
 
 export interface MakeSummary {
+  /** The plan this video was made from (times in the finished video can be turned back into game time). */
+  readonly planId: string;
   readonly outFile: string;
+  /** A plain list of what it picked, saved beside the video; null if it could not be written. */
+  readonly picksFile: string | null;
   readonly seconds: number;
   readonly bytes: number;
   readonly quality: "full" | "draft";
