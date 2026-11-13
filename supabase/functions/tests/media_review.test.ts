@@ -1,0 +1,905 @@
+// Photo review — the media-review Edge Function's decisions (Deno).
+//
+// Against an in-memory store and storage that behave like migration 0055's
+// functions and the private bucket. Self-contained: no remote imports, so it
+// runs offline (`deno test --no-check supabase/functions/tests/`). The database
+// half (no web access, pinned paths, files must exist, the review rules) is
+// covered by supabase/tests/55_media_review.sql.
+
+import { createHash } from "node:crypto";
+
+import {
+  handle,
+  keyMatches,
+  routeOf,
+  userFromAuth,
+  type AuthUser,
+  type FolderRow,
+  type PhotoRow,
+  type ReviewDeps,
+  type ReviewStore,
+  type TeamRow,
+} from "../_shared/review/core.ts";
+
+function assert(cond: unknown, msg: string) {
+  if (!cond) throw new Error("assertion failed: " + msg);
+}
+function assertEquals<T>(a: T, b: T, msg: string) {
+  if (JSON.stringify(a) !== JSON.stringify(b))
+    throw new Error(
+      `assertion failed: ${msg} (got ${JSON.stringify(a)}, want ${JSON.stringify(b)})`,
+    );
+}
+
+const BASE = "https://x.test/functions/v1/media-review";
+const KEY = "k".repeat(48);
+const KEY_SHA = createHash("sha256").update(KEY).digest("hex");
+const OWNER_ID = "99999999-9999-9999-9999-999999999999";
+const OWNER: AuthUser = { id: OWNER_ID, email: "owner@example.test" };
+const BATCH = "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb";
+const FOLDER = "ffffffff-ffff-ffff-ffff-ffffffffffff";
+const FOLDER2 = "eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee";
+const TEAM = "cccccccc-cccc-cccc-cccc-cccccccccccc";
+const P1 = "11111111-1111-1111-1111-111111111111";
+const P2 = "22222222-2222-2222-2222-222222222222";
+const H1 = "a".repeat(64);
+const H2 = "b".repeat(64);
+
+function world(over: Partial<ReviewDeps> = {}) {
+  const calls: string[] = [];
+  let registered: string | null = null;
+  let windowOpen = true;
+  const known = new Set<string>([H2]);
+  const store: ReviewStore = {
+    registerPublisher(sha) {
+      calls.push("register");
+      if (registered === sha) return Promise.resolve("connected");
+      if (registered !== null) return Promise.resolve("taken");
+      if (!windowOpen) return Promise.resolve("closed");
+      registered = sha;
+      return Promise.resolve("connected");
+    },
+    createBatch(p) {
+      calls.push("batch:" + p.name);
+      return Promise.resolve({
+        batchId: BATCH,
+        known: p.hashes.filter((h) => known.has(h)),
+      });
+    },
+    commitPhotos(_b, photos) {
+      calls.push("commit:" + photos.length);
+      return Promise.resolve(photos.length);
+    },
+    folders() {
+      const f: FolderRow = {
+        id: FOLDER,
+        name: "Varsity",
+        sport: "Hockey",
+        event_date: "2026-10-24",
+        team_id: null,
+        team_name: null,
+        waiting: 1,
+        approved: 0,
+        rejected: 0,
+        same_day: 0,
+      };
+      return Promise.resolve([f]);
+    },
+    folderPhotos(folder, status, limit, offset) {
+      calls.push(`photos:${folder}:${status}:${limit}:${offset}`);
+      const p: PhotoRow = {
+        id: P1,
+        filename: "IMG_1.JPG",
+        taken_at: "2026-10-24T10:02:00",
+        date_estimated: false,
+        width: 2400,
+        height: 1600,
+        flags: ["soft"],
+        status: "waiting",
+        reason: null,
+        web_path: `${BATCH}/${H1}-web.jpg`,
+        thumb_path: `${BATCH}/${H1}-thumb.jpg`,
+        total: 7,
+      };
+      return Promise.resolve([p]);
+    },
+    decide(ids, status, reason, by) {
+      calls.push(`decide:${ids.length}:${status}:${reason}:${by}`);
+      return Promise.resolve(ids.length);
+    },
+    approveWaiting(folder, by) {
+      calls.push(`approveWaiting:${folder}:${by}`);
+      return Promise.resolve(3);
+    },
+    renameFolder(folder, name) {
+      calls.push(`rename:${folder}:${name}`);
+      if (name === "") {
+        const e = new Error("a folder name is 1 to 200 characters") as Error & {
+          code: string;
+        };
+        e.code = "22023";
+        return Promise.reject(e);
+      }
+      return Promise.resolve();
+    },
+    movePhotos(ids, folder) {
+      calls.push(`move:${ids.length}:${folder}`);
+      return Promise.resolve(ids.length);
+    },
+    newFolderFromPhotos(ids, name, sport, date) {
+      calls.push(`newFolder:${ids.length}:${name}:${sport}:${date}`);
+      return Promise.resolve(FOLDER2);
+    },
+    setFolderTeam(folder, team) {
+      calls.push(`setTeam:${folder}:${team}`);
+      return Promise.resolve();
+    },
+    teams() {
+      const t: TeamRow = {
+        id: TEAM,
+        slug: "cazenovia-chiefs",
+        name: "Cazenovia Chiefs",
+        visibility: "public",
+        folders: 1,
+      };
+      return Promise.resolve([t]);
+    },
+    createTeam(name) {
+      calls.push("createTeam:" + name);
+      return Promise.resolve(TEAM);
+    },
+    setTeamVisibility(team, v) {
+      calls.push(`visibility:${team}:${v}`);
+      return Promise.resolve();
+    },
+  };
+  const requested: string[] = [];
+  const deps: ReviewDeps = {
+    store,
+    files: {
+      signedUrls(paths, seconds) {
+        requested.push(`signed:${seconds}`);
+        return Promise.resolve(
+          new Map(paths.map((p) => [p, `https://files.test/${p}?sig=1`])),
+        );
+      },
+      signedUploadUrl(path) {
+        requested.push("upload:" + path);
+        return Promise.resolve(`https://files.test/upload/${path}`);
+      },
+    },
+    publisherKeySha256: null,
+    ownerEmails: [OWNER.email],
+    verifyUser(token) {
+      return Promise.resolve(
+        token === "owner-token"
+          ? OWNER
+          : token === "other-token"
+            ? { id: P1, email: "someone@else.test" }
+            : null,
+      );
+    },
+    ...over,
+  };
+  return {
+    deps,
+    calls,
+    requested,
+    closeWindow: () => (windowOpen = false),
+    setPublisher: (sha: string | null) => (deps.publisherKeySha256 = sha),
+  };
+}
+
+function post(route: string, body: unknown, headers: Record<string, string> = {}) {
+  return new Request(`${BASE}${route}`, {
+    method: "POST",
+    headers: { "content-type": "application/json", ...headers },
+    body: JSON.stringify(body),
+  });
+}
+const asOwner = { authorization: "Bearer owner-token" };
+const asPublisher = { "x-review-publisher-key": KEY };
+async function out(res: Response) {
+  return {
+    status: res.status,
+    json: (await res.json().catch(() => ({}))) as Record<string, any>,
+  };
+}
+
+// ---------------------------------------------------------------------------
+
+Deno.test("the route is read after the function's own name", () => {
+  assertEquals(routeOf(new URL(BASE + "/owner/photos/")), "/owner/photos", "route");
+  assertEquals(routeOf(new URL("https://x.test/media-review")), "/", "no route");
+});
+
+Deno.test(
+  "a key is checked by its fingerprint; no publisher yet means no publishing",
+  () => {
+    assert(keyMatches(KEY, KEY_SHA), "the right key");
+    assert(!keyMatches("wrong", KEY_SHA), "a wrong key");
+    assert(!keyMatches(KEY, null), "no publisher registered");
+    assert(!keyMatches("", KEY_SHA), "an empty key");
+    assert(!keyMatches(KEY, "not-hex"), "a malformed fingerprint");
+  },
+);
+
+Deno.test("only a confirmed sign-in counts as a person", () => {
+  const ok = {
+    id: OWNER_ID,
+    email: "Owner@Example.test ",
+    email_confirmed_at: "2026-11-14T10:00:00Z",
+  };
+  assertEquals(
+    userFromAuth(ok),
+    { id: OWNER_ID, email: "owner@example.test" },
+    "emails are lower-cased",
+  );
+  assert(
+    userFromAuth({ ...ok, email_confirmed_at: null }) === null,
+    "an unconfirmed email is nobody",
+  );
+  assert(
+    userFromAuth({ ...ok, email_confirmed_at: undefined }) === null,
+    "no confirmation is nobody",
+  );
+  assert(userFromAuth({ ...ok, id: "nope" }) === null, "a bad id is nobody");
+  assert(userFromAuth({ ...ok, email: "" }) === null, "no email is nobody");
+  assert(userFromAuth(null) === null && userFromAuth("x") === null, "junk is nobody");
+});
+
+Deno.test("DateSort connects by sending only its key's fingerprint, once", async () => {
+  const w = world();
+  assertEquals(
+    (await out(await handle(post("/review/register", { key_sha256: "nope" }), w.deps)))
+      .status,
+    400,
+    "bad fingerprint",
+  );
+  const first = await out(
+    await handle(post("/review/register", { key_sha256: KEY_SHA }), w.deps),
+  );
+  assertEquals(first.json["status"], "connected", "first registration");
+  const other = await out(
+    await handle(post("/review/register", { key_sha256: "c".repeat(64) }), w.deps),
+  );
+  assertEquals(
+    [other.status, other.json["status"]],
+    [409, "taken"],
+    "another computer is refused",
+  );
+  const w2 = world();
+  w2.closeWindow();
+  const closed = await out(
+    await handle(post("/review/register", { key_sha256: KEY_SHA }), w2.deps),
+  );
+  assertEquals([closed.status, closed.json["status"]], [403, "closed"], "no window");
+});
+
+Deno.test(
+  "sending needs the publisher key; the wrong key or none gets nothing",
+  async () => {
+    const w = world();
+    w.setPublisher(KEY_SHA);
+    const body = {
+      label: { name: "Varsity", sport: "Hockey", date: "2026-10-24" },
+      folder: "x",
+      counts: { photos: 2, videos: 0 },
+      hashes: [H1, H2],
+    };
+    assertEquals(
+      (await out(await handle(post("/review/batch", body), w.deps))).status,
+      401,
+      "no key",
+    );
+    assertEquals(
+      (
+        await out(
+          await handle(
+            post("/review/batch", body, { "x-review-publisher-key": "wrong" }),
+            w.deps,
+          ),
+        )
+      ).status,
+      401,
+      "wrong key",
+    );
+    const none = world();
+    assertEquals(
+      (await out(await handle(post("/review/batch", body, asPublisher), none.deps)))
+        .status,
+      401,
+      "no publisher registered yet",
+    );
+    assertEquals(w.calls.length, 0, "nothing reached the store");
+  },
+);
+
+Deno.test(
+  "a send: the batch learns what is already there, uploads go only to this batch's own paths, the commit records the photos",
+  async () => {
+    const w = world();
+    w.setPublisher(KEY_SHA);
+    const batch = await out(
+      await handle(
+        post(
+          "/review/batch",
+          {
+            label: { name: "Varsity", sport: "Hockey", date: "2026-10-24" },
+            folder: "2026-10-24 - Hockey",
+            counts: { photos: 2, videos: 1 },
+            hashes: [H1, H2],
+          },
+          asPublisher,
+        ),
+        w.deps,
+      ),
+    );
+    assertEquals(
+      batch.json,
+      { batch_id: BATCH, known: [H2] },
+      "batch and known fingerprints",
+    );
+
+    const up = await out(
+      await handle(
+        post(
+          "/review/uploads",
+          {
+            batch_id: BATCH,
+            files: [
+              { hash: H1, kind: "web" },
+              { hash: H1, kind: "thumb" },
+            ],
+          },
+          asPublisher,
+        ),
+        w.deps,
+      ),
+    );
+    assertEquals(
+      up.json["uploads"].map((u: any) => u.url),
+      [
+        `https://files.test/upload/${BATCH}/${H1}-web.jpg`,
+        `https://files.test/upload/${BATCH}/${H1}-thumb.jpg`,
+      ],
+      "own paths only",
+    );
+    assertEquals(
+      (
+        await out(
+          await handle(
+            post(
+              "/review/uploads",
+              { batch_id: BATCH, files: [{ hash: "../../x", kind: "web" }] },
+              asPublisher,
+            ),
+            w.deps,
+          ),
+        )
+      ).status,
+      400,
+      "a path cannot be smuggled in as a hash",
+    );
+    assertEquals(
+      (
+        await out(
+          await handle(
+            post(
+              "/review/uploads",
+              { batch_id: BATCH, files: [{ hash: H1, kind: "original" }] },
+              asPublisher,
+            ),
+            w.deps,
+          ),
+        )
+      ).status,
+      400,
+      "only web or thumb",
+    );
+    assertEquals(
+      (
+        await out(
+          await handle(
+            post(
+              "/review/uploads",
+              { batch_id: "not-a-uuid", files: [{ hash: H1, kind: "web" }] },
+              asPublisher,
+            ),
+            w.deps,
+          ),
+        )
+      ).status,
+      400,
+      "batch id must be a uuid",
+    );
+    assertEquals(
+      (
+        await out(
+          await handle(
+            post("/review/uploads", { batch_id: BATCH, files: [] }, asPublisher),
+            w.deps,
+          ),
+        )
+      ).status,
+      400,
+      "no files asked for",
+    );
+
+    const commit = await out(
+      await handle(
+        post(
+          "/review/commit",
+          {
+            batch_id: BATCH,
+            photos: [{ hash: H1, filename: "IMG_1.JPG", web_bytes: 5 }],
+          },
+          asPublisher,
+        ),
+        w.deps,
+      ),
+    );
+    assertEquals(commit.json, { added: 1 }, "commit");
+    assertEquals(
+      (
+        await out(
+          await handle(
+            post(
+              "/review/commit",
+              { batch_id: BATCH, photos: [{ hash: "zzz" }] },
+              asPublisher,
+            ),
+            w.deps,
+          ),
+        )
+      ).status,
+      400,
+      "a photo needs its fingerprint",
+    );
+  },
+);
+
+Deno.test(
+  "a batch needs a real date and real fingerprints, and the number of photos is limited",
+  async () => {
+    const w = world();
+    w.setPublisher(KEY_SHA);
+    const bad = async (b: unknown) =>
+      (await out(await handle(post("/review/batch", b, asPublisher), w.deps))).status;
+    assertEquals(
+      await bad({ label: { name: "x", date: "tomorrow" }, hashes: [] }),
+      400,
+      "date",
+    );
+    assertEquals(
+      await bad({ label: { name: "x", date: "2026-10-24" }, hashes: ["short"] }),
+      400,
+      "fingerprints",
+    );
+    assertEquals(
+      await bad({
+        label: { name: "x", date: "2026-10-24" },
+        hashes: new Array(20_001).fill(H1),
+      }),
+      400,
+      "too many",
+    );
+  },
+);
+
+Deno.test(
+  "the owner routes: nobody without a sign-in, nobody who is not the owner, nobody at all when no owner is set up",
+  async () => {
+    const w = world();
+    assertEquals(
+      (await out(await handle(post("/owner/folders", {}), w.deps))).status,
+      401,
+      "no token",
+    );
+    assertEquals(
+      (
+        await out(
+          await handle(
+            post("/owner/folders", {}, { authorization: "Bearer junk" }),
+            w.deps,
+          ),
+        )
+      ).status,
+      401,
+      "a bad token",
+    );
+    assertEquals(
+      (
+        await out(
+          await handle(
+            post("/owner/folders", {}, { authorization: "Basic owner-token" }),
+            w.deps,
+          ),
+        )
+      ).status,
+      401,
+      "not a bearer token",
+    );
+    const other = await out(
+      await handle(
+        post("/owner/folders", {}, { authorization: "Bearer other-token" }),
+        w.deps,
+      ),
+    );
+    assertEquals(
+      [other.status, other.json["error"]],
+      [403, "Only the owner can review photos."],
+      "a signed-in stranger",
+    );
+    assertEquals(
+      (await out(await handle(post("/owner/folders", {}, asOwner), w.deps))).status,
+      200,
+      "the owner",
+    );
+    const nobody = world({ ownerEmails: [] });
+    assertEquals(
+      (await out(await handle(post("/owner/folders", {}, asOwner), nobody.deps)))
+        .status,
+      503,
+      "no owner configured",
+    );
+    assertEquals(
+      w.calls.filter((c) => c.startsWith("decide") || c.startsWith("rename")).length,
+      0,
+      "nothing was changed by refused calls",
+    );
+    // The publisher's key is not an owner's sign-in.
+    w.setPublisher(KEY_SHA);
+    assertEquals(
+      (
+        await out(
+          await handle(
+            post("/owner/decide", { ids: [P1], status: "approved" }, asPublisher),
+            w.deps,
+          ),
+        )
+      ).status,
+      401,
+      "the publisher key opens no owner route",
+    );
+  },
+);
+
+Deno.test(
+  "the owner reviews: photos come with expiring links, decisions carry who decided",
+  async () => {
+    const w = world();
+    const list = await out(
+      await handle(
+        post(
+          "/owner/photos",
+          { folder: FOLDER, status: "waiting", limit: 5000, offset: -4 },
+          asOwner,
+        ),
+        w.deps,
+      ),
+    );
+    assertEquals(list.status, 200, "list");
+    assertEquals(list.json["total"], 7, "total");
+    assertEquals(list.json["expires_in"], 3600, "links expire in an hour");
+    assertEquals(
+      list.json["photos"][0]["thumb_url"],
+      `https://files.test/${BATCH}/${H1}-thumb.jpg?sig=1`,
+      "thumbnail link",
+    );
+    assert(
+      !("web_path" in list.json["photos"][0]) &&
+        !("thumb_path" in list.json["photos"][0]),
+      "no raw storage paths leave the service",
+    );
+    assert(
+      w.calls.includes(`photos:${FOLDER}:waiting:200:0`),
+      "limit and offset are clamped",
+    );
+    assertEquals(
+      (await out(await handle(post("/owner/photos", { folder: "x" }, asOwner), w.deps)))
+        .status,
+      400,
+      "folder must be a uuid",
+    );
+    assertEquals(
+      (
+        await out(
+          await handle(
+            post("/owner/photos", { folder: FOLDER, status: "published" }, asOwner),
+            w.deps,
+          ),
+        )
+      ).status,
+      400,
+      "only known statuses",
+    );
+
+    const d = await out(
+      await handle(
+        post(
+          "/owner/decide",
+          { ids: [P1, P2, P1], status: "rejected", reason: "blurry" },
+          asOwner,
+        ),
+        w.deps,
+      ),
+    );
+    assertEquals(d.json, { changed: 2 }, "duplicates in the list are counted once");
+    assert(
+      w.calls.includes(`decide:2:rejected:blurry:${OWNER_ID}`),
+      "the decision records who decided",
+    );
+    assertEquals(
+      (
+        await out(
+          await handle(
+            post("/owner/decide", { ids: [], status: "approved" }, asOwner),
+            w.deps,
+          ),
+        )
+      ).status,
+      400,
+      "ids needed",
+    );
+    assertEquals(
+      (
+        await out(
+          await handle(
+            post("/owner/decide", { ids: ["x"], status: "approved" }, asOwner),
+            w.deps,
+          ),
+        )
+      ).status,
+      400,
+      "ids must be uuids",
+    );
+    assertEquals(
+      (
+        await out(
+          await handle(
+            post("/owner/decide", { ids: [P1], status: "published" }, asOwner),
+            w.deps,
+          ),
+        )
+      ).status,
+      400,
+      "publishing is not a decision here",
+    );
+    assertEquals(
+      (
+        await out(
+          await handle(
+            post("/owner/approve-waiting", { folder: FOLDER }, asOwner),
+            w.deps,
+          ),
+        )
+      ).json,
+      { changed: 3 },
+      "approve the rest",
+    );
+  },
+);
+
+Deno.test(
+  "folders: rename, move, split into a new folder, file under a team",
+  async () => {
+    const w = world();
+    assertEquals(
+      (
+        await out(
+          await handle(
+            post(
+              "/owner/rename",
+              { folder: FOLDER, name: "Varsity vs Wheatfield" },
+              asOwner,
+            ),
+            w.deps,
+          ),
+        )
+      ).json,
+      { ok: true },
+      "rename",
+    );
+    const bad = await out(
+      await handle(
+        post("/owner/rename", { folder: FOLDER, name: "" }, asOwner),
+        w.deps,
+      ),
+    );
+    assertEquals(
+      [bad.status, bad.json["error"]],
+      [400, "a folder name is 1 to 200 characters"],
+      "the database's own plain refusal reaches the person",
+    );
+    assertEquals(
+      (
+        await out(
+          await handle(
+            post("/owner/move", { ids: [P1], folder: FOLDER2 }, asOwner),
+            w.deps,
+          ),
+        )
+      ).json,
+      { moved: 1 },
+      "move",
+    );
+    assertEquals(
+      (await out(await handle(post("/owner/move", { ids: [P1] }, asOwner), w.deps)))
+        .status,
+      400,
+      "move needs a folder",
+    );
+    const nf = await out(
+      await handle(
+        post(
+          "/owner/new-folder",
+          { ids: [P1, P2], name: "JV Lacrosse", sport: "Lacrosse" },
+          asOwner,
+        ),
+        w.deps,
+      ),
+    );
+    assertEquals(nf.json, { folder: FOLDER2 }, "new folder");
+    assert(
+      w.calls.includes("newFolder:2:JV Lacrosse:Lacrosse:null"),
+      "the date defaults to the photos' own",
+    );
+    assertEquals(
+      (
+        await out(
+          await handle(
+            post("/owner/new-folder", { ids: [P1], name: "x", date: "soon" }, asOwner),
+            w.deps,
+          ),
+        )
+      ).status,
+      400,
+      "a bad date",
+    );
+    assertEquals(
+      (
+        await out(
+          await handle(
+            post("/owner/new-folder", { ids: [], name: "x" }, asOwner),
+            w.deps,
+          ),
+        )
+      ).status,
+      400,
+      "tick photos first",
+    );
+    assertEquals(
+      (
+        await out(
+          await handle(
+            post("/owner/set-team", { folder: FOLDER, team: TEAM }, asOwner),
+            w.deps,
+          ),
+        )
+      ).json,
+      { ok: true },
+      "file under a team",
+    );
+    assertEquals(
+      (
+        await out(
+          await handle(
+            post("/owner/set-team", { folder: FOLDER, team: "" }, asOwner),
+            w.deps,
+          ),
+        )
+      ).json,
+      { ok: true },
+      "take it off a team",
+    );
+    assert(w.calls.includes(`setTeam:${FOLDER}:null`), "an empty team clears it");
+  },
+);
+
+Deno.test(
+  "teams: list, create from a name, switch one team public or private",
+  async () => {
+    const w = world();
+    const t = await out(await handle(post("/owner/teams", {}, asOwner), w.deps));
+    assertEquals(
+      t.json["teams"][0]["visibility"],
+      "public",
+      "a team page is public by default",
+    );
+    assertEquals(
+      (
+        await out(
+          await handle(
+            post("/owner/create-team", { name: "Orchard Park Quakers" }, asOwner),
+            w.deps,
+          ),
+        )
+      ).json,
+      { team: TEAM },
+      "create",
+    );
+    assertEquals(
+      (
+        await out(
+          await handle(
+            post(
+              "/owner/team-visibility",
+              { team: TEAM, visibility: "private" },
+              asOwner,
+            ),
+            w.deps,
+          ),
+        )
+      ).json,
+      { ok: true },
+      "visibility",
+    );
+    assertEquals(
+      (
+        await out(
+          await handle(
+            post(
+              "/owner/team-visibility",
+              { team: "nope", visibility: "private" },
+              asOwner,
+            ),
+            w.deps,
+          ),
+        )
+      ).status,
+      400,
+      "team id",
+    );
+  },
+);
+
+Deno.test(
+  "only POST, and only the 5 Star website may read the answers from a browser",
+  async () => {
+    const w = world();
+    const get = await handle(
+      new Request(`${BASE}/owner/folders`, { method: "GET" }),
+      w.deps,
+    );
+    assertEquals(get.status, 405, "GET refused");
+    const pre = await handle(
+      new Request(`${BASE}/owner/folders`, {
+        method: "OPTIONS",
+        headers: { origin: "https://5starsportsmedia.com" },
+      }),
+      w.deps,
+    );
+    assertEquals(
+      [pre.status, pre.headers.get("access-control-allow-origin")],
+      [204, "https://5starsportsmedia.com"],
+      "the site is allowed",
+    );
+    const evil = await handle(
+      new Request(`${BASE}/owner/folders`, {
+        method: "OPTIONS",
+        headers: { origin: "https://evil.example" },
+      }),
+      w.deps,
+    );
+    assertEquals(
+      evil.headers.get("access-control-allow-origin"),
+      null,
+      "another site is not",
+    );
+    const res = await handle(
+      post("/owner/folders", {}, { ...asOwner, origin: "https://evil.example" }),
+      w.deps,
+    );
+    assertEquals(
+      res.headers.get("access-control-allow-origin"),
+      null,
+      "answers carry no permission for another site",
+    );
+    assertEquals(
+      (await out(await handle(post("/nowhere", {}), w.deps))).status,
+      404,
+      "unknown route",
+    );
+  },
+);

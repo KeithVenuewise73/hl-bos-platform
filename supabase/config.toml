@@ -64,3 +64,10 @@ enabled = false
 # inside it, and every publish call needs the publisher key from Vault.
 [functions.team-gallery]
 verify_jwt = false
+
+# Photo review (migration 0055): the function does its own checks. DateSort
+# proves itself with its publisher key; the owner with a verified, confirmed
+# Supabase sign-in whose email is on the REVIEW_OWNER_EMAILS list (a function
+# secret, never in this repository).
+[functions.media-review]
+verify_jwt = false
