@@ -18,6 +18,7 @@ import {
 } from "@/components/CopyPanel.tsx";
 import { IphoneButton } from "@/components/IphoneButton.tsx";
 import { CardJersey } from "@/components/JerseyButton.tsx";
+import { CardReview } from "@/components/ReviewButton.tsx";
 import {
   CardSport,
   SportPanel,
@@ -573,7 +574,7 @@ function DateCard({
       <CardSport day={day.day} sport={sport} copy={copy} />
       <CardCopy day={day.day} copy={copy} />
       <CardJersey day={day.day} copy={copy} />
-      <CardJersey day={day.day} copy={copy} purpose="publish" />
+      <CardReview day={day.day} copy={copy} />
     </article>
   );
 }

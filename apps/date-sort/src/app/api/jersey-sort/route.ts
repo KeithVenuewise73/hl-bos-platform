@@ -1,24 +1,15 @@
-import path from "node:path";
-
-import { folderNames, folderPlanForDay, loadSettings } from "@hl-bos/date-sort/copy";
-import { SPORT_LABEL, SPORTS } from "@hl-bos/date-sort/sport-rules";
-
-import {
-  noDestinationMessage,
-  notCopiedMessage,
-  renameMessage,
-} from "@/lib/folder-messages.ts";
+import { dayFolder } from "@/lib/day-folder.ts";
 import { guard } from "@/lib/guard.ts";
 import { ensureJerseySort, importUrl } from "@/lib/jersey-sort.ts";
 
 export const dynamic = "force-dynamic";
 
 /**
- * "Find jersey numbers" and "Publish to 5 Star" on a date card: find the
- * date's folder in the destination, make sure JerseySort is running, and
- * return the JerseySort page for it (purpose "publish" opens the page that
- * publishes it to the website). Nothing is read from or written to the photos
- * here; JerseySort reads the folder when the CEO confirms.
+ * "JerseySort" on a date card: find the date's folder in the destination,
+ * make sure JerseySort is running, and return the JerseySort page for it.
+ * Nothing is read from or written to the photos here; JerseySort reads the
+ * folder when the CEO confirms. (Putting photos on the website is "Send for
+ * review", a separate button.)
  */
 export async function POST(request: Request): Promise<Response> {
   const refused = guard(request);
@@ -26,9 +17,7 @@ export async function POST(request: Request): Promise<Response> {
   const body = (await request.json().catch(() => ({}))) as {
     day?: unknown;
     eventName?: unknown;
-    purpose?: unknown;
   };
-  const publish = body.purpose === "publish";
   const day =
     typeof body.day === "string" && /^\d{4}-\d{2}-\d{2}$/.test(body.day)
       ? body.day
@@ -36,45 +25,17 @@ export async function POST(request: Request): Promise<Response> {
   if (day === null) return Response.json({ error: "No date chosen." }, { status: 400 });
   const eventName = typeof body.eventName === "string" ? body.eventName.trim() : "";
 
-  const { destination } = await loadSettings();
-  if (destination === null) {
-    return Response.json(
-      { error: noDestinationMessage(publish ? "publish" : "jersey") },
-      { status: 409 },
-    );
-  }
-  const existing = await folderNames(destination);
-  const plan = folderPlanForDay(day, eventName, existing);
-  if (plan.kind === "refuse")
-    return Response.json({ error: plan.reason }, { status: 409 });
-  if (plan.kind === "rename" || !existing.includes(plan.name)) {
-    return Response.json(
-      {
-        error:
-          plan.kind === "rename"
-            ? renameMessage(publish ? "publish" : "jersey", plan.from, plan.name)
-            : notCopiedMessage(publish ? "publish" : "jersey"),
-      },
-      { status: 409 },
-    );
-  }
-
-  // "Basketball - Zac K" -> sport Basketball, event "Zac K".
-  const sport = SPORTS.map((s) => SPORT_LABEL[s]).find(
-    (label) => eventName === label || eventName.startsWith(`${label} - `),
-  );
-  const name =
-    sport === undefined ? eventName : eventName.slice(sport.length).replace(/^ - /, "");
+  const found = await dayFolder(day, eventName, "jersey");
+  if (!found.ok) return Response.json({ error: found.error }, { status: found.status });
 
   const problem = await ensureJerseySort();
   if (problem !== null) return Response.json({ error: problem }, { status: 503 });
   return Response.json({
     url: importUrl({
-      page: publish ? "publish" : "import",
-      folder: path.join(destination, plan.name),
+      folder: found.folder,
       day,
-      sport: sport ?? "",
-      name,
+      sport: found.sport,
+      name: found.name,
     }),
   });
 }
