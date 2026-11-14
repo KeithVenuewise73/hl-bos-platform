@@ -44,6 +44,14 @@ Deno.serve(
           await sql`insert into storage.objects (bucket_id, name) values ('review-photos', ${path}) on conflict do nothing`;
           return `${IMG_BASE}/upload/${path}`;
         },
+        // The public bucket, like the private one, is rows in storage.objects.
+        async copyToPublic(path) {
+          await sql`insert into storage.objects (bucket_id, name) values ('review-public', ${path}) on conflict do nothing`;
+        },
+        async removePublic(paths) {
+          await sql`delete from storage.objects where bucket_id = 'review-public' and name = any(${paths})`;
+        },
+        publicUrl: (path) => `${IMG_BASE}/img/${path}?public=1`,
         signedUrls: (paths, s) =>
           Promise.resolve(
             new Map(paths.map((p) => [p, `${IMG_BASE}/img/${p}?exp=${s}`])),
