@@ -99,5 +99,32 @@ export function pgStore(sql: any): ReviewStore {
       const r = await sql`select site.record_interest(${slug}, ${voter}) as counted`;
       return r[0]?.counted === true;
     },
+    async publicWanted() {
+      return [
+        ...(await sql`select id, web_path, thumb_path from review.public_wanted()`),
+      ];
+    },
+    async publicUnwanted() {
+      return [
+        ...(await sql`select id, web_path, thumb_path from review.public_unwanted()`),
+      ];
+    },
+    async markPublic(ids) {
+      const r = await sql`select review.mark_public(${ids}::uuid[]) as n`;
+      return Number(r[0]?.n ?? 0);
+    },
+    async clearPublic(ids) {
+      const r = await sql`select review.clear_public(${ids}::uuid[]) as n`;
+      return Number(r[0]?.n ?? 0);
+    },
+    async publicTeams() {
+      return [
+        ...(await sql`select slug, name, albums::int, photos::int, cover_thumb from review.public_teams()`),
+      ];
+    },
+    async publicTeam(slug) {
+      const r = await sql`select review.public_team(${slug}) as page`;
+      return (r[0]?.page ?? null) as never;
+    },
   };
 }

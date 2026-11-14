@@ -54,6 +54,7 @@ await sql`delete from review.batches`;
 await sql`delete from review.folders`;
 await sql`delete from storage.objects where bucket_id = 'review-photos'`;
 await sql`delete from site.page_interest`;
+await sql`delete from storage.objects where bucket_id = 'review-public'`;
 await sql`update site.pages set enabled = false, coming_soon = false`;
 await sql`select review.reset_publisher(2)`.catch(() => undefined);
 await sql`update review.settings set publisher_key_sha256 = null, connect_until = now() + interval '1 hour'`;
@@ -70,6 +71,14 @@ const deps = (): Promise<ReviewDeps> =>
         uploaded.push(path);
         return `https://files.test/upload/${path}`;
       },
+      // The public bucket is a set of rows in storage.objects, like the private one.
+      async copyToPublic(path) {
+        await sql`insert into storage.objects (bucket_id, name) values ('review-public', ${path}) on conflict do nothing`;
+      },
+      async removePublic(paths) {
+        await sql`delete from storage.objects where bucket_id = 'review-public' and name = any(${paths})`;
+      },
+      publicUrl: (path) => `https://public.test/${path}`,
       signedUrls: (paths, s) =>
         Promise.resolve(
           new Map(paths.map((p) => [p, `https://files.test/${p}?exp=${s}`])),
@@ -436,6 +445,107 @@ check(
   "an unknown page is refused in words",
   (await call("/owner/page-set", { slug: "no-such-page", enabled: true }, own))
     .status === 400,
+);
+
+console.log("\nPublic team pages");
+const getJson = async (route: string) => {
+  const res = await handle(new Request(BASE + route, { method: "GET" }), await deps());
+  return { status: res.status, json: (await res.json()) as any };
+};
+const pubObjects = async () =>
+  Number(
+    (
+      await sql`select count(*)::int n from storage.objects where bucket_id = 'review-public'`
+    )[0].n,
+  );
+check(
+  "before anything is approved and filed, no team has a public page",
+  (await getJson("/site/teams")).json.teams.length === 0,
+);
+const teamsNow = (await call("/owner/teams", {}, own)).json.teams;
+const chiefs = teamsNow.find((t: any) => t.slug === "cazenovia-chiefs");
+const allFolders = (await call("/owner/folders", {}, own)).json.folders;
+// the folder that holds the photos (an earlier step left an empty one behind)
+const f1 = allFolders.sort(
+  (a: any, b: any) =>
+    b.waiting + b.approved + b.rejected - (a.waiting + a.approved + a.rejected),
+)[0].id;
+const ph = (await call("/owner/photos", { folder: f1, status: "all" }, own)).json
+  .photos;
+const ids2 = ph
+  .filter((p: any) => p.status !== "rejected")
+  .slice(0, 2)
+  .map((p: any) => p.id);
+await call("/owner/decide", { ids: ids2, status: "approved" }, own);
+check(
+  "approved photos in a folder with no team stay private",
+  (await pubObjects()) === 0 && (await getJson("/site/teams")).json.teams.length === 0,
+);
+const filed = await call("/owner/set-team", { folder: f1, team: chiefs.id }, own);
+check(
+  "filing the folder under a public team publishes them (2 photos, 4 files copied)",
+  filed.json.public.published === 2 && (await pubObjects()) === 4,
+  filed.json,
+);
+const lst = await getJson("/site/teams");
+check(
+  "the team is listed with its 2 photos and a public cover",
+  lst.json.teams.length === 1 &&
+    lst.json.teams[0].photos === 2 &&
+    /^https:\/\/public\.test\//.test(lst.json.teams[0].cover_url),
+  lst.json,
+);
+const teamPage = await getJson("/site/team?slug=cazenovia-chiefs");
+check(
+  "its page has the album and the photos in the order taken, with public addresses only",
+  teamPage.status === 200 &&
+    teamPage.json.albums.length === 1 &&
+    teamPage.json.albums[0].photos.length === 2 &&
+    teamPage.json.albums[0].photos.every(
+      (p: any) => /^https:\/\/public\.test\//.test(p.web_url) && !("web_path" in p),
+    ),
+  teamPage.json,
+);
+const rejectedOne = await call(
+  "/owner/decide",
+  { ids: [ids2[0]], status: "rejected", reason: "blurry" },
+  own,
+);
+check(
+  "rejecting one takes it down (its 2 files leave the public bucket)",
+  rejectedOne.json.public.unpublished === 1 && (await pubObjects()) === 2,
+  rejectedOne.json,
+);
+check(
+  "the page now has 1 photo",
+  (await getJson("/site/team?slug=cazenovia-chiefs")).json.albums[0].photos.length ===
+    1,
+);
+const priv = await call(
+  "/owner/team-visibility",
+  { team: chiefs.id, visibility: "private" },
+  own,
+);
+check(
+  "making the team private takes the rest down and removes the page",
+  priv.json.public.unpublished === 1 &&
+    (await pubObjects()) === 0 &&
+    (await getJson("/site/team?slug=cazenovia-chiefs")).status === 404,
+  priv.json,
+);
+const publicAgain = await call(
+  "/owner/team-visibility",
+  { team: chiefs.id, visibility: "public" },
+  own,
+);
+check(
+  "making it public again brings the approved photo back",
+  publicAgain.json.public.published === 1 && (await pubObjects()) === 2,
+  publicAgain.json,
+);
+check(
+  "an unknown team is a plain 404",
+  (await getJson("/site/team?slug=no-such-team")).status === 404,
 );
 
 await sql.end();

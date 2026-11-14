@@ -73,6 +73,40 @@ export interface OwnerPageRow extends PageRow {
   interest: number;
 }
 
+/** A photo to copy to, or remove from, the public bucket. */
+export interface PublicRow {
+  id: string;
+  web_path: string;
+  thumb_path: string;
+}
+
+export interface PublicTeamRow {
+  slug: string;
+  name: string;
+  albums: number;
+  photos: number;
+  cover_thumb: string | null;
+}
+
+export interface PublicTeamPage {
+  team: { slug: string; name: string };
+  albums: {
+    id: string;
+    name: string;
+    sport: string | null;
+    event_date: string;
+    photos: {
+      id: string;
+      filename: string;
+      taken_at: string | null;
+      width: number | null;
+      height: number | null;
+      web_path: string;
+      thumb_path: string;
+    }[];
+  }[];
+}
+
 export interface TeamRow {
   id: string;
   slug: string;
@@ -126,11 +160,23 @@ export interface ReviewStore {
   ): Promise<void>;
   /** True when counted; false when this visitor had already asked for it today. */
   recordInterest(slug: string, voter: string): Promise<boolean>;
+  /** Migration 0057: approved photos on a public team's page. */
+  publicWanted(): Promise<PublicRow[]>;
+  publicUnwanted(): Promise<PublicRow[]>;
+  markPublic(ids: string[]): Promise<number>;
+  clearPublic(ids: string[]): Promise<number>;
+  publicTeams(): Promise<PublicTeamRow[]>;
+  publicTeam(slug: string): Promise<PublicTeamPage | null>;
 }
 
 export interface ReviewFiles {
   signedUrls(paths: string[], seconds: number): Promise<Map<string, string>>;
   signedUploadUrl(path: string): Promise<string>;
+  /** Copy a photo from the private bucket to the public one, same path. */
+  copyToPublic(path: string): Promise<void>;
+  removePublic(paths: string[]): Promise<void>;
+  /** The public address of a copied photo. */
+  publicUrl(path: string): string;
 }
 
 export interface AuthUser {
@@ -289,6 +335,51 @@ export async function handle(req: Request, deps: ReviewDeps): Promise<Response> 
     // Names and addresses only. Never a count of how many people asked for a page.
     return json(req, 200, { pages }, "public, max-age=60");
   }
+  if (req.method === "GET" && route === "/site/teams") {
+    const teams = await deps.store.publicTeams();
+    return json(
+      req,
+      200,
+      {
+        teams: teams.map((t) => ({
+          slug: t.slug,
+          name: t.name,
+          albums: Number(t.albums),
+          photos: Number(t.photos),
+          cover_url: t.cover_thumb ? deps.files.publicUrl(t.cover_thumb) : null,
+        })),
+      },
+      "public, max-age=60",
+    );
+  }
+  if (req.method === "GET" && route === "/site/team") {
+    const slug = url.searchParams.get("slug") ?? "";
+    if (!/^[a-z0-9]+(-[a-z0-9]+)*$/.test(slug) || slug.length > 120)
+      return json(req, 404, { error: "That team page was not found." });
+    const page = await deps.store.publicTeam(slug);
+    if (page === null)
+      return json(req, 404, { error: "That team page was not found." });
+    return json(
+      req,
+      200,
+      {
+        team: page.team,
+        albums: page.albums.map((a) => ({
+          ...a,
+          photos: a.photos.map((p) => ({
+            id: p.id,
+            filename: p.filename,
+            taken_at: p.taken_at,
+            width: p.width,
+            height: p.height,
+            thumb_url: deps.files.publicUrl(p.thumb_path),
+            web_url: deps.files.publicUrl(p.web_path),
+          })),
+        })),
+      },
+      "public, max-age=60",
+    );
+  }
   if (req.method !== "POST") return json(req, 405, { error: "POST only." });
 
   try {
@@ -303,6 +394,48 @@ export async function handle(req: Request, deps: ReviewDeps): Promise<Response> 
     if (m !== null) return json(req, 400, { error: m });
     throw e;
   }
+}
+
+export interface SyncResult {
+  published: number;
+  unpublished: number;
+  failed: number;
+}
+
+/**
+ * Keep the public bucket in step with the decisions: copy newly qualifying photos
+ * (approved, in a folder filed under a public team), take down photos that no
+ * longer qualify. A photo is marked public only after BOTH its files were copied,
+ * and a failure leaves it unmarked so the next sync retries it. Never throws.
+ */
+export async function syncPublic(deps: ReviewDeps): Promise<SyncResult> {
+  const out: SyncResult = { published: 0, unpublished: 0, failed: 0 };
+  try {
+    const done: string[] = [];
+    for (const p of await deps.store.publicWanted()) {
+      try {
+        await deps.files.copyToPublic(p.web_path);
+        await deps.files.copyToPublic(p.thumb_path);
+        done.push(p.id);
+      } catch {
+        out.failed += 1;
+      }
+    }
+    if (done.length > 0) out.published = await deps.store.markPublic(done);
+
+    const down = await deps.store.publicUnwanted();
+    if (down.length > 0) {
+      try {
+        await deps.files.removePublic(down.flatMap((p) => [p.web_path, p.thumb_path]));
+        out.unpublished = await deps.store.clearPublic(down.map((p) => p.id));
+      } catch {
+        out.failed += down.length;
+      }
+    }
+  } catch {
+    out.failed += 1;
+  }
+  return out;
 }
 
 async function interest(req: Request, deps: ReviewDeps): Promise<Response> {
@@ -493,12 +626,16 @@ async function owner(req: Request, route: string, deps: ReviewDeps): Promise<Res
       return json(req, 400, { error: "status is waiting, approved or rejected." });
     return json(req, 200, {
       changed: await deps.store.decide(list, status, text(b["reason"]), by),
+      public: await syncPublic(deps),
     });
   }
   if (route === "/owner/approve-waiting") {
     const folder = text(b["folder"]);
     if (!UUID.test(folder)) return json(req, 400, { error: "folder must be a uuid." });
-    return json(req, 200, { changed: await deps.store.approveWaiting(folder, by) });
+    return json(req, 200, {
+      changed: await deps.store.approveWaiting(folder, by),
+      public: await syncPublic(deps),
+    });
   }
   if (route === "/owner/rename") {
     const folder = text(b["folder"]);
@@ -511,7 +648,10 @@ async function owner(req: Request, route: string, deps: ReviewDeps): Promise<Res
     const folder = text(b["folder"]);
     if (list === null || !UUID.test(folder))
       return json(req, 400, { error: "ids and folder are needed." });
-    return json(req, 200, { moved: await deps.store.movePhotos(list, folder) });
+    return json(req, 200, {
+      moved: await deps.store.movePhotos(list, folder),
+      public: await syncPublic(deps),
+    });
   }
   if (route === "/owner/new-folder") {
     const list = ids(b["ids"]);
@@ -525,7 +665,7 @@ async function owner(req: Request, route: string, deps: ReviewDeps): Promise<Res
       text(b["sport"]),
       date || null,
     );
-    return json(req, 200, { folder });
+    return json(req, 200, { folder, public: await syncPublic(deps) });
   }
   if (route === "/owner/set-team") {
     const folder = text(b["folder"]);
@@ -533,7 +673,7 @@ async function owner(req: Request, route: string, deps: ReviewDeps): Promise<Res
     if (!UUID.test(folder) || (team !== "" && !UUID.test(team)))
       return json(req, 400, { error: "folder and team must be ids." });
     await deps.store.setFolderTeam(folder, team === "" ? null : team);
-    return json(req, 200, { ok: true });
+    return json(req, 200, { ok: true, public: await syncPublic(deps) });
   }
   if (route === "/owner/create-team") {
     return json(req, 200, { team: await deps.store.createTeam(text(b["name"])) });
@@ -542,7 +682,9 @@ async function owner(req: Request, route: string, deps: ReviewDeps): Promise<Res
     const team = text(b["team"]);
     if (!UUID.test(team)) return json(req, 400, { error: "team must be an id." });
     await deps.store.setTeamVisibility(team, text(b["visibility"]));
-    return json(req, 200, { ok: true });
+    return json(req, 200, { ok: true, public: await syncPublic(deps) });
   }
+  if (route === "/owner/sync")
+    return json(req, 200, { public: await syncPublic(deps) });
   return json(req, 404, { error: "Not found." });
 }

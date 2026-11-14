@@ -64,6 +64,21 @@ const files: ReviewFiles = {
     if (error || !data) throw error ?? new Error("no upload url");
     return data.signedUrl;
   },
+  async copyToPublic(path) {
+    const { error } = await storage
+      .from("review-photos")
+      .copy(path, path, { destinationBucket: "review-public" });
+    // A file already copied by an earlier try is fine.
+    if (error && !/already exists|duplicate/i.test(error.message)) throw error;
+  },
+  async removePublic(paths) {
+    if (paths.length === 0) return;
+    const { error } = await storage.from("review-public").remove(paths);
+    if (error) throw error;
+  },
+  publicUrl(path) {
+    return storage.from("review-public").getPublicUrl(path).data.publicUrl;
+  },
 };
 
 /** Ask Supabase Auth who this access token belongs to. */

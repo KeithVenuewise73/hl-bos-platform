@@ -17,7 +17,10 @@ import {
   type FolderRow,
   clientAddress,
   voterFingerprint,
+  syncPublic,
   type PageRow,
+  type PublicRow,
+  type PublicTeamPage,
   type PhotoRow,
   type ReviewDeps,
   type ReviewStore,
@@ -60,9 +63,43 @@ const PAGE_ROW: PageRow = {
   coming_soon: true,
 };
 
+/** What a sync reports when there was nothing to copy or take down. */
+const SYNCED = { published: 0, unpublished: 0, failed: 0 };
+
 function world(over: Partial<ReviewDeps> = {}) {
   const calls: string[] = [];
   const votes = new Set<string>();
+  const pub = {
+    wanted: [] as PublicRow[],
+    unwanted: [] as PublicRow[],
+    copied: [] as string[],
+    removed: [] as string[],
+    marked: [] as string[],
+    cleared: [] as string[],
+    failCopy: new Set<string>(),
+  };
+  const PAGE: PublicTeamPage = {
+    team: { slug: "cazenovia-chiefs", name: "Cazenovia Chiefs" },
+    albums: [
+      {
+        id: FOLDER,
+        name: "Varsity vs Wheatfield",
+        sport: "Hockey",
+        event_date: "2026-10-24",
+        photos: [
+          {
+            id: P1,
+            filename: "IMG_1.JPG",
+            taken_at: "2026-10-24T10:02:00",
+            width: 2400,
+            height: 1600,
+            web_path: `${BATCH}/${H1}-web.jpg`,
+            thumb_path: `${BATCH}/${H1}-thumb.jpg`,
+          },
+        ],
+      },
+    ],
+  };
   let registered: string | null = null;
   let windowOpen = true;
   const known = new Set<string>([H2]);
@@ -178,6 +215,34 @@ function world(over: Partial<ReviewDeps> = {}) {
       calls.push(`page:${slug}:${enabled}:${comingSoon}`);
       return Promise.resolve();
     },
+    publicWanted() {
+      return Promise.resolve(pub.wanted);
+    },
+    publicUnwanted() {
+      return Promise.resolve(pub.unwanted);
+    },
+    markPublic(ids) {
+      pub.marked.push(...ids);
+      return Promise.resolve(ids.length);
+    },
+    clearPublic(ids) {
+      pub.cleared.push(...ids);
+      return Promise.resolve(ids.length);
+    },
+    publicTeams() {
+      return Promise.resolve([
+        {
+          slug: "cazenovia-chiefs",
+          name: "Cazenovia Chiefs",
+          albums: 1,
+          photos: 1,
+          cover_thumb: `${BATCH}/${H1}-thumb.jpg`,
+        },
+      ]);
+    },
+    publicTeam(slug) {
+      return Promise.resolve(slug === "cazenovia-chiefs" ? PAGE : null);
+    },
     recordInterest(slug, voter) {
       calls.push(`interest:${slug}:${voter}`);
       const first = !votes.has(slug + voter);
@@ -199,6 +264,18 @@ function world(over: Partial<ReviewDeps> = {}) {
         requested.push("upload:" + path);
         return Promise.resolve(`https://files.test/upload/${path}`);
       },
+      copyToPublic(path) {
+        if (pub.failCopy.has(path)) return Promise.reject(new Error("storage down"));
+        pub.copied.push(path);
+        return Promise.resolve();
+      },
+      removePublic(paths) {
+        pub.removed.push(...paths);
+        return Promise.resolve();
+      },
+      publicUrl(path) {
+        return `https://public.test/${path}`;
+      },
     },
     publisherKeySha256: null,
     ownerEmails: [OWNER.email],
@@ -219,6 +296,7 @@ function world(over: Partial<ReviewDeps> = {}) {
     deps,
     calls,
     requested,
+    pub,
     closeWindow: () => (windowOpen = false),
     setPublisher: (sha: string | null) => (deps.publisherKeySha256 = sha),
   };
@@ -659,7 +737,11 @@ Deno.test(
         w.deps,
       ),
     );
-    assertEquals(d.json, { changed: 2 }, "duplicates in the list are counted once");
+    assertEquals(
+      d.json,
+      { changed: 2, public: SYNCED },
+      "duplicates in the list are counted once",
+    );
     assert(
       w.calls.includes(`decide:2:rejected:blurry:${OWNER_ID}`),
       "the decision records who decided",
@@ -709,7 +791,7 @@ Deno.test(
           ),
         )
       ).json,
-      { changed: 3 },
+      { changed: 3, public: SYNCED },
       "approve the rest",
     );
   },
@@ -755,7 +837,7 @@ Deno.test(
           ),
         )
       ).json,
-      { moved: 1 },
+      { moved: 1, public: SYNCED },
       "move",
     );
     assertEquals(
@@ -774,7 +856,7 @@ Deno.test(
         w.deps,
       ),
     );
-    assertEquals(nf.json, { folder: FOLDER2 }, "new folder");
+    assertEquals(nf.json, { folder: FOLDER2, public: SYNCED }, "new folder");
     assert(
       w.calls.includes("newFolder:2:JV Lacrosse:Lacrosse:null"),
       "the date defaults to the photos' own",
@@ -812,7 +894,7 @@ Deno.test(
           ),
         )
       ).json,
-      { ok: true },
+      { ok: true, public: SYNCED },
       "file under a team",
     );
     assertEquals(
@@ -824,7 +906,7 @@ Deno.test(
           ),
         )
       ).json,
-      { ok: true },
+      { ok: true, public: SYNCED },
       "take it off a team",
     );
     assert(w.calls.includes(`setTeam:${FOLDER}:null`), "an empty team clears it");
@@ -866,7 +948,7 @@ Deno.test(
           ),
         )
       ).json,
-      { ok: true },
+      { ok: true, public: SYNCED },
       "visibility",
     );
     assertEquals(
@@ -1167,5 +1249,185 @@ Deno.test(
       401,
       "the publisher key opens no owner route",
     );
+  },
+);
+
+Deno.test(
+  "public team pages: anyone can read them, with public addresses only; an unknown or malformed team is a plain 404",
+  async () => {
+    const w = world();
+    const teams = await handle(
+      new Request(`${BASE}/site/teams`, {
+        method: "GET",
+        headers: { origin: "https://5starsportsmedia.com" },
+      }),
+      w.deps,
+    );
+    const tj = (await teams.json()) as { teams: Record<string, unknown>[] };
+    assertEquals(teams.status, 200, "no sign-in");
+    assertEquals(
+      tj.teams[0]!["cover_url"],
+      `https://public.test/${BATCH}/${H1}-thumb.jpg`,
+      "the cover is a public address",
+    );
+    assertEquals(
+      teams.headers.get("cache-control"),
+      "public, max-age=60",
+      "cached a minute",
+    );
+    const page = await handle(
+      new Request(`${BASE}/site/team?slug=cazenovia-chiefs`, { method: "GET" }),
+      w.deps,
+    );
+    const pj = (await page.json()) as {
+      team: { name: string };
+      albums: { photos: Record<string, unknown>[] }[];
+    };
+    assertEquals(pj.team.name, "Cazenovia Chiefs", "the team");
+    const photo = pj.albums[0]!.photos[0]!;
+    assertEquals(
+      photo["web_url"],
+      `https://public.test/${BATCH}/${H1}-web.jpg`,
+      "a public picture address",
+    );
+    assert(
+      !("web_path" in photo) && !("thumb_path" in photo),
+      "no private storage path leaves the service",
+    );
+    assertEquals(
+      (
+        await handle(
+          new Request(`${BASE}/site/team?slug=nobody`, { method: "GET" }),
+          w.deps,
+        )
+      ).status,
+      404,
+      "an unknown team",
+    );
+    assertEquals(
+      (
+        await handle(
+          new Request(`${BASE}/site/team?slug=..%2Fx`, { method: "GET" }),
+          w.deps,
+        )
+      ).status,
+      404,
+      "a malformed team name",
+    );
+    assertEquals(
+      (await handle(new Request(`${BASE}/site/team`, { method: "GET" }), w.deps))
+        .status,
+      404,
+      "no team named",
+    );
+  },
+);
+
+Deno.test(
+  "deciding syncs the public bucket: qualifying photos are copied (both files) and marked, those that stop qualifying are taken down",
+  async () => {
+    const w = world();
+    w.pub.wanted = [
+      {
+        id: P1,
+        web_path: `${BATCH}/${H1}-web.jpg`,
+        thumb_path: `${BATCH}/${H1}-thumb.jpg`,
+      },
+    ];
+    w.pub.unwanted = [
+      {
+        id: P2,
+        web_path: `${BATCH}/${H2}-web.jpg`,
+        thumb_path: `${BATCH}/${H2}-thumb.jpg`,
+      },
+    ];
+    const r = await out(
+      await handle(
+        post("/owner/decide", { ids: [P1], status: "approved" }, asOwner),
+        w.deps,
+      ),
+    );
+    assertEquals(
+      r.json["public"],
+      { published: 1, unpublished: 1, failed: 0 },
+      "the owner is told what happened to the public page",
+    );
+    assertEquals(
+      w.pub.copied,
+      [`${BATCH}/${H1}-web.jpg`, `${BATCH}/${H1}-thumb.jpg`],
+      "both files are copied",
+    );
+    assertEquals(w.pub.marked, [P1], "and only then is the photo marked public");
+    assertEquals(
+      w.pub.removed,
+      [`${BATCH}/${H2}-web.jpg`, `${BATCH}/${H2}-thumb.jpg`],
+      "the photo that stopped qualifying is taken down",
+    );
+    assertEquals(w.pub.cleared, [P2], "and unmarked");
+  },
+);
+
+Deno.test(
+  "every change that can affect the public page syncs it; one that cannot, does not",
+  async () => {
+    for (const [route, body] of [
+      ["/owner/approve-waiting", { folder: FOLDER }],
+      ["/owner/move", { ids: [P1], folder: FOLDER2 }],
+      ["/owner/new-folder", { ids: [P1], name: "x" }],
+      ["/owner/set-team", { folder: FOLDER, team: TEAM }],
+      ["/owner/team-visibility", { team: TEAM, visibility: "private" }],
+      ["/owner/sync", {}],
+    ] as const) {
+      const w = world();
+      w.pub.wanted = [{ id: P1, web_path: "a-web.jpg", thumb_path: "a-thumb.jpg" }];
+      const r = await out(await handle(post(route, body, asOwner), w.deps));
+      assertEquals(r.json["public"]?.published, 1, `${route} syncs the public page`);
+    }
+    const w = world();
+    w.pub.wanted = [{ id: P1, web_path: "a-web.jpg", thumb_path: "a-thumb.jpg" }];
+    const rename = await out(
+      await handle(
+        post("/owner/rename", { folder: FOLDER, name: "New name" }, asOwner),
+        w.deps,
+      ),
+    );
+    assert(!("public" in rename.json), "a rename needs no file work");
+    const stranger = await out(
+      await handle(
+        post(
+          "/owner/decide",
+          { ids: [P1], status: "approved" },
+          { authorization: "Bearer other-token" },
+        ),
+        w.deps,
+      ),
+    );
+    assertEquals(stranger.status, 403, "a stranger is refused");
+    assertEquals(w.pub.copied.length, 0, "and nothing was copied");
+  },
+);
+
+Deno.test(
+  "a failed copy never marks the photo public and never blocks the others; the answer still comes back",
+  async () => {
+    const w = world();
+    w.pub.wanted = [
+      { id: P1, web_path: "bad-web.jpg", thumb_path: "bad-thumb.jpg" },
+      { id: P2, web_path: "ok-web.jpg", thumb_path: "ok-thumb.jpg" },
+    ];
+    w.pub.failCopy.add("bad-thumb.jpg");
+    const result = await syncPublic(w.deps);
+    assertEquals(
+      result,
+      { published: 1, unpublished: 0, failed: 1 },
+      "one published, one failed",
+    );
+    assertEquals(
+      w.pub.marked,
+      [P2],
+      "only the photo whose both files copied is marked",
+    );
+    const r = await out(await handle(post("/owner/sync", {}, asOwner), w.deps));
+    assertEquals(r.status, 200, "the owner still gets an answer");
   },
 );
