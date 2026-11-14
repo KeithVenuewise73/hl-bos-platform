@@ -11,6 +11,7 @@
 // key (the connect window migration 0055 opens). The owner signs in with
 // Supabase Auth; who counts as the owner is the REVIEW_OWNER_EMAILS setting
 // (comma-separated), kept in the function's secrets, never in the repository.
+// REVIEW_VOTE_SALT (also a secret) keeps the anonymous page-interest count honest.
 // Without it every owner route answers 503. It answers 503 until 0055 is applied.
 //
 // verify_jwt = false (supabase/config.toml): the function does its own checks
@@ -35,6 +36,9 @@ const OWNERS = (Deno.env.get("REVIEW_OWNER_EMAILS") ?? "")
   .split(",")
   .map((e) => e.trim().toLowerCase())
   .filter((e) => e.includes("@"));
+
+// A secret only this function holds, for the anonymous "I'd like this" fingerprints.
+const VOTER_SALT = Deno.env.get("REVIEW_VOTE_SALT") ?? "";
 
 const sql = postgres(Deno.env.get("SUPABASE_DB_URL") ?? "", { prepare: false, max: 3 });
 const storage = createClient(SUPABASE_URL, SERVICE_KEY, {
@@ -82,6 +86,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
       publisherKeySha256,
       ownerEmails: OWNERS,
       verifyUser,
+      voterSalt: VOTER_SALT,
     });
   } catch (e) {
     const m = e instanceof Error ? e.message : String(e);

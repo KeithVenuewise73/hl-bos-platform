@@ -57,6 +57,22 @@ export interface PhotoRow {
   total: number;
 }
 
+export interface PageRow {
+  slug: string;
+  title: string;
+  blurb: string;
+  href: string;
+  menu_label: string;
+  menu_order: number;
+  paths: string[];
+  enabled: boolean;
+  coming_soon: boolean;
+}
+
+export interface OwnerPageRow extends PageRow {
+  interest: number;
+}
+
 export interface TeamRow {
   id: string;
   slug: string;
@@ -100,6 +116,16 @@ export interface ReviewStore {
   teams(): Promise<TeamRow[]>;
   createTeam(name: string): Promise<string>;
   setTeamVisibility(team: string, visibility: string): Promise<void>;
+  /** Migration 0056: the website's page switches. */
+  publicPages(): Promise<PageRow[]>;
+  ownerPages(): Promise<OwnerPageRow[]>;
+  setPage(
+    slug: string,
+    enabled: boolean | null,
+    comingSoon: boolean | null,
+  ): Promise<void>;
+  /** True when counted; false when this visitor had already asked for it today. */
+  recordInterest(slug: string, voter: string): Promise<boolean>;
 }
 
 export interface ReviewFiles {
@@ -121,6 +147,12 @@ export interface ReviewDeps {
   ownerEmails: string[];
   /** Check an access token with Supabase Auth; null when it is not a valid, confirmed sign-in. */
   verifyUser(token: string): Promise<AuthUser | null>;
+  /**
+   * A secret only this function holds, mixed into the one-way fingerprint that
+   * keeps one visitor from being counted twice a day. Empty: counting is off (503).
+   */
+  voterSalt?: string;
+  now?: () => number;
 }
 
 const sha256 = (s: string) => createHash("sha256").update(s).digest("hex");
@@ -163,7 +195,7 @@ function cors(req: Request): Record<string, string> {
   return ALLOWED_ORIGIN.test(origin)
     ? {
         "access-control-allow-origin": origin,
-        "access-control-allow-methods": "POST, OPTIONS",
+        "access-control-allow-methods": "GET, POST, OPTIONS",
         "access-control-allow-headers":
           "content-type, authorization, x-review-publisher-key",
         vary: "origin",
@@ -171,15 +203,35 @@ function cors(req: Request): Record<string, string> {
     : { vary: "origin" };
 }
 
-function json(req: Request, status: number, body: unknown) {
+function json(req: Request, status: number, body: unknown, cache = "no-store") {
   return new Response(JSON.stringify(body), {
     status,
     headers: {
       "content-type": "application/json",
-      "cache-control": "no-store",
+      "cache-control": cache,
       ...cors(req),
     },
   });
+}
+
+/**
+ * A one-way fingerprint of this visitor for one day: not their address, and not
+ * reversible. It only lets one person be counted once per page per day.
+ */
+export function voterFingerprint(salt: string, ip: string, nowMs: number): string {
+  const day = new Date(nowMs).toISOString().slice(0, 10);
+  return sha256(`${salt}|${day}|${ip}`);
+}
+
+/** The visitor's address as the platform saw it: the proxy's own header, else the LAST forwarded hop. */
+export function clientAddress(req: Request): string {
+  const direct = req.headers.get("cf-connecting-ip");
+  if (direct) return direct.trim();
+  const fwd = (req.headers.get("x-forwarded-for") ?? "")
+    .split(",")
+    .map((x) => x.trim())
+    .filter(Boolean);
+  return fwd.length > 0 ? fwd[fwd.length - 1]! : "unknown";
 }
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
@@ -231,9 +283,16 @@ export async function handle(req: Request, deps: ReviewDeps): Promise<Response> 
   const route = routeOf(url);
   if (req.method === "OPTIONS")
     return new Response(null, { status: 204, headers: cors(req) });
+  // --- the public site (visitors; no sign-in): which pages are on, and "I'd like this" ----
+  if (req.method === "GET" && route === "/site/pages") {
+    const pages = await deps.store.publicPages();
+    // Names and addresses only. Never a count of how many people asked for a page.
+    return json(req, 200, { pages }, "public, max-age=60");
+  }
   if (req.method !== "POST") return json(req, 405, { error: "POST only." });
 
   try {
+    if (route === "/site/interest") return await interest(req, deps);
     // --- the publisher (DateSort) ----------------------------------------------
     if (route.startsWith("/review/")) return await publisher(req, route, deps);
     // --- the owner ---------------------------------------------------------------
@@ -244,6 +303,24 @@ export async function handle(req: Request, deps: ReviewDeps): Promise<Response> 
     if (m !== null) return json(req, 400, { error: m });
     throw e;
   }
+}
+
+async function interest(req: Request, deps: ReviewDeps): Promise<Response> {
+  if (!deps.voterSalt)
+    return json(req, 503, { error: "Asking for a page is not switched on yet." });
+  const slug = text((await body(req))["slug"]);
+  if (!/^[a-z0-9]+(-[a-z0-9]+)*$/.test(slug) || slug.length > 60)
+    return json(req, 400, { error: "That page is not listed as coming soon." });
+  const voter = voterFingerprint(
+    deps.voterSalt,
+    clientAddress(req),
+    (deps.now ?? Date.now)(),
+  );
+  // true: counted. false: this visitor already asked for it today. Either way the visitor is thanked.
+  return json(req, 200, {
+    ok: true,
+    counted: await deps.store.recordInterest(slug, voter),
+  });
 }
 
 async function publisher(
@@ -361,6 +438,20 @@ async function owner(req: Request, route: string, deps: ReviewDeps): Promise<Res
     return json(req, 200, { folders: await deps.store.folders() });
   if (route === "/owner/teams")
     return json(req, 200, { teams: await deps.store.teams() });
+  if (route === "/owner/pages")
+    return json(req, 200, { pages: await deps.store.ownerPages() });
+  if (route === "/owner/page-set") {
+    const slug = text(b["slug"]);
+    const flag = (v: unknown) => (typeof v === "boolean" ? v : null);
+    if (!/^[a-z0-9]+(-[a-z0-9]+)*$/.test(slug) || slug.length > 60)
+      return json(req, 400, { error: "slug must be a page name." });
+    const enabled = flag(b["enabled"]);
+    const comingSoon = flag(b["coming_soon"]);
+    if (enabled === null && comingSoon === null)
+      return json(req, 400, { error: "Say what to change: enabled or coming_soon." });
+    await deps.store.setPage(slug, enabled, comingSoon);
+    return json(req, 200, { ok: true });
+  }
 
   if (route === "/owner/photos") {
     const folder = text(b["folder"]);

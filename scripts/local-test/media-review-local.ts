@@ -53,6 +53,8 @@ await sql`delete from review.photos`;
 await sql`delete from review.batches`;
 await sql`delete from review.folders`;
 await sql`delete from storage.objects where bucket_id = 'review-photos'`;
+await sql`delete from site.page_interest`;
+await sql`update site.pages set enabled = false, coming_soon = false`;
 await sql`select review.reset_publisher(2)`.catch(() => undefined);
 await sql`update review.settings set publisher_key_sha256 = null, connect_until = now() + interval '1 hour'`;
 await sql`delete from review.teams where slug not in ('west-seneca-high-school','west-seneca-club-hockey','cazenovia-chiefs','cheektowaga-warriors')`;
@@ -75,6 +77,7 @@ const deps = (): Promise<ReviewDeps> =>
     },
     publisherKeySha256: fp,
     ownerEmails: ["owner@example.test"],
+    voterSalt: "s".repeat(40),
     verifyUser: (t) =>
       Promise.resolve(
         t === "owner"
@@ -318,6 +321,121 @@ check(
   (await call("/owner/folders", {}, own)).json.folders.some(
     (f: any) => f.team_name === "Orchard Park Quakers",
   ),
+);
+
+console.log("\nPage switches");
+const getPages = async () => {
+  const res = await handle(
+    new Request(BASE + "/site/pages", { method: "GET" }),
+    await deps(),
+  );
+  return {
+    status: res.status,
+    cache: res.headers.get("cache-control"),
+    json: (await res.json()) as any,
+  };
+};
+const pagesOut = await getPages();
+check(
+  "the public list is readable with no sign-in, 15 page groups, all off, cached a minute",
+  pagesOut.status === 200 &&
+    pagesOut.json.pages.length === 15 &&
+    pagesOut.json.pages.every((p: any) => p.enabled === false) &&
+    pagesOut.cache === "public, max-age=60",
+  pagesOut.cache,
+);
+check(
+  "the public list carries no count",
+  pagesOut.json.pages.every((p: any) => !("interest" in p)),
+);
+const asked0 = await call(
+  "/site/interest",
+  { slug: "athletes" },
+  { "cf-connecting-ip": "203.0.113.7" },
+);
+check(
+  "asking for a page that is not listed as coming soon is refused in words",
+  asked0.status === 400 && /not listed as coming soon/.test(asked0.json.error),
+  asked0,
+);
+check(
+  "the owner lists Athlete Spotlight as coming soon",
+  (await call("/owner/page-set", { slug: "athletes", coming_soon: true }, own)).json
+    .ok === true,
+);
+check(
+  "it now shows as coming soon, still off",
+  (await getPages()).json.pages.find((p: any) => p.slug === "athletes").coming_soon ===
+    true,
+);
+const a1 = await call(
+  "/site/interest",
+  { slug: "athletes" },
+  { "cf-connecting-ip": "203.0.113.7" },
+);
+const a2 = await call(
+  "/site/interest",
+  { slug: "athletes" },
+  { "cf-connecting-ip": "203.0.113.7" },
+);
+const a3 = await call(
+  "/site/interest",
+  { slug: "athletes" },
+  { "cf-connecting-ip": "203.0.113.8" },
+);
+check(
+  "an 'I'd like this' is counted once per visitor",
+  a1.json.counted === true && a2.json.counted === false && a3.json.counted === true,
+  [a1.json, a2.json, a3.json],
+);
+const stored = await sql`select voter_hash from site.page_interest`;
+check(
+  "only fingerprints are stored, never an address",
+  stored.length === 2 &&
+    stored.every(
+      (r: any) => /^[0-9a-f]{64}$/.test(r.voter_hash) && !r.voter_hash.includes("203"),
+    ),
+  stored,
+);
+check("no sign-in, no counts", (await call("/owner/pages", {})).status === 401);
+const owned = await call("/owner/pages", {}, own);
+check(
+  "the owner sees 2 people asked for Athlete Spotlight",
+  owned.json.pages.find((p: any) => p.slug === "athletes").interest === 2,
+  owned.json.pages.find((p: any) => p.slug === "athletes"),
+);
+check(
+  "the owner switches the page on",
+  (await call("/owner/page-set", { slug: "athletes", enabled: true }, own)).json.ok ===
+    true,
+);
+const on = (await getPages()).json.pages.find((p: any) => p.slug === "athletes");
+check(
+  "it is on and no longer listed as coming soon",
+  on.enabled === true && on.coming_soon === false,
+  on,
+);
+check(
+  "asking for a page that is now on is refused",
+  (
+    await call(
+      "/site/interest",
+      { slug: "athletes" },
+      { "cf-connecting-ip": "203.0.113.9" },
+    )
+  ).status === 400,
+);
+check(
+  "the owner switches it off again",
+  (await call("/owner/page-set", { slug: "athletes", enabled: false }, own)).json.ok ===
+    true &&
+    (await getPages()).json.pages.find((p: any) => p.slug === "athletes").enabled ===
+      false,
+);
+check(
+  "an unknown page is refused in words",
+  (await call("/owner/page-set", { slug: "no-such-page", enabled: true }, own))
+    .status === 400,
 );
 
 await sql.end();

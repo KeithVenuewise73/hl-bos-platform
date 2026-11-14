@@ -15,6 +15,9 @@ import {
   userFromAuth,
   type AuthUser,
   type FolderRow,
+  clientAddress,
+  voterFingerprint,
+  type PageRow,
   type PhotoRow,
   type ReviewDeps,
   type ReviewStore,
@@ -45,8 +48,21 @@ const P2 = "22222222-2222-2222-2222-222222222222";
 const H1 = "a".repeat(64);
 const H2 = "b".repeat(64);
 
+const PAGE_ROW: PageRow = {
+  slug: "athletes",
+  title: "Athlete Spotlight",
+  blurb: "Athlete spotlights.",
+  href: "athlete-spotlight.html",
+  menu_label: "Athletes",
+  menu_order: 10,
+  paths: ["athlete-spotlight.html"],
+  enabled: false,
+  coming_soon: true,
+};
+
 function world(over: Partial<ReviewDeps> = {}) {
   const calls: string[] = [];
+  const votes = new Set<string>();
   let registered: string | null = null;
   let windowOpen = true;
   const known = new Set<string>([H2]);
@@ -152,6 +168,22 @@ function world(over: Partial<ReviewDeps> = {}) {
       calls.push(`visibility:${team}:${v}`);
       return Promise.resolve();
     },
+    publicPages() {
+      return Promise.resolve([PAGE_ROW]);
+    },
+    ownerPages() {
+      return Promise.resolve([{ ...PAGE_ROW, interest: 4 }]);
+    },
+    setPage(slug, enabled, comingSoon) {
+      calls.push(`page:${slug}:${enabled}:${comingSoon}`);
+      return Promise.resolve();
+    },
+    recordInterest(slug, voter) {
+      calls.push(`interest:${slug}:${voter}`);
+      const first = !votes.has(slug + voter);
+      votes.add(slug + voter);
+      return Promise.resolve(first);
+    },
   };
   const requested: string[] = [];
   const deps: ReviewDeps = {
@@ -170,6 +202,8 @@ function world(over: Partial<ReviewDeps> = {}) {
     },
     publisherKeySha256: null,
     ownerEmails: [OWNER.email],
+    voterSalt: "salt-salt-salt-salt-salt-salt-salt-1234",
+    now: () => Date.UTC(2026, 10, 14, 12, 0, 0),
     verifyUser(token) {
       return Promise.resolve(
         token === "owner-token"
@@ -900,6 +934,238 @@ Deno.test(
       (await out(await handle(post("/nowhere", {}), w.deps))).status,
       404,
       "unknown route",
+    );
+  },
+);
+
+Deno.test(
+  "the public page list: anyone can read it, it carries names and addresses and never a count, and the site may cache it",
+  async () => {
+    const w = world();
+    const res = await handle(
+      new Request(`${BASE}/site/pages`, {
+        method: "GET",
+        headers: { origin: "https://5starsportsmedia.com" },
+      }),
+      w.deps,
+    );
+    const j = (await res.json()) as { pages: Record<string, unknown>[] };
+    assertEquals(res.status, 200, "no sign-in needed");
+    assertEquals(j.pages.length, 1, "the list");
+    assertEquals(j.pages[0]!["slug"], "athletes", "a page");
+    assert(!("interest" in j.pages[0]!), "no count in the public list");
+    assertEquals(
+      res.headers.get("cache-control"),
+      "public, max-age=60",
+      "cached for a minute",
+    );
+    assertEquals(
+      res.headers.get("access-control-allow-origin"),
+      "https://5starsportsmedia.com",
+      "the site may read it",
+    );
+    const evil = await handle(
+      new Request(`${BASE}/site/pages`, {
+        method: "GET",
+        headers: { origin: "https://evil.example" },
+      }),
+      w.deps,
+    );
+    assertEquals(
+      evil.headers.get("access-control-allow-origin"),
+      null,
+      "another site's pages may not read it in a browser",
+    );
+    assertEquals(
+      (await handle(new Request(`${BASE}/owner/folders`, { method: "GET" }), w.deps))
+        .status,
+      405,
+      "GET is still refused everywhere else",
+    );
+  },
+);
+
+Deno.test(
+  "'I'd like this': anonymous, counted once per visitor per day, never stores an address",
+  async () => {
+    const w = world();
+    const ask = (ip: string) =>
+      handle(
+        post("/site/interest", { slug: "athletes" }, { "cf-connecting-ip": ip }),
+        w.deps,
+      );
+    const first = await out(await ask("203.0.113.7"));
+    assertEquals(first.json, { ok: true, counted: true }, "first ask is counted");
+    const again = await out(await ask("203.0.113.7"));
+    assertEquals(
+      again.json,
+      { ok: true, counted: false },
+      "the same visitor again is thanked but not counted twice",
+    );
+    assertEquals(
+      (await out(await ask("203.0.113.8"))).json["counted"],
+      true,
+      "another visitor is counted",
+    );
+    const sent = w.calls.filter((c) => c.startsWith("interest:"));
+    assert(
+      sent.every((c) => /^interest:athletes:[0-9a-f]{64}$/.test(c)),
+      "only a 64-hex fingerprint reaches the store",
+    );
+    assert(
+      !sent.some((c) => c.includes("203.0.113")),
+      "the address itself never reaches the store",
+    );
+    assertEquals(
+      (await out(await handle(post("/site/interest", { slug: "../x" }), w.deps)))
+        .status,
+      400,
+      "a page name must be plain",
+    );
+    assertEquals(
+      (await out(await handle(post("/site/interest", {}), w.deps))).status,
+      400,
+      "a page is needed",
+    );
+    const off = world({ voterSalt: "" });
+    assertEquals(
+      (await out(await handle(post("/site/interest", { slug: "athletes" }), off.deps)))
+        .status,
+      503,
+      "no secret set up: counting is off",
+    );
+  },
+);
+
+Deno.test(
+  "the visitor fingerprint: stable for a day, different the next day and per address and per secret; the address comes from the platform's header",
+  () => {
+    const t = Date.UTC(2026, 10, 14, 12);
+    const f = voterFingerprint("salt", "1.2.3.4", t);
+    assert(/^[0-9a-f]{64}$/.test(f), "64 hex");
+    assertEquals(
+      voterFingerprint("salt", "1.2.3.4", t + 3600_000),
+      f,
+      "stable within a day",
+    );
+    assert(
+      voterFingerprint("salt", "1.2.3.4", t + 86_400_000) !== f,
+      "a new day, a new fingerprint",
+    );
+    assert(voterFingerprint("salt", "1.2.3.5", t) !== f, "another address");
+    assert(voterFingerprint("other", "1.2.3.4", t) !== f, "another secret");
+    assertEquals(
+      clientAddress(
+        new Request(BASE, {
+          headers: { "cf-connecting-ip": " 9.9.9.9 ", "x-forwarded-for": "6.6.6.6" },
+        }),
+      ),
+      "9.9.9.9",
+      "the platform's own header wins",
+    );
+    assertEquals(
+      clientAddress(
+        new Request(BASE, { headers: { "x-forwarded-for": "6.6.6.6, 7.7.7.7" } }),
+      ),
+      "7.7.7.7",
+      "else the last hop, which a visitor cannot choose",
+    );
+    assertEquals(clientAddress(new Request(BASE)), "unknown", "no address at all");
+  },
+);
+
+Deno.test(
+  "the owner's page switches: counts are for the owner only; a switch needs a clear change",
+  async () => {
+    const w = world();
+    assertEquals(
+      (await out(await handle(post("/owner/pages", {}), w.deps))).status,
+      401,
+      "no sign-in, no counts",
+    );
+    assertEquals(
+      (
+        await out(
+          await handle(
+            post("/owner/pages", {}, { authorization: "Bearer other-token" }),
+            w.deps,
+          ),
+        )
+      ).status,
+      403,
+      "a stranger gets no counts",
+    );
+    const list = await out(await handle(post("/owner/pages", {}, asOwner), w.deps));
+    assertEquals(
+      list.json["pages"][0]["interest"],
+      4,
+      "the owner sees how many people asked",
+    );
+    assertEquals(
+      (
+        await out(
+          await handle(
+            post("/owner/page-set", { slug: "athletes", enabled: true }, asOwner),
+            w.deps,
+          ),
+        )
+      ).json,
+      { ok: true },
+      "switch on",
+    );
+    assert(
+      w.calls.includes("page:athletes:true:null"),
+      "only the switch asked for changes",
+    );
+    await handle(
+      post("/owner/page-set", { slug: "athletes", coming_soon: true }, asOwner),
+      w.deps,
+    );
+    assert(w.calls.includes("page:athletes:null:true"), "list as coming soon");
+    assertEquals(
+      (
+        await out(
+          await handle(post("/owner/page-set", { slug: "athletes" }, asOwner), w.deps),
+        )
+      ).status,
+      400,
+      "say what to change",
+    );
+    assertEquals(
+      (
+        await out(
+          await handle(
+            post("/owner/page-set", { slug: "athletes", enabled: "yes" }, asOwner),
+            w.deps,
+          ),
+        )
+      ).status,
+      400,
+      "a switch is true or false",
+    );
+    assertEquals(
+      (
+        await out(
+          await handle(
+            post("/owner/page-set", { slug: "A B", enabled: true }, asOwner),
+            w.deps,
+          ),
+        )
+      ).status,
+      400,
+      "a plain page name",
+    );
+    assertEquals(
+      (
+        await out(
+          await handle(
+            post("/owner/page-set", { slug: "athletes", enabled: true }, asPublisher),
+            w.deps,
+          ),
+        )
+      ).status,
+      401,
+      "the publisher key opens no owner route",
     );
   },
 );

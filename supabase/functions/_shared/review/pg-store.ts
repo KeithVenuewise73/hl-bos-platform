@@ -79,5 +79,25 @@ export function pgStore(sql: any): ReviewStore {
     async setTeamVisibility(team, visibility) {
       await sql`select review.set_team_visibility(${team}::uuid, ${visibility})`;
     },
+    async publicPages() {
+      return [
+        ...(await sql`select slug, title, blurb, href, menu_label, menu_order, paths, enabled, coming_soon
+                        from site.public_pages()`),
+      ];
+    },
+    async ownerPages() {
+      return [
+        ...(await sql`select slug, title, blurb, href, menu_label, menu_order, paths, enabled, coming_soon,
+                             interest::int
+                        from site.owner_pages()`),
+      ];
+    },
+    async setPage(slug, enabled, comingSoon) {
+      await sql`select site.set_page(${slug}, ${enabled}::boolean, ${comingSoon}::boolean)`;
+    },
+    async recordInterest(slug, voter) {
+      const r = await sql`select site.record_interest(${slug}, ${voter}) as counted`;
+      return r[0]?.counted === true;
+    },
   };
 }
