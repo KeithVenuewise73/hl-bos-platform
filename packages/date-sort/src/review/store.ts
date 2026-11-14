@@ -2,7 +2,9 @@
  * What DateSort remembers about the website's review area, on this computer
  * only (%LOCALAPPDATA%\DateSort\review.json, beside settings.json):
  *
- *   serviceUrl   the review service's address, once the website has one
+ *   serviceUrl   the review service's address. Built in (it is public, not a
+ *                secret), so nothing has to be set up by hand; a saved address
+ *                (for testing against another service) wins over it
  *   key          this computer's own publisher key. It never leaves the
  *                computer; only its fingerprint is sent, once, to connect.
  *   connectedAt  when the website accepted that fingerprint
@@ -20,7 +22,15 @@ export interface ReviewSettings {
   readonly connectedAt: string | null;
 }
 
-const EMPTY: ReviewSettings = { serviceUrl: null, key: null, connectedAt: null };
+/** The live review service (the media-review function on the HL-BOS project). */
+export const DEFAULT_SERVICE_URL =
+  "https://mvvtngiopdrgiedjmhfb.supabase.co/functions/v1/media-review";
+
+const EMPTY: ReviewSettings = {
+  serviceUrl: DEFAULT_SERVICE_URL,
+  key: null,
+  connectedAt: null,
+};
 const file = (dir: string) => join(dir, "review.json");
 
 /** Only an https address (or this computer, for testing) is accepted. */
@@ -43,7 +53,7 @@ export async function loadReview(dir: string = settingsDir()): Promise<ReviewSet
       unknown
     >;
     return {
-      serviceUrl: cleanServiceUrl(raw["serviceUrl"]),
+      serviceUrl: cleanServiceUrl(raw["serviceUrl"]) ?? DEFAULT_SERVICE_URL,
       key:
         typeof raw["key"] === "string" && raw["key"].length >= 40 ? raw["key"] : null,
       connectedAt: typeof raw["connectedAt"] === "string" ? raw["connectedAt"] : null,
