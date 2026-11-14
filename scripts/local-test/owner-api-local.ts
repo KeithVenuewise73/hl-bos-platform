@@ -51,6 +51,7 @@ Deno.serve(
       },
       publisherKeySha256: await publisherFingerprint(sql),
       ownerEmails: ["owner@example.test"],
+      voterSalt: "s".repeat(40),
       verifyUser: (t) =>
         Promise.resolve(
           t === "owner-token"
