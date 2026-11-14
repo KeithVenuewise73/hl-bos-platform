@@ -441,6 +441,22 @@ async function api(route, body, headers) {
         /out of focus/.test(await page.locator(".pr-tile").innerText()),
     );
 
+    console.log("\nA folder's own team picker");
+    check(
+      "inside a folder, a warning says photos stay private until a team is picked",
+      /No team yet: approved photos stay private/.test(
+        await page.locator("#app").innerText(),
+      ),
+    );
+    await page.selectOption("#folderTeam", { label: "Cheektowaga Warriors" });
+    await page.waitForFunction(() =>
+      /appear on Cheektowaga Warriors/.test(document.getElementById("app").innerText),
+    );
+    check(
+      "picking a team inside the folder files it and says where its photos will appear",
+      /appear on Cheektowaga Warriors/.test(await page.locator("#app").innerText()),
+    );
+
     console.log("\nFolders: split out the photos that do not belong, then rename");
     await page.click("button.pr-chip:has-text('Waiting')");
     await page.waitForFunction(
