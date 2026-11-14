@@ -1406,6 +1406,15 @@ const ASSETS: Asset[] = [
     [],
   ),
   ...edgeFn(
+    "media-review",
+    "Photo Review",
+    "The private photo review for 5starsportsmedia.com. DateSort connects once with its key's fingerprint and sends web-size photos through upload addresses that can only be that send's own paths; the owner (a verified, confirmed sign-in whose email is on a secret list, never in the repository) approves, rejects, renames or splits folders, files them under teams, creates teams, and flips the website's pages on or off. Approved photos on a public team's page are copied to a public bucket and taken down again when they stop qualifying. Public read routes: which pages are on, the teams, each team's page, and an anonymous count-only 'I'd like this'.",
+    [],
+    ["db.review", "db.site"],
+    "built_undeployed",
+    [],
+  ),
+  ...edgeFn(
     "social-publish-worker",
     "Social Publish Worker",
     "Minute cron. Claims due targets with FOR UPDATE SKIP LOCKED, runs one adapter per platform, logs every attempt. Per-target outcomes are independent.",
@@ -1597,6 +1606,44 @@ const ASSETS: Asset[] = [
     relationships: [{ kind: "owned_by", to: "repo.hl-bos-platform" }],
     evidence:
       "migrations 0053 + 0054 verified from empty against a local PostgreSQL 16 (59 pgTAP assertions; 1239 across the suite, 0 failing; the cover rule mutation-checked); the team-gallery function run end to end against them, and JerseySort's Publish online driven through it in a real browser (20 checks); UNAPPLIED to any project",
+  },
+
+  {
+    id: "db.review",
+    kind: "database",
+    name: "Photo review (review)",
+    summary:
+      "The private review area for photos before they go public: teams (the four to start, public pages by default), folders, send batches, photos with quality hints, and the one-time connect window for DateSort. The owner approves, rejects, renames or splits folders, moves photos, creates teams. A photo is public exactly when it is approved, in a folder filed under a team, and that team is public; public photos are copied to a public bucket and taken down again when they stop qualifying. Not API-exposed; anon and authenticated hold no privilege; RLS enabled AND forced with no policy; every function is the service role's alone (the media-review Edge Function); a private photo bucket and a public one. No email address is stored.",
+    maturity: "built_undeployed",
+    reuse: ["internal_only"],
+    owner: "Herman Legacy Platform",
+    layer: "HL-BOS",
+    key: "review",
+    location: "review schema",
+    tags: ["schema", "postgres", "rls", "storage"],
+    metrics: { tables: 5 },
+    relationships: [{ kind: "owned_by", to: "repo.hl-bos-platform" }],
+    evidence:
+      "migrations 0055 + 0057 verified from empty against a local PostgreSQL (97 pgTAP assertions; 1367 across the suite, 0 failing) and by the repository's own CI against the real Supabase stack (0055, 0056); the media-review function run end to end against them (50 checks) and driven through a real browser; UNAPPLIED to any project",
+  },
+
+  {
+    id: "db.site",
+    kind: "database",
+    name: "Website page switches (site)",
+    summary:
+      "Which pages of 5starsportsmedia.com are switched on: 15 page groups (all off to start), the owner's on/off and coming-soon switches, and an anonymous count-only 'I'd like this' (a one-way fingerprint per visitor, page and day; no address, name or email). Not API-exposed; RLS enabled AND forced with no policy; service role only (the media-review Edge Function). The public list never carries a count.",
+    maturity: "built_undeployed",
+    reuse: ["internal_only"],
+    owner: "Herman Legacy Platform",
+    layer: "HL-BOS",
+    key: "site",
+    location: "site schema",
+    tags: ["schema", "postgres", "rls"],
+    metrics: { tables: 2 },
+    relationships: [{ kind: "owned_by", to: "repo.hl-bos-platform" }],
+    evidence:
+      "migration 0056 verified from empty against a local PostgreSQL (31 pgTAP assertions) and by the repository's own CI against the real Supabase stack; run end to end through the media-review function and a real browser; UNAPPLIED to any project",
   },
 
   ...db(
