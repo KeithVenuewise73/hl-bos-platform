@@ -4,14 +4,20 @@ import { join } from "node:path";
 
 import { describe, expect, it } from "vitest";
 
-import { cleanServiceUrl, ensureKey, loadReview, saveReview } from "./store";
+import {
+  cleanServiceUrl,
+  DEFAULT_SERVICE_URL,
+  ensureKey,
+  loadReview,
+  saveReview,
+} from "./store";
 
 const dir = () => mkdtempSync(join(tmpdir(), "review-store-"));
 
 describe("what is remembered about the website", () => {
-  it("starts empty", async () => {
+  it("starts with the live service address and nothing else", async () => {
     expect(await loadReview(dir())).toEqual({
-      serviceUrl: null,
+      serviceUrl: DEFAULT_SERVICE_URL,
       key: null,
       connectedAt: null,
     });
@@ -49,7 +55,7 @@ describe("what is remembered about the website", () => {
     });
     writeFileSync(join(d, "review.json"), "{ not json");
     expect(await loadReview(d)).toEqual({
-      serviceUrl: null,
+      serviceUrl: DEFAULT_SERVICE_URL,
       key: null,
       connectedAt: null,
     });
