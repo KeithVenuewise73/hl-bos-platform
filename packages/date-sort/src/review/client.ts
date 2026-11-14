@@ -75,6 +75,43 @@ export const fingerprint = (key: string): string =>
 
 const CHUNK = 10;
 
+/** Waits (ms) before each retry of a failed request: three retries. */
+const RETRY_DELAYS_MS = [2_000, 6_000, 15_000] as const;
+/** One request that has not answered in this long is given up on and tried again. */
+const ATTEMPT_TIMEOUT_MS = 60_000;
+
+/**
+ * A fetch that tries again when the website or its storage has a passing
+ * problem: no answer, a dropped connection, or a 500, 502 or 504. Everything
+ * DateSort sends is safe to repeat (uploads overwrite, commits skip what is
+ * already there). A refusal that will not change by trying again (401, 409,
+ * 503, anything 4xx) is returned at once. Stopping the send stops the retries.
+ */
+export function withRetry(
+  fetchImpl: Fetch,
+  delaysMs: readonly number[] = RETRY_DELAYS_MS,
+  attemptTimeoutMs: number = ATTEMPT_TIMEOUT_MS,
+  signal?: AbortSignal,
+): Fetch {
+  return async (input, init) => {
+    for (let attempt = 0; ; attempt++) {
+      const last = attempt >= delaysMs.length;
+      const guard = AbortSignal.timeout(attemptTimeoutMs);
+      const attemptInit: RequestInit = {
+        ...init,
+        signal: signal ? AbortSignal.any([signal, guard]) : guard,
+      };
+      try {
+        const res = await fetchImpl(input, attemptInit);
+        if (last || ![500, 502, 504].includes(res.status)) return res;
+      } catch (e) {
+        if (last || signal?.aborted === true) throw e;
+      }
+      await new Promise((resolve) => setTimeout(resolve, delaysMs[attempt]));
+    }
+  };
+}
+
 async function call(
   fetchImpl: Fetch,
   base: string,
@@ -170,11 +207,14 @@ export interface SendOptions {
   readonly fetch: Fetch;
   readonly onProgress?: (p: SendProgress) => void;
   readonly signal?: AbortSignal;
+  /** Waits before each retry of a failed request (tests use short ones). */
+  readonly retryDelaysMs?: readonly number[];
 }
 
 /** Send every photo in the folder for review. Never changes the folder. */
 export async function sendForReview(o: SendOptions): Promise<SendResult> {
   const progress = (p: SendProgress) => o.onProgress?.(p);
+  const net = withRetry(o.fetch, o.retryDelaysMs, ATTEMPT_TIMEOUT_MS, o.signal);
   const stopped = () => {
     if (o.signal?.aborted === true) throw new ReviewError("Stopped.");
   };
@@ -210,7 +250,7 @@ export async function sendForReview(o: SendOptions): Promise<SendResult> {
   }
 
   const batch = await call(
-    o.fetch,
+    net,
     o.serviceUrl,
     o.key,
     "/review/batch",
@@ -246,7 +286,7 @@ export async function sendForReview(o: SendOptions): Promise<SendResult> {
     }
     if (ready.length === 0) continue;
     const out = await call(
-      o.fetch,
+      net,
       o.serviceUrl,
       o.key,
       "/review/uploads",
@@ -269,11 +309,11 @@ export async function sendForReview(o: SendOptions): Promise<SendResult> {
       const thumb = urls.get(`${p.hash}:thumb`);
       if (!web || !thumb)
         throw new ReviewError("The website gave no upload address.", sent);
-      await put(o.fetch, web, p.web, sent);
-      await put(o.fetch, thumb, p.thumb, sent);
+      await put(net, web, p.web, sent);
+      await put(net, thumb, p.thumb, sent);
     }
     await call(
-      o.fetch,
+      net,
       o.serviceUrl,
       o.key,
       "/review/commit",

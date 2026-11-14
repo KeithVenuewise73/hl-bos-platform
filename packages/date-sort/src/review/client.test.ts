@@ -19,6 +19,7 @@ import {
   sendForReview,
   type Fetch,
   type SendProgress,
+  withRetry,
 } from "./client";
 
 const KEY = "test-key-test-key-test-key-test-key-test-key-1234";
@@ -169,6 +170,7 @@ const run = (
     serviceUrl: BASE,
     key: KEY,
     fetch: svc.fetch,
+    retryDelaysMs: [1, 1],
     ...extra,
   });
 
@@ -306,6 +308,90 @@ describe("when the website cannot take them", () => {
     await expect(run(dir, service(), { signal: ctl.signal })).rejects.toThrow(
       /Stopped/,
     );
+  });
+});
+
+describe("retrying a passing problem", () => {
+  const ok = () => new Response("{}", { status: 200 });
+  const fail = (status: number) => new Response("{}", { status });
+
+  it("tries again after a 504 and carries on when the next try works", async () => {
+    let calls = 0;
+    const f = withRetry(
+      () => Promise.resolve(++calls < 3 ? fail(504) : ok()),
+      [1, 1, 1],
+    );
+    expect((await f("https://x.test/a")).status).toBe(200);
+    expect(calls).toBe(3);
+  });
+
+  it("tries again after a dropped connection, then gives up after the last retry", async () => {
+    let calls = 0;
+    const f = withRetry(() => {
+      calls++;
+      return Promise.reject(new Error("socket hang up"));
+    }, [1, 1]);
+    await expect(f("https://x.test/a")).rejects.toThrow(/socket hang up/);
+    expect(calls).toBe(3);
+  });
+
+  it("does not repeat a refusal that trying again cannot change", async () => {
+    for (const status of [401, 409, 503, 400]) {
+      let calls = 0;
+      const f = withRetry(() => Promise.resolve((calls++, fail(status))), [1, 1]);
+      expect((await f("https://x.test/a")).status).toBe(status);
+      expect(calls).toBe(1);
+    }
+  });
+
+  it("gives up on a request that never answers and tries again", async () => {
+    let calls = 0;
+    const f = withRetry(
+      (_url, init) => {
+        calls++;
+        if (calls > 1) return Promise.resolve(ok());
+        return new Promise<Response>((_res, rej) =>
+          init?.signal?.addEventListener("abort", () => rej(new Error("timed out"))),
+        );
+      },
+      [1],
+      30,
+    );
+    expect((await f("https://x.test/a")).status).toBe(200);
+    expect(calls).toBe(2);
+  });
+
+  it("a whole send survives one 504 in the middle and still sends every photo", async () => {
+    const dir = await dayFolder(12);
+    const svc = service();
+    let hiccup = true;
+    const flaky: Fetch = (input, init) => {
+      if (hiccup && input.endsWith("/review/uploads")) {
+        hiccup = false;
+        return Promise.resolve(fail(504));
+      }
+      return svc.fetch(input, init);
+    };
+    const r = await run(dir, { fetch: flaky });
+    expect(r).toMatchObject({ sent: 12 });
+    expect(svc.known.size).toBe(12);
+  }, 60_000);
+
+  it("stops retrying when the send is stopped", async () => {
+    const ctl = new AbortController();
+    let calls = 0;
+    const f = withRetry(
+      () => {
+        calls++;
+        ctl.abort();
+        return Promise.reject(new Error("down"));
+      },
+      [1, 1, 1],
+      60_000,
+      ctl.signal,
+    );
+    await expect(f("https://x.test/a")).rejects.toThrow(/down/);
+    expect(calls).toBe(1);
   });
 });
 
