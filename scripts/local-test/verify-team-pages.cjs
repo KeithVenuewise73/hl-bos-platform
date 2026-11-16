@@ -418,7 +418,7 @@ async function api(route, body, headers) {
         ),
     );
     check(
-      "the phone Save button is hidden where the browser cannot share a file",
+      "the Share button is hidden where the browser has no share menu",
       await v.locator("[data-testid=viewer-share]").evaluate((e) => e.hidden),
     );
     await v.keyboard.press("Escape");
@@ -443,9 +443,71 @@ async function api(route, body, headers) {
     await v.waitForFunction(() => window.__shared);
     const shared = await v.evaluate(() => window.__shared);
     check(
-      "where the browser can share files, Save to phone hands it the picture as a JPEG with the same name",
+      "where the browser can share files, Share hands it the picture itself as a JPEG with the same name (nothing saved first)",
       shared.name === firstName && shared.type === "image/jpeg" && shared.size > 1000,
       JSON.stringify(shared),
+    );
+    await v.evaluate(() => {
+      window.__copied = null;
+      Object.defineProperty(navigator, "clipboard", {
+        configurable: true,
+        value: {
+          writeText: async (t) => {
+            window.__copied = t;
+          },
+        },
+      });
+    });
+    await v.click("[data-testid=viewer-copy]");
+    await v.waitForFunction(() => window.__copied);
+    const copied = await v.evaluate(() => window.__copied);
+    check(
+      "Copy link copies the address of this very photo",
+      /^http.*team\.html\?team=cazenovia-chiefs&game=[0-9a-f-]{36}&photo=[0-9a-f-]{36}$/.test(
+        copied,
+      ),
+      copied,
+    );
+    check(
+      "and tells the visitor it was copied",
+      /Link copied/.test(await v.locator("[data-testid=viewer-note]").innerText()),
+    );
+    check(
+      "the address bar names the photo while it is open, so it can be copied from there too",
+      /&photo=[0-9a-f-]{36}$/.test(v.url()),
+    );
+    await v.evaluate(() => {
+      window.__shared2 = null;
+      Object.defineProperty(navigator, "canShare", {
+        configurable: true,
+        value: () => false,
+      });
+      Object.defineProperty(navigator, "share", {
+        configurable: true,
+        value: async (d) => {
+          window.__shared2 = d;
+        },
+      });
+    });
+    await v.click("[data-testid=viewer-share]");
+    await v.waitForFunction(() => window.__shared2);
+    const shared2 = await v.evaluate(() => window.__shared2);
+    check(
+      "a browser that can share a link but not a file shares the link to the photo instead",
+      shared2.url === copied && !shared2.files,
+      JSON.stringify(shared2),
+    );
+    await v.keyboard.press("Escape");
+    check(
+      "closing the viewer takes the photo off the address",
+      !/photo=/.test(v.url()),
+    );
+    await v.goto(copied);
+    await v.waitForSelector(".tp-lb:not([hidden])");
+    check(
+      "opening a shared photo link goes straight to that photo, large",
+      /1 of 3/.test(await v.locator(".tp-cap").innerText()) &&
+        (await v.locator(".tp-big").getAttribute("src")).length > 10,
     );
     await v.keyboard.press("ArrowRight");
     await v.waitForFunction(() =>
