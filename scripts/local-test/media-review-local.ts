@@ -548,6 +548,27 @@ check(
   (await getJson("/site/team?slug=no-such-team")).status === 404,
 );
 
+// An empty duplicate folder can be deleted; a folder with photos cannot, and nothing is lost.
+const [dup] = await sql`insert into review.folders (name, event_date)
+  values ('Duplicate of a game', '2026-10-24') returning id`;
+const photosBefore = (await sql`select count(*)::int as n from review.photos`)[0].n;
+const delEmpty = await call("/owner/delete-folder", { folder: dup.id }, own);
+check(
+  "an empty folder is deleted",
+  delEmpty.json.ok === true &&
+    (await sql`select count(*)::int as n from review.folders where id = ${dup.id}`)[0]
+      .n === 0,
+  delEmpty,
+);
+const delFull = await call("/owner/delete-folder", { folder: f1 }, own);
+check(
+  "a folder with photos is refused in plain words, and no photo is lost",
+  delFull.status === 400 &&
+    /still has photos/.test(delFull.json.error) &&
+    (await sql`select count(*)::int as n from review.photos`)[0].n === photosBefore,
+  delFull,
+);
+
 await sql.end();
 console.log(`\n${checks - failures}/${checks} checks passed`);
 Deno.exit(failures === 0 ? 0 : 1);

@@ -3,7 +3,7 @@
   "schemaVersion": 1,
   "sourceDir": "supabase/migrations",
   "canonicalRepository": "KeithVenuewise73/hl-bos-platform",
-  "count": 57,
+  "count": 58,
   "migrations": [
     {
       "ordinal": 1,
@@ -459,6 +459,14 @@
       "filename": "20261116120000_hlbos_0057_review_publish.sql",
       "version": "20261116120000",
       "sha256": "b1216b39f43be30bdf7fdfa6289931100067c856aca24358be0349efde3e9399",
+      "foundation": false
+    },
+    {
+      "ordinal": 58,
+      "name": "hlbos_0058_review_delete_folder",
+      "filename": "20261117120000_hlbos_0058_review_delete_folder.sql",
+      "version": "20261117120000",
+      "sha256": "96b88b673283922bc61ca0ac816384020a0dd524a6bebf8ce28a4662c066e94e",
       "foundation": false
     }
   ]

@@ -54,6 +54,9 @@ export function pgStore(sql: any): ReviewStore {
     async renameFolder(folder, name) {
       await sql`select review.rename_folder(${folder}::uuid, ${name})`;
     },
+    async deleteFolder(folder) {
+      await sql`select review.delete_empty_folder(${folder}::uuid)`;
+    },
     async movePhotos(ids, folder) {
       const r =
         await sql`select review.move_photos(${ids}::uuid[], ${folder}::uuid) as n`;
