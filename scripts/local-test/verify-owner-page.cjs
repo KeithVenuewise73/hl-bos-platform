@@ -261,7 +261,10 @@ async function api(route, body, headers) {
       const errors = [];
       page.on("pageerror", (e) => errors.push(String(e)));
       page.on("console", (m) => {
-        if (m.type() === "error") errors.push(m.text());
+        // A refusal the test provokes on purpose (a taken team name) is logged by the browser
+        // as a failed request; that is the page working, not an error.
+        if (m.type() === "error" && !/status of 400 \(Bad Request\)/.test(m.text()))
+          errors.push(m.text());
       });
       // Fake Supabase Auth: the test controls who is signed in.
       await page.route(/cdn\.jsdelivr\.net\/npm\/@supabase/, (r) =>
@@ -582,6 +585,89 @@ async function api(route, body, headers) {
     );
     await emptyDb.end();
 
+    console.log(
+      "\nEditing a folder name from the list, and deleting photos that are not approved",
+    );
+    const cleanDb = new pg.Client({
+      host: "/tmp",
+      port: 5433,
+      user: "postgres",
+      database: "hlbos",
+    });
+    await cleanDb.connect();
+    page.once("dialog", (d) => d.accept("Renamed from the list"));
+    await page
+      .locator('.pr-card:has(h2:text-is("Varsity vs Wheatfield (Hockey)"))')
+      .locator("button:has-text('Edit name')")
+      .click();
+    await page.waitForSelector("text=Renamed from the list");
+    check(
+      "Edit name on a folder in the list renames it",
+      (
+        await cleanDb.query(
+          "select count(*)::int n from review.folders where name = 'Renamed from the list'",
+        )
+      ).rows[0].n === 1,
+    );
+    page.once("dialog", (d) => d.dismiss());
+    await page
+      .locator('.pr-card:has(h2:text-is("Renamed from the list"))')
+      .locator("button:has-text('Edit name')")
+      .click();
+    await page.waitForTimeout(400);
+    check(
+      "cancelling the Edit name question changes nothing",
+      (
+        await cleanDb.query(
+          "select count(*)::int n from review.folders where name = 'Renamed from the list'",
+        )
+      ).rows[0].n === 1,
+    );
+    const keepFolder = "Varsity vs Wheatfield";
+    const approvedBefore = (
+      await cleanDb.query(
+        "select count(*)::int n from review.photos p join review.folders f on f.id = p.folder_id where f.name = $1 and p.status = 'approved'",
+        [keepFolder],
+      )
+    ).rows[0].n;
+    await page
+      .locator(`.pr-card:has(h2:text-is("${keepFolder}"))`)
+      .locator("button.pr-btn.gold")
+      .click();
+    await page.waitForSelector("button:has-text('Rename this folder')");
+    await page.click("button.pr-chip:has-text('All')");
+    await page.waitForFunction(() => document.querySelectorAll(".pr-tile").length > 3);
+    await page.click("button:has-text('Tick all on this page')");
+    await page.waitForSelector("button:has-text('Untick all on this page')");
+    page.once("dialog", (d) => d.dismiss());
+    await page.click("button:has-text('Delete ticked (not approved)')");
+    await page.waitForTimeout(400);
+    check(
+      "saying No at the delete question deletes no photo",
+      (
+        await cleanDb.query(
+          "select count(*)::int n from review.photos p join review.folders f on f.id = p.folder_id where f.name = $1",
+          [keepFolder],
+        )
+      ).rows[0].n > approvedBefore,
+    );
+    page.once("dialog", (d) => d.accept());
+    await page.click("button:has-text('Delete ticked (not approved)')");
+    await page.waitForSelector("#toast:has-text('kept')");
+    const afterDelete = (
+      await cleanDb.query(
+        "select count(*) filter (where p.status = 'approved')::int a, count(*) filter (where p.status <> 'approved')::int o from review.photos p join review.folders f on f.id = p.folder_id where f.name = $1",
+        [keepFolder],
+      )
+    ).rows[0];
+    check(
+      "deleting every ticked photo removes the waiting and rejected ones and keeps the approved ones",
+      afterDelete.o === 0 && afterDelete.a === approvedBefore && approvedBefore > 0,
+      { afterDelete, approvedBefore },
+    );
+    await cleanDb.end();
+    await page.click("button.pr-tab:has-text('Folders')");
+
     console.log("\nTeams");
     await page.click("button.pr-tab:has-text('Teams')");
     await page.waitForSelector("text=Cazenovia Chiefs");
@@ -613,6 +699,26 @@ async function api(route, body, headers) {
       "switching one team private is saved",
       t.json.teams.find((x) => x.slug === "orchard-park-quakers").visibility ===
         "private",
+    );
+    page.once("dialog", (d) => d.accept("Orchard Park Quakers Varsity"));
+    await page
+      .locator(".pr-card", { hasText: "Orchard Park Quakers" })
+      .locator("button:has-text('Edit name')")
+      .click();
+    await page.waitForSelector("text=Orchard Park Quakers Varsity");
+    check(
+      "Edit name on a team renames it, and its page address stays the same",
+      /page address: orchard-park-quakers/.test(await page.locator("#app").innerText()),
+    );
+    page.once("dialog", (d) => d.accept("Cazenovia Chiefs"));
+    await page
+      .locator(".pr-card", { hasText: "Orchard Park Quakers Varsity" })
+      .locator("button:has-text('Edit name')")
+      .click();
+    await page.waitForSelector(".pr-err:has-text('already a team')");
+    check(
+      "renaming a team to a name another team has is refused in words",
+      /Orchard Park Quakers Varsity/.test(await page.locator("#app").innerText()),
     );
     await shot(page, "owner-teams");
 

@@ -76,6 +76,11 @@ const files: ReviewFiles = {
     const { error } = await storage.from("review-public").remove(paths);
     if (error) throw error;
   },
+  async removePrivate(paths) {
+    if (paths.length === 0) return;
+    const { error } = await storage.from("review-photos").remove(paths);
+    if (error) throw error;
+  },
   publicUrl(path) {
     return storage.from("review-public").getPublicUrl(path).data.publicUrl;
   },

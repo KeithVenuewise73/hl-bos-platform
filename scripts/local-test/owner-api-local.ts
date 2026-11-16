@@ -51,6 +51,9 @@ Deno.serve(
         async removePublic(paths) {
           await sql`delete from storage.objects where bucket_id = 'review-public' and name = any(${paths})`;
         },
+        async removePrivate(paths) {
+          await sql`delete from storage.objects where bucket_id = 'review-photos' and name = any(${paths})`;
+        },
         publicUrl: (path) => `${IMG_BASE}/img/${path}?public=1`,
         signedUrls: (paths, s) =>
           Promise.resolve(
