@@ -467,7 +467,8 @@ async function api(route, body, headers) {
     await page.click("summary:has-text('Wrong folder')");
     await page.fill("#newName", "JV Lacrosse vs Lockport");
     await page.fill("#newSport", "Lacrosse");
-    await page.click("button:has-text('Create folder')");
+    // Pressed twice in a row (as a real, impatient click can): it must make ONE folder.
+    await page.dblclick("button:has-text('Create folder')");
     await page.waitForFunction(
       () =>
         !document.querySelector(".pr-tile") ||
@@ -479,6 +480,23 @@ async function api(route, body, headers) {
     check(
       "a new folder exists with the 5 photos, waiting",
       /JV Lacrosse vs Lockport/.test(folders) && /5 waiting/.test(folders),
+    );
+    const dupDb = new pg.Client({
+      host: "/tmp",
+      port: 5433,
+      user: "postgres",
+      database: "hlbos",
+    });
+    await dupDb.connect();
+    const dupes = (
+      await dupDb.query(
+        "select count(*)::int as n from review.folders where name = 'JV Lacrosse vs Lockport'",
+      )
+    ).rows[0].n;
+    await dupDb.end();
+    check(
+      "pressing Create folder twice made exactly one folder, not copies",
+      dupes === 1,
     );
     check(
       "two folders on one day are flagged",
