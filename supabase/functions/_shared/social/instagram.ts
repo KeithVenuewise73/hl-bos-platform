@@ -361,9 +361,22 @@ export class InstagramAdapter implements SocialAdapter {
         attempts,
       };
     }
+    // A link a person can open. Best effort only: the post is already live, so a failure
+    // here changes nothing and is not recorded as an attempt.
+    let permalink: string | undefined;
+    const link = await safeFetch(
+      this.fetcher,
+      `${GRAPH_BASE}/${mediaId}?fields=permalink`,
+      { method: "GET", headers: { authorization: auth.authorization } },
+    );
+    if (link.kind === "response" && link.status >= 200 && link.status < 300) {
+      const p = (link.body as { permalink?: unknown } | null)?.permalink;
+      if (typeof p === "string" && /^https:\/\//.test(p)) permalink = p;
+    }
     return {
       status: "published",
       externalPostId: mediaId,
+      permalink,
       terminal: false,
       attempts,
     };

@@ -115,6 +115,64 @@ export interface TeamRow {
   folders: number;
 }
 
+export interface SocialAccountRow {
+  id: string;
+  platform: "instagram" | "facebook_page";
+  display_name: string;
+  status: "active" | "disabled";
+}
+
+/** One account a post is going to, claimed to be worked on (migration 0058). */
+export interface ClaimedTarget {
+  target_id: string;
+  platform: "instagram" | "facebook_page";
+  external_account_id: string;
+  display_name: string;
+  facebook_page_id: string | null;
+  /** The NAME of the secret that holds the login token, never the token. */
+  token_secret_name: string;
+  caption: string;
+  attempt_no: number;
+}
+
+export interface SocialOutcome {
+  status: "published" | "failed";
+  externalPostId?: string;
+  permalink?: string;
+  error?: string;
+  attempts: {
+    phase: string;
+    ok: boolean;
+    httpStatus?: number;
+    request?: unknown;
+    response?: unknown;
+    error?: string;
+  }[];
+}
+
+/** Posts to Instagram or Facebook. Absent until the accounts are connected. */
+export interface SocialPublisher {
+  publish(
+    target: ClaimedTarget,
+    photos: { public_url: string; filename: string }[],
+  ): Promise<SocialOutcome>;
+}
+
+export interface SocialPostStatus {
+  id: string;
+  status: string;
+  caption: string;
+  approved_at: string;
+  photos: number;
+  targets: {
+    account: string;
+    platform: string;
+    status: string;
+    permalink: string | null;
+    error: string | null;
+  }[];
+}
+
 /** The review schema's functions (migration 0055). */
 export interface ReviewStore {
   /** 'connected' | 'taken' (another computer) | 'closed' (no window open). */
@@ -177,6 +235,50 @@ export interface ReviewStore {
   clearPublic(ids: string[]): Promise<number>;
   publicTeams(): Promise<PublicTeamRow[]>;
   publicTeam(slug: string): Promise<PublicTeamPage | null>;
+  /** Migration 0058: posting approved photos to Instagram and Facebook. */
+  socialAccounts(): Promise<SocialAccountRow[]>;
+  socialAlreadyPosted(
+    photos: string[],
+  ): Promise<
+    { photo_id: string; platform: string; account: string; posted_at: string }[]
+  >;
+  socialCreatePost(
+    photos: string[],
+    caption: string,
+    accounts: string[],
+    by: string,
+  ): Promise<string>;
+  socialFailStale(post: string): Promise<number>;
+  socialClaim(post: string): Promise<ClaimedTarget | null>;
+  socialPhotoPaths(post: string): Promise<{ web_path: string; filename: string }[]>;
+  socialRecordAttempt(
+    target: string,
+    phase: string,
+    ok: boolean,
+    http: number | null,
+    request: unknown,
+    response: unknown,
+    error: string | null,
+  ): Promise<void>;
+  socialFinish(
+    target: string,
+    published: boolean,
+    external: string | null,
+    permalink: string | null,
+    error: string | null,
+  ): Promise<string>;
+  socialPostStatus(post: string): Promise<SocialPostStatus | null>;
+  socialRecent(limit: number): Promise<
+    {
+      id: string;
+      status: string;
+      caption: string;
+      approved_at: string;
+      folder_name: string | null;
+      photos: number;
+      targets: SocialPostStatus["targets"];
+    }[]
+  >;
 }
 
 export interface ReviewFiles {
@@ -210,6 +312,8 @@ export interface ReviewDeps {
    * keeps one visitor from being counted twice a day. Empty: counting is off (503).
    */
   voterSalt?: string;
+  /** Posts to Instagram / Facebook; absent until the accounts are connected (routes answer 503). */
+  social?: SocialPublisher;
   now?: () => number;
 }
 
@@ -592,6 +696,108 @@ async function publisher(
   return json(req, 404, { error: "Not found." });
 }
 
+const FINAL_POST = ["published", "partly_published", "failed", "cancelled"];
+
+/** Posting approved photos to Instagram and Facebook (owner only; the caller has already checked). */
+async function social(
+  req: Request,
+  route: string,
+  b: Body,
+  by: string,
+  deps: ReviewDeps,
+): Promise<Response> {
+  if (route === "/owner/social/accounts")
+    return json(req, 200, {
+      enabled: deps.social !== undefined,
+      accounts: await deps.store.socialAccounts(),
+    });
+  if (route === "/owner/social/recent")
+    return json(req, 200, { posts: await deps.store.socialRecent(30) });
+  if (route === "/owner/social/posted") {
+    const list = ids(b["ids"]);
+    if (list === null)
+      return json(req, 400, { error: "ids must be a list of photo ids." });
+    return json(req, 200, { posted: await deps.store.socialAlreadyPosted(list) });
+  }
+  if (route === "/owner/social/status") {
+    const post = text(b["post"]);
+    if (!UUID.test(post)) return json(req, 400, { error: "post must be an id." });
+    const s = await deps.store.socialPostStatus(post);
+    if (s === null) return json(req, 404, { error: "That post was not found." });
+    return json(req, 200, { post: s, done: FINAL_POST.includes(s.status) });
+  }
+  if (route === "/owner/social/post") {
+    // Pressing Post IS the approval: it is recorded with who and when, and nothing else posts.
+    if (deps.social === undefined)
+      return json(req, 503, {
+        error: "Posting to Instagram and Facebook is not switched on yet.",
+      });
+    const photos = ids(b["photos"]);
+    const accounts = ids(b["accounts"]);
+    if (photos === null || photos.length > 10)
+      return json(req, 400, { error: "Choose 1 to 10 photos." });
+    if (accounts === null) return json(req, 400, { error: "Choose where to post." });
+    const post = await deps.store.socialCreatePost(
+      photos,
+      text(b["caption"]),
+      accounts,
+      by,
+    );
+    return json(req, 200, { post });
+  }
+  if (route === "/owner/social/publish") {
+    // One account per call, so a slow Instagram upload never outruns a request. The page
+    // calls again until `done`.
+    if (deps.social === undefined)
+      return json(req, 503, {
+        error: "Posting to Instagram and Facebook is not switched on yet.",
+      });
+    const post = text(b["post"]);
+    if (!UUID.test(post)) return json(req, 400, { error: "post must be an id." });
+    await deps.store.socialFailStale(post);
+    const claimed = await deps.store.socialClaim(post);
+    if (claimed !== null) {
+      const photos = (await deps.store.socialPhotoPaths(post)).map((p) => ({
+        public_url: deps.files.publicUrl(p.web_path),
+        filename: p.filename,
+      }));
+      let outcome: SocialOutcome;
+      try {
+        outcome = await deps.social.publish(claimed, photos);
+      } catch (e) {
+        outcome = {
+          status: "failed",
+          error: `It could not be posted: ${e instanceof Error ? e.message : String(e)}`,
+          attempts: [],
+        };
+      }
+      for (const a of outcome.attempts)
+        await deps.store.socialRecordAttempt(
+          claimed.target_id,
+          a.phase,
+          a.ok,
+          a.httpStatus ?? null,
+          a.request ?? null,
+          a.response ?? null,
+          a.error ?? null,
+        );
+      // "Published" is only ever what the platform answered, with its own id.
+      const published = outcome.status === "published" && !!outcome.externalPostId;
+      await deps.store.socialFinish(
+        claimed.target_id,
+        published,
+        published ? (outcome.externalPostId ?? null) : null,
+        published ? (outcome.permalink ?? null) : null,
+        published ? null : (outcome.error ?? "It did not post."),
+      );
+    }
+    const s = await deps.store.socialPostStatus(post);
+    if (s === null) return json(req, 404, { error: "That post was not found." });
+    return json(req, 200, { post: s, done: FINAL_POST.includes(s.status) });
+  }
+  return json(req, 404, { error: "Not found." });
+}
+
 async function owner(req: Request, route: string, deps: ReviewDeps): Promise<Response> {
   if (deps.ownerEmails.length === 0)
     return json(req, 503, { error: "No owner is set up for the review area yet." });
@@ -683,6 +889,7 @@ async function owner(req: Request, route: string, deps: ReviewDeps): Promise<Res
     await deps.store.renameFolder(folder, text(b["name"]));
     return json(req, 200, { ok: true });
   }
+  if (route.startsWith("/owner/social/")) return await social(req, route, b, by, deps);
   if (route === "/owner/delete-photos") {
     const list = ids(b["ids"]);
     if (list === null)

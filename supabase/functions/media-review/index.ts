@@ -23,6 +23,7 @@ import postgres from "npm:postgres@3.4.5";
 import { createClient } from "jsr:@supabase/supabase-js@2";
 import { handle, userFromAuth, type ReviewFiles } from "../_shared/review/core.ts";
 import { pgStore, publisherFingerprint } from "../_shared/review/pg-store.ts";
+import { makeSocialPublisher } from "../_shared/review/social.ts";
 
 declare const Deno: {
   env: { get(name: string): string | undefined };
@@ -45,6 +46,10 @@ const storage = createClient(SUPABASE_URL, SERVICE_KEY, {
   auth: { persistSession: false },
 }).storage;
 const store = pgStore(sql);
+
+// Posts to Instagram / Facebook with the login token named on each account (a secret).
+// Nothing can be posted until an account row and its secret exist.
+const social = makeSocialPublisher({ secret: (name) => Deno.env.get(name) });
 
 const files: ReviewFiles = {
   async signedUrls(paths, seconds) {
@@ -107,6 +112,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
       ownerEmails: OWNERS,
       verifyUser,
       voterSalt: VOTER_SALT,
+      social,
     });
   } catch (e) {
     const m = e instanceof Error ? e.message : String(e);

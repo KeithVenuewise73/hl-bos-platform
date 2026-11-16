@@ -20,6 +20,7 @@ import {
   pgStore,
   publisherFingerprint,
 } from "../../supabase/functions/_shared/review/pg-store.ts";
+import { makeSocialPublisher } from "../../supabase/functions/_shared/review/social.ts";
 
 declare const Deno: {
   env: { get(n: string): string | undefined };
@@ -61,6 +62,36 @@ await sql`update review.settings set publisher_key_sha256 = null, connect_until 
 await sql`delete from review.teams where slug not in ('west-seneca-high-school','west-seneca-club-hockey','cazenovia-chiefs','cheektowaga-warriors')`;
 
 const uploaded: string[] = [];
+
+// --- A stand-in for Meta's Graph API: records every request and answers like Meta does. ---
+const META_TOKEN = "EAAG" + "t".repeat(60);
+const metaCalls: { method: string; url: string; body: any }[] = [];
+let metaFailInstagram = false;
+const metaFetch = (url: string, init?: RequestInit): Promise<Response> => {
+  const body = init?.body ? JSON.parse(String(init.body)) : null;
+  metaCalls.push({ method: init?.method ?? "GET", url, body });
+  const reply = (status: number, b: unknown) =>
+    Promise.resolve(new Response(JSON.stringify(b), { status }));
+  const u = new URL(url);
+  const path = u.pathname.replace(/^\/v[\d.]+/, "");
+  if (metaFailInstagram && path.startsWith("/17841400000000001/")) {
+    return reply(400, { error: { message: "Media could not be fetched", code: 9004 } });
+  }
+  if (path.endsWith("/media_publish"))
+    return reply(200, { id: "ig_media_" + metaCalls.length });
+  if (path.endsWith("/media"))
+    return reply(200, { id: "container_" + metaCalls.length });
+  if (path.endsWith("/photos")) return reply(200, { id: "ph_" + metaCalls.length });
+  if (path.endsWith("/feed"))
+    return reply(200, { id: "100000000000001_" + metaCalls.length });
+  if (u.searchParams.get("fields")?.includes("status_code"))
+    return reply(200, { status_code: "FINISHED" });
+  if (u.searchParams.get("fields")?.includes("permalink"))
+    return reply(200, {
+      permalink: "https://www.instagram.com/p/FAKE" + metaCalls.length + "/",
+    });
+  return reply(200, {});
+};
 const deps = (): Promise<ReviewDeps> =>
   publisherFingerprint(sql).then((fp) => ({
     store: pgStore(sql),
@@ -90,6 +121,12 @@ const deps = (): Promise<ReviewDeps> =>
     publisherKeySha256: fp,
     ownerEmails: ["owner@example.test"],
     voterSalt: "s".repeat(40),
+    // The REAL Instagram / Facebook code, talking to a stand-in for Meta (metaFetch below).
+    social: makeSocialPublisher({
+      secret: (name) => (name === "META_PAGE_TOKEN" ? META_TOKEN : undefined),
+      fetcher: (url, init) => metaFetch(String(url), init),
+      sleep: () => Promise.resolve(),
+    }),
     verifyUser: (t) =>
       Promise.resolve(
         t === "owner"
@@ -670,6 +707,185 @@ check(
   blankTeam,
 );
 await call("/owner/rename-team", { team: chiefsRow.id, name: "Cazenovia Chiefs" }, own);
+
+// --- Posting approved photos to Instagram and Facebook (migration 0058), against the stand-in ---
+await sql`insert into review.social_accounts (platform, external_account_id, display_name, facebook_page_id, token_secret_name)
+  values ('facebook_page', '100000000000001', '5Star Facebook', null, 'META_PAGE_TOKEN'),
+         ('instagram', '17841400000000001', '5Star Instagram', '100000000000001', 'META_PAGE_TOKEN')`;
+const accts = await call("/owner/social/accounts", {}, own);
+check(
+  "the owner sees the two connected accounts, and posting is switched on",
+  accts.json.enabled === true && accts.json.accounts.length === 2,
+  accts.json,
+);
+// Two approved photos on a public team's page to post (approving publishes them).
+const f1Ids = (await sql`select id from review.photos where folder_id = ${f1}`).map(
+  (r) => r.id,
+);
+await call("/owner/decide", { ids: f1Ids, status: "approved" }, own);
+const postable =
+  await sql`select id from review.photos where status = 'approved' and public_at is not null
+  order by taken_at, filename limit 2`;
+const accountIds = accts.json.accounts.map((a: { id: string }) => a.id);
+const posted = await call(
+  "/owner/social/post",
+  {
+    photos: postable.map((r) => r.id),
+    caption: "Game one, from 5-Star Sports Media",
+    accounts: accountIds,
+  },
+  own,
+);
+check(
+  "pressing Post records the post, approved by the owner, with nothing sent yet",
+  typeof posted.json.post === "string" &&
+    metaCalls.length === 0 &&
+    (
+      await sql`select approved_by from review.social_posts where id = ${posted.json.post}`
+    )[0].approved_by === OWNER_ID,
+  posted,
+);
+let step: any = null;
+let rounds = 0;
+do {
+  step = await call("/owner/social/publish", { post: posted.json.post }, own);
+  rounds++;
+} while (step.json.done === false && rounds < 5);
+check(
+  "publishing works through the two accounts one at a time and ends 'published'",
+  step.json.done === true && step.json.post.status === "published" && rounds === 2,
+  step.json,
+);
+const targets = await sql`select a.platform, t.status, t.external_post_id, t.permalink
+  from review.social_targets t join review.social_accounts a on a.id = t.account_id
+  where t.post_id = ${posted.json.post} order by a.platform`;
+check(
+  "each account has the id Meta returned (a success is only what Meta said)",
+  targets.length === 2 &&
+    targets.every((t) => t.status === "published" && t.external_post_id && t.permalink),
+  targets,
+);
+const fbFeed = metaCalls.find((c) => c.url.includes("/100000000000001/feed"));
+check(
+  "Facebook got both pictures as ONE post: uploaded unpublished, then attached with the caption",
+  metaCalls.filter((c) => c.url.includes("/100000000000001/photos")).length === 2 &&
+    metaCalls
+      .filter((c) => c.url.includes("/100000000000001/photos"))
+      .every((c) => c.body.published === false) &&
+    fbFeed?.body.attached_media.length === 2 &&
+    fbFeed?.body.message === "Game one, from 5-Star Sports Media",
+);
+const igPublish = metaCalls.filter((c) =>
+  c.url.includes("/17841400000000001/media_publish"),
+);
+check(
+  "Instagram got a two-picture carousel: one container per picture, one for the carousel, one publish",
+  metaCalls.filter(
+    (c) =>
+      c.url.includes("/17841400000000001/media") && !c.url.includes("media_publish"),
+  ).length === 3 && igPublish.length === 1,
+  metaCalls.map(
+    (c) => c.method + " " + c.url.replace(/^https:\/\/graph.facebook.com/, ""),
+  ),
+);
+check(
+  "the pictures were handed to Meta by their PUBLIC address, never a private one",
+  metaCalls
+    .filter((c) => c.body?.url || c.body?.image_url)
+    .every((c) => /^https:\/\/public\.test\//.test(c.body.url ?? c.body.image_url)),
+);
+const leaked = await sql`select count(*)::int as n from review.social_attempts
+  where request::text like ${"%" + META_TOKEN + "%"} or response::text like ${"%" + META_TOKEN + "%"}
+     or error like ${"%" + META_TOKEN + "%"}`;
+check(
+  "every request is recorded, and the login token is nowhere in the record",
+  (await sql`select count(*)::int as n from review.social_attempts`)[0].n >= 5 &&
+    leaked[0].n === 0,
+);
+const was = await call("/owner/social/posted", { ids: postable.map((r) => r.id) }, own);
+check(
+  "the owner is told these photos were already posted (twice each: Instagram and Facebook)",
+  was.json.posted.length === 4,
+  was.json,
+);
+
+// A refusal by Instagram: the failure is recorded in words, Facebook still goes out, no fake success.
+metaFailInstagram = true;
+const second = await call(
+  "/owner/social/post",
+  { photos: [postable[0].id], caption: "Second try", accounts: accountIds },
+  own,
+);
+let step2: any = null;
+rounds = 0;
+do {
+  step2 = await call("/owner/social/publish", { post: second.json.post }, own);
+  rounds++;
+} while (step2.json.done === false && rounds < 5);
+const t2 = await sql`select a.platform, t.status, t.external_post_id, t.error
+  from review.social_targets t join review.social_accounts a on a.id = t.account_id
+  where t.post_id = ${second.json.post} order by a.platform`;
+check(
+  "when Instagram refuses, the post is 'partly published': Facebook is out, Instagram shows Meta's reason and has no id",
+  step2.json.post.status === "partly_published" &&
+    t2.find((t) => t.platform === "facebook_page")?.status === "published" &&
+    t2.find((t) => t.platform === "instagram")?.status === "failed" &&
+    t2.find((t) => t.platform === "instagram")?.external_post_id === null &&
+    /Media could not be fetched/.test(
+      t2.find((t) => t.platform === "instagram")?.error ?? "",
+    ),
+  t2,
+);
+metaFailInstagram = false;
+
+// Refusals in words.
+const waitingPhoto =
+  await sql`select id from review.photos where status <> 'approved' limit 1`;
+if (waitingPhoto.length > 0) {
+  const notApproved = await call(
+    "/owner/social/post",
+    { photos: [waitingPhoto[0].id], caption: "x", accounts: accountIds },
+    own,
+  );
+  check(
+    "a photo that is not approved cannot be posted, in words",
+    notApproved.status === 400 && /only approved photos/.test(notApproved.json.error),
+    notApproved,
+  );
+}
+await sql`update review.social_accounts set token_secret_name = 'NOT_SET_ANYWHERE' where platform = 'facebook_page'`;
+const third = await call(
+  "/owner/social/post",
+  { photos: [postable[1].id], caption: "No login", accounts: accountIds },
+  own,
+);
+const callsBefore = metaCalls.length;
+let step3: any = null;
+rounds = 0;
+do {
+  step3 = await call("/owner/social/publish", { post: third.json.post }, own);
+  rounds++;
+} while (step3.json.done === false && rounds < 5);
+const t3 = await sql`select a.platform, t.status, t.error from review.social_targets t
+  join review.social_accounts a on a.id = t.account_id where t.post_id = ${third.json.post}`;
+check(
+  "an account whose login secret is missing fails in words, sends nothing to Meta for it, and the other account still posts",
+  t3.find((t) => t.platform === "facebook_page")?.status === "failed" &&
+    /not set up yet/.test(
+      t3.find((t) => t.platform === "facebook_page")?.error ?? "",
+    ) &&
+    t3.find((t) => t.platform === "instagram")?.status === "published" &&
+    metaCalls.slice(callsBefore).every((c) => !c.url.includes("/100000000000001/")),
+  t3,
+);
+const recent = await call("/owner/social/recent", {}, own);
+check(
+  "the owner's history lists the three posts, newest first, with each account's result",
+  recent.json.posts.length === 3 &&
+    recent.json.posts[0].caption === "No login" &&
+    recent.json.posts[0].targets.length === 2,
+  recent.json.posts.map((p: { caption: string }) => p.caption),
+);
 
 await sql.end();
 console.log(`\n${checks - failures}/${checks} checks passed`);
