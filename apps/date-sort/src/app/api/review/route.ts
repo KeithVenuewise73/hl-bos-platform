@@ -1,4 +1,5 @@
 import {
+  gameNameFor,
   loadReview,
   ReviewError,
   sendForReview,
@@ -91,7 +92,11 @@ export async function POST(request: Request): Promise<Response> {
       try {
         const result = await sendForReview({
           folder: found.folder,
-          game: { name: found.name || eventName, sport: found.sport, date: day },
+          game: {
+            name: gameNameFor(found.name || eventName, day),
+            sport: found.sport,
+            date: day,
+          },
           serviceUrl,
           key,
           fetch: (url, init) => fetch(url, init),
