@@ -78,6 +78,9 @@ const deps = (): Promise<ReviewDeps> =>
       async removePublic(paths) {
         await sql`delete from storage.objects where bucket_id = 'review-public' and name = any(${paths})`;
       },
+      async removePrivate(paths) {
+        await sql`delete from storage.objects where bucket_id = 'review-photos' and name = any(${paths})`;
+      },
       publicUrl: (path) => `https://public.test/${path}`,
       signedUrls: (paths, s) =>
         Promise.resolve(
@@ -568,6 +571,105 @@ check(
     (await sql`select count(*)::int as n from review.photos`)[0].n === photosBefore,
   delFull,
 );
+
+// Deleting photos that are not approved: their rows and files go; an approved photo is kept.
+const [fx] = await sql`insert into review.folders (name, event_date)
+  values ('Delete-photos fixture', '2026-10-25') returning id`;
+const [fxb] =
+  await sql`insert into review.batches (folder_id, source_folder, photo_count, video_count)
+  values (${fx.id}, 'x', 3, 0) returning id`;
+const fxPhotos: { id: string; hash: string; status: string }[] = [];
+for (const [hash, status] of [
+  ["d".repeat(64), "approved"],
+  ["e".repeat(64), "waiting"],
+  ["f".repeat(64), "rejected"],
+] as const) {
+  const [row] = await sql`insert into review.photos
+    (batch_id, folder_id, file_hash, filename, web_bytes, web_path, thumb_path, status, decided_at)
+    values (${fxb.id}, ${fx.id}, ${hash}, ${"FX_" + status + ".JPG"}, 10,
+            ${fxb.id + "/" + hash + "-web.jpg"}, ${fxb.id + "/" + hash + "-thumb.jpg"},
+            ${status}, ${status === "waiting" ? null : sql`now()`})
+    returning id`;
+  await sql`insert into storage.objects (bucket_id, name) values
+    ('review-photos', ${fxb.id + "/" + hash + "-web.jpg"}),
+    ('review-photos', ${fxb.id + "/" + hash + "-thumb.jpg"})`;
+  fxPhotos.push({ id: row.id, hash, status });
+}
+const filesOf = async () =>
+  (
+    await sql`select count(*)::int as n from storage.objects
+      where bucket_id = 'review-photos' and name like ${fxb.id + "/%"}`
+  )[0].n;
+check("the fixture starts with 3 photos and 6 files", (await filesOf()) === 6);
+const delPhotos = await call(
+  "/owner/delete-photos",
+  { ids: fxPhotos.map((p) => p.id) },
+  own,
+);
+check(
+  "deleting 3 photos deletes the waiting and the rejected one, and keeps the approved one",
+  delPhotos.json.deleted === 2 && delPhotos.json.kept === 1,
+  delPhotos,
+);
+check(
+  "their files are gone from storage; the approved photo's files stay",
+  (await filesOf()) === 2 &&
+    (
+      await sql`select count(*)::int as n from review.photos where folder_id = ${fx.id}`
+    )[0].n === 1 &&
+    (await sql`select status from review.photos where folder_id = ${fx.id}`)[0]
+      .status === "approved",
+  delPhotos,
+);
+const delApprovedAgain = await call(
+  "/owner/delete-photos",
+  { ids: [fxPhotos[0]!.id] },
+  own,
+);
+check(
+  "asking to delete only the approved photo deletes nothing",
+  delApprovedAgain.json.deleted === 0 && (await filesOf()) === 2,
+  delApprovedAgain,
+);
+
+// Renaming a team: the name changes, the page address does not; a taken or empty name is refused.
+const [chiefsRow] =
+  await sql`select id, slug from review.teams where slug = 'cazenovia-chiefs'`;
+const renamedTeam = await call(
+  "/owner/rename-team",
+  { team: chiefsRow.id, name: "Cazenovia Chiefs Varsity" },
+  own,
+);
+const [afterRename] =
+  await sql`select name, slug from review.teams where id = ${chiefsRow.id}`;
+check(
+  "a team is renamed, and its page address stays the same",
+  renamedTeam.json.ok === true &&
+    afterRename.name === "Cazenovia Chiefs Varsity" &&
+    afterRename.slug === "cazenovia-chiefs",
+  { renamedTeam: renamedTeam.json, afterRename },
+);
+const taken = await call(
+  "/owner/rename-team",
+  { team: chiefsRow.id, name: "cheektowaga warriors" },
+  own,
+);
+check(
+  "a name another team already has (any capitals) is refused in words",
+  taken.status === 400 && /already a team with that name/.test(taken.json.error),
+  taken,
+);
+const blankTeam = await call(
+  "/owner/rename-team",
+  { team: chiefsRow.id, name: "   " },
+  own,
+);
+check(
+  "a blank team name is refused in words",
+  blankTeam.status === 400 && /1 to 120 characters/.test(blankTeam.json.error),
+  blankTeam,
+);
+await call("/owner/rename-team", { team: chiefsRow.id, name: "Cazenovia Chiefs" }, own);
 
 await sql.end();
 console.log(`\n${checks - failures}/${checks} checks passed`);

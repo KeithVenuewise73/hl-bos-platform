@@ -139,8 +139,16 @@ export interface ReviewStore {
   decide(ids: string[], status: Status, reason: string, by: string): Promise<number>;
   approveWaiting(folder: string, by: string): Promise<number>;
   renameFolder(folder: string, name: string): Promise<void>;
-  /** Migration 0058: refuses (22023) a folder that still holds any photo. */
+  /** Deletes a folder that holds no photo; refuses (22023) one that still does. */
   deleteFolder(folder: string): Promise<void>;
+  /**
+   * Permanently deletes photos that are NOT approved (waiting or rejected) and not
+   * on the public page. An approved photo is never deleted. Returns how many were
+   * deleted and the private files that belonged to them (for the caller to remove).
+   */
+  deletePhotos(ids: string[]): Promise<{ deleted: number; paths: string[] }>;
+  /** Renames a team. Its page address does not change, so existing links keep working. */
+  renameTeam(team: string, name: string): Promise<void>;
   movePhotos(ids: string[], folder: string): Promise<number>;
   newFolderFromPhotos(
     ids: string[],
@@ -177,6 +185,8 @@ export interface ReviewFiles {
   /** Copy a photo from the private bucket to the public one, same path. */
   copyToPublic(path: string): Promise<void>;
   removePublic(paths: string[]): Promise<void>;
+  /** Remove files from the PRIVATE bucket (for photos that were deleted). */
+  removePrivate(paths: string[]): Promise<void>;
   /** The public address of a copied photo. */
   publicUrl(path: string): string;
 }
@@ -671,6 +681,36 @@ async function owner(req: Request, route: string, deps: ReviewDeps): Promise<Res
     const folder = text(b["folder"]);
     if (!UUID.test(folder)) return json(req, 400, { error: "folder must be a uuid." });
     await deps.store.renameFolder(folder, text(b["name"]));
+    return json(req, 200, { ok: true });
+  }
+  if (route === "/owner/delete-photos") {
+    const list = ids(b["ids"]);
+    if (list === null)
+      return json(req, 400, { error: "ids must be a list of photo ids." });
+    // A rejected photo that is still on the public page comes down first, so it can be deleted.
+    const pub = await syncPublic(deps);
+    const gone = await deps.store.deletePhotos(list);
+    // The rows are gone first; a file that cannot be removed now is only leftover storage.
+    let leftover = 0;
+    for (let i = 0; i < gone.paths.length; i += 100) {
+      const chunk = gone.paths.slice(i, i + 100);
+      try {
+        await deps.files.removePrivate(chunk);
+      } catch {
+        leftover += chunk.length;
+      }
+    }
+    return json(req, 200, {
+      deleted: gone.deleted,
+      kept: list.length - gone.deleted,
+      leftover_files: leftover,
+      public: pub,
+    });
+  }
+  if (route === "/owner/rename-team") {
+    const team = text(b["team"]);
+    if (!UUID.test(team)) return json(req, 400, { error: "team must be an id." });
+    await deps.store.renameTeam(team, text(b["name"]));
     return json(req, 200, { ok: true });
   }
   if (route === "/owner/delete-folder") {

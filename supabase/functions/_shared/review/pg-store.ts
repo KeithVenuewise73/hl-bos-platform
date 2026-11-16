@@ -10,6 +10,11 @@ export async function publisherFingerprint(sql: any): Promise<string | null> {
   return r[0]?.publisher_key_sha256 ?? null;
 }
 
+/** An error the owner is shown in plain words (the service turns 22023 / 23505 into a 400). */
+function plain(message: string, code = "22023"): Error {
+  return Object.assign(new Error(message), { code });
+}
+
 export function pgStore(sql: any): ReviewStore {
   return {
     async registerPublisher(sha) {
@@ -55,7 +60,42 @@ export function pgStore(sql: any): ReviewStore {
       await sql`select review.rename_folder(${folder}::uuid, ${name})`;
     },
     async deleteFolder(folder) {
-      await sql`select review.delete_empty_folder(${folder}::uuid)`;
+      // Only a folder with no photo in it; one that has any is refused, so no photo is ever lost.
+      const gone = await sql`delete from review.folders f
+        where f.id = ${folder}::uuid
+          and not exists (select 1 from review.photos p where p.folder_id = f.id)
+        returning f.id`;
+      if (gone.length === 0) {
+        const there =
+          await sql`select 1 from review.folders where id = ${folder}::uuid`;
+        throw plain(
+          there.length > 0
+            ? "that folder still has photos in it: move them to another folder first"
+            : "that folder was not found",
+        );
+      }
+    },
+    async deletePhotos(ids) {
+      // Never an approved photo, and never one that is on the public page.
+      const rows = await sql`delete from review.photos
+        where id = any(${ids}::uuid[]) and status <> 'approved' and public_at is null
+        returning web_path, thumb_path`;
+      return {
+        deleted: rows.length,
+        paths: rows.flatMap((r: any) => [r.web_path, r.thumb_path]),
+      };
+    },
+    async renameTeam(team, name) {
+      const n = String(name ?? "").trim();
+      if (n.length < 1 || n.length > 120)
+        throw plain("a team name is 1 to 120 characters");
+      const clash = await sql`select 1 from review.teams
+        where lower(name) = lower(${n}) and id <> ${team}::uuid`;
+      if (clash.length > 0)
+        throw plain("there is already a team with that name", "23505");
+      const done =
+        await sql`update review.teams set name = ${n} where id = ${team}::uuid returning id`;
+      if (done.length === 0) throw plain("that team was not found");
     },
     async movePhotos(ids, folder) {
       const r =

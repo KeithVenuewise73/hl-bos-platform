@@ -64,6 +64,9 @@ const PAGE_ROW: PageRow = {
 };
 
 /** What a sync reports when there was nothing to copy or take down. */
+/** A photo the database layer refuses to delete because it is approved. */
+const APPROVED_PHOTO = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa";
+
 /** A folder the database refuses to delete because it still holds photos. */
 const FULL_FOLDER = "eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee";
 
@@ -77,6 +80,8 @@ function world(over: Partial<ReviewDeps> = {}) {
     unwanted: [] as PublicRow[],
     copied: [] as string[],
     removed: [] as string[],
+    removedPrivate: [] as string[],
+    failRemovePrivate: false,
     marked: [] as string[],
     cleared: [] as string[],
     failCopy: new Set<string>(),
@@ -176,6 +181,28 @@ function world(over: Partial<ReviewDeps> = {}) {
         e.code = "22023";
         return Promise.reject(e);
       }
+      return Promise.resolve();
+    },
+    deletePhotos(ids) {
+      calls.push(`deletePhotos:${ids.length}`);
+      // An approved photo is never deleted (the database layer keeps it).
+      const gone = ids.filter((i) => i !== APPROVED_PHOTO);
+      return Promise.resolve({
+        deleted: gone.length,
+        paths: gone.flatMap((i) => [
+          `${BATCH}/${i}-web.jpg`,
+          `${BATCH}/${i}-thumb.jpg`,
+        ]),
+      });
+    },
+    renameTeam(team, name) {
+      calls.push(`renameTeam:${team}:${name}`);
+      const plain = (m: string, code: string) =>
+        Promise.reject(Object.assign(new Error(m), { code }));
+      if (name.trim() === "")
+        return plain("a team name is 1 to 120 characters", "22023");
+      if (name === "Cazenovia Chiefs")
+        return plain("there is already a team with that name", "23505");
       return Promise.resolve();
     },
     renameFolder(folder, name) {
@@ -285,6 +312,11 @@ function world(over: Partial<ReviewDeps> = {}) {
       },
       removePublic(paths) {
         pub.removed.push(...paths);
+        return Promise.resolve();
+      },
+      removePrivate(paths) {
+        if (pub.failRemovePrivate) return Promise.reject(new Error("storage down"));
+        pub.removedPrivate.push(...paths);
         return Promise.resolve();
       },
       publicUrl(path) {
@@ -1487,6 +1519,123 @@ Deno.test(
       await handle(post("/owner/delete-folder", { folder: FOLDER }), w.deps),
     );
     assertEquals(anon.status, 401, "no sign-in is refused");
+  },
+);
+
+Deno.test(
+  "deleting photos: only the owner; never an approved one; the files go too; a file that cannot be removed does not undo the deletion",
+  async () => {
+    const w = world();
+    const P_A = "11111111-1111-1111-1111-111111111111";
+    const P_B = "22222222-2222-2222-2222-222222222222";
+    const r = await out(
+      await handle(
+        post("/owner/delete-photos", { ids: [P_A, P_B, APPROVED_PHOTO] }, asOwner),
+        w.deps,
+      ),
+    );
+    assertEquals(r.status, 200, "deleting works");
+    assertEquals(
+      [r.json["deleted"], r.json["kept"], r.json["leftover_files"]],
+      [2, 1, 0],
+      "two deleted, the approved one kept",
+    );
+    assertEquals(
+      w.pub.removedPrivate.sort(),
+      [
+        `${BATCH}/${P_A}-thumb.jpg`,
+        `${BATCH}/${P_A}-web.jpg`,
+        `${BATCH}/${P_B}-thumb.jpg`,
+        `${BATCH}/${P_B}-web.jpg`,
+      ],
+      "only the deleted photos' files were removed, never the approved one's",
+    );
+    const bad = await out(
+      await handle(post("/owner/delete-photos", { ids: ["nope"] }, asOwner), w.deps),
+    );
+    assertEquals(bad.status, 400, "a malformed id is refused");
+    w.pub.failRemovePrivate = true;
+    const hiccup = await out(
+      await handle(post("/owner/delete-photos", { ids: [P_A] }, asOwner), w.deps),
+    );
+    assertEquals(
+      [hiccup.status, hiccup.json["deleted"], hiccup.json["leftover_files"]],
+      [200, 1, 2],
+      "a storage hiccup is reported as leftover files, not as a failure",
+    );
+    const before = w.calls.length;
+    const stranger = await out(
+      await handle(
+        post(
+          "/owner/delete-photos",
+          { ids: [P_A] },
+          { authorization: "Bearer other-token" },
+        ),
+        w.deps,
+      ),
+    );
+    assertEquals(stranger.status, 403, "a stranger is refused");
+    assertEquals(w.calls.length, before, "and nothing was deleted");
+  },
+);
+
+Deno.test(
+  "renaming a team: owner only, a plain refusal for an empty or taken name, and the page address is not touched",
+  async () => {
+    const w = world();
+    const ok = await out(
+      await handle(
+        post(
+          "/owner/rename-team",
+          { team: TEAM, name: "Cazenovia Chiefs Varsity" },
+          asOwner,
+        ),
+        w.deps,
+      ),
+    );
+    assertEquals([ok.status, ok.json], [200, { ok: true }], "renamed");
+    const empty = await out(
+      await handle(
+        post("/owner/rename-team", { team: TEAM, name: " " }, asOwner),
+        w.deps,
+      ),
+    );
+    assertEquals(
+      [empty.status, empty.json["error"]],
+      [400, "a team name is 1 to 120 characters"],
+      "an empty name is refused in words",
+    );
+    const taken = await out(
+      await handle(
+        post("/owner/rename-team", { team: TEAM, name: "Cazenovia Chiefs" }, asOwner),
+        w.deps,
+      ),
+    );
+    assertEquals(
+      [taken.status, taken.json["error"]],
+      [400, "there is already a team with that name"],
+      "a name already used is refused in words",
+    );
+    const bad = await out(
+      await handle(
+        post("/owner/rename-team", { team: "x", name: "A" }, asOwner),
+        w.deps,
+      ),
+    );
+    assertEquals(bad.status, 400, "a malformed team id is refused");
+    const before = w.calls.length;
+    const stranger = await out(
+      await handle(
+        post(
+          "/owner/rename-team",
+          { team: TEAM, name: "Hijacked" },
+          { authorization: "Bearer other-token" },
+        ),
+        w.deps,
+      ),
+    );
+    assertEquals(stranger.status, 403, "a stranger is refused");
+    assertEquals(w.calls.length, before, "and nothing was renamed");
   },
 );
 
