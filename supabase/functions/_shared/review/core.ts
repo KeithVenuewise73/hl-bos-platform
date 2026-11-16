@@ -139,6 +139,8 @@ export interface ReviewStore {
   decide(ids: string[], status: Status, reason: string, by: string): Promise<number>;
   approveWaiting(folder: string, by: string): Promise<number>;
   renameFolder(folder: string, name: string): Promise<void>;
+  /** Migration 0058: refuses (22023) a folder that still holds any photo. */
+  deleteFolder(folder: string): Promise<void>;
   movePhotos(ids: string[], folder: string): Promise<number>;
   newFolderFromPhotos(
     ids: string[],
@@ -669,6 +671,12 @@ async function owner(req: Request, route: string, deps: ReviewDeps): Promise<Res
     const folder = text(b["folder"]);
     if (!UUID.test(folder)) return json(req, 400, { error: "folder must be a uuid." });
     await deps.store.renameFolder(folder, text(b["name"]));
+    return json(req, 200, { ok: true });
+  }
+  if (route === "/owner/delete-folder") {
+    const folder = text(b["folder"]);
+    if (!UUID.test(folder)) return json(req, 400, { error: "folder must be a uuid." });
+    await deps.store.deleteFolder(folder);
     return json(req, 200, { ok: true });
   }
   if (route === "/owner/move") {

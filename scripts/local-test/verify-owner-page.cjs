@@ -534,6 +534,54 @@ async function api(route, body, headers) {
     await page.waitForSelector("h1:has-text('Varsity vs Wheatfield (Hockey)')");
     check("a folder can be renamed", true);
 
+    console.log("\nDeleting an empty duplicate folder");
+    const emptyDb = new pg.Client({
+      host: "/tmp",
+      port: 5433,
+      user: "postgres",
+      database: "hlbos",
+    });
+    await emptyDb.connect();
+    await emptyDb.query(
+      "insert into review.folders (name, event_date) values ('Empty duplicate game', '2026-10-24')",
+    );
+    await page.click("button.pr-tab:has-text('Folders')");
+    await page.waitForSelector("text=Empty duplicate game");
+    check(
+      "an empty folder is listed as empty, with a Delete button",
+      /Empty: no photos/.test(await page.locator("#app").innerText()) &&
+        (await page.locator("button:has-text('Delete this empty folder')").count()) ===
+          1,
+    );
+    page.once("dialog", (d) => d.dismiss());
+    await page.click("button:has-text('Delete this empty folder')");
+    await page.waitForTimeout(600);
+    check(
+      "saying No at the question deletes nothing",
+      (
+        await emptyDb.query(
+          "select count(*)::int n from review.folders where name = 'Empty duplicate game'",
+        )
+      ).rows[0].n === 1,
+    );
+    page.once("dialog", (d) => d.accept());
+    await page.click("button:has-text('Delete this empty folder')");
+    await page.waitForFunction(
+      () => !/Empty duplicate game/.test(document.getElementById("app").innerText),
+    );
+    check(
+      "saying Yes deletes the empty folder, and only it",
+      (
+        await emptyDb.query(
+          "select count(*)::int n from review.folders where name = 'Empty duplicate game'",
+        )
+      ).rows[0].n === 0 &&
+        /JV Lacrosse vs Lockport|Varsity vs Wheatfield/.test(
+          await page.locator("#app").innerText(),
+        ),
+    );
+    await emptyDb.end();
+
     console.log("\nTeams");
     await page.click("button.pr-tab:has-text('Teams')");
     await page.waitForSelector("text=Cazenovia Chiefs");

@@ -64,6 +64,9 @@ const PAGE_ROW: PageRow = {
 };
 
 /** What a sync reports when there was nothing to copy or take down. */
+/** A folder the database refuses to delete because it still holds photos. */
+const FULL_FOLDER = "eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee";
+
 const SYNCED = { published: 0, unpublished: 0, failed: 0, remaining: 0 };
 
 function world(over: Partial<ReviewDeps> = {}) {
@@ -163,6 +166,17 @@ function world(over: Partial<ReviewDeps> = {}) {
     approveWaiting(folder, by) {
       calls.push(`approveWaiting:${folder}:${by}`);
       return Promise.resolve(3);
+    },
+    deleteFolder(folder) {
+      calls.push(`deleteFolder:${folder}`);
+      if (folder === FULL_FOLDER) {
+        const e = new Error(
+          "that folder still has photos in it: move them to another folder first",
+        ) as Error & { code: string };
+        e.code = "22023";
+        return Promise.reject(e);
+      }
+      return Promise.resolve();
     },
     renameFolder(folder, name) {
       calls.push(`rename:${folder}:${name}`);
@@ -1421,6 +1435,58 @@ Deno.test(
       30,
       "30 are left for the next sync",
     );
+  },
+);
+
+Deno.test(
+  "deleting a folder: only the owner, only a real folder id, and the database's refusal for a folder that still has photos reaches the person",
+  async () => {
+    const w = world();
+    const ok = await out(
+      await handle(post("/owner/delete-folder", { folder: FOLDER }, asOwner), w.deps),
+    );
+    assertEquals(
+      [ok.status, ok.json],
+      [200, { ok: true }],
+      "an empty folder is deleted",
+    );
+    assertEquals(
+      w.calls.includes(`deleteFolder:${FOLDER}`),
+      true,
+      "the store was asked",
+    );
+    const bad = await out(
+      await handle(post("/owner/delete-folder", { folder: "nope" }, asOwner), w.deps),
+    );
+    assertEquals(bad.status, 400, "a malformed id is refused");
+    const full = await out(
+      await handle(
+        post("/owner/delete-folder", { folder: FULL_FOLDER }, asOwner),
+        w.deps,
+      ),
+    );
+    assertEquals(
+      [full.status, full.json["error"]],
+      [400, "that folder still has photos in it: move them to another folder first"],
+      "a folder with photos is refused in plain words",
+    );
+    const before = w.calls.length;
+    const stranger = await out(
+      await handle(
+        post(
+          "/owner/delete-folder",
+          { folder: FOLDER },
+          { authorization: "Bearer other-token" },
+        ),
+        w.deps,
+      ),
+    );
+    assertEquals(stranger.status, 403, "a stranger is refused");
+    assertEquals(w.calls.length, before, "and nothing was deleted");
+    const anon = await out(
+      await handle(post("/owner/delete-folder", { folder: FOLDER }), w.deps),
+    );
+    assertEquals(anon.status, 401, "no sign-in is refused");
   },
 );
 
