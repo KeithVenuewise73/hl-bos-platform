@@ -462,6 +462,25 @@ async function api(route, body, headers) {
     await page.waitForFunction(
       () => document.querySelectorAll(".pr-tile").length === 10,
     );
+    // A refresh (the page rebuilds itself) must not wipe a half-written folder name.
+    await page.click("summary:has-text('Wrong folder')");
+    await page.fill("#newName", "typed before a refresh");
+    await page.click("button.pr-chip:has-text('Approved')");
+    await page.waitForFunction(() =>
+      /Approved/.test(
+        document.querySelector("button.pr-chip[aria-pressed='true']")?.innerText ?? "",
+      ),
+    );
+    await page.click("button.pr-chip:has-text('Waiting')");
+    await page.waitForFunction(
+      () => document.querySelectorAll(".pr-tile").length === 10,
+    );
+    check(
+      "a refresh keeps what was typed and keeps the Wrong folder panel open",
+      (await page.inputValue("#newName")) === "typed before a refresh" &&
+        (await page.locator("details").evaluate((d) => d.open)) === true,
+    );
+    await page.click("summary:has-text('Wrong folder')"); // close it again
     const n = await page.locator(".pr-tile").count();
     for (let i = n - 5; i < n; i++) await page.locator(".pr-tile").nth(i).click(); // the five afternoon photos
     await page.click("summary:has-text('Wrong folder')");
