@@ -64,7 +64,7 @@ const PAGE_ROW: PageRow = {
 };
 
 /** What a sync reports when there was nothing to copy or take down. */
-const SYNCED = { published: 0, unpublished: 0, failed: 0 };
+const SYNCED = { published: 0, unpublished: 0, failed: 0, remaining: 0 };
 
 function world(over: Partial<ReviewDeps> = {}) {
   const calls: string[] = [];
@@ -1349,7 +1349,7 @@ Deno.test(
     );
     assertEquals(
       r.json["public"],
-      { published: 1, unpublished: 1, failed: 0 },
+      { published: 1, unpublished: 1, failed: 0, remaining: 0 },
       "the owner is told what happened to the public page",
     );
     assertEquals(
@@ -1364,6 +1364,63 @@ Deno.test(
       "the photo that stopped qualifying is taken down",
     );
     assertEquals(w.pub.cleared, [P2], "and unmarked");
+  },
+);
+
+Deno.test(
+  "a very large approval is published 100 photos at a time, each chunk marked as soon as it is copied, and the owner is told how many remain",
+  async () => {
+    const w = world();
+    w.pub.wanted = Array.from({ length: 250 }, (_, i) => ({
+      id: `id${i}`,
+      web_path: `p${i}-web.jpg`,
+      thumb_path: `p${i}-thumb.jpg`,
+    }));
+    const stillWanted = () => {
+      // The database stops listing a photo once it is marked public.
+      w.pub.wanted = w.pub.wanted.filter((p) => !w.pub.marked.includes(p.id));
+    };
+    assertEquals(
+      await syncPublic(w.deps),
+      { published: 100, unpublished: 0, failed: 0, remaining: 150 },
+      "the first call does 100 and says 150 remain",
+    );
+    assertEquals(w.pub.copied.length, 200, "two files per photo");
+    stillWanted();
+    assertEquals(
+      await syncPublic(w.deps),
+      { published: 100, unpublished: 0, failed: 0, remaining: 50 },
+      "the second does the next 100",
+    );
+    stillWanted();
+    assertEquals(
+      await syncPublic(w.deps),
+      { published: 50, unpublished: 0, failed: 0, remaining: 0 },
+      "the third finishes",
+    );
+    assertEquals(w.pub.marked.length, 250, "every photo ended up marked public");
+    assertEquals(new Set(w.pub.copied).size, 500, "and every file was copied once");
+  },
+);
+
+Deno.test(
+  "approving a whole folder answers with how many photos still have to be published",
+  async () => {
+    const w = world();
+    w.pub.wanted = Array.from({ length: 130 }, (_, i) => ({
+      id: `id${i}`,
+      web_path: `p${i}-web.jpg`,
+      thumb_path: `p${i}-thumb.jpg`,
+    }));
+    const r = await out(
+      await handle(post("/owner/approve-waiting", { folder: FOLDER }, asOwner), w.deps),
+    );
+    assertEquals(r.status, 200, "approving works");
+    assertEquals(
+      (r.json["public"] as { remaining: number }).remaining,
+      30,
+      "30 are left for the next sync",
+    );
   },
 );
 
@@ -1419,7 +1476,7 @@ Deno.test(
     const result = await syncPublic(w.deps);
     assertEquals(
       result,
-      { published: 1, unpublished: 0, failed: 1 },
+      { published: 1, unpublished: 0, failed: 1, remaining: 1 },
       "one published, one failed",
     );
     assertEquals(

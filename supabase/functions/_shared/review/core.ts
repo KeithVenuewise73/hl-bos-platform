@@ -400,19 +400,42 @@ export interface SyncResult {
   published: number;
   unpublished: number;
   failed: number;
+  /** Photos still waiting to be copied in or taken down: ask again until 0. */
+  remaining: number;
+}
+
+/** One sync handles at most this many photos, so a big approval never outruns the time limit. */
+export const SYNC_PHOTOS = 100;
+const SYNC_PARALLEL = 6;
+
+/** Run `fn` over `items`, at most `limit` at a time. */
+async function inParallel<T>(
+  items: T[],
+  limit: number,
+  fn: (item: T) => Promise<void>,
+): Promise<void> {
+  let next = 0;
+  const worker = async () => {
+    while (next < items.length) await fn(items[next++]!);
+  };
+  await Promise.all(Array.from({ length: Math.min(limit, items.length) }, worker));
 }
 
 /**
  * Keep the public bucket in step with the decisions: copy newly qualifying photos
  * (approved, in a folder filed under a public team), take down photos that no
- * longer qualify. A photo is marked public only after BOTH its files were copied,
- * and a failure leaves it unmarked so the next sync retries it. Never throws.
+ * longer qualify. It does at most SYNC_PHOTOS photos a call (six copies at a
+ * time) and reports how many are `remaining`, so a very large approval finishes
+ * over a few calls instead of timing out. A photo is marked public only after BOTH
+ * its files were copied, and a failure leaves it unmarked so the next sync retries
+ * it. Never throws.
  */
 export async function syncPublic(deps: ReviewDeps): Promise<SyncResult> {
-  const out: SyncResult = { published: 0, unpublished: 0, failed: 0 };
+  const out: SyncResult = { published: 0, unpublished: 0, failed: 0, remaining: 0 };
   try {
+    const wanted = await deps.store.publicWanted();
     const done: string[] = [];
-    for (const p of await deps.store.publicWanted()) {
+    await inParallel(wanted.slice(0, SYNC_PHOTOS), SYNC_PARALLEL, async (p) => {
       try {
         await deps.files.copyToPublic(p.web_path);
         await deps.files.copyToPublic(p.thumb_path);
@@ -420,18 +443,23 @@ export async function syncPublic(deps: ReviewDeps): Promise<SyncResult> {
       } catch {
         out.failed += 1;
       }
-    }
+    });
     if (done.length > 0) out.published = await deps.store.markPublic(done);
+    out.remaining += wanted.length - done.length;
 
-    const down = await deps.store.publicUnwanted();
+    const unwanted = await deps.store.publicUnwanted();
+    const down = unwanted.slice(0, SYNC_PHOTOS);
+    let cleared = 0;
     if (down.length > 0) {
       try {
         await deps.files.removePublic(down.flatMap((p) => [p.web_path, p.thumb_path]));
-        out.unpublished = await deps.store.clearPublic(down.map((p) => p.id));
+        cleared = await deps.store.clearPublic(down.map((p) => p.id));
+        out.unpublished = cleared;
       } catch {
         out.failed += down.length;
       }
     }
+    out.remaining += unwanted.length - cleared;
   } catch {
     out.failed += 1;
   }
