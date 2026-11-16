@@ -24,6 +24,7 @@ import {
   type PhotoRow,
   type ReviewDeps,
   type ReviewStore,
+  type SocialOutcome,
   type TeamRow,
 } from "../_shared/review/core.ts";
 
@@ -72,8 +73,40 @@ const FULL_FOLDER = "eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee";
 
 const SYNCED = { published: 0, unpublished: 0, failed: 0, remaining: 0 };
 
+const SOCIAL_POST = "dddddddd-dddd-dddd-dddd-dddddddddddd";
+
 function world(over: Partial<ReviewDeps> = {}) {
   const calls: string[] = [];
+  // The posting queue: targets still to be worked on, and what the (fake) publisher answers.
+  const soc = {
+    pending: [
+      {
+        target_id: "t-ig",
+        platform: "instagram" as const,
+        external_account_id: "17841400000000001",
+        display_name: "5Star Instagram",
+        facebook_page_id: "100000000000001",
+        token_secret_name: "META_PAGE_TOKEN",
+        caption: "Game one",
+        attempt_no: 1,
+      },
+      {
+        target_id: "t-fb",
+        platform: "facebook_page" as const,
+        external_account_id: "100000000000001",
+        display_name: "5Star Facebook",
+        facebook_page_id: null,
+        token_secret_name: "META_PAGE_TOKEN",
+        caption: "Game one",
+        attempt_no: 1,
+      },
+    ],
+    status: "approved",
+    finished: [] as boolean[],
+    answers: [] as SocialOutcome[],
+    photosSeen: [] as { public_url: string; filename: string }[][],
+    throwOnPublish: false,
+  };
   const votes = new Set<string>();
   const pub = {
     wanted: [] as PublicRow[],
@@ -171,6 +204,75 @@ function world(over: Partial<ReviewDeps> = {}) {
     approveWaiting(folder, by) {
       calls.push(`approveWaiting:${folder}:${by}`);
       return Promise.resolve(3);
+    },
+    socialAccounts() {
+      return Promise.resolve([
+        {
+          id: "acc-ig",
+          platform: "instagram" as const,
+          display_name: "5Star Instagram",
+          status: "active" as const,
+        },
+      ]);
+    },
+    socialAlreadyPosted() {
+      return Promise.resolve([]);
+    },
+    socialCreatePost(photos, caption, accounts, by) {
+      calls.push(`socialPost:${photos.length}:${accounts.length}:${by}`);
+      if (caption.trim() === "") {
+        return Promise.reject(
+          Object.assign(new Error("a caption is 1 to 2,200 characters"), {
+            code: "22023",
+          }),
+        );
+      }
+      return Promise.resolve(SOCIAL_POST);
+    },
+    socialFailStale() {
+      return Promise.resolve(0);
+    },
+    socialClaim() {
+      const t = soc.pending.shift() ?? null;
+      if (t) {
+        calls.push(`claim:${t.platform}`);
+        soc.status = "publishing";
+      }
+      return Promise.resolve(t);
+    },
+    socialPhotoPaths() {
+      return Promise.resolve([
+        { web_path: `${BATCH}/${H1}-web.jpg`, filename: "IMG_1.JPG" },
+      ]);
+    },
+    socialRecordAttempt(_t, phase, ok) {
+      calls.push(`attempt:${phase}:${ok}`);
+      return Promise.resolve();
+    },
+    socialFinish(_t, published, external) {
+      calls.push(`finish:${published}:${external}`);
+      soc.finished.push(published);
+      if (soc.pending.length === 0) {
+        soc.status = soc.finished.every((x) => x)
+          ? "published"
+          : soc.finished.some((x) => x)
+            ? "partly_published"
+            : "failed";
+      }
+      return Promise.resolve(soc.status);
+    },
+    socialPostStatus(post) {
+      return Promise.resolve({
+        id: post,
+        status: soc.status,
+        caption: "Game one",
+        approved_at: "2026-11-14T12:00:00Z",
+        photos: 1,
+        targets: [],
+      });
+    },
+    socialRecent() {
+      return Promise.resolve([]);
     },
     deleteFolder(folder) {
       calls.push(`deleteFolder:${folder}`);
@@ -326,6 +428,20 @@ function world(over: Partial<ReviewDeps> = {}) {
     publisherKeySha256: null,
     ownerEmails: [OWNER.email],
     voterSalt: "salt-salt-salt-salt-salt-salt-salt-1234",
+    social: {
+      publish(target, photos) {
+        soc.photosSeen.push(photos);
+        if (soc.throwOnPublish) return Promise.reject(new Error("socket closed"));
+        return Promise.resolve(
+          soc.answers.shift() ?? {
+            status: "published" as const,
+            externalPostId: `${target.platform}_post_1`,
+            permalink: "https://example.test/post",
+            attempts: [{ phase: "publish", ok: true, httpStatus: 200 }],
+          },
+        );
+      },
+    },
     now: () => Date.UTC(2026, 10, 14, 12, 0, 0),
     verifyUser(token) {
       return Promise.resolve(
@@ -343,6 +459,7 @@ function world(over: Partial<ReviewDeps> = {}) {
     calls,
     requested,
     pub,
+    soc,
     closeWindow: () => (windowOpen = false),
     setPublisher: (sha: string | null) => (deps.publisherKeySha256 = sha),
   };
@@ -1636,6 +1753,175 @@ Deno.test(
     );
     assertEquals(stranger.status, 403, "a stranger is refused");
     assertEquals(w.calls.length, before, "and nothing was renamed");
+  },
+);
+
+Deno.test(
+  "posting to social: pressing Post records the approval with who pressed it; the posts then go out one account at a time and the status follows the answers",
+  async () => {
+    const w = world();
+    const made = await out(
+      await handle(
+        post(
+          "/owner/social/post",
+          { photos: [P1], caption: "Game one", accounts: [P2, TEAM] },
+          asOwner,
+        ),
+        w.deps,
+      ),
+    );
+    assertEquals(
+      [made.status, made.json["post"]],
+      [200, SOCIAL_POST],
+      "the post is recorded",
+    );
+    assertEquals(
+      w.calls.filter((c) => c.startsWith("socialPost"))[0],
+      `socialPost:1:2:${OWNER.id}`,
+      "with the owner's id as the approver",
+    );
+    assertEquals(
+      w.calls.some((c) => c.startsWith("claim")),
+      false,
+      "and nothing is sent until the page asks for it",
+    );
+    // First account (Instagram): published with the platform's id.
+    const one = await out(
+      await handle(
+        post("/owner/social/publish", { post: SOCIAL_POST }, asOwner),
+        w.deps,
+      ),
+    );
+    assertEquals(
+      [one.status, one.json["done"], (one.json["post"] as { status: string }).status],
+      [200, false, "publishing"],
+      "after the first account the post is still publishing",
+    );
+    assertEquals(
+      w.soc.photosSeen[0]![0]!.public_url,
+      `https://public.test/${BATCH}/${H1}-web.jpg`,
+      "the photo is handed over by its PUBLIC address, never a private one",
+    );
+    // Second account (Facebook): the platform refuses.
+    w.soc.answers.push({
+      status: "failed",
+      error: "http_400: bad",
+      attempts: [{ phase: "publish", ok: false, httpStatus: 400 }],
+    });
+    const two = await out(
+      await handle(
+        post("/owner/social/publish", { post: SOCIAL_POST }, asOwner),
+        w.deps,
+      ),
+    );
+    assertEquals(
+      [two.json["done"], (two.json["post"] as { status: string }).status],
+      [true, "partly_published"],
+      "one published and one failed is partly published, and the page is told it is done",
+    );
+    assertEquals(
+      w.calls.filter((c) => c.startsWith("finish")),
+      ["finish:true:instagram_post_1", "finish:false:null"],
+      "a success carries the platform's id; a failure carries none",
+    );
+    assertEquals(
+      w.calls.filter((c) => c.startsWith("attempt")).length,
+      2,
+      "every request that was made is recorded",
+    );
+  },
+);
+
+Deno.test(
+  "posting to social: a claimed success with no id is a failure, a publisher that throws is a failure with words, a blank caption is refused in words, and a stranger or an absent publisher changes nothing",
+  async () => {
+    const w = world();
+    w.soc.answers.push({ status: "published", attempts: [] }); // success, but no id
+    const noId = await out(
+      await handle(
+        post("/owner/social/publish", { post: SOCIAL_POST }, asOwner),
+        w.deps,
+      ),
+    );
+    assertEquals(noId.status, 200, "the call still answers");
+    assertEquals(
+      w.calls.filter((c) => c.startsWith("finish"))[0],
+      "finish:false:null",
+      "published without an id is recorded as failed: a success is never invented",
+    );
+    w.soc.throwOnPublish = true;
+    await handle(post("/owner/social/publish", { post: SOCIAL_POST }, asOwner), w.deps);
+    assertEquals(
+      w.calls.filter((c) => c.startsWith("finish")).pop(),
+      "finish:false:null",
+      "a publisher that throws is a failed target, not a crashed request",
+    );
+    const blank = await out(
+      await handle(
+        post(
+          "/owner/social/post",
+          { photos: [P1], caption: " ", accounts: [P2] },
+          asOwner,
+        ),
+        w.deps,
+      ),
+    );
+    assertEquals(
+      [blank.status, blank.json["error"]],
+      [400, "a caption is 1 to 2,200 characters"],
+      "a blank caption is refused in words",
+    );
+    const tooMany = await out(
+      await handle(
+        post(
+          "/owner/social/post",
+          {
+            photos: Array.from(
+              { length: 11 },
+              (_, i) => `aaaaaaaa-aaaa-aaaa-aaaa-${String(i).padStart(12, "0")}`,
+            ),
+            caption: "x",
+            accounts: [P2],
+          },
+          asOwner,
+        ),
+        w.deps,
+      ),
+    );
+    assertEquals(tooMany.status, 400, "more than 10 photos is refused");
+    const before = w.calls.length;
+    const stranger = await out(
+      await handle(
+        post(
+          "/owner/social/post",
+          { photos: [P1], caption: "x", accounts: [P2] },
+          { authorization: "Bearer other-token" },
+        ),
+        w.deps,
+      ),
+    );
+    assertEquals(stranger.status, 403, "a stranger is refused");
+    assertEquals(w.calls.length, before, "and nothing was recorded");
+    const off = world({ social: undefined });
+    const none = await out(
+      await handle(
+        post(
+          "/owner/social/post",
+          { photos: [P1], caption: "x", accounts: [P2] },
+          asOwner,
+        ),
+        off.deps,
+      ),
+    );
+    assertEquals(none.status, 503, "with no publisher connected, posting answers 503");
+    const list = await out(
+      await handle(post("/owner/social/accounts", {}, asOwner), off.deps),
+    );
+    assertEquals(
+      [list.status, list.json["enabled"]],
+      [200, false],
+      "and the accounts list says posting is not switched on",
+    );
   },
 );
 

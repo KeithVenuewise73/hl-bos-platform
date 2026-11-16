@@ -114,6 +114,102 @@ Deno.test(
   },
 );
 
+Deno.test(
+  "facebook: several pictures are uploaded unpublished, then ONE post attaches them in order",
+  async () => {
+    const { fetcher, calls } = stubFetch([
+      { status: 200, body: { id: "ph_a" } },
+      { status: 200, body: { id: "ph_b" } },
+      { status: 200, body: { id: "ph_c" } },
+      { status: 200, body: { id: "fb_555_777" } },
+    ]);
+    const out = await new FacebookPageAdapter(fetcher).publish(
+      target({
+        caption: "Game one",
+        media: [
+          { ...JPEG, public_url: "https://cdn.test/c.jpg", position: 2 },
+          { ...JPEG, public_url: "https://cdn.test/a.jpg", position: 0 },
+          { ...JPEG, public_url: "https://cdn.test/b.jpg", position: 1 },
+        ],
+      }),
+      resolve,
+    );
+    assertEquals(out.status, "published", "published");
+    assertEquals(
+      out.externalPostId,
+      "fb_555_777",
+      "the post id from the final request",
+    );
+    assertEquals(calls.length, 4, "three uploads and one post");
+    assert(
+      calls.slice(0, 3).every((c) => c.url.endsWith("/photos")),
+      "uploads go to /photos",
+    );
+    assert(
+      calls
+        .slice(0, 3)
+        .every((c) => JSON.parse(String(c.init.body)).published === false),
+      "every upload is unpublished",
+    );
+    assertEquals(
+      calls
+        .slice(0, 3)
+        .map((c) => JSON.parse(String(c.init.body)).url)
+        .join(","),
+      "https://cdn.test/a.jpg,https://cdn.test/b.jpg,https://cdn.test/c.jpg",
+      "uploaded in the order chosen",
+    );
+    assert(calls[3].url.endsWith("/feed"), "the post goes to /feed");
+    const post = JSON.parse(String(calls[3].init.body));
+    assertEquals(post.message, "Game one", "with the caption");
+    assertEquals(
+      post.attached_media.map((m: { media_fbid: string }) => m.media_fbid).join(","),
+      "ph_a,ph_b,ph_c",
+      "attaching the three pictures in order",
+    );
+    assert(
+      !JSON.stringify(out.attempts).includes(TOKEN),
+      "the token is never in the log",
+    );
+  },
+);
+
+Deno.test(
+  "facebook: a failed upload posts nothing; an unanswered upload may be retried, an unanswered final post may not",
+  async () => {
+    const failing = stubFetch([
+      { status: 200, body: { id: "ph_a" } },
+      { status: 400, body: { error: { message: "bad image" } } },
+    ]);
+    const a = await new FacebookPageAdapter(failing.fetcher).publish(
+      target({ media: [JPEG, { ...JPEG, position: 1 }] }),
+      resolve,
+    );
+    assertEquals(a.status, "failed", "failed");
+    assert(a.terminal, "a rejected picture is not retried");
+    assertEquals(failing.calls.length, 2, "and the post was never made");
+
+    const silent = stubFetch([{ throws: "timeout" }]);
+    const b = await new FacebookPageAdapter(silent.fetcher).publish(
+      target({ media: [JPEG, { ...JPEG, position: 1 }] }),
+      resolve,
+    );
+    assert(!b.terminal, "an unanswered upload is safe to retry: nothing is live");
+
+    const lastSilent = stubFetch([
+      { status: 200, body: { id: "ph_a" } },
+      { status: 200, body: { id: "ph_b" } },
+      { throws: "timeout" },
+    ]);
+    const c = await new FacebookPageAdapter(lastSilent.fetcher).publish(
+      target({ media: [JPEG, { ...JPEG, position: 1 }] }),
+      resolve,
+    );
+    assert(c.terminal, "an unanswered final post is NOT retried: it may be live");
+    assert(/may or may not be live/.test(c.error ?? ""), "and says so");
+  },
+);
+
 Deno.test("facebook: 4xx is terminal, 5xx is retryable", async () => {
   const bad = stubFetch([{ status: 400, body: { error: { message: "nope" } } }]);
   const a = await new FacebookPageAdapter(bad.fetcher).publish(target(), resolve);
@@ -151,6 +247,7 @@ Deno.test("instagram: container -> poll -> publish", async () => {
     { status: 200, body: { status_code: "IN_PROGRESS" } },
     { status: 200, body: { status_code: "FINISHED" } },
     { status: 200, body: { id: "ig_7002" } },
+    { status: 200, body: { permalink: "https://www.instagram.com/p/ABC123/" } },
   ]);
   const out = await new InstagramAdapter(fetcher, noSleep).publish(
     target({ platform: "instagram", externalAccountId: "ig-user-1", media: [JPEG] }),
@@ -158,7 +255,16 @@ Deno.test("instagram: container -> poll -> publish", async () => {
   );
   assertEquals(out.status, "published", "published");
   assertEquals(out.externalPostId, "ig_7002", "media id");
-  assertEquals(calls.length, 4, "create, two polls, publish");
+  assertEquals(
+    out.permalink,
+    "https://www.instagram.com/p/ABC123/",
+    "a link to open the post",
+  );
+  assertEquals(calls.length, 5, "create, two polls, publish, then the link lookup");
+  assert(
+    calls[4].url.includes("/ig_7002?fields=permalink"),
+    "the link is looked up on the new post",
+  );
   assert(calls[3].url.endsWith("/media_publish"), "final call publishes");
   assertEquals(out.attempts.length, 4, "every step logged");
 });
@@ -217,8 +323,29 @@ function carouselQueue(n: number) {
   q.push({ status: 200, body: { id: "carousel_1" } });
   q.push({ status: 200, body: { status_code: "FINISHED" } });
   q.push({ status: 200, body: { id: "ig_9100" } });
+  q.push({ status: 200, body: { permalink: "https://www.instagram.com/p/CAROUSEL/" } });
   return q;
 }
+
+Deno.test(
+  "instagram: if the link lookup fails the post is STILL a success (it is already live), just without a link",
+  async () => {
+    const { fetcher } = stubFetch([
+      { status: 200, body: { id: "ig_c" } },
+      { status: 200, body: { status_code: "FINISHED" } },
+      { status: 200, body: { id: "ig_8800" } },
+      { status: 500, body: {} },
+    ]);
+    const out = await new InstagramAdapter(fetcher, noSleep).publish(
+      target({ platform: "instagram", externalAccountId: "ig-user-1", media: [JPEG] }),
+      resolve,
+    );
+    assertEquals(out.status, "published", "still published");
+    assertEquals(out.externalPostId, "ig_8800", "with its id");
+    assertEquals(out.permalink, undefined, "and no link");
+    assertEquals(out.attempts.length, 3, "the lookup is not logged as an attempt");
+  },
+);
 
 Deno.test(
   "instagram: several pictures post as ONE carousel, caption on the carousel only",
@@ -237,8 +364,8 @@ Deno.test(
     assertEquals(out.externalPostId, "ig_9100", "the carousel's media id");
     assertEquals(
       calls.length,
-      3 + 3 + 1 + 1 + 1,
-      "3 pictures, 3 polls, carousel, poll, publish",
+      3 + 3 + 1 + 1 + 1 + 1,
+      "3 pictures, 3 polls, carousel, poll, publish, then the link lookup",
     );
     // Each picture is a carousel item and carries NO caption.
     for (let i = 0; i < 3; i++) {
@@ -393,6 +520,7 @@ Deno.test(
   async () => {
     const q: Array<{ status: number; body: unknown } | { throws: string }> =
       carouselQueue(2);
+    q.pop(); // (the link lookup that follows a success is never reached)
     q[q.length - 1] = { throws: "timeout" }; // the media_publish gets no answer
     const { fetcher, calls } = stubFetch(q);
     const out = await new InstagramAdapter(fetcher, noSleep).publish(

@@ -158,8 +158,9 @@ describe("repository scan (ground truth)", () => {
     // the publisher registered by fingerprint), verified against a local
     // PostgreSQL 16 and UNAPPLIED to any project.
     // Plus 0055-0057 (photo review, website page switches, publishing approved photos),
-    // applied to canonical production under the owner's approval.
-    expect(inv.migrations.length).toBe(57);
+    // applied to canonical production under the owner's approval, and 0058 (posting
+    // approved photos to the owner's Instagram and Facebook).
+    expect(inv.migrations.length).toBe(58);
     expect(inv.edgeFunctions).toContain("ai-gateway");
     expect(inv.edgeFunctions).not.toContain("tests");
     expect(inv.apps).toEqual(

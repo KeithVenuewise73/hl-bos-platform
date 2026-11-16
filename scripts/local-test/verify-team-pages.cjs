@@ -126,11 +126,23 @@ async function api(route, body, headers) {
   await new Promise((r) => siteServer.listen(SITE_PORT, "127.0.0.1", r));
   const work = fs.mkdtempSync(path.join(os.tmpdir(), "team-pages-"));
   fs.mkdirSync(path.join(work, "review"));
-  for (const f of ["core.ts", "pg-store.ts"])
+  for (const f of ["core.ts", "pg-store.ts", "social.ts"])
     fs.copyFileSync(
       path.join(REPO, "supabase/functions/_shared/review", f),
       path.join(work, "review", f),
     );
+  // the Instagram / Facebook adapters the posting code reuses
+  fs.mkdirSync(path.join(work, "social"));
+  for (const f of ["provider.ts", "instagram.ts", "facebook.ts", "redact.ts"])
+    fs.copyFileSync(
+      path.join(REPO, "supabase/functions/_shared/social", f),
+      path.join(work, "social", f),
+    );
+  fs.mkdirSync(path.join(work, "ai"));
+  fs.copyFileSync(
+    path.join(REPO, "supabase/functions/_shared/ai/redact.ts"),
+    path.join(work, "ai", "redact.ts"),
+  );
   fs.copyFileSync(
     path.join(__dirname, "owner-api-local.ts"),
     path.join(work, "server.ts"),

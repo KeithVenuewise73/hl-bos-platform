@@ -10,7 +10,9 @@ import postgres from "npm:postgres@3.4.5";
 
 import { handle, userFromAuth, type ReviewDeps } from "./review/core.ts";
 import { pgStore, publisherFingerprint } from "./review/pg-store.ts";
+import { makeSocialPublisher } from "./review/social.ts";
 
+let n = 0; // the stand-in Meta's request counter
 declare const Deno: {
   env: { get(n: string): string | undefined };
   serve: (
@@ -63,6 +65,27 @@ Deno.serve(
       publisherKeySha256: await publisherFingerprint(sql),
       ownerEmails: ["owner@example.test"],
       voterSalt: "s".repeat(40),
+      // The real Instagram / Facebook code against a stand-in for Meta that always accepts.
+      social: makeSocialPublisher({
+        secret: () => "EAAG" + "t".repeat(60),
+        sleep: () => Promise.resolve(),
+        fetcher: (url) => {
+          n += 1;
+          const u = new URL(String(url));
+          const path = u.pathname.replace(/^\/v[\d.]+/, "");
+          const ok = (b: unknown) =>
+            Promise.resolve(new Response(JSON.stringify(b), { status: 200 }));
+          if (path.endsWith("/media_publish")) return ok({ id: "ig_media_" + n });
+          if (path.endsWith("/media")) return ok({ id: "container_" + n });
+          if (path.endsWith("/photos")) return ok({ id: "ph_" + n });
+          if (path.endsWith("/feed")) return ok({ id: "100000000000001_" + n });
+          if (u.searchParams.get("fields")?.includes("status_code"))
+            return ok({ status_code: "FINISHED" });
+          if (u.searchParams.get("fields")?.includes("permalink"))
+            return ok({ permalink: "https://www.instagram.com/p/TEST" + n + "/" });
+          return ok({});
+        },
+      }),
       verifyUser: (t) =>
         Promise.resolve(
           t === "owner-token"

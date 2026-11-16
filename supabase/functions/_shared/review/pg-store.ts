@@ -160,6 +160,53 @@ export function pgStore(sql: any): ReviewStore {
       const r = await sql`select review.clear_public(${ids}::uuid[]) as n`;
       return Number(r[0]?.n ?? 0);
     },
+    async socialAccounts() {
+      return [
+        ...(await sql`select id, platform, display_name, status from review.social_accounts_list()`),
+      ];
+    },
+    async socialAlreadyPosted(photos) {
+      return [
+        ...(await sql`select photo_id, platform, account, posted_at from review.social_already_posted(${photos}::uuid[])`),
+      ];
+    },
+    async socialCreatePost(photos, caption, accounts, by) {
+      const r =
+        await sql`select review.social_create_post(${photos}::uuid[], ${caption}, ${accounts}::uuid[], ${by}::uuid) as id`;
+      return String(r[0].id);
+    },
+    async socialFailStale(post) {
+      const r = await sql`select review.social_fail_stale(${post}::uuid) as n`;
+      return Number(r[0]?.n ?? 0);
+    },
+    async socialClaim(post) {
+      const r = await sql`select * from review.social_claim_target(${post}::uuid)`;
+      return r.length === 0 ? null : (r[0] as never);
+    },
+    async socialPhotoPaths(post) {
+      return [
+        ...(await sql`select web_path, filename from review.social_post_photo_paths(${post}::uuid)`),
+      ];
+    },
+    async socialRecordAttempt(target, phase, ok, http, request, response, error) {
+      await sql`select review.social_record_attempt(${target}::uuid, ${phase}, ${ok}, ${http},
+        ${request === null ? null : sql.json(request)}, ${response === null ? null : sql.json(response)}, ${error})`;
+    },
+    async socialFinish(target, published, external, permalink, error) {
+      const r =
+        await sql`select review.social_finish_target(${target}::uuid, ${published}, ${external}, ${permalink}, ${error}) as s`;
+      return String(r[0].s);
+    },
+    async socialPostStatus(post) {
+      const r = await sql`select review.social_post_status(${post}::uuid) as s`;
+      return (r[0]?.s ?? null) as never;
+    },
+    async socialRecent(limit) {
+      return [
+        ...(await sql`select id, status, caption, approved_at, folder_name, photos::int, targets
+                        from review.social_recent_posts(${limit})`),
+      ] as never;
+    },
     async publicTeams() {
       return [
         ...(await sql`select slug, name, albums::int, photos::int, cover_thumb from review.public_teams()`),

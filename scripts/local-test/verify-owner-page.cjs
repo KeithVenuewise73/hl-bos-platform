@@ -145,11 +145,23 @@ async function api(route, body, headers) {
   // the service runs from a scratch folder so Deno never writes into the repository
   const work = fs.mkdtempSync(path.join(os.tmpdir(), "owner-api-"));
   fs.mkdirSync(path.join(work, "review"));
-  for (const f of ["core.ts", "pg-store.ts"])
+  for (const f of ["core.ts", "pg-store.ts", "social.ts"])
     fs.copyFileSync(
       path.join(REPO, "supabase/functions/_shared/review", f),
       path.join(work, "review", f),
     );
+  // the Instagram / Facebook adapters the posting code reuses
+  fs.mkdirSync(path.join(work, "social"));
+  for (const f of ["provider.ts", "instagram.ts", "facebook.ts", "redact.ts"])
+    fs.copyFileSync(
+      path.join(REPO, "supabase/functions/_shared/social", f),
+      path.join(work, "social", f),
+    );
+  fs.mkdirSync(path.join(work, "ai"));
+  fs.copyFileSync(
+    path.join(REPO, "supabase/functions/_shared/ai/redact.ts"),
+    path.join(work, "ai", "redact.ts"),
+  );
   fs.copyFileSync(
     path.join(__dirname, "owner-api-local.ts"),
     path.join(work, "server.ts"),
@@ -721,6 +733,148 @@ async function api(route, body, headers) {
       /Orchard Park Quakers Varsity/.test(await page.locator("#app").innerText()),
     );
     await shot(page, "owner-teams");
+
+    console.log("\nPosting to Instagram and Facebook");
+    check(
+      "with no account connected, no posting screen shows (no Posts tab, no Post button)",
+      (await page.locator("button.pr-tab:has-text('Posts')").count()) === 0 &&
+        (await page.locator("[data-testid=open-compose]").count()) === 0,
+    );
+    const socDb = new pg.Client({
+      host: "/tmp",
+      port: 5433,
+      user: "postgres",
+      database: "hlbos",
+    });
+    await socDb.connect();
+    await socDb.query(
+      "update review.folders set team_id = (select id from review.teams where slug = 'cazenovia-chiefs') where name = 'Varsity vs Wheatfield'",
+    );
+    await socDb.query(`insert into review.social_accounts
+      (platform, external_account_id, display_name, facebook_page_id, token_secret_name) values
+      ('facebook_page', '100000000000001', '5Star Facebook', null, 'META_PAGE_TOKEN'),
+      ('instagram', '17841400000000001', '5Star Instagram', '100000000000001', 'META_PAGE_TOKEN')`);
+    await api("/owner/sync", {}, { authorization: "Bearer owner-token" });
+    const second = await open("owner-token");
+    const sp = second.page;
+    await sp.evaluate(() => window.__signIn());
+    await sp.waitForSelector("button.pr-tab:has-text('Posts')");
+    await sp
+      .locator('.pr-card:has(h2:text-is("Varsity vs Wheatfield"))')
+      .locator("button.pr-btn.gold")
+      .click();
+    await sp.waitForSelector("button:has-text('Rename this folder')");
+    await sp.click("button.pr-chip:has-text('Approved')");
+    await sp.waitForFunction(() => document.querySelectorAll(".pr-tile").length === 3);
+    await sp.click("[data-testid=open-compose]");
+    await sp.waitForSelector("#toast:has-text('Tick some photos first')");
+    check(
+      "Post ticked to social with nothing ticked says so and opens nothing",
+      (await sp.locator("#socialPanel").count()) === 0,
+    );
+    await sp.click("button:has-text('Tick all on this page')");
+    await sp.click("[data-testid=open-compose]");
+    await sp.waitForSelector("#socialPanel");
+    const draft = await sp.inputValue("#socialCaption");
+    check(
+      "the post screen opens with a caption drafted from the game, the team and the date, ready to edit",
+      /Cazenovia Chiefs/.test(draft) &&
+        /Varsity vs Wheatfield/.test(draft) &&
+        /October 24, 2026/.test(draft) &&
+        /Photos by 5-Star Sports Media/.test(draft),
+      draft,
+    );
+    check(
+      "it previews the 3 ticked photos in order, offers both accounts, and Post is ready",
+      (await sp.locator("#socialPanel .pr-chipimg").count()) === 3 &&
+        (await sp.locator("#socialPanel input[type=checkbox]:checked").count()) === 2 &&
+        (await sp.locator("[data-testid=post-now]").isEnabled()),
+    );
+    await sp.fill("#socialCaption", "");
+    check(
+      "a blank caption cannot be posted, and the screen says why",
+      !(await sp.locator("[data-testid=post-now]").isEnabled()) &&
+        /Write a caption/.test(
+          await sp.locator("[data-testid=post-problem]").innerText(),
+        ),
+    );
+    await sp.fill(
+      "#socialCaption",
+      "Great game, Chiefs! Photos by 5-Star Sports Media",
+    );
+    await sp.click("#socialPanel input[type=checkbox] >> nth=0");
+    check(
+      "unticking an account changes the button to name only the account left",
+      /Post now to 5Star (Instagram|Facebook)$/.test(
+        await sp.locator("[data-testid=post-now]").innerText(),
+      ),
+    );
+    await sp.click("#socialPanel input[type=checkbox] >> nth=0");
+    await shot(sp, "owner-post-screen");
+    await sp.click("[data-testid=post-now]");
+    await sp.waitForSelector("[data-testid=post-results] li");
+    await sp.waitForFunction(
+      () =>
+        document.querySelectorAll("[data-testid=post-results] li.st-approved")
+          .length === 2,
+    );
+    const resultsText = await sp.locator("[data-testid=post-results]").innerText();
+    check(
+      "pressing Post posts to both accounts and shows a tick and a link for each",
+      /✓ 5Star Facebook: posted/.test(resultsText) &&
+        /✓ 5Star Instagram: posted/.test(resultsText) &&
+        (await sp.locator("[data-testid=post-results] a").count()) >= 1,
+      resultsText,
+    );
+    const posted = (
+      await socDb.query(
+        `select t.status, t.external_post_id, p.caption, p.approved_by
+           from review.social_targets t join review.social_posts p on p.id = t.post_id`,
+      )
+    ).rows;
+    check(
+      "the record shows both published with the id Meta returned, the owner's caption, and who approved it",
+      posted.length === 2 &&
+        posted.every(
+          (r) => r.status === "published" && r.external_post_id && r.approved_by,
+        ) &&
+        posted[0].caption === "Great game, Chiefs! Photos by 5-Star Sports Media",
+      JSON.stringify(posted),
+    );
+    await shot(sp, "owner-post-result");
+    check(
+      "after posting, the screen offers only Done (so it cannot be posted twice by accident)",
+      (await sp.locator("[data-testid=post-now]").count()) === 0,
+    );
+    await sp.click("button:has-text('Done')");
+    await sp.click("button:has-text('Tick all on this page')");
+    await sp.click("[data-testid=open-compose]");
+    await sp.waitForSelector("[data-testid=already-posted]");
+    check(
+      "posting the same photos again warns they were already posted, before anything is sent",
+      /3 of these photos were already posted to 5Star (Instagram|Facebook)/.test(
+        await sp.locator("[data-testid=already-posted]").first().innerText(),
+      ),
+    );
+    await sp.click("button.pr-tab:has-text('Posts')");
+    await sp.waitForSelector("[data-testid=post-row]");
+    check(
+      "the Posts tab lists the post with each account's result and its link",
+      (await sp.locator("[data-testid=post-row]").count()) === 1 &&
+        /Great game, Chiefs!/.test(
+          await sp.locator("[data-testid=post-row]").innerText(),
+        ) &&
+        /✓ 5Star Instagram: posted/.test(
+          await sp.locator("[data-testid=post-row]").innerText(),
+        ),
+    );
+    check(
+      "the posting screens had no errors",
+      second.errors.length === 0,
+      JSON.stringify(second.errors),
+    );
+    await second.ctx.close();
+    await socDb.end();
 
     console.log("\nSigning out");
     await page.click("button:has-text('Sign out')");
