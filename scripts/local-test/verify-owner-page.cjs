@@ -462,12 +462,32 @@ async function api(route, body, headers) {
     await page.waitForFunction(
       () => document.querySelectorAll(".pr-tile").length === 10,
     );
+    // A refresh (the page rebuilds itself) must not wipe a half-written folder name.
+    await page.click("summary:has-text('Wrong folder')");
+    await page.fill("#newName", "typed before a refresh");
+    await page.click("button.pr-chip:has-text('Approved')");
+    await page.waitForFunction(() =>
+      /Approved/.test(
+        document.querySelector("button.pr-chip[aria-pressed='true']")?.innerText ?? "",
+      ),
+    );
+    await page.click("button.pr-chip:has-text('Waiting')");
+    await page.waitForFunction(
+      () => document.querySelectorAll(".pr-tile").length === 10,
+    );
+    check(
+      "a refresh keeps what was typed and keeps the Wrong folder panel open",
+      (await page.inputValue("#newName")) === "typed before a refresh" &&
+        (await page.locator("details").evaluate((d) => d.open)) === true,
+    );
+    await page.click("summary:has-text('Wrong folder')"); // close it again
     const n = await page.locator(".pr-tile").count();
     for (let i = n - 5; i < n; i++) await page.locator(".pr-tile").nth(i).click(); // the five afternoon photos
     await page.click("summary:has-text('Wrong folder')");
     await page.fill("#newName", "JV Lacrosse vs Lockport");
     await page.fill("#newSport", "Lacrosse");
-    await page.click("button:has-text('Create folder')");
+    // Pressed twice in a row (as a real, impatient click can): it must make ONE folder.
+    await page.dblclick("button:has-text('Create folder')");
     await page.waitForFunction(
       () =>
         !document.querySelector(".pr-tile") ||
@@ -479,6 +499,23 @@ async function api(route, body, headers) {
     check(
       "a new folder exists with the 5 photos, waiting",
       /JV Lacrosse vs Lockport/.test(folders) && /5 waiting/.test(folders),
+    );
+    const dupDb = new pg.Client({
+      host: "/tmp",
+      port: 5433,
+      user: "postgres",
+      database: "hlbos",
+    });
+    await dupDb.connect();
+    const dupes = (
+      await dupDb.query(
+        "select count(*)::int as n from review.folders where name = 'JV Lacrosse vs Lockport'",
+      )
+    ).rows[0].n;
+    await dupDb.end();
+    check(
+      "pressing Create folder twice made exactly one folder, not copies",
+      dupes === 1,
     );
     check(
       "two folders on one day are flagged",
