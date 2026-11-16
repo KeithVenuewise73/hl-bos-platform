@@ -335,6 +335,24 @@ async function api(route, body, headers) {
         /Cazenovia Chiefs/.test(await v.locator("[data-testid=team-name]").innerText()),
     );
     check(
+      "the team page lists its games as links, and shows no photos until one is opened",
+      (await v.locator("[data-testid=game-link]").count()) === 1 &&
+        (await v.locator(".tp-tile").count()) === 0 &&
+        /Varsity vs Wheatfield/.test(
+          await v.locator("[data-testid=game-link]").innerText(),
+        ) &&
+        /Hockey/.test(await v.locator("[data-testid=game-link]").innerText()) &&
+        /3 photos/.test(await v.locator("[data-testid=game-link]").innerText()),
+    );
+    await v.click("[data-testid=game-link]");
+    await v.waitForSelector("[data-testid=album]");
+    check(
+      "opening a game goes to its own address and shows its photos",
+      /team\.html\?team=cazenovia-chiefs&game=[0-9a-f-]{36}$/.test(v.url()) &&
+        (await v.locator(".tp-tile").count()) === 3 &&
+        (await v.locator("[data-testid=back-to-games]").count()) === 1,
+    );
+    check(
       "it shows the album, with its sport, date and photo count",
       /Varsity vs Wheatfield/.test(
         await v.locator("[data-testid=album]").innerText(),
@@ -394,6 +412,8 @@ async function api(route, body, headers) {
     await o.click("button:has-text('Reject ticked')");
     await o.waitForSelector("#toast:has-text('Rejected 1')");
     await v.goto(base + "/team.html?team=cazenovia-chiefs");
+    await v.waitForSelector("[data-testid=game-link]");
+    await v.click("[data-testid=game-link]");
     await v.waitForSelector("[data-testid=album]");
     check(
       "the visitor now sees 2 photos",
@@ -443,10 +463,88 @@ async function api(route, body, headers) {
       .selectOption("public");
     await o.waitForSelector("#toast:has-text('Saved')");
     await v.goto(base + "/team.html?team=cazenovia-chiefs");
+    await v.waitForSelector("[data-testid=game-link]");
+    await v.click("[data-testid=game-link]");
     await v.waitForSelector("[data-testid=album]");
     check(
       "making it public again brings the 2 approved photos back",
       (await v.locator(".tp-tile").count()) === 2,
+    );
+
+    console.log("\nA team with two games: a list of links, one page per game");
+    const OWNER = { authorization: "Bearer owner-token" };
+    const two = (
+      await db.query(
+        "select id from review.photos where status = 'approved' order by taken_at, filename limit 2",
+      )
+    ).rows;
+    const split = await api(
+      "/owner/new-folder",
+      { ids: [two[1].id], name: "Second game", sport: "Hockey" },
+      OWNER,
+    );
+    await api("/owner/decide", { ids: [two[1].id], status: "approved" }, OWNER);
+    await db.query(
+      "update review.folders set team_id = (select team_id from review.folders where name = 'Varsity vs Wheatfield' limit 1) where id = $1",
+      [split.json.folder],
+    );
+    await api("/owner/sync", {}, OWNER);
+    await v.goto(base + "/team.html?team=cazenovia-chiefs");
+    await v.waitForSelector("[data-testid=game-link]");
+    const links = await v.locator("[data-testid=game-link]").allInnerTexts();
+    check(
+      "the team page lists both games as links, with no photos shown",
+      links.length === 2 &&
+        links.some((t) => /Varsity vs Wheatfield/.test(t)) &&
+        links.some((t) => /Second game/.test(t)) &&
+        (await v.locator(".tp-tile").count()) === 0 &&
+        /2 games/.test(await v.locator("#team-albums").innerText()),
+      JSON.stringify(links),
+    );
+    if (SHOTS)
+      await v.screenshot({
+        path: path.join(SHOTS, "team-games-list.png"),
+        fullPage: true,
+      });
+    await v.locator("[data-testid=game-link]", { hasText: "Second game" }).click();
+    await v.waitForSelector("[data-testid=album]");
+    check(
+      "clicking a game shows only that game's photos",
+      (await v.locator(".tp-tile").count()) === 1 &&
+        /Second game/.test(await v.locator("[data-testid=album]").innerText()) &&
+        !/Varsity vs Wheatfield/.test(
+          await v.locator("[data-testid=album]").innerText(),
+        ),
+    );
+    const gameUrl = v.url();
+    await v.locator(".tp-tile").first().click();
+    await v.waitForSelector(".tp-lb:not([hidden])");
+    check(
+      "the viewer counts only that game's photos (1 of 1)",
+      /1 of 1/.test(await v.locator(".tp-cap").innerText()),
+    );
+    await v.keyboard.press("Escape");
+    await v.click("[data-testid=back-to-games]");
+    await v.waitForSelector("[data-testid=game-link]");
+    check(
+      "the link at the top of a game goes back to the list of games",
+      (await v.locator("[data-testid=game-link]").count()) === 2,
+    );
+    await v.goto(gameUrl);
+    await v.waitForSelector("[data-testid=album]");
+    check(
+      "a game's address can be shared: opening it goes straight to that game",
+      (await v.locator(".tp-tile").count()) === 1,
+    );
+    await v.goto(
+      base +
+        "/team.html?team=cazenovia-chiefs&game=00000000-0000-0000-0000-000000000000",
+    );
+    await v.waitForSelector("[data-testid=game-missing]");
+    check(
+      "an address for a game that does not exist says so, with a link to all games",
+      /not found/i.test(await v.locator("[data-testid=game-missing]").innerText()) &&
+        (await v.locator("[data-testid=game-missing] a").count()) === 1,
     );
 
     console.log("\nIf the service is unreachable");
