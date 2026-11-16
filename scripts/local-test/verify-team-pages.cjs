@@ -368,6 +368,29 @@ async function api(route, body, headers) {
           .first()
           .evaluate((i) => i.complete && i.naturalWidth > 0)),
     );
+    const dlLinks = await v.locator("[data-testid=tile-download]").evaluateAll((as) =>
+      as.map((x) => ({
+        href: x.getAttribute("href"),
+        name: x.getAttribute("download"),
+      })),
+    );
+    check(
+      "every photo has its own Download button",
+      dlLinks.length === 3 &&
+        dlLinks.every((d) => d.href && /[?&]download=/.test(d.href)),
+      JSON.stringify(dlLinks),
+    );
+    check(
+      "a download is named for the team, the game and the camera's file, so a parent can find it later",
+      dlLinks.every((d) =>
+        /^Cazenovia-Chiefs_Varsity-vs-Wheatfield_[A-Za-z0-9._-]+\.jpe?g$/i.test(d.name),
+      ),
+      JSON.stringify(dlLinks.map((d) => d.name)),
+    );
+    check(
+      "the download address is the same public picture, with no private path",
+      dlLinks.every((d) => !/review-photos/.test(d.href) && /public/.test(d.href)),
+    );
     check(
       "the page title names the team",
       /Cazenovia Chiefs Photos/.test(await v.title()),
@@ -384,6 +407,45 @@ async function api(route, body, headers) {
       "opening a photo shows it large, with its place in the album",
       (await v.locator(".tp-big").evaluate((i) => i.complete && i.naturalWidth > 0)) &&
         /1 of 3/.test(await v.locator(".tp-cap").innerText()),
+    );
+    const firstName = dlLinks[0].name;
+    check(
+      "the viewer has a Download button for the photo being shown",
+      (await v.locator("[data-testid=viewer-download]").getAttribute("download")) ===
+        firstName &&
+        /[?&]download=/.test(
+          await v.locator("[data-testid=viewer-download]").getAttribute("href"),
+        ),
+    );
+    check(
+      "the phone Save button is hidden where the browser cannot share a file",
+      await v.locator("[data-testid=viewer-share]").evaluate((e) => e.hidden),
+    );
+    await v.keyboard.press("Escape");
+    await v.evaluate(() => {
+      Object.defineProperty(navigator, "canShare", {
+        value: () => true,
+        configurable: true,
+      });
+      Object.defineProperty(navigator, "share", {
+        configurable: true,
+        value: async (d) => {
+          const f = d.files[0];
+          window.__shared = { name: f.name, type: f.type, size: f.size };
+        },
+      });
+    });
+    await v.locator(".tp-tile").first().click();
+    await v.waitForSelector("[data-testid=viewer-share]:not([hidden])");
+    if (SHOTS)
+      await v.screenshot({ path: path.join(SHOTS, "team-viewer-download.png") });
+    await v.click("[data-testid=viewer-share]");
+    await v.waitForFunction(() => window.__shared);
+    const shared = await v.evaluate(() => window.__shared);
+    check(
+      "where the browser can share files, Save to phone hands it the picture as a JPEG with the same name",
+      shared.name === firstName && shared.type === "image/jpeg" && shared.size > 1000,
+      JSON.stringify(shared),
     );
     await v.keyboard.press("ArrowRight");
     await v.waitForFunction(() =>
