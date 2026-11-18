@@ -121,7 +121,7 @@ async function api(route, body, headers) {
     "delete from review.teams where slug not in ('west-seneca-high-school','west-seneca-club-hockey','cazenovia-chiefs','cheektowaga-warriors'); update review.teams set visibility = 'public'",
   );
   await db.query(
-    "update review.settings set publisher_key_sha256 = null, connect_until = now() + interval '1 hour'",
+    "update review.settings set publisher_key_sha256 = null, connect_until = now() + interval '1 hour', large_downloads = true",
   );
   await new Promise((r) => siteServer.listen(SITE_PORT, "127.0.0.1", r));
   const work = fs.mkdtempSync(path.join(os.tmpdir(), "team-pages-"));
@@ -175,7 +175,7 @@ async function api(route, body, headers) {
     console.log("Seeding: DateSort sends two games' photos through the real service");
     const pub = { "x-review-publisher-key": KEY };
     await api("/review/register", { key_sha256: sha(KEY) });
-    async function send(name, sport, count, offset) {
+    async function send(name, sport, count, offset, largeCount = 0) {
       const hashes = Array.from({ length: count }, (_, i) => sha(`${name}-${i}`));
       const batch = await api(
         "/review/batch",
@@ -191,9 +191,10 @@ async function api(route, body, headers) {
         "/review/uploads",
         {
           batch_id: batch.json.batch_id,
-          files: hashes.flatMap((h) => [
+          files: hashes.flatMap((h, i) => [
             { hash: h, kind: "web" },
             { hash: h, kind: "thumb" },
+            ...(i < largeCount ? [{ hash: h, kind: "large" }] : []),
           ]),
         },
         pub,
@@ -214,11 +215,20 @@ async function api(route, body, headers) {
         },
         pub,
       );
+      if (largeCount > 0) {
+        const l = await api(
+          "/review/large",
+          { items: hashes.slice(0, largeCount).map((h) => ({ hash: h, bytes: 5000 })) },
+          pub,
+        );
+        if (l.json.attached !== largeCount)
+          throw new Error("large copies not attached");
+      }
       return c.json.added;
     }
     check(
       "3 hockey photos and 2 lacrosse photos are waiting",
-      (await send("Varsity vs Wheatfield", "Hockey", 3, 10)) === 3 &&
+      (await send("Varsity vs Wheatfield", "Hockey", 3, 10, 2)) === 3 &&
         (await send("JV vs Lockport", "Lacrosse", 2, 15)) === 2,
     );
 
@@ -433,6 +443,64 @@ async function api(route, body, headers) {
       "the Share button is hidden where the browser has no share menu",
       await v.locator("[data-testid=viewer-share]").evaluate((e) => e.hidden),
     );
+    const big = v.locator("[data-testid=viewer-download-large]");
+    const bigHref = (await big.getAttribute("href")) ?? "";
+    check(
+      "a photo with a large copy offers Download large, pointing at the service (not at any storage path)",
+      !(await big.evaluate((e) => e.hidden)) &&
+        /\/site\/large\?photo=[0-9a-f-]{36}&name=/.test(bigHref) &&
+        !/review-photos|-large\.jpg/.test(bigHref),
+      bigHref,
+    );
+    const hop = await v.request.get(bigHref, { maxRedirects: 0 });
+    check(
+      "pressing it answers with a short-lived download link and is never cached",
+      hop.status() === 302 &&
+        /\/img\/.+-large\.jpg\?download=.+&exp=300/.test(
+          hop.headers()["location"] ?? "",
+        ) &&
+        hop.headers()["cache-control"] === "no-store",
+      `${hop.status()} ${hop.headers()["location"]}`,
+    );
+    await v.click(".tp-next");
+    await v.click(".tp-next");
+    check(
+      "a photo with no large copy shows no Download large button",
+      /3 of 3/.test(await v.locator(".tp-cap").innerText()) &&
+        (await big.evaluate((e) => e.hidden)),
+    );
+    const off = await api(
+      "/owner/large-downloads",
+      { enabled: false },
+      { authorization: "Bearer owner-token" },
+    );
+    const refused = await v.request.get(bigHref, { maxRedirects: 0 });
+    const fresh = await (await context()).newPage();
+    const gameAt = new URL(v.url());
+    gameAt.searchParams.delete("photo");
+    await fresh.goto(gameAt.toString());
+    await fresh.locator(".tp-tile").first().click();
+    await fresh.waitForSelector(".tp-lb:not([hidden])");
+    check(
+      "switched off: the button is gone and the link itself refuses (403)",
+      off.json.enabled === false &&
+        refused.status() === 403 &&
+        (await fresh
+          .locator("[data-testid=viewer-download-large]")
+          .evaluate((e) => e.hidden)),
+    );
+    await fresh.context().close();
+    await api(
+      "/owner/large-downloads",
+      { enabled: true },
+      { authorization: "Bearer owner-token" },
+    );
+    check(
+      "switched back on: the same link works again",
+      (await v.request.get(bigHref, { maxRedirects: 0 })).status() === 302,
+    );
+    await v.click(".tp-prev");
+    await v.click(".tp-prev");
     await v.keyboard.press("Escape");
     await v.evaluate(() => {
       Object.defineProperty(navigator, "canShare", {

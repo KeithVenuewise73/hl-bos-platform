@@ -159,8 +159,9 @@ describe("repository scan (ground truth)", () => {
     // PostgreSQL 16 and UNAPPLIED to any project.
     // Plus 0055-0057 (photo review, website page switches, publishing approved photos),
     // applied to canonical production under the owner's approval, and 0058 (posting
-    // approved photos to the owner's Instagram and Facebook).
-    expect(inv.migrations.length).toBe(58);
+    // approved photos to the owner's Instagram and Facebook) and 0059 (a large copy of
+    // each photo, offered as a download).
+    expect(inv.migrations.length).toBe(59);
     expect(inv.edgeFunctions).toContain("ai-gateway");
     expect(inv.edgeFunctions).not.toContain("tests");
     expect(inv.apps).toEqual(

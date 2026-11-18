@@ -86,6 +86,13 @@ const files: ReviewFiles = {
     const { error } = await storage.from("review-photos").remove(paths);
     if (error) throw error;
   },
+  async signedDownload(path, filename, seconds) {
+    const { data, error } = await storage
+      .from("review-photos")
+      .createSignedUrl(path, seconds, { download: filename });
+    if (error || !data) throw error ?? new Error("no download link");
+    return data.signedUrl;
+  },
   publicUrl(path) {
     return storage.from("review-public").getPublicUrl(path).data.publicUrl;
   },

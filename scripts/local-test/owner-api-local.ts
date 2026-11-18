@@ -56,6 +56,8 @@ Deno.serve(
         async removePrivate(paths) {
           await sql`delete from storage.objects where bucket_id = 'review-photos' and name = any(${paths})`;
         },
+        signedDownload: (path, name, seconds) =>
+          Promise.resolve(`${IMG_BASE}/img/${path}?download=${name}&exp=${seconds}`),
         publicUrl: (path) => `${IMG_BASE}/img/${path}?public=1`,
         signedUrls: (paths, s) =>
           Promise.resolve(

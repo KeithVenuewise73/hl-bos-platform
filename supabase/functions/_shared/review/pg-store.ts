@@ -24,7 +24,19 @@ export function pgStore(sql: any): ReviewStore {
     async createBatch(p) {
       const r = await sql`select batch_id, known from review.create_batch(
         ${p.name}, ${p.sport}, ${p.date}::date, ${p.source}, ${p.photos}, ${p.videos}, ${p.hashes}::text[])`;
-      return { batchId: String(r[0].batch_id), known: (r[0].known ?? []) as string[] };
+      const known = (r[0].known ?? []) as string[];
+      const need =
+        known.length === 0
+          ? []
+          : await sql`select file_hash, batch_id from review.large_needed(${known}::text[])`;
+      return {
+        batchId: String(r[0].batch_id),
+        known,
+        needLarge: [...need].map((n: any) => ({
+          hash: String(n.file_hash),
+          batch_id: String(n.batch_id),
+        })),
+      };
     },
     async commitPhotos(batchId, photos) {
       const r =
@@ -79,10 +91,12 @@ export function pgStore(sql: any): ReviewStore {
       // Never an approved photo, and never one that is on the public page.
       const rows = await sql`delete from review.photos
         where id = any(${ids}::uuid[]) and status <> 'approved' and public_at is null
-        returning web_path, thumb_path`;
+        returning web_path, thumb_path, large_path`;
       return {
         deleted: rows.length,
-        paths: rows.flatMap((r: any) => [r.web_path, r.thumb_path]),
+        paths: rows.flatMap((r: any) =>
+          [r.web_path, r.thumb_path, r.large_path].filter(Boolean),
+        ),
       };
     },
     async renameTeam(team, name) {
@@ -159,6 +173,28 @@ export function pgStore(sql: any): ReviewStore {
     async clearPublic(ids) {
       const r = await sql`select review.clear_public(${ids}::uuid[]) as n`;
       return Number(r[0]?.n ?? 0);
+    },
+    async attachLarge(hash, bytes) {
+      const r = await sql`select review.attach_large(${hash}, ${bytes}::bigint) as ok`;
+      return r[0]?.ok === true;
+    },
+    async largeSettings() {
+      const r =
+        await sql`select enabled, large_photos::int, public_photos::int from review.large_settings()`;
+      return r[0] as never;
+    },
+    async setLargeDownloads(enabled) {
+      await sql`select review.set_large_downloads(${enabled}::boolean)`;
+    },
+    async publicLarge(photo) {
+      const r =
+        await sql`select large_path, enabled from review.public_large(${photo}::uuid)`;
+      return r.length === 0
+        ? null
+        : {
+            path: (r[0].large_path ?? null) as string | null,
+            enabled: r[0].enabled === true,
+          };
     },
     async socialAccounts() {
       return [

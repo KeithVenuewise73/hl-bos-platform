@@ -26,6 +26,8 @@ export const PHOTO_URL_SECONDS = 60 * 60;
 export const MAX_FILES_PER_CALL = 200;
 export const MAX_HASHES_PER_BATCH = 20_000;
 export const PAGE = 60;
+/** How long a "Download large" link works: long enough to start the download. */
+export const LARGE_LINK_SECONDS = 5 * 60;
 
 export type Status = "waiting" | "approved" | "rejected";
 
@@ -90,6 +92,8 @@ export interface PublicTeamRow {
 
 export interface PublicTeamPage {
   team: { slug: string; name: string };
+  /** The owner's switch for the "Download large" button. */
+  large_downloads?: boolean;
   albums: {
     id: string;
     name: string;
@@ -101,6 +105,8 @@ export interface PublicTeamPage {
       taken_at: string | null;
       width: number | null;
       height: number | null;
+      /** Whether a large copy exists (never where it is kept). */
+      large?: boolean;
       web_path: string;
       thumb_path: string;
     }[];
@@ -185,7 +191,12 @@ export interface ReviewStore {
     photos: number;
     videos: number;
     hashes: string[];
-  }): Promise<{ batchId: string; known: string[] }>;
+  }): Promise<{
+    batchId: string;
+    known: string[];
+    /** Known photos that still have no large copy, and the batch their files live under. */
+    needLarge: { hash: string; batch_id: string }[];
+  }>;
   commitPhotos(batchId: string, photos: Record<string, unknown>[]): Promise<number>;
   folders(): Promise<FolderRow[]>;
   folderPhotos(
@@ -235,6 +246,16 @@ export interface ReviewStore {
   clearPublic(ids: string[]): Promise<number>;
   publicTeams(): Promise<PublicTeamRow[]>;
   publicTeam(slug: string): Promise<PublicTeamPage | null>;
+  /** Migration 0059: a large copy of each photo, offered as a download. */
+  attachLarge(hash: string, bytes: number): Promise<boolean>;
+  largeSettings(): Promise<{
+    enabled: boolean;
+    large_photos: number;
+    public_photos: number;
+  }>;
+  setLargeDownloads(enabled: boolean): Promise<void>;
+  /** null: no such photo. path null: it does not qualify (switch off, not public, no copy). */
+  publicLarge(photo: string): Promise<{ path: string | null; enabled: boolean } | null>;
   /** Migration 0058: posting approved photos to Instagram and Facebook. */
   socialAccounts(): Promise<SocialAccountRow[]>;
   socialAlreadyPosted(
@@ -289,6 +310,8 @@ export interface ReviewFiles {
   removePublic(paths: string[]): Promise<void>;
   /** Remove files from the PRIVATE bucket (for photos that were deleted). */
   removePrivate(paths: string[]): Promise<void>;
+  /** A short-lived link that downloads a private file under the given name. */
+  signedDownload(path: string, filename: string, seconds: number): Promise<string>;
   /** The public address of a copied photo. */
   publicUrl(path: string): string;
 }
@@ -480,6 +503,7 @@ export async function handle(req: Request, deps: ReviewDeps): Promise<Response> 
       200,
       {
         team: page.team,
+        large_downloads: page.large_downloads === true,
         albums: page.albums.map((a) => ({
           ...a,
           photos: a.photos.map((p) => ({
@@ -488,6 +512,7 @@ export async function handle(req: Request, deps: ReviewDeps): Promise<Response> 
             taken_at: p.taken_at,
             width: p.width,
             height: p.height,
+            large: p.large === true,
             thumb_url: deps.files.publicUrl(p.thumb_path),
             web_url: deps.files.publicUrl(p.web_path),
           })),
@@ -495,6 +520,28 @@ export async function handle(req: Request, deps: ReviewDeps): Promise<Response> 
       },
       "public, max-age=60",
     );
+  }
+  if (req.method === "GET" && route === "/site/large") {
+    // "Download large": a short-lived link to the private large copy, only while the owner's
+    // switch is on and the photo is on a public page. Nothing is public by address.
+    const photo = url.searchParams.get("photo") ?? "";
+    if (!UUID.test(photo))
+      return json(req, 404, { error: "A large copy is not available." });
+    const found = await deps.store.publicLarge(photo);
+    if (found === null || (found.enabled && found.path === null))
+      return json(req, 404, { error: "A large copy is not available." });
+    if (!found.enabled || found.path === null)
+      return json(req, 403, { error: "Large downloads are switched off right now." });
+    let name = (url.searchParams.get("name") ?? "photo.jpg")
+      .replace(/[^A-Za-z0-9._-]+/g, "-")
+      .replace(/^-+|-+$/g, "")
+      .slice(0, 150);
+    if (!/\.jpe?g$/i.test(name)) name = `${name || "photo"}.jpg`;
+    const link = await deps.files.signedDownload(found.path, name, LARGE_LINK_SECONDS);
+    return new Response(null, {
+      status: 302,
+      headers: { location: link, "cache-control": "no-store", ...cors(req) },
+    });
   }
   if (req.method !== "POST") return json(req, 405, { error: "POST only." });
 
@@ -648,7 +695,30 @@ async function publisher(
       videos: num(counts["videos"], 0),
       hashes,
     });
-    return json(req, 200, { batch_id: out.batchId, known: out.known });
+    return json(req, 200, {
+      batch_id: out.batchId,
+      known: out.known,
+      need_large: out.needLarge,
+    });
+  }
+  if (route === "/review/large") {
+    // After the large copies are uploaded: record them (each only if its file is really there).
+    const items = Array.isArray(b["items"])
+      ? (b["items"] as Record<string, unknown>[])
+      : [];
+    if (items.length === 0 || items.length > MAX_FILES_PER_CALL)
+      return json(req, 400, {
+        error: `Send 1 to ${MAX_FILES_PER_CALL} photos at a time.`,
+      });
+    if (!items.every((p) => HASH.test(text(p["hash"])) && num(p["bytes"], 0) > 0))
+      return json(req, 400, {
+        error: "every item needs its fingerprint as hash and its size as bytes.",
+      });
+    let attached = 0;
+    for (const p of items)
+      if (await deps.store.attachLarge(text(p["hash"]), num(p["bytes"], 0)))
+        attached += 1;
+    return json(req, 200, { attached });
   }
   const batch = text(b["batch_id"]);
   if (!UUID.test(batch)) return json(req, 400, { error: "batch_id must be a uuid." });
@@ -667,13 +737,21 @@ async function publisher(
       const kind = text(f["kind"]);
       if (!HASH.test(hash))
         return json(req, 400, { error: "hash must be a SHA-256 fingerprint." });
-      if (kind !== "web" && kind !== "thumb")
-        return json(req, 400, { error: 'kind must be "web" or "thumb".' });
-      // Only ever this batch's own paths: nothing a caller sends can name another place.
+      if (kind !== "web" && kind !== "thumb" && kind !== "large")
+        return json(req, 400, { error: 'kind must be "web", "thumb" or "large".' });
+      // A large copy for a photo sent earlier goes under the batch that photo was first
+      // stored in (its files are pinned there). Nothing else can name another place.
+      let into = batch;
+      if (kind === "large" && f["batch_id"] !== undefined) {
+        const other = text(f["batch_id"]);
+        if (!UUID.test(other))
+          return json(req, 400, { error: "batch_id must be a uuid." });
+        into = other;
+      }
       uploads.push({
         hash,
         kind,
-        url: await deps.files.signedUploadUrl(`${batch}/${hash}-${kind}.jpg`),
+        url: await deps.files.signedUploadUrl(`${into}/${hash}-${kind}.jpg`),
       });
     }
     return json(req, 200, { uploads });
@@ -819,6 +897,13 @@ async function owner(req: Request, route: string, deps: ReviewDeps): Promise<Res
     return json(req, 200, { teams: await deps.store.teams() });
   if (route === "/owner/pages")
     return json(req, 200, { pages: await deps.store.ownerPages() });
+  if (route === "/owner/large") return json(req, 200, await deps.store.largeSettings());
+  if (route === "/owner/large-downloads") {
+    if (typeof b["enabled"] !== "boolean")
+      return json(req, 400, { error: "enabled must be true or false." });
+    await deps.store.setLargeDownloads(b["enabled"]);
+    return json(req, 200, await deps.store.largeSettings());
+  }
   if (route === "/owner/page-set") {
     const slug = text(b["slug"]);
     const flag = (v: unknown) => (typeof v === "boolean" ? v : null);

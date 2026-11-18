@@ -135,7 +135,9 @@ async function api(route, body, headers) {
   await db.query(
     "delete from review.teams where slug not in ('west-seneca-high-school','west-seneca-club-hockey','cazenovia-chiefs','cheektowaga-warriors')",
   );
-  await db.query("update review.teams set visibility = 'public'");
+  await db.query(
+    "update review.teams set visibility = 'public'; update review.settings set large_downloads = true",
+  );
   await db.query(
     "update review.settings set publisher_key_sha256 = null, connect_until = now() + interval '1 hour'",
   );
@@ -731,6 +733,28 @@ async function api(route, body, headers) {
     check(
       "renaming a team to a name another team has is refused in words",
       /Orchard Park Quakers Varsity/.test(await page.locator("#app").innerText()),
+    );
+    check(
+      "Teams shows the Download large switch, ON, and says how many public photos have a large copy",
+      /ON/.test(await page.locator("[data-testid=large-status]").innerText()) &&
+        /\d+ of \d+ public photos have a large copy/.test(
+          await page.locator("[data-testid=large-status]").innerText(),
+        ),
+    );
+    await page.click("[data-testid=large-switch]");
+    await page.waitForSelector("[data-testid=large-status]:has-text('OFF')");
+    const lg = await api("/owner/large", {}, { authorization: "Bearer owner-token" });
+    check(
+      "pressing Switch OFF turns large downloads off in the service",
+      lg.json.enabled === false &&
+        (await page.locator("[data-testid=large-switch]").innerText()) === "Switch ON",
+    );
+    await page.click("[data-testid=large-switch]");
+    await page.waitForSelector("[data-testid=large-status]:has-text('ON:')");
+    check(
+      "and Switch ON turns them back on",
+      (await api("/owner/large", {}, { authorization: "Bearer owner-token" })).json
+        .enabled === true,
     );
     await shot(page, "owner-teams");
 

@@ -30,7 +30,8 @@ interface Data {
   key_sha256?: string;
   hashes?: string[];
   batch_id?: string;
-  files?: { hash: string; kind: string }[];
+  files?: { hash: string; kind: string; batch_id?: string }[];
+  items?: { hash: string; bytes: number }[];
   photos?: (Stored & { hash: string })[];
   [other: string]: unknown;
 }
@@ -51,6 +52,8 @@ function service(
   const known = new Map<string, Stored>(); // committed photos by hash
   const storage = new Map<string, Buffer>(); // uploaded files by url
   const uploaded = new Set<string>();
+  const batchOf = new Map<string, string>(); // photo hash -> the batch it was committed in
+  const large = new Set<string>(); // photos that have a large copy attached
   const batches: Record<string, unknown>[] = [];
   let puts = 0;
   const handle = (input: string, init?: RequestInit): Response => {
@@ -87,13 +90,16 @@ function service(
       return json({
         batch_id: `b${batches.length}`,
         known: (data.hashes ?? []).filter((h) => known.has(h)),
+        need_large: (data.hashes ?? [])
+          .filter((h) => known.has(h) && !large.has(h))
+          .map((h) => ({ hash: h, batch_id: batchOf.get(h) })),
       });
     }
     if (url.pathname === "/review/uploads") {
       return json({
         uploads: (data.files ?? []).map((f) => ({
           ...f,
-          url: `https://storage.test/${data.batch_id}/${f.hash}-${f.kind}.jpg`,
+          url: `https://storage.test/${f.batch_id ?? data.batch_id}/${f.hash}-${f.kind}.jpg`,
         })),
       });
     }
@@ -105,9 +111,24 @@ function service(
         if (!storage.has(web) || !storage.has(thumb))
           return json({ error: "files missing" }, 409);
         known.set(p.hash, p);
+        batchOf.set(p.hash, data.batch_id ?? "");
         uploaded.add(p.hash);
       }
       return json({ added: (data.photos ?? []).length });
+    }
+    if (url.pathname === "/review/large") {
+      let attached = 0;
+      for (const it of data.items ?? []) {
+        // Only for a known photo whose large file really is in storage.
+        const file = storage.get(
+          `https://storage.test/${batchOf.get(it.hash)}/${it.hash}-large.jpg`,
+        );
+        if (!known.has(it.hash) || !file || file.length !== it.bytes)
+          return json({ error: "large file missing" }, 409);
+        large.add(it.hash);
+        attached += 1;
+      }
+      return json({ attached });
     }
     return json({ error: "unknown" }, 404);
   };
@@ -121,6 +142,8 @@ function service(
   return {
     fetch,
     known,
+    large,
+    batchOf,
     storage,
     batches,
     get puts() {
@@ -184,6 +207,51 @@ const snapshot = (dir: string) =>
     ]),
   );
 
+describe("large copies", () => {
+  it("makes a 3,600 px copy with no camera details, and tops up photos that were sent without one", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "review-large-"));
+    const big = await noise(4800, 3200)
+      .jpeg({ quality: 90 })
+      .withExif({ IFD0: { Make: "Canon", Copyright: "private-camera-detail" } })
+      .toBuffer();
+    writeFileSync(join(dir, "IMG_0.jpg"), big);
+    const svc = service();
+    const first = await run(dir, svc);
+    expect(first).toMatchObject({ sent: 1, largeAdded: 0 });
+    const largeFile = [...svc.storage.entries()].find(([u]) =>
+      u.endsWith("-large.jpg"),
+    );
+    const meta = await sharp(largeFile![1]).metadata();
+    expect(Math.max(meta.width, meta.height)).toBe(3600);
+    expect(meta.exif).toBeUndefined();
+    expect(largeFile![1].includes(Buffer.from("private-camera-detail"))).toBe(false);
+
+    // A photo sent before large copies existed: forget its large copy.
+    const hash = [...svc.known.keys()][0]!;
+    svc.large.delete(hash);
+    svc.storage.delete(largeFile![0]);
+    const originalBatch = svc.batchOf.get(hash);
+    const again = await run(dir, svc);
+    expect(again).toMatchObject({
+      sent: 0,
+      alreadyThere: 1,
+      largeAdded: 1,
+      failed: [],
+    });
+    // It went to the photo's own batch, not the new one.
+    expect(
+      svc.storage.has(`https://storage.test/${originalBatch}/${hash}-large.jpg`),
+    ).toBe(true);
+    expect(svc.large.has(hash)).toBe(true);
+
+    // Nothing left to top up: a third send does no uploads.
+    const putsBefore = svc.puts;
+    const third = await run(dir, svc);
+    expect(third).toMatchObject({ sent: 0, largeAdded: 0 });
+    expect(svc.puts).toBe(putsBefore);
+  });
+});
+
 describe("sending a day's photos for review", () => {
   it("sends every photo with its game, time and quality hints, and changes nothing in the folder", async () => {
     const dir = await dayFolder(3);
@@ -193,8 +261,15 @@ describe("sending a day's photos for review", () => {
     const r = await run(dir, svc, {
       onProgress: (p: SendProgress) => phases.push(p.phase),
     });
-    expect(r).toMatchObject({ sent: 3, alreadyThere: 0, failed: [], videosNotSent: 0 });
+    expect(r).toMatchObject({
+      sent: 3,
+      alreadyThere: 0,
+      largeAdded: 0,
+      failed: [],
+      videosNotSent: 0,
+    });
     expect(svc.known.size).toBe(3);
+    expect(svc.large.size).toBe(3); // every new photo also got its large copy
     expect(svc.batches[0]).toMatchObject({
       label: GAME,
       counts: { photos: 3, videos: 0 },
@@ -211,7 +286,7 @@ describe("sending a day's photos for review", () => {
     const dir = await dayFolder(2);
     const svc = service();
     await run(dir, svc);
-    expect(svc.storage.size).toBe(4); // a web copy and a thumbnail each
+    expect(svc.storage.size).toBe(6); // a web copy, a thumbnail and a large copy each
     for (const bytes of svc.storage.values()) {
       expect(bytes.includes(Buffer.from("private-camera-detail"))).toBe(false);
       expect(bytes.includes(Buffer.from("Canon"))).toBe(false);
@@ -229,7 +304,7 @@ describe("sending a day's photos for review", () => {
     writeFileSync(join(dir, "IMG_9.jpg"), await photo("2026:10:24 19:00:00"));
     const third = await run(dir, svc);
     expect(third).toMatchObject({ sent: 1, alreadyThere: 3 });
-    expect(svc.puts).toBe(putsAfterFirst + 2);
+    expect(svc.puts).toBe(putsAfterFirst + 3);
   });
 
   it("an unreadable file is reported by name and the rest are still sent", async () => {
@@ -287,7 +362,7 @@ describe("when the website cannot take them", () => {
 
   it("when the connection drops part way, says how many went and finishes on the next try without resending them", async () => {
     const dir = await dayFolder(25); // three chunks
-    const svc = service({ dropAfterUploads: 22 }); // drops during the second chunk
+    const svc = service({ dropAfterUploads: 32 }); // drops during the second chunk
     const err = (await run(dir, svc).catch((e: unknown) => e)) as ReviewError;
     expect(err).toBeInstanceOf(ReviewError);
     expect(err.sent).toBe(10);
@@ -295,7 +370,11 @@ describe("when the website cannot take them", () => {
     expect(svc.known.size).toBe(10);
     // A healthy service with the same memory: finish.
     const healthy = service();
-    for (const [h, p] of svc.known) healthy.known.set(h, p);
+    for (const [h, p] of svc.known) {
+      healthy.known.set(h, p);
+      healthy.batchOf.set(h, svc.batchOf.get(h) ?? "");
+      if (svc.large.has(h)) healthy.large.add(h);
+    }
     const r = await run(dir, healthy);
     expect(r).toMatchObject({ sent: 15, alreadyThere: 10 });
     expect(healthy.known.size).toBe(25);
