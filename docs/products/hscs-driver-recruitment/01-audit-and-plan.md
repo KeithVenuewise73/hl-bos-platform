@@ -57,8 +57,19 @@ Conclusions:
 
 1. HSCS delivery operations is a **third, separate business** with its own repo and database. Driver Recruitment must not read, write or reference its tables, and must not reuse its `hscs_glp.carriers` as a prospect list.
 2. The dashboard ranks individual drivers by name. That is personal performance data and must never flow into candidate or employer records.
-3. Risks to carry forward, unverified until the repo is read: the README tells the user to put a Supabase URL and anon key in `.env`, so the legacy project's row-level security is the only protection for those tables; the repo is public; `main` is unprotected.
+3. Risks (now partly verified, see 1b): the README tells the user to put a Supabase URL and anon key in `.env`, so the legacy project's row-level security is the only protection for those tables; the repo is public; `main` is unprotected.
 4. The earlier note that the legacy project is "out of scope" in `CLAUDE.md` still applies. Nothing here was changed.
+
+### 1b. `herman-supply-chain` read (owner-approved, read-only)
+
+Cloned shallow to a scratch path; nothing was pushed to it. 9 HTML pages, `js/script.js`, `css/styles.css`, `CNAME`. It is a plain static site, not the React/Vite app the README describes: there is no `package.json` or `src`.
+
+- **No recruiting, FMCSA, CDL or job-board code.** Recruitment is confirmed as net-new. The only "candidate" matches are in the KPI page's own scripting.
+- **Contact and assessment forms** (`contact.html`, `assessment.html`) are the only intake. They post nowhere I could identify; the site's contact route is a `mailto:` link.
+- **Public key in public code.** `Lowes-KPI.html`, `dashboard.html` and `js/script.js` embed the legacy project URL and a Supabase key whose decoded role is `anon` (no `service_role` key was found). An anon key in a browser is normal. It is only safe if row-level security is correct.
+- **It is not correct.** In the legacy project, `ltr_data`, `kpi_sp_weekly` and `kpi_spe_weekly` each have one policy, "Allow all", for role `public`, `USING true / WITH CHECK true`. The `anon` and `authenticated` roles hold SELECT, INSERT, UPDATE, DELETE and TRUNCATE. **Anyone who opens the public repo can read, alter or wipe those three tables, which hold per-driver and per-store customer performance data.** This was derived from the policy and grant metadata. I did not call the API from outside, and no data values were read.
+- The KPI page itself writes with `.insert()` from the browser, which is why the tables were opened. A fix needs the upload to move behind a signed-in role or a server function.
+- Proposed fix (not applied; needs approval): replace "Allow all" with read for signed-in HSCS staff only, move uploads to an authenticated path, revoke `anon` privileges, then rotate the anon key if the owner wants the old one dead.
 
 ## 2. Current database and authentication boundaries
 
