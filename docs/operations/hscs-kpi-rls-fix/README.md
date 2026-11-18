@@ -40,3 +40,24 @@ tests can detect the hole. `rollback.sql` restores the open state.
 - Live data now: 2 auth users, 1 active member, whose role is `owner_ceo`. Only that person will see the data
   after the fix. I have not confirmed that account is the owner's.
 - The old anon key stays valid for the project's other tables. Rotating it is a separate decision.
+
+## Supabase branch result (2026-11-18)
+
+Branch `kpi-rls-fix-test` (project ref `zqltotsbfjhzrexbdxvd`, parent: the legacy project). Production was not touched:
+afterwards it still has the 3 "Allow all" policies and none of the new helper functions.
+
+- **The branch is incomplete.** Its build stopped at migration 5 of production's history (`MIGRATIONS_FAILED`), so it
+  has the three real KPI tables (real column types, real "Allow all" policy, no data) but **no `hscs_glp` schema**.
+  I recreated only what the fix reads (`glp_role`, `organization_users`, `user_roles`) with fake users. The real
+  `hscs_glp` tables and functions were not exercised.
+- Branch permissions were aligned to production's before-state (anon/authenticated full, service_role full).
+  Before that, `service_role` had no SELECT on the branch and the first run showed 1 of 31 checks failing for that
+  reason. The migration does not touch `service_role`.
+- **Before:** anon read 2 rows, deleted 1, inserted 1 and truncate was allowed. The hole reproduces on a real
+  Supabase database.
+- **After** (`apply_migration` on the branch): 31 of 31 checks hold, same scenarios as `after.sql`, including the
+  dashboard's delete-all-then-insert upload as `operations_manager`.
+- **Mutation:** reopening one table made the anon check return 2 rows instead of "denied". It was undone and the check
+  returned "denied" again.
+- Not tested: the HTTP API (PostgREST), a real signed-in session, and the dashboard pages. Roles were switched with
+  `set_config('role', ...)` inside a database function.
