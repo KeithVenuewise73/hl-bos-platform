@@ -19,6 +19,7 @@ import {
 import { IphoneButton } from "@/components/IphoneButton.tsx";
 import { CardJersey } from "@/components/JerseyButton.tsx";
 import { CardReview } from "@/components/ReviewButton.tsx";
+import { SendAllReview } from "@/components/SendAllReview.tsx";
 import {
   CardSport,
   SportPanel,
@@ -403,6 +404,9 @@ function Report({ view }: { view: ScanView }) {
 
       {r.days.length > 0 ? <SportPanel view={view} sport={sport} copy={copy} /> : null}
       {r.days.length > 0 ? <CopyPanel view={view} copy={copy} /> : null}
+      {r.days.length > 0 ? (
+        <SendAllReview days={r.days.map((d) => d.day)} copy={copy} />
+      ) : null}
 
       {r.days.length === 0 ? (
         <p className="card p-5 text-sm text-muted" data-testid="no-dates">

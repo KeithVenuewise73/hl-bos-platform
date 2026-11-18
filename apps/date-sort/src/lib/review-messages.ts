@@ -65,3 +65,48 @@ export function progressLine(p: ProgressFacts): string {
     return `Adding large copies… ${p.done.toLocaleString("en-US")} of ${p.total.toLocaleString("en-US")}`;
   return "Finishing…";
 }
+
+/** Running totals while "Send all" works through every date. */
+export interface AllTotals {
+  /** Dates worked through (sent, or everything already there). */
+  readonly daysDone: number;
+  readonly sent: number;
+  readonly alreadyThere: number;
+  readonly largeAdded: number;
+  readonly failedPhotos: number;
+  /** Dates passed by because their folder is not ready, each with the reason. */
+  readonly skippedDays: ReadonlyArray<{
+    readonly day: string;
+    readonly reason: string;
+  }>;
+  /** Dates that stopped part way, each with the reason. */
+  readonly problemDays: ReadonlyArray<{
+    readonly day: string;
+    readonly reason: string;
+  }>;
+}
+
+/** The sentences shown when Send all has finished (or was stopped). */
+export function allDoneLines(t: AllTotals, stopped: boolean): string[] {
+  const lines: string[] = [
+    `${stopped ? "Stopped." : "Finished."} ${t.daysDone.toLocaleString("en-US")} date${t.daysDone === 1 ? "" : "s"} done: ${photos(t.sent)} newly sent for review, ${photos(t.alreadyThere)} already there.`,
+  ];
+  if (t.largeAdded > 0)
+    lines.push(`Added the large copy for ${photos(t.largeAdded)} already there.`);
+  if (t.failedPhotos > 0)
+    lines.push(
+      `${photos(t.failedPhotos)} could not be sent. Send those dates again to retry just them.`,
+    );
+  if (t.skippedDays.length > 0)
+    lines.push(
+      `${t.skippedDays.length.toLocaleString("en-US")} date${t.skippedDays.length === 1 ? " was" : "s were"} passed by because ${t.skippedDays.length === 1 ? "its" : "their"} folder is not ready: ${t.skippedDays
+        .slice(0, 3)
+        .map((d) => d.day)
+        .join(
+          ", ",
+        )}${t.skippedDays.length > 3 ? " and others" : ""}. Use Create Folder for them, then press Send all again.`,
+    );
+  for (const p of t.problemDays.slice(0, 5))
+    lines.push(`${p.day} stopped: ${p.reason}`);
+  return lines;
+}

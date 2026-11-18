@@ -56,6 +56,7 @@ function startService() {
     known: new Map(),
     files: new Map(),
     batches: [],
+    large: new Set(),
   };
   const server = http.createServer((req, res) => {
     const chunks = [];
@@ -89,18 +90,26 @@ function startService() {
         return json({
           batch_id: `b${state.batches.length}`,
           known: body.hashes.filter((h) => state.known.has(h)),
+          need_large: body.hashes
+            .filter((h) => state.known.has(h) && !state.large.has(h))
+            .map((h) => ({ hash: h, batch_id: state.known.get(h).batch })),
         });
       }
       if (url.pathname === "/review/uploads")
         return json({
           uploads: body.files.map((f) => ({
             ...f,
-            url: `http://127.0.0.1:${server.address().port}/files/${body.batch_id}/${f.hash}-${f.kind}.jpg`,
+            url: `http://127.0.0.1:${server.address().port}/files/${f.batch_id ?? body.batch_id}/${f.hash}-${f.kind}.jpg`,
           })),
         });
       if (url.pathname === "/review/commit") {
-        for (const p of body.photos) state.known.set(p.hash, p);
+        for (const p of body.photos)
+          state.known.set(p.hash, { ...p, batch: body.batch_id });
         return json({ added: body.photos.length });
+      }
+      if (url.pathname === "/review/large") {
+        for (const it of body.items) state.large.add(it.hash);
+        return json({ attached: body.items.length });
       }
       json({ error: "unknown" }, 404);
     });
@@ -161,6 +170,22 @@ function startService() {
         .toBuffer(),
     );
   }
+  for (let i = 0; i < 2; i++)
+    fs.writeFileSync(
+      path.join(card, `IMG_B${i}.JPG`),
+      await sharp({
+        create: {
+          width: 1200,
+          height: 800,
+          channels: 3,
+          background: { r: 0, g: 0, b: 0 },
+          noise: { type: "gaussian", mean: 100 + i * 20, sigma: 50 },
+        },
+      })
+        .jpeg({ quality: 88 })
+        .withExif({ IFD2: { DateTimeOriginal: `2026:10:25 19:0${i}:00` } })
+        .toBuffer(),
+    );
   const svc = await startService();
   const app = spawn(
     process.execPath,
@@ -219,21 +244,6 @@ function startService() {
     );
     const before = fingerprint(folder);
 
-    console.log("\nNo review area set up yet");
-    await page.reload();
-    await page.fill("[data-testid=source-input]", path.join(work, "card"));
-    await page.click("[data-testid=scan-button]");
-    await page.waitForSelector("[data-testid=scan-report]", { timeout: 300_000 });
-    const d2 = page.locator("[data-testid=date-card][data-day='2026-10-24']");
-    await d2.locator("[data-testid=review-unavailable]").waitFor({ timeout: 30_000 });
-    check(
-      "the button is switched off and says why",
-      (await d2.locator("[data-testid=send-review]").isDisabled()) &&
-        /not been switched on/.test(
-          await d2.locator("[data-testid=review-unavailable]").textContent(),
-        ),
-    );
-
     console.log("\nSet up, not connected");
     fs.writeFileSync(
       path.join(settingsDir, "review.json"),
@@ -286,8 +296,8 @@ function startService() {
       result,
     );
     check(
-      "the service holds 4 photos with a web copy and a thumbnail each",
-      svc.state.known.size === 4 && svc.state.files.size === 8,
+      "the service holds 4 photos with a web copy, a thumbnail and a large copy each",
+      svc.state.known.size === 4 && svc.state.files.size === 12,
       `${svc.state.known.size} / ${svc.state.files.size}`,
     );
     const first = [...svc.state.known.values()].find((p) => p.filename === "IMG_0.JPG");
@@ -329,8 +339,56 @@ function startService() {
     check(
       "sending again says everything is already waiting and uploads nothing",
       /Everything in this folder is already waiting for review/.test(again) &&
-        svc.state.files.size === 8,
+        svc.state.files.size === 12,
       again,
+    );
+
+    console.log("\nSend all");
+    await page.reload();
+    await page.fill("[data-testid=source-input]", path.join(work, "card"));
+    await page.click("[data-testid=scan-button]");
+    await page.waitForSelector("[data-testid=scan-report]", { timeout: 300_000 });
+    await page.locator("[data-testid=send-all-button]").waitFor({ timeout: 30_000 });
+    check(
+      "a Send all button names how many dates it will send",
+      /Send all 2 dates for review/.test(
+        await page.locator("[data-testid=send-all-button]").innerText(),
+      ),
+    );
+    await page.click("[data-testid=send-all-button]");
+    await page.locator("[data-testid=send-all-result]").waitFor({ timeout: 120_000 });
+    const all1 = await page.locator("[data-testid=send-all-result]").innerText();
+    check(
+      "a date with no folder yet is passed by and named; the ready date is not sent twice",
+      /Finished\. 1 date done: 0 photos newly sent for review, 4 photos already there/.test(
+        all1,
+      ) &&
+        /1 date was passed by because its folder is not ready: 2026-10-25/.test(all1) &&
+        svc.state.files.size === 12,
+      all1,
+    );
+    const day2 = page.locator("[data-testid=date-card][data-day='2026-10-25']");
+    await day2.locator("[data-testid=event-name]").fill("Hockey - JV vs Lockport");
+    await day2.locator("[data-testid=create-folder]").click();
+    await day2.locator("[data-testid=card-result]").waitFor({ timeout: 120_000 });
+    await page.click("[data-testid=send-all-button]");
+    await page.waitForFunction(
+      () =>
+        /Finished\. 2 dates done/.test(
+          document.querySelector("[data-testid=send-all-result]")?.textContent ?? "",
+        ),
+      null,
+      { timeout: 120_000 },
+    );
+    const all2 = await page.locator("[data-testid=send-all-result]").innerText();
+    check(
+      "after Create Folder, Send all sends the new date and skips what is already there",
+      /2 dates done: 2 photos newly sent for review, 4 photos already there/.test(
+        all2,
+      ) &&
+        svc.state.known.size === 6 &&
+        svc.state.files.size === 18,
+      all2,
     );
     await browser.close();
   } finally {
