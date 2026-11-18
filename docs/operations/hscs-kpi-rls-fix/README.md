@@ -34,7 +34,7 @@ tests can detect the hole. `rollback.sql` restores the open state.
 - The replica is **emulation**. KPI column types are guesses (only names were read); function bodies and the
   before-state policies and grants were copied from live metadata. It runs as a superuser session using
   `SET ROLE`, not PostgREST. Run the same assertions against a Supabase branch before trusting production.
-- It does not test the dashboard page. **Applying this will break `Lowes-KPI.html` and `dashboard.html`
+- The dashboard pages: see `dashboard-signin/`. **Applying this without them will break `Lowes-KPI.html` and `dashboard.html`
   until they sign in**: they read and write as `anon` today. Needed companion change in `herman-supply-chain`
   (read-only to this session, so not done): add a sign-in step and use the session token for reads and uploads.
 - Live data now: 2 auth users, 1 active member, whose role is `owner_ceo`. Only that person will see the data

@@ -1,0 +1,127 @@
+--- a/Lowes-KPI.html
++++ b/Lowes-KPI.html
+@@ -8,7 +8,7 @@
+ <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+ <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+ <script src="https://unpkg.com/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+-<script src="https://unpkg.com/@supabase/supabase-js@2"></script>
++<script src="https://unpkg.com/@supabase/supabase-js@2.45.4"></script>
+ <style>
+   * { margin: 0; padding: 0; box-sizing: border-box; }
+   body { background: #060f1e; font-family: 'Inter','Segoe UI',sans-serif; }
+@@ -365,11 +365,15 @@
+ };
+ 
+ // ─── Supabase Sync ────────────────────────────────────────────────────────
++// A refused request must surface as an error. Before sign-in was required, nothing was ever refused, so
++// results were ignored; now a signed-in user without write access would see "Done!" while nothing saved.
++const must = (res) => { if (res && res.error) throw new Error(res.error.message || "The database refused the request"); return res; };
++
+ const syncToSupabase = async (spRows, speRows, ltrRows, onProgress) => {
+   onProgress("Clearing old data...");
+-  await supabase.from("ltr_data").delete().neq("id", 0);
+-  await supabase.from("kpi_sp_weekly").delete().neq("id", 0);
+-  await supabase.from("kpi_spe_weekly").delete().neq("id", 0);
++  must(await supabase.from("ltr_data").delete().neq("id", 0));
++  must(await supabase.from("kpi_sp_weekly").delete().neq("id", 0));
++  must(await supabase.from("kpi_spe_weekly").delete().neq("id", 0));
+ 
+   onProgress("Uploading LTR data...");
+   const ltrBatch = ltrRows.map((r) => ({
+@@ -378,7 +382,7 @@
+     delivery_date: r.deliveryDate, improvement_comment: r.improvementComment,
+     follow_up_comment: r.followUpComment,
+   }));
+-  for (let i = 0; i < ltrBatch.length; i += 500) await supabase.from("ltr_data").insert(ltrBatch.slice(i, i + 500));
++  for (let i = 0; i < ltrBatch.length; i += 500) must(await supabase.from("ltr_data").insert(ltrBatch.slice(i, i + 500)));
+ 
+   onProgress("Uploading carrier KPI data...");
+   const spBatch = spRows.map((r) => ({
+@@ -387,7 +391,7 @@
+     redeliveries: r.redeliveries, completion_pct: r.completion, on_time_in_window_pct: r.onTimeInWindow,
+     on_time_pct: r.onTime, redelivery_pct: r.redeliveryPct,
+   }));
+-  for (let i = 0; i < spBatch.length; i += 500) await supabase.from("kpi_sp_weekly").insert(spBatch.slice(i, i + 500));
++  for (let i = 0; i < spBatch.length; i += 500) must(await supabase.from("kpi_sp_weekly").insert(spBatch.slice(i, i + 500)));
+ 
+   onProgress("Uploading driver KPI data...");
+   const speBatch = speRows.map((r) => ({
+@@ -396,7 +400,7 @@
+     redeliveries: r.redeliveries, completion_pct: r.completion, on_time_in_window_pct: r.onTimeInWindow,
+     on_time_pct: r.onTime, redelivery_pct: r.redeliveryPct,
+   }));
+-  for (let i = 0; i < speBatch.length; i += 500) await supabase.from("kpi_spe_weekly").insert(speBatch.slice(i, i + 500));
++  for (let i = 0; i < speBatch.length; i += 500) must(await supabase.from("kpi_spe_weekly").insert(speBatch.slice(i, i + 500)));
+ 
+   onProgress("Done!");
+ };
+@@ -407,6 +411,7 @@
+     supabase.from("kpi_sp_weekly").select("*"),
+     supabase.from("kpi_spe_weekly").select("*"),
+   ]);
++  must(ltrRes); must(spRes); must(speRes);
+   const ltrRows = (ltrRes.data || []).map((r) => ({
+     store: { number: r.store_number || "", name: r.store_name || "" }, ltr: r.ltr_score,
+     market: r.market || "", contractorCarrier: r.contractor_carrier || "", carrier: r.carrier || "", detractor: r.detractor || "",
+@@ -1409,8 +1414,60 @@
+   );
+ }
+ 
++// ─── Sign-in gate ─────────────────────────────────────────────────────
++// The data tables only answer to signed-in HSCS staff. supabase-js keeps the session in the browser and sends
++// the user's token with every request, so nothing below needs to know about it. Signing out unmounts <App/>,
++// which drops the loaded data from memory.
++function AuthGate({ children }) {
++  const [session, setSession] = useState(undefined); // undefined = still checking
++  const [email, setEmail] = useState("");
++  const [password, setPassword] = useState("");
++  const [err, setErr] = useState("");
++  const [busy, setBusy] = useState(false);
++
++  useEffect(() => {
++    supabase.auth.getSession().then(({ data }) => setSession(data.session || null));
++    const { data: sub } = supabase.auth.onAuthStateChange((_event, s) => setSession(s || null));
++    return () => sub.subscription.unsubscribe();
++  }, []);
++
++  const signIn = async (e) => {
++    e.preventDefault(); setBusy(true); setErr("");
++    const { error } = await supabase.auth.signInWithPassword({ email: email.trim(), password });
++    if (error) setErr(error.message === "Invalid login credentials" ? "Email or password not recognised." : error.message);
++    setBusy(false);
++  };
++
++  const shell = { minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "#060f1e", color: "#e2e8f0", fontFamily: "'Inter','Segoe UI',sans-serif" };
++  const field = { width: "100%", padding: "10px 12px", marginTop: 6, marginBottom: 14, borderRadius: 8, border: "1px solid #334155", background: "#0f172a", color: "#e2e8f0", fontSize: 14 };
++
++  if (session === undefined) return <div style={shell}>Checking sign-in…</div>;
++  if (!session) {
++    return (
++      <div style={shell}>
++        <form onSubmit={signIn} style={{ width: 340, padding: 28, borderRadius: 14, background: "#0b1730", border: "1px solid #1e293b" }}>
++          <div style={{ fontSize: 18, fontWeight: 700, marginBottom: 4 }}>Lowe's KPI Dashboard</div>
++          <div style={{ fontSize: 13, color: "#94a3b8", marginBottom: 20 }}>Sign in with your Herman Supply Chain Solutions staff account.</div>
++          <label style={{ fontSize: 12, color: "#94a3b8" }}>Email</label>
++          <input type="email" autoComplete="username" required value={email} onChange={(e) => setEmail(e.target.value)} style={field} />
++          <label style={{ fontSize: 12, color: "#94a3b8" }}>Password</label>
++          <input type="password" autoComplete="current-password" required value={password} onChange={(e) => setPassword(e.target.value)} style={field} />
++          {err && <div role="alert" style={{ color: "#f87171", fontSize: 13, marginBottom: 12 }}>{err}</div>}
++          <button type="submit" disabled={busy} style={{ width: "100%", padding: "11px 0", border: "none", borderRadius: 8, background: "linear-gradient(90deg,#0ea5e9,#3b82f6)", color: "#fff", fontWeight: 600, fontSize: 15, cursor: "pointer" }}>{busy ? "Signing in…" : "Sign in"}</button>
++        </form>
++      </div>
++    );
++  }
++  return (
++    <React.Fragment key={session.user.id}>
++      <button onClick={() => supabase.auth.signOut()} style={{ position: "fixed", top: 10, right: 12, zIndex: 1000, padding: "6px 12px", borderRadius: 8, border: "1px solid #334155", background: "#0f172a", color: "#94a3b8", fontSize: 12, cursor: "pointer" }}>Sign out ({session.user.email})</button>
++      {children}
++    </React.Fragment>
++  );
++}
++
+ try {
+-  ReactDOM.createRoot(document.getElementById('root')).render(<App />);
++  ReactDOM.createRoot(document.getElementById('root')).render(<AuthGate><App /></AuthGate>);
+ } catch (err) {
+   document.getElementById('root').innerHTML =
+     '<div style="color:#f87171;background:#0f172a;padding:40px;font-family:sans-serif;white-space:pre-wrap;">Dashboard failed to load.\n\n' +

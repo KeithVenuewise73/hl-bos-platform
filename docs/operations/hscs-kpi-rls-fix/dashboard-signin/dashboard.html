@@ -1,0 +1,1340 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DPI — Delivery Performance Intelligence</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="https://unpkg.com/@supabase/supabase-js@2.45.4"></script>
+<style>
+  :root {
+    --bg: #0d1117; --bg2: #161b22; --bg3: #1c2128; --bghov: #242b35;
+    --border: #30363d; --borderl: #21262d;
+    --text: #e6edf3; --text2: #8b949e; --textm: #484f58;
+    --blue: #388bfd; --bluedim: #1f4077;
+    --green: #3fb950; --greendim: #1a3b1f;
+    --yellow: #d29922; --yellowdim: #3d2e00;
+    --red: #f85149; --reddim: #3d1210;
+    --purple: #bc8cff;
+    --font: 'DM Sans', sans-serif; --mono: 'DM Mono', monospace;
+    --r: 8px; --rl: 12px;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { font-family:var(--font); background:var(--bg); color:var(--text); font-size:14px; }
+
+  /* SIDEBAR */
+  .sidebar { position:fixed; left:0; top:0; bottom:0; width:220px; background:var(--bg2); border-right:1px solid var(--border); display:flex; flex-direction:column; z-index:100; }
+  .logo-area { padding:18px; border-bottom:1px solid var(--border); }
+  .logo-row { display:flex; align-items:center; gap:10px; }
+  .logo-icon { width:34px; height:34px; background:linear-gradient(135deg,var(--blue),#1a6fd4); border-radius:8px; display:flex; align-items:center; justify-content:center; font-size:17px; }
+  .logo-text { font-size:13px; font-weight:700; line-height:1.2; }
+  .logo-sub { font-size:10px; color:var(--text2); text-transform:uppercase; letter-spacing:.08em; }
+  .nav-section { padding:10px 8px 4px; }
+  .nav-label { font-size:10px; color:var(--textm); text-transform:uppercase; letter-spacing:.1em; font-weight:600; padding:0 8px 6px; }
+  .nav-item { display:flex; align-items:center; gap:10px; padding:8px 10px; border-radius:var(--r); cursor:pointer; color:var(--text2); font-size:13px; font-weight:500; transition:all .15s; margin-bottom:2px; }
+  .nav-item:hover { background:var(--bghov); color:var(--text); }
+  .nav-item.active { background:var(--bluedim); color:var(--blue); }
+  .nav-icon { font-size:15px; width:20px; text-align:center; }
+  .sidebar-foot { margin-top:auto; padding:14px 18px; border-top:1px solid var(--border); font-size:11px; }
+  .live-dot { display:flex; align-items:center; gap:6px; color:var(--text2); }
+  .pulse { width:7px; height:7px; border-radius:50%; background:var(--green); box-shadow:0 0 6px var(--green); animation:pulse 2s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1}50%{opacity:.3} }
+  .conn-status { font-size:11px; margin-top:4px; }
+  .conn-ok { color:var(--green); } .conn-err { color:var(--red); } .conn-loading { color:var(--yellow); }
+
+  /* MAIN */
+  .main { margin-left:220px; display:flex; flex-direction:column; min-height:100vh; }
+  .topbar { position:sticky; top:0; z-index:50; background:rgba(13,17,23,.92); backdrop-filter:blur(8px); border-bottom:1px solid var(--border); padding:12px 24px; display:flex; align-items:center; gap:14px; flex-wrap:wrap; }
+  .topbar-title { font-size:15px; font-weight:700; flex:1; }
+  .topbar-sub { font-size:12px; color:var(--text2); font-weight:400; }
+  .fsel { background:var(--bg3); border:1px solid var(--border); color:var(--text); padding:6px 10px; border-radius:var(--r); font-family:var(--font); font-size:12px; cursor:pointer; outline:none; }
+  .fsel:hover { border-color:var(--blue); }
+  .btn { padding:7px 14px; border-radius:var(--r); font-family:var(--font); font-size:12px; font-weight:600; cursor:pointer; border:none; transition:all .15s; }
+  .btn-primary { background:var(--blue); color:#fff; }
+  .btn-primary:hover { background:#4a9eff; }
+  .btn-ghost { background:transparent; color:var(--text2); border:1px solid var(--border); }
+  .btn-ghost:hover { background:var(--bghov); color:var(--text); }
+  .btn-green { background:var(--green); color:#000; font-weight:700; }
+  .btn-green:hover { background:#4fd460; }
+
+  /* PAGES */
+  .page { display:none; padding:24px; animation:fadeIn .2s ease; }
+  .page.active { display:block; }
+  @keyframes fadeIn { from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:none} }
+
+  /* KPI CARDS */
+  .kpi-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(170px,1fr)); gap:14px; margin-bottom:22px; }
+  .kpi-card { background:var(--bg3); border:1px solid var(--border); border-radius:var(--rl); padding:18px 20px; position:relative; overflow:hidden; transition:transform .15s; }
+  .kpi-card:hover { transform:translateY(-2px); }
+  .kpi-card::before { content:''; position:absolute; top:0; left:0; right:0; height:2px; }
+  .kpi-card.blue::before{background:var(--blue)} .kpi-card.green::before{background:var(--green)}
+  .kpi-card.yellow::before{background:var(--yellow)} .kpi-card.red::before{background:var(--red)}
+  .kpi-card.purple::before{background:var(--purple)}
+  .kpi-label { font-size:11px; color:var(--text2); font-weight:600; text-transform:uppercase; letter-spacing:.08em; margin-bottom:8px; }
+  .kpi-val { font-size:28px; font-weight:700; line-height:1; font-variant-numeric:tabular-nums; }
+  .kpi-card.blue .kpi-val{color:var(--blue)} .kpi-card.green .kpi-val{color:var(--green)}
+  .kpi-card.yellow .kpi-val{color:var(--yellow)} .kpi-card.red .kpi-val{color:var(--red)}
+  .kpi-card.purple .kpi-val{color:var(--purple)}
+  .kpi-sub { font-size:11px; color:var(--textm); margin-top:5px; }
+
+  /* LAYOUT */
+  .grid2 { display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:16px; }
+  .grid31 { display:grid; grid-template-columns:2fr 1fr; gap:16px; margin-bottom:16px; }
+  .card { background:var(--bg3); border:1px solid var(--border); border-radius:var(--rl); overflow:hidden; }
+  .card-head { padding:14px 18px; border-bottom:1px solid var(--borderl); display:flex; align-items:center; gap:8px; }
+  .card-title { font-size:13px; font-weight:700; flex:1; }
+  .card-sub { font-size:11px; color:var(--text2); }
+  .card-body { padding:18px; }
+
+  /* TABLE */
+  .tbl-wrap { overflow-x:auto; }
+  table { width:100%; border-collapse:collapse; font-size:12px; }
+  thead th { padding:10px 14px; text-align:left; font-size:11px; font-weight:600; color:var(--text2); text-transform:uppercase; letter-spacing:.06em; background:var(--bg2); border-bottom:1px solid var(--border); cursor:pointer; white-space:nowrap; }
+  thead th:hover { color:var(--text); }
+  tbody tr { border-bottom:1px solid var(--borderl); transition:background .1s; }
+  tbody tr:hover { background:var(--bghov); }
+  tbody tr:last-child { border-bottom:none; }
+  tbody td { padding:10px 14px; }
+
+  /* BADGES */
+  .badge { display:inline-flex; align-items:center; padding:2px 8px; border-radius:20px; font-size:11px; font-weight:600; }
+  .badge-green{background:var(--greendim);color:var(--green)} .badge-yellow{background:var(--yellowdim);color:var(--yellow)}
+  .badge-red{background:var(--reddim);color:var(--red)} .badge-blue{background:var(--bluedim);color:var(--blue)}
+  .rank-score { display:inline-flex; align-items:center; justify-content:center; width:46px; height:22px; border-radius:5px; font-weight:700; font-size:12px; font-family:var(--mono); }
+  .score-hi{background:var(--greendim);color:var(--green)} .score-mid{background:var(--yellowdim);color:var(--yellow)} .score-lo{background:var(--reddim);color:var(--red)}
+
+  /* PROGRESS */
+  .pbar-wrap { display:flex; align-items:center; gap:8px; }
+  .pbar-bg { flex:1; height:5px; background:var(--bg2); border-radius:3px; overflow:hidden; max-width:70px; }
+  .pbar-fill { height:100%; border-radius:3px; }
+  .pbar-val { font-family:var(--mono); font-size:12px; font-weight:600; min-width:42px; }
+
+  /* FORM */
+  .form-grid { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+  .form-group { display:flex; flex-direction:column; gap:5px; }
+  .form-group.full { grid-column:span 2; }
+  .form-label { font-size:11px; font-weight:600; color:var(--text2); text-transform:uppercase; letter-spacing:.06em; }
+  .form-input { background:var(--bg2); border:1px solid var(--border); color:var(--text); padding:9px 12px; border-radius:var(--r); font-family:var(--font); font-size:13px; outline:none; transition:border-color .15s; }
+  .form-input:focus { border-color:var(--blue); }
+  select.form-input { cursor:pointer; }
+  .form-actions { display:flex; gap:10px; justify-content:flex-end; padding-top:8px; grid-column:span 2; }
+
+  /* ALERTS */
+  .alert { display:flex; gap:10px; padding:11px 14px; border-radius:var(--r); margin-bottom:10px; font-size:12px; }
+  .alert-red { background:var(--reddim); border:1px solid var(--red); }
+  .alert-yellow { background:var(--yellowdim); border:1px solid var(--yellow); }
+  .alert-green { background:var(--greendim); border:1px solid var(--green); }
+  .alert-icon { font-size:15px; flex-shrink:0; }
+  .alert-body { color:var(--text); }
+
+  /* COMMENT */
+  .comment-row { padding:12px 0; border-bottom:1px solid var(--borderl); }
+  .comment-row:last-child { border-bottom:none; }
+  .comment-meta { display:flex; gap:8px; align-items:center; margin-bottom:5px; flex-wrap:wrap; }
+  .score-circle { width:26px; height:26px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:700; }
+  .comment-text { font-size:12px; color:var(--text2); line-height:1.5; }
+
+  /* LOADING */
+  .loading-overlay { position:fixed; inset:0; background:rgba(13,17,23,.85); display:flex; flex-direction:column; align-items:center; justify-content:center; z-index:999; }
+  .loading-spinner { width:40px; height:40px; border:3px solid var(--border); border-top-color:var(--blue); border-radius:50%; animation:spin 0.8s linear infinite; margin-bottom:16px; }
+  @keyframes spin { to{transform:rotate(360deg)} }
+  .loading-text { color:var(--text2); font-size:14px; }
+  .loading-sub { color:var(--textm); font-size:12px; margin-top:6px; }
+
+  /* TOAST */
+  .toast { position:fixed; bottom:24px; right:24px; padding:12px 18px; border-radius:var(--r); font-size:13px; font-weight:600; z-index:9999; animation:slideUp .3s ease; }
+  .toast-success { background:var(--greendim); border:1px solid var(--green); color:var(--green); }
+  .toast-error { background:var(--reddim); border:1px solid var(--red); color:var(--red); }
+  @keyframes slideUp { from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none} }
+
+  /* UPLOAD */
+  .drop-zone { border:2px dashed var(--border); border-radius:var(--rl); padding:48px 24px; text-align:center; cursor:pointer; transition:all .2s; background:var(--bg2); }
+  .drop-zone:hover,.drop-zone.dragover { border-color:var(--blue); background:var(--bluedim); }
+  .drop-icon { font-size:48px; margin-bottom:12px; }
+  .drop-title { font-size:16px; font-weight:700; margin-bottom:6px; }
+  .drop-sub { font-size:12px; color:var(--text2); }
+  .upload-progress { margin-top:16px; }
+  .prog-row { display:flex; align-items:center; gap:12px; margin-bottom:8px; font-size:12px; }
+  .prog-label { width:160px; flex-shrink:0; color:var(--text2); }
+  .prog-bar-bg { flex:1; height:8px; background:var(--bg2); border-radius:4px; overflow:hidden; }
+  .prog-bar-fill { height:100%; background:var(--blue); border-radius:4px; transition:width .3s ease; }
+  .prog-count { width:80px; text-align:right; font-family:var(--mono); color:var(--text2); }
+  .upload-log { background:var(--bg2); border:1px solid var(--border); border-radius:var(--r); padding:14px; margin-top:14px; max-height:280px; overflow-y:auto; font-family:var(--mono); font-size:11px; }
+  .log-line { padding:3px 0; border-bottom:1px solid var(--borderl); }
+  .log-ok { color:var(--green); } .log-err { color:var(--red); } .log-info { color:var(--text2); } .log-warn { color:var(--yellow); }
+  .file-pill { display:inline-flex; align-items:center; gap:8px; background:var(--bg2); border:1px solid var(--border); border-radius:20px; padding:6px 14px; margin:6px 4px; font-size:12px; }
+  .file-pill-name { font-weight:600; } .file-pill-size { color:var(--text2); }
+  .section-title { font-size:18px; font-weight:700; margin-bottom:4px; }
+  .section-desc { font-size:13px; color:var(--text2); margin-bottom:20px; }
+  .rank-num { font-family:var(--mono); font-weight:700; font-size:13px; color:var(--textm); }
+  .rank-num.gold{color:#ffd700} .rank-num.silver{color:#c0c0c0} .rank-num.bronze{color:#cd7f32}
+  .mono { font-family:var(--mono); font-size:11px; }
+  .fw7 { font-weight:700; }
+  .mb16 { margin-bottom:16px; }
+  ::-webkit-scrollbar{width:6px;height:6px} ::-webkit-scrollbar-track{background:transparent} ::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+  @media(max-width:900px){.grid2,.grid31{grid-template-columns:1fr}.form-grid{grid-template-columns:1fr}.form-group.full{grid-column:span 1}.form-actions{grid-column:span 1}}
+</style>
+</head>
+<body>
+<!-- Sign-in gate: nothing is requested from the database until a staff member has signed in. -->
+<div id="authGate" style="position:fixed;inset:0;z-index:10000;background:var(--bg);display:none;align-items:center;justify-content:center;font-family:var(--font)">
+  <form id="authForm" style="width:340px;padding:28px;border-radius:12px;background:var(--bg2);border:1px solid var(--border);color:var(--text)">
+    <div style="font-size:18px;font-weight:700;margin-bottom:4px">Delivery Performance Dashboard</div>
+    <div style="font-size:13px;color:var(--text2);margin-bottom:20px">Sign in with your Herman Supply Chain Solutions staff account.</div>
+    <label style="font-size:12px;color:var(--text2)">Email</label>
+    <input id="authEmail" type="email" autocomplete="username" required style="width:100%;padding:10px 12px;margin:6px 0 14px;border-radius:8px;border:1px solid var(--border);background:var(--bg3);color:var(--text);font-size:14px">
+    <label style="font-size:12px;color:var(--text2)">Password</label>
+    <input id="authPassword" type="password" autocomplete="current-password" required style="width:100%;padding:10px 12px;margin:6px 0 14px;border-radius:8px;border:1px solid var(--border);background:var(--bg3);color:var(--text);font-size:14px">
+    <div id="authError" role="alert" style="color:var(--red);font-size:13px;margin-bottom:12px;display:none"></div>
+    <button id="authSubmit" type="submit" class="btn btn-primary" style="width:100%;padding:11px 0">Sign in</button>
+  </form>
+</div>
+<button id="signOutBtn" style="display:none;position:fixed;top:10px;right:12px;z-index:9000;padding:6px 12px;border-radius:8px;border:1px solid var(--border);background:var(--bg2);color:var(--text2);font-size:12px;cursor:pointer"></button>
+
+<!-- LOADING -->
+<div class="loading-overlay" id="loadingOverlay">
+  <div class="loading-spinner"></div>
+  <div class="loading-text">Connecting to Supabase...</div>
+  <div class="loading-sub">Herman Supply Chain Solutions · DPI</div>
+</div>
+
+<!-- SIDEBAR -->
+<nav class="sidebar">
+  <div class="logo-area">
+    <div class="logo-row">
+      <div class="logo-icon">📦</div>
+      <div>
+        <div class="logo-text">DPI Dashboard</div>
+        <div class="logo-sub">Herman Supply Chain</div>
+      </div>
+    </div>
+  </div>
+  <div class="nav-section">
+    <div class="nav-label">Analytics</div>
+    <div class="nav-item active" onclick="showPage('overview',this)"><span class="nav-icon">⬡</span>Executive Overview</div>
+    <div class="nav-item" onclick="showPage('rankings',this)"><span class="nav-icon">🏆</span>DSP Rankings</div>
+    <div class="nav-item" onclick="showPage('drivers',this)"><span class="nav-icon">👤</span>Driver Leaderboard</div>
+    <div class="nav-item" onclick="showPage('survey',this)"><span class="nav-icon">⭐</span>LTR / Surveys</div>
+    <div class="nav-item" onclick="showPage('rootcause',this)"><span class="nav-icon">🔍</span>Root Cause</div>
+    <div class="nav-item" onclick="showPage('market',this)"><span class="nav-icon">🗺</span>Market / Region</div>
+  </div>
+  <div class="nav-section">
+    <div class="nav-label">Data Entry</div>
+    <div class="nav-item" onclick="showPage('entry',this)"><span class="nav-icon">➕</span>Log Delivery</div>
+    <div class="nav-item" onclick="showPage('surveyentry',this)"><span class="nav-icon">📝</span>Submit Survey</div>
+    <div class="nav-item" onclick="showPage('upload',this)"><span class="nav-icon">📤</span>Upload CSV / Excel</div>
+  </div>
+  <div class="sidebar-foot">
+    <div class="live-dot"><div class="pulse"></div><span>Live · Supabase</span></div>
+    <div class="conn-status" id="connStatus">Connecting...</div>
+  </div>
+</nav>
+
+<!-- MAIN -->
+<main class="main">
+  <div class="topbar">
+    <div class="topbar-title">Delivery Performance Intelligence <span class="topbar-sub">— Herman Supply Chain Solutions</span></div>
+    <select class="fsel" id="fDate" onchange="loadData()">
+      <option value="30" selected>Last 30 Days</option>
+      <option value="7">Last 7 Days</option>
+      <option value="60">Last 60 Days</option>
+      <option value="90">Last 90 Days</option>
+      <option value="365">All Time</option>
+    </select>
+    <select class="fsel" id="fMarket" onchange="loadData()">
+      <option value="">All Markets</option>
+      <option>Northeast</option><option>Southeast</option>
+      <option>Midwest</option><option>West</option><option>Southwest</option>
+    </select>
+    <select class="fsel" id="fDSP" onchange="loadData()">
+      <option value="">All DSPs</option>
+    </select>
+    <button class="btn btn-ghost" onclick="resetFilters()">Reset</button>
+    <button class="btn btn-primary" onclick="loadData()">↺ Refresh</button>
+    <button class="btn btn-ghost" onclick="exportCSV()">↓ Export</button>
+  </div>
+
+  <!-- OVERVIEW -->
+  <div class="page active" id="page-overview">
+    <div class="section-title">Executive Overview</div>
+    <div class="section-desc">Live network-wide KPIs from Supabase</div>
+    <div class="kpi-grid" id="kpi-overview"></div>
+    <div id="overview-alerts"></div>
+    <div class="grid2">
+      <div class="card"><div class="card-head"><div class="card-title">On-Time % by DSP</div></div><div class="card-body"><canvas id="chartOTD" height="200"></canvas></div></div>
+      <div class="card"><div class="card-head"><div class="card-title">LTR Distribution</div></div><div class="card-body"><canvas id="chartLTR" height="200"></canvas></div></div>
+    </div>
+    <div class="card mb16"><div class="card-head"><div class="card-title">Completion % by DSP</div></div><div class="card-body"><canvas id="chartComp" height="160"></canvas></div></div>
+    <div class="card"><div class="card-head"><div class="card-title">Recent Customer Comments</div><div class="card-sub">Low scores (≤6)</div></div><div class="card-body" id="recentComments"></div></div>
+  </div>
+
+  <!-- DSP RANKINGS -->
+  <div class="page" id="page-rankings">
+    <div class="section-title">DSP Rankings</div>
+    <div class="section-desc">Weighted score: On-Time 35% · Completion 35% · LTR 30%</div>
+    <div class="kpi-grid" id="kpi-rankings"></div>
+    <div class="card mb16">
+      <div class="card-head"><div class="card-title">DSP Rank Table</div><div class="card-sub">Click headers to sort</div></div>
+      <div class="tbl-wrap"><table id="dspTable"><thead><tr>
+        <th onclick="sortT('dspTable',0)">Rank</th><th onclick="sortT('dspTable',1)">DSP</th>
+        <th onclick="sortT('dspTable',2)">Deliveries</th><th onclick="sortT('dspTable',3)">On-Time %</th>
+        <th onclick="sortT('dspTable',4)">Completion %</th><th onclick="sortT('dspTable',5)">LTR %</th>
+        <th onclick="sortT('dspTable',6)">Neg %</th><th onclick="sortT('dspTable',7)">Score</th>
+        <th onclick="sortT('dspTable',8)">Status</th>
+      </tr></thead><tbody id="dspBody"></tbody></table></div>
+    </div>
+    <div class="grid2">
+      <div class="card"><div class="card-head"><div class="card-title">DSP Score Comparison</div></div><div class="card-body"><canvas id="chartDSPRank" height="220"></canvas></div></div>
+      <div class="card"><div class="card-head"><div class="card-title">On-Time vs LTR</div></div><div class="card-body"><canvas id="chartDSPBubble" height="220"></canvas></div></div>
+    </div>
+  </div>
+
+  <!-- DRIVER LEADERBOARD -->
+  <div class="page" id="page-drivers">
+    <div class="section-title">Driver Leaderboard</div>
+    <div class="section-desc">Individual driver performance rankings</div>
+    <div class="kpi-grid" id="kpi-drivers"></div>
+    <div class="card">
+      <div class="card-head">
+        <div class="card-title">Driver Rankings</div>
+        <input type="text" id="driverSearch" placeholder="Search driver…" oninput="filterDrivers()"
+          style="background:var(--bg2);border:1px solid var(--border);color:var(--text);padding:5px 10px;border-radius:var(--r);font-family:var(--font);font-size:12px;outline:none;width:160px">
+      </div>
+      <div class="tbl-wrap"><table id="driverTable"><thead><tr>
+        <th onclick="sortT('driverTable',0)">Rank</th><th onclick="sortT('driverTable',1)">Driver</th>
+        <th onclick="sortT('driverTable',2)">DSP</th><th onclick="sortT('driverTable',3)">Market</th>
+        <th onclick="sortT('driverTable',4)">Deliveries</th><th onclick="sortT('driverTable',5)">On-Time %</th>
+        <th onclick="sortT('driverTable',6)">Completion %</th><th onclick="sortT('driverTable',7)">LTR %</th>
+        <th onclick="sortT('driverTable',8)">Score</th>
+      </tr></thead><tbody id="driverBody"></tbody></table></div>
+    </div>
+  </div>
+
+  <!-- SURVEY -->
+  <div class="page" id="page-survey">
+    <div class="section-title">LTR / Survey Analytics</div>
+    <div class="section-desc">Customer likelihood-to-recommend scores</div>
+    <div class="kpi-grid" id="kpi-survey"></div>
+    <div class="grid2">
+      <div class="card"><div class="card-head"><div class="card-title">Score Distribution (0–10)</div></div><div class="card-body"><canvas id="chartScoreDist" height="220"></canvas></div></div>
+      <div class="card"><div class="card-head"><div class="card-title">LTR % by DSP</div></div><div class="card-body"><canvas id="chartLTRDSP" height="220"></canvas></div></div>
+    </div>
+    <div class="card mb16"><div class="card-head"><div class="card-title">Comments Requiring Follow-Up</div><div class="card-sub">Score ≤5</div></div><div class="card-body" id="followUpComments"></div></div>
+  </div>
+
+  <!-- ROOT CAUSE -->
+  <div class="page" id="page-rootcause">
+    <div class="section-title">Root Cause Analysis</div>
+    <div class="section-desc">Pareto analysis of delivery failures</div>
+    <div class="kpi-grid" id="kpi-rc"></div>
+    <div class="grid2">
+      <div class="card"><div class="card-head"><div class="card-title">Top Failure Causes</div></div><div class="card-body"><canvas id="chartPareto" height="250"></canvas></div></div>
+      <div class="card"><div class="card-head"><div class="card-title">Root Cause Breakdown</div></div><div class="card-body" id="rcBreakdown"></div></div>
+    </div>
+    <div class="card"><div class="card-head"><div class="card-title">Root Cause by DSP</div></div><div class="card-body"><canvas id="chartRCDSP" height="200"></canvas></div></div>
+  </div>
+
+  <!-- MARKET -->
+  <div class="page" id="page-market">
+    <div class="section-title">Market / Region Performance</div>
+    <div class="section-desc">Breakdown by geographic market</div>
+    <div class="kpi-grid" id="kpi-market"></div>
+    <div class="card mb16">
+      <div class="tbl-wrap"><table id="marketTable"><thead><tr>
+        <th onclick="sortT('marketTable',0)">Market</th><th onclick="sortT('marketTable',1)">Deliveries</th>
+        <th onclick="sortT('marketTable',2)">On-Time %</th><th onclick="sortT('marketTable',3)">Completion %</th>
+        <th onclick="sortT('marketTable',4)">LTR %</th><th onclick="sortT('marketTable',5)">Neg %</th>
+        <th onclick="sortT('marketTable',6)">Status</th>
+      </tr></thead><tbody id="marketBody"></tbody></table></div>
+    </div>
+    <div class="grid2">
+      <div class="card"><div class="card-head"><div class="card-title">On-Time % by Market</div></div><div class="card-body"><canvas id="chartMktOTD" height="200"></canvas></div></div>
+      <div class="card"><div class="card-head"><div class="card-title">LTR % by Market</div></div><div class="card-body"><canvas id="chartMktLTR" height="200"></canvas></div></div>
+    </div>
+  </div>
+
+  <!-- LOG DELIVERY -->
+  <div class="page" id="page-entry">
+    <div class="section-title">Log Delivery</div>
+    <div class="section-desc">Enter a new delivery record into the live database</div>
+    <div class="card" style="max-width:800px">
+      <div class="card-head"><div class="card-title">New Delivery Entry</div></div>
+      <div class="card-body">
+        <div class="form-grid">
+          <div class="form-group">
+            <label class="form-label">Delivery ID *</label>
+            <input class="form-input" id="e_id" placeholder="DEL-00001" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Date *</label>
+            <input class="form-input" id="e_date" type="date" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label">DSP Company *</label>
+            <select class="form-input" id="e_dsp"></select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Driver Name *</label>
+            <input class="form-input" id="e_driver" placeholder="Full name">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Market *</label>
+            <select class="form-input" id="e_market">
+              <option>Northeast</option><option>Southeast</option>
+              <option>Midwest</option><option>West</option><option>Southwest</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Store</label>
+            <select class="form-input" id="e_store">
+              <option>Store-A</option><option>Store-B</option><option>Store-C</option><option>Store-D</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Scheduled Time</label>
+            <input class="form-input" id="e_sched" type="time">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Actual Time</label>
+            <input class="form-input" id="e_actual" type="time">
+          </div>
+          <div class="form-group">
+            <label class="form-label">On-Time? *</label>
+            <select class="form-input" id="e_ontime">
+              <option value="true">Yes — On Time</option>
+              <option value="false">No — Late</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Completed? *</label>
+            <select class="form-input" id="e_completed">
+              <option value="true">Yes — Completed</option>
+              <option value="false">No — Not Completed</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Root Cause (if failed)</label>
+            <select class="form-input" id="e_rc">
+              <option value="">None</option>
+              <option>Customer Not Home</option><option>Wrong Address</option>
+              <option>Access Issue</option><option>Weather Delay</option>
+              <option>Vehicle Breakdown</option><option>Late Dispatch</option>
+              <option>Package Damage</option><option>Refused Delivery</option>
+              <option>Traffic Delay</option><option>App Error</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Notes</label>
+            <input class="form-input" id="e_notes" placeholder="Optional notes">
+          </div>
+          <div class="form-actions">
+            <button class="btn btn-ghost" onclick="clearEntryForm()">Clear</button>
+            <button class="btn btn-green" onclick="submitDelivery()">💾 Save Delivery</button>
+          </div>
+        </div>
+        <div id="entryResult" style="margin-top:12px"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SUBMIT SURVEY -->
+  <div class="page" id="page-surveyentry">
+    <div class="section-title">Submit Customer Survey</div>
+    <div class="section-desc">Log a customer LTR / survey response</div>
+    <div class="card" style="max-width:700px">
+      <div class="card-head"><div class="card-title">New Survey Entry</div></div>
+      <div class="card-body">
+        <div class="form-grid">
+          <div class="form-group">
+            <label class="form-label">Delivery Reference</label>
+            <input class="form-input" id="s_ref" placeholder="DEL-00001">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Date *</label>
+            <input class="form-input" id="s_date" type="date" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label">DSP Company *</label>
+            <select class="form-input" id="s_dsp"></select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Driver Name *</label>
+            <input class="form-input" id="s_driver" placeholder="Full name">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Market</label>
+            <select class="form-input" id="s_market">
+              <option>Northeast</option><option>Southeast</option>
+              <option>Midwest</option><option>West</option><option>Southwest</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Store</label>
+            <select class="form-input" id="s_store">
+              <option>Store-A</option><option>Store-B</option><option>Store-C</option><option>Store-D</option>
+            </select>
+          </div>
+          <div class="form-group full">
+            <label class="form-label">Survey Score (0–10) *</label>
+            <input class="form-input" id="s_score" type="number" min="0" max="10" placeholder="Enter score 0-10">
+          </div>
+          <div class="form-group full">
+            <label class="form-label">Customer Comment</label>
+            <textarea class="form-input" id="s_comment" rows="3" placeholder="Customer feedback…" style="resize:vertical"></textarea>
+          </div>
+          <div class="form-actions">
+            <button class="btn btn-ghost" onclick="clearSurveyForm()">Clear</button>
+            <button class="btn btn-green" onclick="submitSurvey()">💾 Save Survey</button>
+          </div>
+        </div>
+        <div id="surveyResult" style="margin-top:12px"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- UPLOAD PAGE -->
+  <div class="page" id="page-upload">
+    <div class="section-title">Upload CSV / Excel Data</div>
+    <div class="section-desc">Upload your filled DPI template — deliveries and surveys import directly to Supabase</div>
+
+    <!-- Sheet selector -->
+    <div class="grid2" style="margin-bottom:16px">
+      <div class="card">
+        <div class="card-head">
+          <div class="card-title">📤 Upload Delivery Data</div>
+          <div class="card-sub">CSV from 🚛 Delivery Data sheet</div>
+        </div>
+        <div class="card-body">
+          <div class="drop-zone" id="dropDel" onclick="document.getElementById('fileDel').click()"
+            ondragover="dragOver(event,'dropDel')" ondragleave="dragLeave('dropDel')" ondrop="dropFile(event,'delivery')">
+            <div class="drop-icon">🚛</div>
+            <div class="drop-title">Drop delivery CSV here</div>
+            <div class="drop-sub">or click to browse · CSV files only · up to 5,000 rows</div>
+          </div>
+          <input type="file" id="fileDel" accept=".csv" style="display:none" onchange="handleFile(this,'delivery')">
+          <div id="delFileInfo" style="margin-top:10px"></div>
+          <div class="upload-progress" id="delProgress" style="display:none">
+            <div class="prog-row">
+              <div class="prog-label">Uploading deliveries…</div>
+              <div class="prog-bar-bg"><div class="prog-bar-fill" id="delBar" style="width:0%"></div></div>
+              <div class="prog-count" id="delCount">0 / 0</div>
+            </div>
+          </div>
+          <div style="margin-top:12px;display:flex;gap:10px">
+            <button class="btn btn-green" onclick="startUpload('delivery')" id="btnUploadDel" style="display:none">
+              💾 Upload to Supabase
+            </button>
+            <button class="btn btn-ghost" onclick="clearUpload('delivery')" id="btnClearDel" style="display:none">
+              Clear
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-head">
+          <div class="card-title">⭐ Upload Survey Data</div>
+          <div class="card-sub">CSV from ⭐ Survey Data sheet</div>
+        </div>
+        <div class="card-body">
+          <div class="drop-zone" id="dropSurv" onclick="document.getElementById('fileSurv').click()"
+            ondragover="dragOver(event,'dropSurv')" ondragleave="dragLeave('dropSurv')" ondrop="dropFile(event,'survey')">
+            <div class="drop-icon">⭐</div>
+            <div class="drop-title">Drop survey CSV here</div>
+            <div class="drop-sub">or click to browse · CSV files only · up to 5,000 rows</div>
+          </div>
+          <input type="file" id="fileSurv" accept=".csv" style="display:none" onchange="handleFile(this,'survey')">
+          <div id="survFileInfo" style="margin-top:10px"></div>
+          <div class="upload-progress" id="survProgress" style="display:none">
+            <div class="prog-row">
+              <div class="prog-label">Uploading surveys…</div>
+              <div class="prog-bar-bg"><div class="prog-bar-fill" id="survBar" style="width:0%"></div></div>
+              <div class="prog-count" id="survCount">0 / 0</div>
+            </div>
+          </div>
+          <div style="margin-top:12px;display:flex;gap:10px">
+            <button class="btn btn-green" onclick="startUpload('survey')" id="btnUploadSurv" style="display:none">
+              💾 Upload to Supabase
+            </button>
+            <button class="btn btn-ghost" onclick="clearUpload('survey')" id="btnClearSurv" style="display:none">
+              Clear
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Options -->
+    <div class="card" style="margin-bottom:16px">
+      <div class="card-head"><div class="card-title">⚙️ Upload Options</div></div>
+      <div class="card-body" style="display:flex;gap:24px;flex-wrap:wrap;align-items:center">
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px">
+          <input type="checkbox" id="optSkipDupes" checked style="width:16px;height:16px;cursor:pointer">
+          Skip duplicate Delivery IDs (recommended)
+        </label>
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px">
+          <input type="checkbox" id="optClearFirst" style="width:16px;height:16px;cursor:pointer">
+          <span style="color:var(--red)">⚠ Clear existing data before upload</span>
+        </label>
+        <div style="font-size:11px;color:var(--textm);margin-left:auto">Batch size: 50 rows per request</div>
+      </div>
+    </div>
+
+    <!-- Upload log -->
+    <div class="card">
+      <div class="card-head">
+        <div class="card-title">📋 Upload Log</div>
+        <button class="btn btn-ghost" onclick="document.getElementById('uploadLog').innerHTML=''" style="font-size:11px;padding:4px 10px">Clear Log</button>
+      </div>
+      <div class="card-body" style="padding:0">
+        <div class="upload-log" id="uploadLog">
+          <div class="log-line log-info">Ready to upload. Select a CSV file above to begin.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Format reminder -->
+    <div class="card" style="margin-top:16px">
+      <div class="card-head"><div class="card-title">📐 Required CSV Column Names</div></div>
+      <div class="card-body">
+        <div class="grid2">
+          <div>
+            <div style="font-size:12px;font-weight:700;color:var(--blue);margin-bottom:8px">🚛 Delivery CSV Columns</div>
+            <div style="font-family:var(--mono);font-size:11px;color:var(--text2);line-height:2">
+              delivery_id · date · market · store<br>
+              dsp_name · driver_name · scheduled_time<br>
+              actual_time · on_time · completed<br>
+              root_cause · notes
+            </div>
+          </div>
+          <div>
+            <div style="font-size:12px;font-weight:700;color:var(--green);margin-bottom:8px">⭐ Survey CSV Columns</div>
+            <div style="font-family:var(--mono);font-size:11px;color:var(--text2);line-height:2">
+              delivery_ref · date · dsp_name · driver_name<br>
+              market · store · score · ltr_status<br>
+              comment · follow_up_required
+            </div>
+          </div>
+        </div>
+        <div style="margin-top:12px;padding:10px;background:var(--yellowdim);border:1px solid var(--yellow);border-radius:var(--r);font-size:12px;color:var(--yellow)">
+          ⚠ Save each sheet as <strong>CSV UTF-8</strong> from Excel (File → Save As → CSV UTF-8). Date format must be <strong>YYYY-MM-DD</strong>. on_time and completed must be <strong>Yes</strong> or <strong>No</strong>.
+        </div>
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<script>
+// Upload state
+const uploadState = { delivery: { rows:[], file:null }, survey: { rows:[], file:null } };
+
+// ── DRAG & DROP ──────────────────────────────────────────
+function dragOver(e, id){ e.preventDefault(); document.getElementById(id).classList.add('dragover'); }
+function dragLeave(id){ document.getElementById(id).classList.remove('dragover'); }
+function dropFile(e, type){
+  e.preventDefault();
+  const id = type==='delivery'?'dropDel':'dropSurv';
+  dragLeave(id);
+  const file = e.dataTransfer.files[0];
+  if(file && file.name.endsWith('.csv')){
+    processCSV(file, type);
+  } else {
+    showToast('Please drop a CSV file (.csv)', 'error');
+  }
+}
+
+function handleFile(input, type){
+  const file = input.files[0];
+  if(file) processCSV(file, type);
+}
+
+// ── PARSE CSV ────────────────────────────────────────────
+function parseCSV(text){
+  const lines = text.split('\n').filter(l=>l.trim());
+  if(lines.length < 2) return { headers:[], rows:[] };
+  const headers = lines[0].split(',').map(h=>h.trim().replace(/^"|"$/g,'').toLowerCase().replace(/\s+/g,'_').replace(/[*]/g,''));
+  const rows = [];
+  for(let i=1;i<lines.length;i++){
+    const vals = parseCSVLine(lines[i]);
+    if(vals.every(v=>!v.trim())) continue;
+    const obj = {};
+    headers.forEach((h,j)=>{ obj[h] = (vals[j]||'').trim().replace(/^"|"$/g,''); });
+    rows.push(obj);
+  }
+  return { headers, rows };
+}
+
+function parseCSVLine(line){
+  const result=[]; let cur=''; let inQ=false;
+  for(let i=0;i<line.length;i++){
+    if(line[i]==='"'){ inQ=!inQ; }
+    else if(line[i]===','&&!inQ){ result.push(cur); cur=''; }
+    else { cur+=line[i]; }
+  }
+  result.push(cur);
+  return result;
+}
+
+function processCSV(file, type){
+  const reader = new FileReader();
+  reader.onload = function(e){
+    const { headers, rows } = parseCSV(e.target.result);
+    uploadState[type].rows = rows;
+    uploadState[type].file = file;
+
+    const infoId = type==='delivery'?'delFileInfo':'survFileInfo';
+    const btnId = type==='delivery'?'btnUploadDel':'btnUploadSurv';
+    const clrId = type==='delivery'?'btnClearDel':'btnClearSurv';
+
+    document.getElementById(infoId).innerHTML = `
+      <div class="file-pill">
+        <span>📄</span>
+        <span class="file-pill-name">${file.name}</span>
+        <span class="file-pill-size">${rows.length} rows · ${(file.size/1024).toFixed(1)}KB</span>
+      </div>
+      <div style="font-size:11px;color:var(--text2);margin-top:6px">
+        Columns detected: <span style="font-family:var(--mono);color:var(--blue)">${headers.join(', ')}</span>
+      </div>`;
+    document.getElementById(btnId).style.display='inline-flex';
+    document.getElementById(clrId).style.display='inline-flex';
+    addLog(`📄 Loaded ${file.name} — ${rows.length} rows, ${headers.length} columns`, 'info');
+  };
+  reader.readAsText(file);
+}
+
+function clearUpload(type){
+  uploadState[type] = { rows:[], file:null };
+  const infoId = type==='delivery'?'delFileInfo':'survFileInfo';
+  const btnId = type==='delivery'?'btnUploadDel':'btnUploadSurv';
+  const clrId = type==='delivery'?'btnClearDel':'btnClearSurv';
+  const progId = type==='delivery'?'delProgress':'survProgress';
+  const fileId = type==='delivery'?'fileDel':'fileSurv';
+  document.getElementById(infoId).innerHTML='';
+  document.getElementById(btnId).style.display='none';
+  document.getElementById(clrId).style.display='none';
+  document.getElementById(progId).style.display='none';
+  document.getElementById(fileId).value='';
+}
+
+// ── UPLOAD TO SUPABASE ───────────────────────────────────
+async function startUpload(type){
+  const rows = uploadState[type].rows;
+  if(!rows.length){ showToast('No data loaded', 'error'); return; }
+
+  const skipDupes = document.getElementById('optSkipDupes').checked;
+  const clearFirst = document.getElementById('optClearFirst').checked;
+  const table = type==='delivery'?'deliveries':'surveys';
+  const progId = type==='delivery'?'delProgress':'survProgress';
+  const barId = type==='delivery'?'delBar':'survBar';
+  const countId = type==='delivery'?'delCount':'survCount';
+  const btnId = type==='delivery'?'btnUploadDel':'btnUploadSurv';
+
+  document.getElementById(btnId).disabled = true;
+  document.getElementById(progId).style.display='block';
+  addLog(`🚀 Starting ${type} upload — ${rows.length} rows`, 'info');
+
+  // Clear existing if requested
+  if(clearFirst){
+    try {
+      await fetch(`${SUPABASE_URL}/rest/v1/${table}?id=neq.00000000-0000-0000-0000-000000000000`, {
+        method:'DELETE', headers:HEADERS
+      });
+      addLog(`🗑 Cleared existing ${table} data`, 'warn');
+    } catch(e){ addLog(`Error clearing: ${e.message}`, 'err'); }
+  }
+
+  // Transform rows
+  const transformed = rows.map(r => transformRow(r, type)).filter(r=>r!==null);
+  addLog(`✅ Validated ${transformed.length} rows (${rows.length - transformed.length} skipped/invalid)`, 'info');
+
+  // Batch upload
+  const BATCH = 50;
+  let uploaded = 0, errors = 0;
+
+  for(let i=0; i<transformed.length; i+=BATCH){
+    const batch = transformed.slice(i, i+BATCH);
+    const pct = Math.round((i/transformed.length)*100);
+    document.getElementById(barId).style.width = pct+'%';
+    document.getElementById(countId).textContent = `${i} / ${transformed.length}`;
+
+    try {
+      const prefer = skipDupes ? 'return=minimal,resolution=ignore-duplicates' : 'return=minimal';
+      const res = await fetch(`${SUPABASE_URL}/rest/v1/${table}`, {
+        method:'POST',
+        headers:{ ...HEADERS, 'Prefer': prefer },
+        body: JSON.stringify(batch)
+      });
+      if(res.ok){
+        uploaded += batch.length;
+        addLog(`✅ Batch ${Math.floor(i/BATCH)+1}: uploaded ${batch.length} rows`, 'ok');
+      } else {
+        const err = await res.text();
+        errors += batch.length;
+        addLog(`❌ Batch ${Math.floor(i/BATCH)+1} error: ${err.slice(0,120)}`, 'err');
+      }
+    } catch(e){
+      errors += batch.length;
+      addLog(`❌ Network error: ${e.message}`, 'err');
+    }
+    await new Promise(r=>setTimeout(r,100));
+  }
+
+  document.getElementById(barId).style.width='100%';
+  document.getElementById(countId).textContent = `${uploaded} / ${transformed.length}`;
+  document.getElementById(btnId).disabled = false;
+
+  if(errors === 0){
+    addLog(`🎉 Upload complete! ${uploaded} ${type} records saved to Supabase`, 'ok');
+    showToast(`✅ ${uploaded} ${type} records uploaded!`, 'success');
+    setTimeout(()=>loadData(), 1500);
+  } else {
+    addLog(`⚠ Upload finished: ${uploaded} succeeded, ${errors} failed`, 'warn');
+    showToast(`${uploaded} uploaded, ${errors} errors`, 'error');
+  }
+}
+
+function transformRow(r, type){
+  try {
+    if(type==='delivery'){
+      if(!r.delivery_id || !r.date) return null;
+      return {
+        delivery_id: r.delivery_id,
+        date: formatDate(r.date),
+        market: r.market||'',
+        store: r.store||null,
+        dsp_name: r.dsp_name||'',
+        driver_name: r.driver_name||'',
+        scheduled_time: r.scheduled_time||null,
+        actual_time: r.actual_time||null,
+        on_time: parseYN(r.on_time),
+        completed: parseYN(r.completed),
+        root_cause: r.root_cause||null,
+        notes: r.notes||null
+      };
+    } else {
+      if(!r.date || !r.dsp_name) return null;
+      const score = parseInt(r.score);
+      const ltr = !isNaN(score) ? (score>=9?'Promoter':score>=7?'Passive':'Detractor') : (r.ltr_status||null);
+      return {
+        delivery_ref: r.delivery_ref||null,
+        date: formatDate(r.date),
+        dsp_name: r.dsp_name||'',
+        driver_name: r.driver_name||'',
+        market: r.market||null,
+        store: r.store||null,
+        score: isNaN(score)?null:score,
+        ltr_status: ltr,
+        comment: r.comment||null,
+        follow_up_required: parseYN(r.follow_up_required||r.follow_up)
+      };
+    }
+  } catch(e){ return null; }
+}
+
+function parseYN(v){
+  if(v===true||v===false) return v;
+  if(!v) return false;
+  return v.toString().toLowerCase().trim()==='yes'||v.toString().toLowerCase().trim()==='true';
+}
+
+function formatDate(d){
+  if(!d) return null;
+  // Handle MM/DD/YYYY → YYYY-MM-DD
+  if(d.includes('/')){
+    const parts = d.split('/');
+    if(parts.length===3) return `${parts[2].padStart(4,'20')}-${parts[0].padStart(2,'0')}-${parts[1].padStart(2,'0')}`;
+  }
+  return d.slice(0,10);
+}
+
+function addLog(msg, type='info'){
+  const log = document.getElementById('uploadLog');
+  const line = document.createElement('div');
+  line.className = `log-line log-${type}`;
+  const time = new Date().toLocaleTimeString();
+  line.textContent = `[${time}] ${msg}`;
+  log.appendChild(line);
+  log.scrollTop = log.scrollHeight;
+}
+// ═══════════════════════════════════════════
+// SUPABASE CONFIG
+// ═══════════════════════════════════════════
+const SUPABASE_URL = 'https://bkfsjhhclbqrhaolvhmz.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJrZnNqaGhjbGJxcmhhb2x2aG16Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAxNTQwNzksImV4cCI6MjA5NTczMDA3OX0.CSO6htrFeFYr93yOBo2iFK4Ul-QcoiGKIG4rAJxv6kY';
+const HEADERS = { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Content-Type': 'application/json', 'Prefer': 'return=representation', 'Accept-Profile': 'dpi', 'Content-Profile': 'dpi' };
+
+// Sign-in: the public key only identifies the project. Data requests carry the signed-in user's token instead,
+// so HEADERS.Authorization is replaced on sign-in and on every silent token refresh (same object, used everywhere).
+const authClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+HEADERS['Authorization'] = '';
+let appStarted = false;
+function startAuth(){
+  const gate = document.getElementById('authGate');
+  const out = document.getElementById('signOutBtn');
+  const err = document.getElementById('authError');
+  document.getElementById('authForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const btn = document.getElementById('authSubmit');
+    btn.disabled = true; err.style.display = 'none';
+    const { error } = await authClient.auth.signInWithPassword({
+      email: document.getElementById('authEmail').value.trim(),
+      password: document.getElementById('authPassword').value
+    });
+    if (error) {
+      err.textContent = error.message === 'Invalid login credentials' ? 'Email or password not recognised.' : error.message;
+      err.style.display = 'block';
+    }
+    btn.disabled = false;
+  });
+  out.addEventListener('click', () => authClient.auth.signOut());
+  authClient.auth.onAuthStateChange((event, session) => {
+    if (event === 'SIGNED_OUT') { location.reload(); return; }   // drops everything that was loaded
+    if (session) {
+      HEADERS['Authorization'] = 'Bearer ' + session.access_token;
+      gate.style.display = 'none';
+      out.style.display = 'block'; out.textContent = 'Sign out (' + session.user.email + ')';
+      if (!appStarted) { appStarted = true; init(); }
+    } else {
+      gate.style.display = 'flex'; out.style.display = 'none';
+    }
+  });
+}
+
+async function sb(path, opts={}) {
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/${path}`, { headers: HEADERS, ...opts });
+  if (!res.ok) throw new Error(`Supabase error: ${res.status} ${await res.text()}`);
+  return res.json();
+}
+
+// ═══════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════
+let deliveries = [], surveys = [], dsps = [];
+let charts = {};
+
+// ═══════════════════════════════════════════
+// LOAD DATA
+// ═══════════════════════════════════════════
+async function loadData() {
+  const days = document.getElementById('fDate').value;
+  const market = document.getElementById('fMarket').value;
+  const dsp = document.getElementById('fDSP').value;
+  const since = new Date(); since.setDate(since.getDate() - parseInt(days));
+  const sinceStr = since.toISOString().split('T')[0];
+
+  let dQuery = `deliveries?select=*&date=gte.${sinceStr}&order=date.desc&limit=2000`;
+  let sQuery = `surveys?select=*&date=gte.${sinceStr}&order=date.desc&limit=2000`;
+  if (market) { dQuery += `&market=eq.${encodeURIComponent(market)}`; sQuery += `&market=eq.${encodeURIComponent(market)}`; }
+  if (dsp) { dQuery += `&dsp_name=eq.${encodeURIComponent(dsp)}`; sQuery += `&dsp_name=eq.${encodeURIComponent(dsp)}`; }
+
+  [deliveries, surveys] = await Promise.all([sb(dQuery), sb(sQuery)]);
+  renderAll();
+}
+
+async function loadDSPs() {
+  try {
+    dsps = await sb('dsp_companies?select=name&active=eq.true&order=name');
+    const opts = dsps.map(d=>`<option>${d.name}</option>`).join('');
+    document.getElementById('fDSP').innerHTML = `<option value="">All DSPs</option>${opts}`;
+    document.getElementById('e_dsp').innerHTML = opts;
+    document.getElementById('s_dsp').innerHTML = opts;
+  } catch(e) { console.error(e); }
+}
+
+// ═══════════════════════════════════════════
+// COMPUTE
+// ═══════════════════════════════════════════
+function kpis(dels, survs) {
+  const total = dels.length;
+  const onTime = dels.filter(d=>d.on_time).length;
+  const completed = dels.filter(d=>d.completed).length;
+  const promo = survs.filter(s=>s.score>=9).length;
+  const neg = survs.filter(s=>s.score<=8).length;
+  const avg = survs.length ? survs.reduce((a,s)=>a+s.score,0)/survs.length : 0;
+  return {
+    total, onTime, completed, surveys: survs.length,
+    otd: total ? onTime/total*100 : 0,
+    comp: total ? completed/total*100 : 0,
+    ltr: survs.length ? promo/survs.length*100 : 0,
+    neg: survs.length ? neg/survs.length*100 : 0,
+    avg
+  };
+}
+
+function dspStats() {
+  const names = [...new Set(deliveries.map(d=>d.dsp_name))];
+  return names.map(name=>{
+    const dels = deliveries.filter(d=>d.dsp_name===name);
+    const survs = surveys.filter(s=>s.dsp_name===name);
+    const k = kpis(dels, survs);
+    return { name, ...k, score: k.otd*0.35 + k.comp*0.35 + k.ltr*0.30 };
+  }).sort((a,b)=>b.score-a.score);
+}
+
+function driverStats() {
+  const map = {};
+  deliveries.forEach(d=>{
+    if(!map[d.driver_name]) map[d.driver_name]={name:d.driver_name, dsp:d.dsp_name, market:d.market, dels:[], survs:[]};
+    map[d.driver_name].dels.push(d);
+  });
+  surveys.forEach(s=>{ if(map[s.driver_name]) map[s.driver_name].survs.push(s); });
+  return Object.values(map).map(({name,dsp,market,dels,survs})=>{
+    const k = kpis(dels,survs);
+    return { name,dsp,market,...k, score:k.otd*0.35+k.comp*0.35+k.ltr*0.30 };
+  }).sort((a,b)=>b.score-a.score);
+}
+
+function marketStats() {
+  const mkts = [...new Set(deliveries.map(d=>d.market))];
+  return mkts.map(m=>{
+    const dels = deliveries.filter(d=>d.market===m);
+    const survs = surveys.filter(s=>s.market===m);
+    return { market:m, ...kpis(dels,survs) };
+  });
+}
+
+// ═══════════════════════════════════════════
+// HELPERS
+// ═══════════════════════════════════════════
+function pctColor(v,hi=90,lo=75){ return v>=hi?'green':v>=lo?'yellow':'red'; }
+function badge(v){ const c=pctColor(v); return `<span class="badge badge-${c}">${v.toFixed(1)}%</span>`; }
+function scoreBadge(v){ const c=v>=85?'score-hi':v>=70?'score-mid':'score-lo'; return `<span class="rank-score ${c}">${v.toFixed(0)}</span>`; }
+function statusBadge(v){ if(v>=85)return`<span class="badge badge-green">● On Target</span>`; if(v>=70)return`<span class="badge badge-yellow">● At Risk</span>`; return`<span class="badge badge-red">● Critical</span>`; }
+function pbar(v,hi=90,lo=75){
+  const c=pctColor(v,hi,lo);
+  return `<div class="pbar-wrap"><div class="pbar-bg"><div class="pbar-fill" style="width:${Math.min(100,v)}%;background:var(--${c})"></div></div><span class="pbar-val" style="color:var(--${c})">${v.toFixed(1)}%</span></div>`;
+}
+const medals=['gold','silver','bronze'];
+
+// ═══════════════════════════════════════════
+// RENDER KPI CARDS
+// ═══════════════════════════════════════════
+function renderKPIs(id, k) {
+  document.getElementById(id).innerHTML = `
+    <div class="kpi-card blue"><div class="kpi-label">Total Deliveries</div><div class="kpi-val">${k.total.toLocaleString()}</div><div class="kpi-sub">${k.surveys} surveyed</div></div>
+    <div class="kpi-card ${pctColor(k.otd)}"><div class="kpi-label">On-Time %</div><div class="kpi-val">${k.otd.toFixed(1)}%</div><div class="kpi-sub">${k.onTime} on-time</div></div>
+    <div class="kpi-card ${pctColor(k.comp)}"><div class="kpi-label">Completion %</div><div class="kpi-val">${k.comp.toFixed(1)}%</div><div class="kpi-sub">${k.completed} completed</div></div>
+    <div class="kpi-card ${pctColor(k.ltr,70,50)}"><div class="kpi-label">LTR % (Promoters)</div><div class="kpi-val">${k.ltr.toFixed(1)}%</div><div class="kpi-sub">Scores 9–10</div></div>
+    <div class="kpi-card ${k.neg>30?'red':k.neg>15?'yellow':'green'}"><div class="kpi-label">Negative Survey %</div><div class="kpi-val">${k.neg.toFixed(1)}%</div><div class="kpi-sub">Scores ≤8</div></div>
+    <div class="kpi-card purple"><div class="kpi-label">Avg Survey Score</div><div class="kpi-val">${k.avg.toFixed(1)}</div><div class="kpi-sub">out of 10</div></div>`;
+}
+
+// ═══════════════════════════════════════════
+// RENDER ALL
+// ═══════════════════════════════════════════
+function renderAll() {
+  const k = kpis(deliveries, surveys);
+  const ds = dspStats();
+  const drs = driverStats();
+  const ms = marketStats();
+
+  ['kpi-overview','kpi-rankings','kpi-drivers','kpi-survey','kpi-rc','kpi-market'].forEach(id=>renderKPIs(id,k));
+
+  // Alerts
+  let alerts = '';
+  if(k.otd<80) alerts+=`<div class="alert alert-red"><span class="alert-icon">⚠</span><div class="alert-body"><strong>OTD Critical:</strong> Network on-time rate is ${k.otd.toFixed(1)}% — below 80% target</div></div>`;
+  if(k.neg>25) alerts+=`<div class="alert alert-red"><span class="alert-icon">⚠</span><div class="alert-body"><strong>High Negative Surveys:</strong> ${k.neg.toFixed(1)}% of respondents scored ≤8</div></div>`;
+  if(k.comp<90) alerts+=`<div class="alert alert-yellow"><span class="alert-icon">◎</span><div class="alert-body"><strong>Completion Below Target:</strong> ${k.comp.toFixed(1)}% — target is 92%</div></div>`;
+  document.getElementById('overview-alerts').innerHTML = alerts ? `<div style="margin-bottom:16px">${alerts}</div>` : '';
+
+  // DSP Table
+  document.getElementById('dspBody').innerHTML = ds.map((d,i)=>`<tr>
+    <td><span class="rank-num ${medals[i]||''}">${i+1}</span></td>
+    <td class="fw7">${d.name}</td>
+    <td class="mono">${d.total.toLocaleString()}</td>
+    <td>${pbar(d.otd)}</td><td>${pbar(d.comp)}</td>
+    <td>${pbar(d.ltr,70,50)}</td><td>${pbar(d.neg,15,30)}</td>
+    <td>${scoreBadge(d.score)}</td><td>${statusBadge(d.score)}</td>
+  </tr>`).join('');
+
+  // Driver Table
+  document.getElementById('driverBody').innerHTML = drs.slice(0,50).map((d,i)=>`<tr>
+    <td><span class="rank-num ${medals[i]||''}">${i+1}</span></td>
+    <td class="fw7">${d.name}</td>
+    <td style="font-size:11px;color:var(--text2)">${d.dsp}</td>
+    <td><span class="badge badge-blue">${d.market}</span></td>
+    <td class="mono">${d.total}</td>
+    <td>${pbar(d.otd)}</td><td>${pbar(d.comp)}</td>
+    <td>${pbar(d.ltr,70,50)}</td><td>${scoreBadge(d.score)}</td>
+  </tr>`).join('');
+
+  // Market Table
+  document.getElementById('marketBody').innerHTML = ms.map(m=>`<tr>
+    <td class="fw7">${m.market}</td>
+    <td class="mono">${m.total.toLocaleString()}</td>
+    <td>${pbar(m.otd)}</td><td>${pbar(m.comp)}</td>
+    <td>${pbar(m.ltr,70,50)}</td><td>${pbar(m.neg,15,30)}</td>
+    <td>${statusBadge(m.otd*0.35+m.comp*0.35+m.ltr*0.30)}</td>
+  </tr>`).join('');
+
+  // Comments
+  const negComments = surveys.filter(s=>s.score<=6&&s.comment).slice(0,6);
+  const commentHTML = negComments.map(s=>`<div class="comment-row">
+    <div class="comment-meta">
+      <div class="score-circle" style="background:var(--reddim);color:var(--red)">${s.score}</div>
+      <span style="font-size:11px;color:var(--text2)">${s.driver_name} · ${s.dsp_name}</span>
+      <span style="font-size:11px;color:var(--textm)">${s.date}</span>
+      ${s.follow_up_required?'<span class="badge badge-red">Follow-Up</span>':''}
+    </div>
+    <div class="comment-text">"${s.comment}"</div>
+  </div>`).join('');
+  document.getElementById('recentComments').innerHTML = commentHTML || '<div style="color:var(--textm);font-size:12px">No negative comments in this period</div>';
+
+  const fu = surveys.filter(s=>s.score<=5&&s.comment).slice(0,8);
+  document.getElementById('followUpComments').innerHTML = fu.map(s=>`<div class="comment-row">
+    <div class="comment-meta">
+      <div class="score-circle" style="background:var(--reddim);color:var(--red)">${s.score}</div>
+      <span style="font-size:11px;color:var(--text2)">${s.driver_name} · ${s.dsp_name} · ${s.date}</span>
+    </div>
+    <div class="comment-text">"${s.comment}"</div>
+  </div>`).join('') || '<div style="color:var(--textm);font-size:12px">No follow-up items</div>';
+
+  // Root Cause
+  const rcMap = {};
+  deliveries.forEach(d=>{ if(d.root_cause){ rcMap[d.root_cause]=(rcMap[d.root_cause]||0)+1; } });
+  const rcSorted = Object.entries(rcMap).sort((a,b)=>b[1]-a[1]);
+  const rcTotal = rcSorted.reduce((s,[,v])=>s+v,0);
+  const rcColors = ['#f85149','#d29922','#388bfd','#bc8cff','#3fb950','#39d353','#e3b341','#ff7b72'];
+  document.getElementById('rcBreakdown').innerHTML = rcSorted.slice(0,8).map(([c,n],i)=>`
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+      <div style="width:170px;font-size:12px">${c}</div>
+      <div style="flex:1;height:6px;background:var(--bg2);border-radius:3px;overflow:hidden">
+        <div style="width:${rcTotal?n/rcTotal*100:0}%;height:100%;background:${rcColors[i%rcColors.length]};border-radius:3px"></div>
+      </div>
+      <div style="font-family:var(--mono);font-size:12px;color:var(--text2);width:36px;text-align:right">${n}</div>
+      <div style="font-family:var(--mono);font-size:11px;color:var(--textm);width:36px;text-align:right">${rcTotal?(n/rcTotal*100).toFixed(0):0}%</div>
+    </div>`).join('');
+
+  renderCharts(k, ds, ms, rcSorted);
+}
+
+// ═══════════════════════════════════════════
+// CHARTS
+// ═══════════════════════════════════════════
+const CD = {
+  responsive:true, maintainAspectRatio:false,
+  plugins:{ legend:{ labels:{ color:'#8b949e', font:{family:'DM Mono',size:11} } } },
+  scales:{ x:{grid:{color:'#21262d'},ticks:{color:'#8b949e',font:{family:'DM Mono',size:10}}}, y:{grid:{color:'#21262d'},ticks:{color:'#8b949e',font:{family:'DM Mono',size:10}}} }
+};
+function dc(id){ if(charts[id]){charts[id].destroy();delete charts[id];} return document.getElementById(id); }
+function mkBar(id,labels,datasets,opts={}){
+  const ctx=dc(id); if(!ctx)return;
+  charts[id]=new Chart(ctx,{type:'bar',data:{labels,datasets},options:{...CD,indexAxis:opts.h?'y':'x',plugins:{...CD.plugins},scales:{x:{...CD.scales.x,stacked:opts.stacked,max:opts.max},y:{...CD.scales.y,stacked:opts.stacked}}}});
+}
+function mkLine(id,labels,datasets){
+  const ctx=dc(id); if(!ctx)return;
+  charts[id]=new Chart(ctx,{type:'line',data:{labels,datasets},options:{...CD}});
+}
+
+function renderCharts(k, ds, ms, rcSorted) {
+  // OTD by DSP
+  mkBar('chartOTD', ds.map(d=>d.name.split(' ')[0]), [{
+    label:'On-Time %', data:ds.map(d=>+d.otd.toFixed(1)),
+    backgroundColor:ds.map(d=>d.otd>=90?'rgba(63,185,80,.8)':d.otd>=75?'rgba(210,153,34,.8)':'rgba(248,81,73,.8)'),
+    borderRadius:4
+  }], {max:100});
+
+  // LTR Donut
+  const ctx=dc('chartLTR');
+  if(ctx){
+    const promo=surveys.filter(s=>s.score>=9).length;
+    const pasv=surveys.filter(s=>s.score>=7&&s.score<=8).length;
+    const detr=surveys.filter(s=>s.score<=6).length;
+    charts['chartLTR']=new Chart(ctx,{type:'doughnut',data:{labels:['Promoters (9-10)','Passives (7-8)','Detractors (0-6)'],datasets:[{data:[promo,pasv,detr],backgroundColor:['#3fb950','#d29922','#f85149'],borderColor:'#1c2128',borderWidth:3}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{color:'#8b949e',padding:12,font:{family:'DM Mono',size:10}}}}}});
+  }
+
+  // Completion by DSP
+  mkBar('chartComp', ds.map(d=>d.name.split(' ')[0]), [{
+    label:'Completion %', data:ds.map(d=>+d.comp.toFixed(1)),
+    backgroundColor:'rgba(56,139,253,.7)', borderRadius:4
+  }], {max:100});
+
+  // DSP Rank score
+  mkBar('chartDSPRank', ds.map(d=>d.name.split(' ')[0]), [
+    {label:'On-Time (35%)',data:ds.map(d=>+(d.otd*.35).toFixed(1)),backgroundColor:'rgba(56,139,253,.8)'},
+    {label:'Completion (35%)',data:ds.map(d=>+(d.comp*.35).toFixed(1)),backgroundColor:'rgba(63,185,80,.8)'},
+    {label:'LTR (30%)',data:ds.map(d=>+(d.ltr*.30).toFixed(1)),backgroundColor:'rgba(188,140,255,.8)'}
+  ], {stacked:true});
+
+  // Bubble
+  const bctx=dc('chartDSPBubble');
+  if(bctx){
+    const colors=['#388bfd','#3fb950','#bc8cff','#d29922','#f85149'];
+    charts['chartDSPBubble']=new Chart(bctx,{type:'bubble',data:{datasets:ds.map((d,i)=>({label:d.name.split(' ')[0],data:[{x:+d.otd.toFixed(1),y:+d.ltr.toFixed(1),r:Math.max(5,Math.min(20,d.total/8))}],backgroundColor:colors[i]+'80',borderColor:colors[i],borderWidth:1.5}))},options:{...CD,scales:{x:{...CD.scales.x,title:{display:true,text:'On-Time %',color:'#8b949e'},min:50,max:100},y:{...CD.scales.y,title:{display:true,text:'LTR %',color:'#8b949e'},min:0,max:100}}}});
+  }
+
+  // Score Distribution
+  const scores=Array(11).fill(0).map((_,i)=>surveys.filter(s=>s.score===i).length);
+  mkBar('chartScoreDist',['0','1','2','3','4','5','6','7','8','9','10'],[{
+    label:'Responses',data:scores,
+    backgroundColor:['0','1','2','3','4','5','6'].map(()=>'rgba(248,81,73,.8)').concat(['7','8'].map(()=>'rgba(210,153,34,.8)')).concat(['9','10'].map(()=>'rgba(63,185,80,.8)')),
+    borderRadius:3
+  }]);
+
+  // LTR by DSP
+  mkBar('chartLTRDSP', ds.map(d=>d.name.split(' ')[0]), [{
+    label:'LTR %',data:ds.map(d=>+d.ltr.toFixed(1)),
+    backgroundColor:ds.map(d=>d.ltr>=70?'rgba(63,185,80,.8)':d.ltr>=50?'rgba(210,153,34,.8)':'rgba(248,81,73,.8)'),
+    borderRadius:4
+  }], {max:100});
+
+  // Pareto
+  const pctx=dc('chartPareto');
+  if(pctx&&rcSorted.length){
+    const top=rcSorted.slice(0,7);
+    const tot=top.reduce((s,[,v])=>s+v,0);
+    let cum=0;
+    const cumPct=top.map(([,v])=>{cum+=v;return+(cum/tot*100).toFixed(1);});
+    charts['chartPareto']=new Chart(pctx,{data:{labels:top.map(([c])=>c),datasets:[
+      {type:'bar',label:'Count',data:top.map(([,v])=>v),backgroundColor:'rgba(56,139,253,.7)',yAxisID:'y',borderRadius:3},
+      {type:'line',label:'Cumulative %',data:cumPct,borderColor:'#f85149',pointRadius:3,pointBackgroundColor:'#f85149',yAxisID:'y2',tension:0}
+    ]},options:{...CD,scales:{x:{...CD.scales.x},y:{...CD.scales.y,position:'left'},y2:{position:'right',grid:{display:false},ticks:{color:'#8b949e',font:{family:'DM Mono',size:10}},max:100}}}});
+  }
+
+  // RC by DSP
+  const topRC=rcSorted.slice(0,5).map(([c])=>c);
+  const rcC=['rgba(248,81,73,.8)','rgba(210,153,34,.8)','rgba(56,139,253,.8)','rgba(188,140,255,.8)','rgba(63,185,80,.8)'];
+  mkBar('chartRCDSP', ds.map(d=>d.name.split(' ')[0]),
+    topRC.map((rc,i)=>({label:rc,data:ds.map(d=>deliveries.filter(r=>r.dsp_name===d.name&&r.root_cause===rc).length),backgroundColor:rcC[i]})),
+    {stacked:true}
+  );
+
+  // Market charts
+  mkBar('chartMktOTD',ms.map(m=>m.market),[{label:'On-Time %',data:ms.map(m=>+m.otd.toFixed(1)),backgroundColor:ms.map(m=>m.otd>=90?'rgba(63,185,80,.8)':m.otd>=75?'rgba(210,153,34,.8)':'rgba(248,81,73,.8)'),borderRadius:4}],{max:100,h:true});
+  mkBar('chartMktLTR',ms.map(m=>m.market),[{label:'LTR %',data:ms.map(m=>+m.ltr.toFixed(1)),backgroundColor:'rgba(188,140,255,.8)',borderRadius:4}],{max:100,h:true});
+}
+
+// ═══════════════════════════════════════════
+// SORT TABLES
+// ═══════════════════════════════════════════
+const sortSt={};
+function sortT(tid,col){
+  const t=document.getElementById(tid);
+  const rows=Array.from(t.querySelector('tbody').rows);
+  const asc=sortSt[tid+col]!==true; sortSt[tid+col]=asc;
+  rows.sort((a,b)=>{
+    const av=a.cells[col].textContent.trim().replace('%','').replace(',','');
+    const bv=b.cells[col].textContent.trim().replace('%','').replace(',','');
+    const an=parseFloat(av),bn=parseFloat(bv);
+    return !isNaN(an)&&!isNaN(bn)?(asc?an-bn:bn-an):(asc?av.localeCompare(bv):bv.localeCompare(av));
+  });
+  rows.forEach(r=>t.querySelector('tbody').appendChild(r));
+}
+
+function filterDrivers(){
+  const q=document.getElementById('driverSearch').value.toLowerCase();
+  document.querySelectorAll('#driverBody tr').forEach(r=>r.style.display=r.textContent.toLowerCase().includes(q)?'':'none');
+}
+
+// ═══════════════════════════════════════════
+// DATA ENTRY
+// ═══════════════════════════════════════════
+async function submitDelivery(){
+  const id=document.getElementById('e_id').value.trim();
+  const date=document.getElementById('e_date').value;
+  const dsp=document.getElementById('e_dsp').value;
+  const driver=document.getElementById('e_driver').value.trim();
+  if(!id||!date||!dsp||!driver){ showToast('Please fill in all required fields','error'); return; }
+  try {
+    await sb('deliveries',{method:'POST',body:JSON.stringify({
+      delivery_id:id, date, market:document.getElementById('e_market').value,
+      store:document.getElementById('e_store').value, dsp_name:dsp, driver_name:driver,
+      scheduled_time:document.getElementById('e_sched').value||null,
+      actual_time:document.getElementById('e_actual').value||null,
+      on_time:document.getElementById('e_ontime').value==='true',
+      completed:document.getElementById('e_completed').value==='true',
+      root_cause:document.getElementById('e_rc').value||null,
+      notes:document.getElementById('e_notes').value||null
+    })});
+    showToast('✅ Delivery saved successfully!','success');
+    clearEntryForm();
+    loadData();
+  } catch(e){ showToast('Error: '+e.message,'error'); }
+}
+
+async function submitSurvey(){
+  const score=parseInt(document.getElementById('s_score').value);
+  const date=document.getElementById('s_date').value;
+  const dsp=document.getElementById('s_dsp').value;
+  const driver=document.getElementById('s_driver').value.trim();
+  if(!date||!dsp||!driver||isNaN(score)||score<0||score>10){ showToast('Please fill in all required fields','error'); return; }
+  const ltr=score>=9?'Promoter':score>=7?'Passive':'Detractor';
+  try {
+    await sb('surveys',{method:'POST',body:JSON.stringify({
+      delivery_ref:document.getElementById('s_ref').value||null, date, dsp_name:dsp,
+      driver_name:driver, market:document.getElementById('s_market').value,
+      store:document.getElementById('s_store').value, score, ltr_status:ltr,
+      comment:document.getElementById('s_comment').value||null,
+      follow_up_required:score<=5
+    })});
+    showToast('✅ Survey saved successfully!','success');
+    clearSurveyForm();
+    loadData();
+  } catch(e){ showToast('Error: '+e.message,'error'); }
+}
+
+function clearEntryForm(){ ['e_id','e_date','e_driver','e_sched','e_actual','e_notes'].forEach(id=>document.getElementById(id).value=''); }
+function clearSurveyForm(){ ['s_ref','s_date','s_driver','s_score','s_comment'].forEach(id=>document.getElementById(id).value=''); }
+
+// ═══════════════════════════════════════════
+// UI HELPERS
+// ═══════════════════════════════════════════
+function showPage(name, el){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  document.getElementById('page-'+name).classList.add('active');
+  if(el) el.classList.add('active');
+}
+
+function resetFilters(){
+  document.getElementById('fDate').value='30';
+  document.getElementById('fMarket').value='';
+  document.getElementById('fDSP').value='';
+  loadData();
+}
+
+function showToast(msg, type){
+  const t=document.createElement('div');
+  t.className=`toast toast-${type}`; t.textContent=msg;
+  document.body.appendChild(t);
+  setTimeout(()=>t.remove(),3500);
+}
+
+function exportCSV(){
+  const h='Date,DSP,Driver,Market,Store,On-Time,Completed,Root Cause\n';
+  const rows=deliveries.map(d=>[d.date,`"${d.dsp_name}"`,`"${d.driver_name}"`,d.market,d.store,d.on_time?'Yes':'No',d.completed?'Yes':'No',`"${d.root_cause||''}"`].join(',')).join('\n');
+  const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([h+rows],{type:'text/csv'}));
+  a.download='dpi_export.csv'; a.click();
+}
+
+// ═══════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════
+async function init(){
+  // Set today's date on forms
+  const today=new Date().toISOString().split('T')[0];
+  document.getElementById('e_date').value=today;
+  document.getElementById('s_date').value=today;
+
+  try {
+    await loadDSPs();
+    await loadData();
+    document.getElementById('connStatus').innerHTML='<span class="conn-ok">● Connected to Supabase</span>';
+    document.getElementById('loadingOverlay').style.display='none';
+  } catch(e){
+    document.getElementById('connStatus').innerHTML='<span class="conn-err">● Connection failed</span>';
+    document.getElementById('loadingOverlay').innerHTML=`
+      <div style="text-align:center;padding:24px">
+        <div style="font-size:32px;margin-bottom:12px">⚠️</div>
+        <div style="color:var(--red);font-size:15px;font-weight:700;margin-bottom:8px">Database Not Ready</div>
+        <div style="color:var(--text2);font-size:13px;max-width:400px">Run the SQL schema in Supabase first.<br>See 01_schema.sql in your files.</div>
+        <button class="btn btn-primary" style="margin-top:16px" onclick="init()">Retry</button>
+      </div>`;
+  }
+}
+startAuth();
+</script>
+</body>
+</html>

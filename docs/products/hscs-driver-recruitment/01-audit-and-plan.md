@@ -71,6 +71,13 @@ Cloned shallow to a scratch path; nothing was pushed to it. 9 HTML pages, `js/sc
 - The KPI page itself writes with `.insert()` from the browser, which is why the tables were opened. A fix needs the upload to move behind a signed-in role or a server function.
 - Proposed fix (not applied; needs approval): replace "Allow all" with read for signed-in HSCS staff only, move uploads to an authenticated path, revoke `anon` privileges, then rotate the anon key if the owner wants the old one dead.
 
+**Further exposure found while preparing the dashboard sign-in** (read-only metadata on the legacy project; no values read; nothing changed):
+
+- `dpi.deliveries` (about 400 rows), `dpi.surveys` (about 244), `dpi.drivers` and `dpi.dsp_companies` each have a policy "Public read ... SELECT, role public, USING true" and "Public insert ... INSERT". `dashboard.html` reads them with the anon key. **Anyone holding the public key can read all of it and add rows.** The earlier row-count listing showed 0 for these tables because it used stale statistics. This needs a second fix of the same shape as the KPI one; not written yet.
+- `public.recovery_compliance_exceptions` is a **view** with full anon grants and no row security of its own. A view runs with its owner's rights, so it can bypass the protection on the tables beneath it. The `recovery_*` tables look empty, so exposure is probably nil today, but it should be checked and switched to `security_invoker`.
+- The public intake tables (`contact_submissions`, `assessment_results`, `hscs_assessment_requests` and similar) carry over-broad grants (anon holds SELECT/UPDATE/DELETE) but each has only an INSERT policy with row security on, so anonymous callers can add rows and cannot read or change them. That is the intended behaviour. The excess grants are untidy, not exploitable as far as the policy metadata shows.
+
+
 ## 2. Current database and authentication boundaries
 
 - **HL-BOS Core** is one Postgres database and one `auth.users` table (3 users) shared by about 20 schemas: Fleet, BarberOS, ATS, JobScout, review/gallery media, Venture Studio, SceneFlow and others. Tenancy is `platform.tenants` plus `identity.memberships`.

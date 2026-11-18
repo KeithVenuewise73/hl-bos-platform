@@ -1,0 +1,1495 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Lowe's KPI Dashboard | Herman Supply Chain Solutions</title>
+<script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<script src="https://unpkg.com/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script src="https://unpkg.com/@supabase/supabase-js@2.45.4"></script>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #060f1e; font-family: 'Inter','Segoe UI',sans-serif; }
+</style>
+<script>
+  window.addEventListener('error', function(e) {
+    var root = document.getElementById('root');
+    if (root && !root.innerHTML) {
+      root.innerHTML = '<div style="color:#f87171;background:#0f172a;padding:40px;font-family:monospace;white-space:pre-wrap;min-height:100vh;">Script failed to load or run:\n\n' +
+        (e.message || e) + '\n' + (e.filename ? ('File: ' + e.filename + ':' + e.lineno) : '') + '</div>';
+    }
+  });
+</script>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/plain" id="app-source" data-presets="react" data-type="script">
+const { useState, useCallback, useMemo, useRef, useEffect } = React;
+const XLSX = window.XLSX;
+
+// ─── Supabase Client ──────────────────────────────────────────────────────
+const SUPABASE_URL = "https://bkfsjhhclbqrhaolvhmz.supabase.co";
+const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJrZnNqaGhjbGJxcmhhb2x2aG16Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAxNTQwNzksImV4cCI6MjA5NTczMDA3OX0.CSO6htrFeFYr93yOBo2iFK4Ul-QcoiGKIG4rAJxv6kY";
+const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+// ─── Utilities ────────────────────────────────────────────────────────────
+const toNum = (v) => {
+  if (v === null || v === undefined || v === "") return null;
+  const n = parseFloat(String(v).replace(/[%,]/g, ""));
+  return isNaN(n) ? null : n;
+};
+// Safe date parser: handles Excel date objects (from cellDates:true), Excel serial numbers,
+// ISO strings ("2025-11-01T07:30:00"), and verbose strings ("Tue Mar 24 00:00:00 PDT 2026").
+const safeDate = (v) => {
+  if (v === null || v === undefined || v === "") return null;
+  if (v instanceof Date && !isNaN(v.getTime())) return v.toLocaleDateString("en-US");
+  if (typeof v === "number") {
+    const d = new Date((v - 25569) * 86400 * 1000);
+    return isNaN(d.getTime()) ? null : d.toLocaleDateString("en-US");
+  }
+  if (typeof v === "string") {
+    const s = v.trim();
+    if (!s) return null;
+    const d = new Date(s);
+    if (!isNaN(d.getTime())) return d.toLocaleDateString("en-US");
+    return s; // fall back to the raw string rather than losing the value
+  }
+  return String(v);
+};
+// Normalizes carrier names for matching: lowercase, strip punctuation, collapse spaces,
+// and standardize common entity suffixes (LLC/Inc/Corp) so "CF Sedano LLC" matches "CF Sedano".
+// NOTE: "&" is intentionally NOT stripped/collapsed — e.g. "A&M Trucking LLC" and
+// "A & M Trucking LLC" are confirmed to be two distinct real companies, not a spelling
+// inconsistency. Treating them as the same carrier would silently merge two different
+// businesses' data, which is worse than the original unmatched-filter symptom.
+const normalizeCarrier = (n) => {
+  let s = String(n || "").trim().toLowerCase();
+  s = s.replace(/[.,]/g, "");
+  s = s.replace(/\b(llc|l l c|inc|incorporated|corp|corporation|co)\b\.?/g, "");
+  s = s.replace(/[^a-z0-9\s]/g, "");
+  s = s.replace(/\s+/g, " ").trim();
+  return s;
+};
+// Normalizes driver/person names for matching: lowercase, strip punctuation, collapse spaces.
+// (No LLC/Inc stripping here — driver names aren't entities.)
+const normalizeDriver = (n) => {
+  let s = String(n || "").trim().toLowerCase();
+  s = s.replace(/[^a-z0-9\s]/g, "");
+  s = s.replace(/\s+/g, " ").trim();
+  return s;
+};
+const parseStoreName = (raw) => {
+  if (!raw) return { number: "", name: String(raw || "") };
+  const s = String(raw).trim();
+  const m = s.match(/^(\d+)\s*[-–]\s*(.+)$/);
+  if (m) return { number: m[1], name: m[2].trim() };
+  return { number: "", name: s };
+};
+const colorForScore = (score) => {
+  if (score === null || score === undefined) return "#64748b";
+  if (score >= 95) return "#22c55e";
+  if (score >= 90) return "#eab308";
+  return "#ef4444";
+};
+const bgForScore = (score) => {
+  if (score === null || score === undefined) return "";
+  if (score >= 95) return "rgba(34,197,94,0.15)";
+  if (score >= 90) return "rgba(234,179,8,0.15)";
+  return "rgba(239,68,68,0.15)";
+};
+const calcLTR = (responses) => {
+  const total = responses.length;
+  if (!total) return { strict: null, neutral: null, positive: null, count910: 0, count8: 0, count07: 0, total: 0 };
+  const count910 = responses.filter((r) => r >= 9).length;
+  const count8 = responses.filter((r) => r === 8).length;
+  const count07 = responses.filter((r) => r <= 7).length;
+  const strict = (count910 / total) * 100;
+  const denomNeutral = total - count8;
+  const neutral = denomNeutral === 0 ? null : (count910 / denomNeutral) * 100;
+  // Positive LTR: treats an 8 the same way a 9 or 10 is treated — counted as a promoter
+  // in both numerator and denominator, rather than excluded (Neutral) or only counted
+  // in the denominator (Strict). (count910 + count8) / total.
+  const positive = ((count910 + count8) / total) * 100;
+  return { strict, neutral, positive, count910, count8, count07, total };
+};
+// Survey-to-delivery metrics: what % of completed deliveries (Actual Stops) generated
+// a survey response at all, and what % generated a positive (9-10) vs negative (0-7) one.
+// Denominator is Actual Stops (completed deliveries), since that's the only delivery-volume
+// figure in the KPI file; there's no separate "survey-eligible deliveries" column.
+const calcSurveyRates = (ltrResponses, actualStops) => {
+  if (!actualStops || actualStops <= 0) return { surveyPct: null, positivePct: null, negativePct: null };
+  const total = ltrResponses.length;
+  const positive = ltrResponses.filter((r) => r >= 9).length;
+  // Negative matches Strict LTR's definition: anything below 9 (including 8s) counts
+  // against the score, rather than excluding 8s the way Neutral LTR does.
+  const negative = ltrResponses.filter((r) => r <= 8).length;
+  return {
+    surveyPct: (total / actualStops) * 100,
+    positivePct: (positive / actualStops) * 100,
+    negativePct: (negative / actualStops) * 100,
+  };
+};
+// Composite = Completion(30%) + On-Time In Window(30%) + LTR(40%).
+// On-Time % and Redelivery % are excluded from the formula — Redelivery % is
+// consistently 0 across this data source and carries no signal, and On-Time %
+// was dropped per requirement; both remain visible as informational columns only.
+const compositeScore = (row, useNeutral = false) => {
+  const comp = toNum(row.completion) ?? 0;
+  const otiw = toNum(row.onTimeInWindow) ?? 0;
+  const ltr = useNeutral ? (row.ltrNeutral ?? 0) : (row.ltrStrict ?? 0);
+  return comp * 0.3 + otiw * 0.3 + ltr * 0.4;
+};
+
+// ─── Excel Parser ─────────────────────────────────────────────────────────
+// Converts a sheet_to_json-style row keyed by header into a lookup-by-fuzzy-name getter.
+// Looks up a column value by fuzzy header name. CRITICAL: tries an EXACT normalized
+// match first, across ALL candidates, before falling back to substring matching. This
+// matters because some sheets have multiple columns whose normalized names are
+// substrings of each other — e.g. "Carrier" and "Contractor Carrier" both normalize
+// such that a naive substring search for "carrier" matches "Contractor Carrier" first
+// (since it appears earlier in the column order), silently returning the wrong column.
+// Exact-match-first avoids that entire class of bug.
+const makeGetter = (r) => {
+  const keys = Object.keys(r);
+  const normKeys = keys.map((k) => k.toLowerCase().replace(/[^a-z0-9]/g, ""));
+  return (...candidates) => {
+    for (const c of candidates) {
+      const target = c.toLowerCase().replace(/[^a-z0-9]/g, "");
+      const exactIdx = normKeys.indexOf(target);
+      if (exactIdx !== -1) return r[keys[exactIdx]];
+    }
+    for (const c of candidates) {
+      const target = c.toLowerCase().replace(/[^a-z0-9]/g, "");
+      const k = keys.find((k) => k.toLowerCase().replace(/[^a-z0-9]/g, "").includes(target));
+      if (k !== undefined) return r[k];
+    }
+    return "";
+  };
+};
+
+// SP Weekly Summary: headers on row 1, normal sheet_to_json works fine.
+const parseSPSheet = (sheet) => {
+  if (!sheet) return [];
+  const data = XLSX.utils.sheet_to_json(sheet, { defval: "" });
+  return data.map((r) => {
+    const get = makeGetter(r);
+    return {
+      weekEnding: safeDate(get("weekending", "week")),
+      carrier: String(get("carrier") || "").trim(),
+      speName: "",
+      region: String(get("region") || "").trim(),
+      district: String(get("district") || "").trim(),
+      routes: toNum(get("routes")),
+      plannedStops: toNum(get("plannedstops", "planned")),
+      actualStops: toNum(get("actualstops", "actual")),
+      avgStops: toNum(get("avgstops", "avg")),
+      redeliveries: toNum(get("redeliveries", "redelivery")),
+      completion: toNum(get("completion")),
+      onTimeInWindow: toNum(get("ontimeinwindow", "inwindow")),
+      onTime: toNum(get("ontime")),
+      redeliveryPct: toNum(get("redelivery%", "redel")),
+    };
+  });
+};
+
+// SPE Weekly Summary: real headers are on ROW 2 (row 1 is blank), so sheet_to_json's
+// default header:auto behavior reads the wrong row. Read as a raw array-of-arrays first,
+// take row index 1 (the 2nd row) as headers, then map remaining rows manually.
+const parseSPESheet = (sheet) => {
+  if (!sheet) return [];
+  const speRaw = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: "", raw: false });
+  if (speRaw.length < 3) return [];
+  const headers = speRaw[1];
+  const rows = speRaw.slice(2);
+  const objRows = rows
+    .filter((row) => row.some((cell) => cell !== "" && cell !== null && cell !== undefined))
+    .map((row) => {
+      const obj = {};
+      headers.forEach((h, i) => { if (h) obj[h] = row[i]; });
+      return obj;
+    });
+  return objRows.map((r) => {
+    const get = makeGetter(r);
+    return {
+      weekEnding: safeDate(get("weekending", "week")),
+      carrier: String(get("carrier") || "").trim(),
+      speName: String(get("spename", "spe", "driver") || "").trim(),
+      region: String(get("region") || "").trim(),
+      district: String(get("district") || "").trim(),
+      routes: toNum(get("routes")),
+      plannedStops: toNum(get("plannedstops", "planned")),
+      actualStops: toNum(get("actualstops", "actual")),
+      avgStops: toNum(get("avgstops", "avg")),
+      redeliveries: toNum(get("redeliveries", "redelivery")),
+      completion: toNum(get("completion")),
+      onTimeInWindow: toNum(get("ontimeinwindow", "inwindow")),
+      onTime: toNum(get("ontime")),
+      redeliveryPct: toNum(get("redelivery%", "redel")),
+    };
+  });
+};
+
+// Converts an Invoice Order Number cell value to a full plain-integer string. Excel
+// stores some of these as numbers; sheet_to_json's default text formatting (raw:false)
+// renders large numbers in scientific notation (e.g. "3.00901E+17"), which makes
+// genuinely different invoice numbers collide once truncated. Reading the same cell
+// with raw:true preserves the full digit string instead. Note: invoice numbers this
+// large (18 digits) exceed JS's safe-integer range, so the last 1-2 digits may not be
+// perfectly exact vs. the original Excel value — but this is vastly more precise than
+// the scientific-notation string, and is only ever used as a secondary signal alongside
+// every other field, never as a sole duplicate key.
+const fullInvoiceNumber = (v) => {
+  if (v === "" || v === null || v === undefined) return "";
+  if (typeof v === "number") return Math.round(v).toString();
+  return String(v).replace(/^#/, "").trim();
+};
+
+// Parses a single LTR/Detractor workbook buffer into row objects, including the
+// Market corruption-recovery logic. Returns rows plus a count of markets recovered
+// within this one file (market recovery only looks within a single file's own data,
+// since a store's market shouldn't need cross-file lookup).
+const parseLTRWorkbook = (ltrFile) => {
+  const wb2 = XLSX.read(ltrFile, { type: "array", cellDates: true });
+  const ltrSheet = wb2.Sheets["LTR Data"] || wb2.Sheets[wb2.SheetNames[0]];
+  const ltrRaw = ltrSheet ? XLSX.utils.sheet_to_json(ltrSheet, { defval: "", raw: false }) : [];
+  // Second pass, raw:true, used only to recover full-precision Invoice Order Numbers
+  // (see fullInvoiceNumber above) — every other field still comes from ltrRaw.
+  const ltrRawNumeric = ltrSheet ? XLSX.utils.sheet_to_json(ltrSheet, { defval: "", raw: true }) : [];
+
+  // Some source rows have a corrupted Market value: Excel has misread what should be a
+  // plain numeric market code (e.g. "1251") as a date, producing strings like "6/4/03 0:00".
+  // Real market codes are short digit strings with no "/" or ":". Build a store -> market
+  // lookup from rows where Market looks valid, then use it to recover the corrupted ones.
+  const looksLikeDate = (v) => /[\/:]/.test(String(v));
+  const storeToMarket = {};
+  ltrRaw.forEach((r) => {
+    const get = makeGetter(r);
+    const m = String(get("market") || "").trim();
+    const storeRaw = String(get("store") || "").trim();
+    if (m && storeRaw && !looksLikeDate(m) && !storeToMarket[storeRaw]) storeToMarket[storeRaw] = m;
+  });
+
+  let marketsRecovered = 0;
+  const ltrRows = ltrRaw.map((r, idx) => {
+    const get = makeGetter(r);
+    const getNumeric = makeGetter(ltrRawNumeric[idx] || {});
+    const ltrVal = toNum(get("likelihoodtorecommend", "ltr", "likelihood"));
+    const store = parseStoreName(get("store"));
+    const storeRaw = String(get("store") || "").trim();
+    let market = String(get("market") || "").trim();
+    if (market && looksLikeDate(market)) {
+      const recovered = storeToMarket[storeRaw];
+      if (recovered) { market = recovered; marketsRecovered++; }
+    }
+    return {
+      store, ltr: ltrVal,
+      market,
+      invoiceNumber: fullInvoiceNumber(getNumeric("invoiceordernumber", "invoicenumber", "invoice")),
+      // LTR file: "Contractor Carrier" = driver/SPE name, "Carrier" = contractor/carrier name.
+      contractorCarrier: String(get("contractorcarrier") || "").trim(),
+      carrier: String(get("carrier") || "").trim(),
+      detractor: String(get("detractor") || "").trim(),
+      deliveryDate: safeDate(get("deliverydate")),
+      saleDate: safeDate(get("saledate")),
+      responseDate: safeDate(get("responsedatepacific", "responsedate")),
+      improvementComment: String(get("improvementcomment", "improvement") || "").trim(),
+      followUpComment: String(get("commentsaftertalking", "followup", "comment") || "").trim(),
+    };
+  }).filter((r) => r.ltr !== null);
+
+  return { ltrRows, marketsRecovered };
+};
+
+// A stable key identifying a single real survey response, used to silently drop exact
+// duplicate rows when multiple LTR files are uploaded together (e.g. the same file
+// selected twice by accident). Includes Invoice Order Number AND every other field —
+// verified against real data that invoice number alone is not always safe to rely on
+// (some rows share a missing/placeholder invoice value despite being genuinely
+// different responses), and that other fields alone are not safe either (two
+// legitimately different deliveries can share every visible field except a comment,
+// or even share an empty comment). Requiring all of them together avoids both kinds
+// of false match while still catching true duplicates (the same response logged twice).
+const ltrRowDedupeKey = (r) =>
+  [r.invoiceNumber, r.store.number, r.store.name, r.responseDate, r.deliveryDate, r.saleDate, r.contractorCarrier,
+   r.carrier, r.ltr, r.market, r.detractor, r.improvementComment, r.followUpComment].join("||");
+
+const parseFiles = (kpiFile, ltrFiles) => {
+  const wb1 = XLSX.read(kpiFile, { type: "array", cellDates: true });
+
+  const spSheet = wb1.Sheets["SP Weekly Summary"];
+  // Only ever read the canonical "SPE Weekly Summary" sheet — "SPE Weekly Summary (2)"
+  // is a stray empty duplicate and must be ignored even if present.
+  const speSheet = wb1.Sheets["SPE Weekly Summary"];
+
+  const spRows = parseSPSheet(spSheet);
+  const speRows = parseSPESheet(speSheet);
+
+  // ltrFiles is an array (1 to 4 files) — each parsed independently, then concatenated.
+  // Exact-duplicate rows across files (e.g. the same file accidentally selected twice)
+  // are silently dropped, keeping only the first occurrence.
+  const perFileStats = [];
+  const seen = new Set();
+  let marketsRecovered = 0;
+  let duplicatesSkipped = 0;
+  const ltrRows = [];
+  ltrFiles.forEach((file, idx) => {
+    const { ltrRows: fileRows, marketsRecovered: fileMarketsRecovered } = parseLTRWorkbook(file);
+    marketsRecovered += fileMarketsRecovered;
+    let keptFromThisFile = 0;
+    fileRows.forEach((r) => {
+      const key = ltrRowDedupeKey(r);
+      if (seen.has(key)) { duplicatesSkipped++; return; }
+      seen.add(key);
+      ltrRows.push(r);
+      keptFromThisFile++;
+    });
+    perFileStats.push({ fileName: file.name || `File ${idx + 1}`, rowsParsed: fileRows.length, rowsKept: keptFromThisFile });
+  });
+
+  return {
+    spRows, speRows, ltrRows,
+    debug: {
+      spRowCount: spRows.length,
+      speRowCount: speRows.length,
+      ltrRowCount: ltrRows.length,
+      uniqueCarriersSP: [...new Set(spRows.map((r) => r.carrier).filter(Boolean))],
+      uniqueCarriersSPE: [...new Set(speRows.map((r) => r.carrier).filter(Boolean))],
+      uniqueDriversSPE: [...new Set(speRows.map((r) => r.speName).filter(Boolean))],
+      marketsRecovered,
+      duplicatesSkipped,
+      perFileStats,
+    },
+  };
+};
+
+// ─── Supabase Sync ────────────────────────────────────────────────────────
+// A refused request must surface as an error. Before sign-in was required, nothing was ever refused, so
+// results were ignored; now a signed-in user without write access would see "Done!" while nothing saved.
+const must = (res) => { if (res && res.error) throw new Error(res.error.message || "The database refused the request"); return res; };
+
+const syncToSupabase = async (spRows, speRows, ltrRows, onProgress) => {
+  onProgress("Clearing old data...");
+  must(await supabase.from("ltr_data").delete().neq("id", 0));
+  must(await supabase.from("kpi_sp_weekly").delete().neq("id", 0));
+  must(await supabase.from("kpi_spe_weekly").delete().neq("id", 0));
+
+  onProgress("Uploading LTR data...");
+  const ltrBatch = ltrRows.map((r) => ({
+    store_number: r.store.number, store_name: r.store.name, ltr_score: r.ltr,
+    market: r.market, contractor_carrier: r.contractorCarrier, carrier: r.carrier, detractor: r.detractor,
+    delivery_date: r.deliveryDate, improvement_comment: r.improvementComment,
+    follow_up_comment: r.followUpComment,
+  }));
+  for (let i = 0; i < ltrBatch.length; i += 500) must(await supabase.from("ltr_data").insert(ltrBatch.slice(i, i + 500)));
+
+  onProgress("Uploading carrier KPI data...");
+  const spBatch = spRows.map((r) => ({
+    week_ending: r.weekEnding, carrier: r.carrier, region: r.region, district: r.district,
+    routes: r.routes, planned_stops: r.plannedStops, actual_stops: r.actualStops, avg_stops: r.avgStops,
+    redeliveries: r.redeliveries, completion_pct: r.completion, on_time_in_window_pct: r.onTimeInWindow,
+    on_time_pct: r.onTime, redelivery_pct: r.redeliveryPct,
+  }));
+  for (let i = 0; i < spBatch.length; i += 500) must(await supabase.from("kpi_sp_weekly").insert(spBatch.slice(i, i + 500)));
+
+  onProgress("Uploading driver KPI data...");
+  const speBatch = speRows.map((r) => ({
+    week_ending: r.weekEnding, carrier: r.carrier, spe_name: r.speName, region: r.region, district: r.district,
+    routes: r.routes, planned_stops: r.plannedStops, actual_stops: r.actualStops, avg_stops: r.avgStops,
+    redeliveries: r.redeliveries, completion_pct: r.completion, on_time_in_window_pct: r.onTimeInWindow,
+    on_time_pct: r.onTime, redelivery_pct: r.redeliveryPct,
+  }));
+  for (let i = 0; i < speBatch.length; i += 500) must(await supabase.from("kpi_spe_weekly").insert(speBatch.slice(i, i + 500)));
+
+  onProgress("Done!");
+};
+
+const loadFromSupabase = async () => {
+  const [ltrRes, spRes, speRes] = await Promise.all([
+    supabase.from("ltr_data").select("*"),
+    supabase.from("kpi_sp_weekly").select("*"),
+    supabase.from("kpi_spe_weekly").select("*"),
+  ]);
+  must(ltrRes); must(spRes); must(speRes);
+  const ltrRows = (ltrRes.data || []).map((r) => ({
+    store: { number: r.store_number || "", name: r.store_name || "" }, ltr: r.ltr_score,
+    market: r.market || "", contractorCarrier: r.contractor_carrier || "", carrier: r.carrier || "", detractor: r.detractor || "",
+    deliveryDate: r.delivery_date || "", improvementComment: r.improvement_comment || "",
+    followUpComment: r.follow_up_comment || "",
+  }));
+  const spRows = (spRes.data || []).map((r) => ({
+    weekEnding: r.week_ending, carrier: r.carrier || "", region: r.region || "", district: r.district || "",
+    routes: r.routes, plannedStops: r.planned_stops, actualStops: r.actual_stops, avgStops: r.avg_stops,
+    redeliveries: r.redeliveries, completion: r.completion_pct, onTimeInWindow: r.on_time_in_window_pct,
+    onTime: r.on_time_pct, redeliveryPct: r.redelivery_pct,
+  }));
+  const speRows = (speRes.data || []).map((r) => ({
+    weekEnding: r.week_ending, carrier: r.carrier || "", speName: r.spe_name || "", region: r.region || "",
+    district: r.district || "", routes: r.routes, plannedStops: r.planned_stops, actualStops: r.actual_stops,
+    avgStops: r.avg_stops, redeliveries: r.redeliveries, completion: r.completion_pct,
+    onTimeInWindow: r.on_time_in_window_pct, onTime: r.on_time_pct, redeliveryPct: r.redelivery_pct,
+  }));
+  return { spRows, speRows, ltrRows };
+};
+
+// ─── Shared Styles ────────────────────────────────────────────────────────
+const td = { padding: "8px 8px", color: "#cbd5e1", verticalAlign: "middle" };
+// Caps long carrier/driver names so they don't stretch the whole table wide; full name
+// is still available on hover via the title attribute.
+const truncated = { maxWidth: 170, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" };
+// Alternative to truncated: wraps onto a second line instead of hiding text, so the
+// column can stay narrow without losing any of the name.
+const wrapped = { maxWidth: 130, whiteSpace: "normal", wordBreak: "break-word", lineHeight: 1.3 };
+// Caps short numeric columns (counts, small percentages) so they don't take more width
+// than their content needs, now that headers can wrap onto two lines.
+const narrow = { maxWidth: 56 };
+const thStyle = {
+  padding: "9px 8px", textAlign: "left", background: "#0f172a", color: "#94a3b8",
+  fontSize: 11, fontWeight: 600, textTransform: "uppercase", letterSpacing: 0.5,
+  position: "sticky", top: 0, zIndex: 2, borderBottom: "1px solid #1e293b",
+};
+const exportBtn = {
+  background: "#1e293b", color: "#38bdf8", border: "1px solid #38bdf850",
+  borderRadius: 6, padding: "7px 16px", fontSize: 13, cursor: "pointer", fontWeight: 600,
+};
+
+// ─── Sub-components ───────────────────────────────────────────────────────
+const KPICard = ({ label, value, sub, color }) => (
+  <div style={{ background: "linear-gradient(135deg,#1e2a3a 0%,#162032 100%)", border: `1px solid ${color || "#334155"}`, borderRadius: 10, padding: "16px 20px", minWidth: 150, flex: 1 }}>
+    <div style={{ color: "#94a3b8", fontSize: 11, textTransform: "uppercase", letterSpacing: 1 }}>{label}</div>
+    <div style={{ color: color || "#f1f5f9", fontSize: 26, fontWeight: 700, margin: "6px 0 2px" }}>{value}</div>
+    {sub && <div style={{ color: "#64748b", fontSize: 11 }}>{sub}</div>}
+  </div>
+);
+const Badge = ({ color, children }) => (
+  <span style={{ background: color + "33", color, border: `1px solid ${color}50`, borderRadius: 4, padding: "2px 7px", fontSize: 11, fontWeight: 600 }}>{children}</span>
+);
+const SortIcon = ({ col, sortCol, sortDir }) => {
+  if (sortCol !== col) return <span style={{ color: "#475569", marginLeft: 4 }}>↕</span>;
+  return <span style={{ color: "#38bdf8", marginLeft: 4 }}>{sortDir === "asc" ? "↑" : "↓"}</span>;
+};
+const useSortable = (data, defaultCol) => {
+  const [sortCol, setSortCol] = useState(defaultCol);
+  const [sortDir, setSortDir] = useState("desc");
+  const sort = (col) => {
+    if (col === sortCol) setSortDir((d) => (d === "asc" ? "desc" : "asc"));
+    else { setSortCol(col); setSortDir("desc"); }
+  };
+  const sorted = useMemo(() => [...data].sort((a, b) => {
+    const av = a[sortCol], bv = b[sortCol];
+    if (av === null || av === undefined) return 1;
+    if (bv === null || bv === undefined) return -1;
+    const cmp = typeof av === "string" ? av.localeCompare(bv) : av - bv;
+    return sortDir === "asc" ? cmp : -cmp;
+  }), [data, sortCol, sortDir]);
+  return { sorted, sortCol, sortDir, sort };
+};
+const Th = ({ col, label, sortCol, sortDir, onSort, width }) => (
+  <th onClick={() => onSort(col)} style={{ padding: "9px 6px", textAlign: "left", cursor: "pointer", userSelect: "none", background: "#0f172a", color: "#94a3b8", fontSize: 11, fontWeight: 600, textTransform: "uppercase", letterSpacing: 0.5, whiteSpace: "normal", wordBreak: "break-word", lineHeight: 1.3, width: width || undefined, position: "sticky", top: 0, zIndex: 2, borderBottom: "1px solid #1e293b" }}>
+    {label}<SortIcon col={col} sortCol={sortCol} sortDir={sortDir} />
+  </th>
+);
+const FiltersBar = ({ filters, setFilters, options }) => {
+  const sel = (key, label) => (
+    <select value={filters[key] || ""} onChange={(e) => setFilters((f) => ({ ...f, [key]: e.target.value }))} style={{ background: "#1e293b", color: "#cbd5e1", border: "1px solid #334155", borderRadius: 6, padding: "6px 10px", fontSize: 13 }}>
+      <option value="">All {label}</option>
+      {(options[key] || []).map((o) => <option key={o} value={o}>{o}</option>)}
+    </select>
+  );
+  return (
+    <div style={{ display: "flex", flexWrap: "wrap", gap: 10, marginBottom: 20, alignItems: "center" }}>
+      <input placeholder="🔍 Search…" value={filters.search || ""} onChange={(e) => setFilters((f) => ({ ...f, search: e.target.value }))} style={{ background: "#1e293b", color: "#cbd5e1", border: "1px solid #334155", borderRadius: 6, padding: "6px 12px", fontSize: 13, minWidth: 180 }} />
+      {sel("weekEnding", "Weeks")}{sel("carrier", "Carriers")}{sel("region", "Regions")}{sel("district", "Districts")}
+      <button onClick={() => setFilters({})} style={{ background: "#1e293b", color: "#94a3b8", border: "1px solid #334155", borderRadius: 6, padding: "6px 12px", fontSize: 12, cursor: "pointer" }}>Clear</button>
+    </div>
+  );
+};
+const exportCSV = (rows, filename) => {
+  if (!rows.length) return;
+  const keys = Object.keys(rows[0]);
+  const csv = [keys.join(","), ...rows.map((r) => keys.map((k) => JSON.stringify(r[k] ?? "")).join(","))].join("\n");
+  const a = document.createElement("a");
+  a.href = "data:text/csv;charset=utf-8," + encodeURIComponent(csv);
+  a.download = filename;
+  a.click();
+};
+
+// ─── Build Rows ───────────────────────────────────────────────────────────
+const buildDriverRows = (speRows, ltrRows, useNeutral) => {
+  const map = {};
+  const order = []; // preserve first-seen order for stable iteration
+  speRows.forEach((r) => {
+    const key = normalizeDriver(r.speName) + "::" + normalizeCarrier(r.carrier);
+    if (!map[key]) { map[key] = { ...r, ltrResponses: [] }; order.push(key); }
+    ["routes", "plannedStops", "actualStops", "redeliveries"].forEach((f) => { map[key][f] = (map[key][f] || 0) + (r[f] || 0); });
+    ["completion", "onTimeInWindow", "onTime", "redeliveryPct"].forEach((f) => {
+      map[key]["_sum_" + f] = (map[key]["_sum_" + f] || 0) + (r[f] || 0);
+      map[key]["_cnt_" + f] = (map[key]["_cnt_" + f] || 0) + 1;
+    });
+  });
+
+  // Index SPE drivers by normalized name for fast lookup, scoped by carrier when possible.
+  const byDriverName = {};
+  order.forEach((key) => {
+    const driverPart = key.split("::")[0];
+    if (!byDriverName[driverPart]) byDriverName[driverPart] = [];
+    byDriverName[driverPart].push(key);
+  });
+
+  let matchedLTR = 0, unmatchedLTR = 0;
+  ltrRows.forEach((r) => {
+    const normName = normalizeDriver(r.contractorCarrier);
+    const normCarr = normalizeCarrier(r.carrier);
+    if (!normName) { unmatchedLTR++; return; }
+    const candidates = byDriverName[normName];
+    let key = null;
+    if (candidates && candidates.length) {
+      // Prefer the candidate whose carrier also matches; otherwise fall back to the
+      // first candidate (handles cases where the carrier name varies slightly).
+      key = candidates.find((k) => k.split("::")[1] === normCarr) || candidates[0];
+    }
+    if (key) { map[key].ltrResponses.push(r.ltr); matchedLTR++; }
+    else unmatchedLTR++;
+  });
+
+  return order.map((key) => {
+    const r = map[key];
+    const avg = (f) => r["_cnt_" + f] ? r["_sum_" + f] / r["_cnt_" + f] : null;
+    const ltr = calcLTR(r.ltrResponses);
+    const surveyRates = calcSurveyRates(r.ltrResponses, r.actualStops);
+    const row = {
+      name: r.speName, carrier: r.carrier, region: r.region, district: r.district, weekEnding: r.weekEnding,
+      routes: r.routes, plannedStops: r.plannedStops, actualStops: r.actualStops, completion: avg("completion"),
+      onTimeInWindow: avg("onTimeInWindow"), onTime: avg("onTime"), redeliveryPct: avg("redeliveryPct"),
+      ltrTotal: ltr.total, ltrCount910: ltr.count910, ltrCount8: ltr.count8, ltrCount07: ltr.count07,
+      ltrStrict: ltr.strict, ltrNeutral: ltr.neutral, ltrPositive: ltr.positive, lowSample: ltr.total > 0 && ltr.total < 5,
+      surveyPct: surveyRates.surveyPct, positivePct: surveyRates.positivePct, negativePct: surveyRates.negativePct,
+    };
+    // Composite still calculates from KPI metrics even with zero LTR responses:
+    // missing LTR is treated as neutral (0 contribution) rather than excluding the row.
+    row.composite = compositeScore(row, useNeutral);
+    return row;
+  }).sort((a, b) => (b.composite || 0) - (a.composite || 0)).map((r, i) => ({ ...r, rank: i + 1 }));
+};
+const buildCarrierRows = (spRows, ltrRows, useNeutral) => {
+  const map = {};
+  const order = [];
+  spRows.forEach((r) => {
+    const key = normalizeCarrier(r.carrier);
+    if (!map[key]) { map[key] = { ...r, ltrResponses: [] }; order.push(key); }
+    ["routes", "plannedStops", "actualStops", "redeliveries"].forEach((f) => { map[key][f] = (map[key][f] || 0) + (r[f] || 0); });
+    ["completion", "onTimeInWindow", "onTime", "redeliveryPct"].forEach((f) => {
+      map[key]["_sum_" + f] = (map[key]["_sum_" + f] || 0) + (r[f] || 0);
+      map[key]["_cnt_" + f] = (map[key]["_cnt_" + f] || 0) + 1;
+    });
+  });
+  ltrRows.forEach((r) => {
+    const normC = normalizeCarrier(r.carrier);
+    if (map[normC]) map[normC].ltrResponses.push(r.ltr);
+  });
+  return order.map((key) => {
+    const r = map[key];
+    const avg = (f) => r["_cnt_" + f] ? r["_sum_" + f] / r["_cnt_" + f] : null;
+    const ltr = calcLTR(r.ltrResponses);
+    const surveyRates = calcSurveyRates(r.ltrResponses, r.actualStops);
+    const row = {
+      carrier: r.carrier, region: r.region, district: r.district, weekEnding: r.weekEnding,
+      routes: r.routes, plannedStops: r.plannedStops, actualStops: r.actualStops, completion: avg("completion"),
+      onTimeInWindow: avg("onTimeInWindow"), onTime: avg("onTime"), redeliveryPct: avg("redeliveryPct"),
+      ltrTotal: ltr.total, ltrCount910: ltr.count910, ltrCount8: ltr.count8, ltrCount07: ltr.count07,
+      ltrStrict: ltr.strict, ltrNeutral: ltr.neutral, ltrPositive: ltr.positive, lowSample: ltr.total > 0 && ltr.total < 5,
+      surveyPct: surveyRates.surveyPct, positivePct: surveyRates.positivePct, negativePct: surveyRates.negativePct,
+    };
+    row.composite = compositeScore(row, useNeutral);
+    return row;
+  }).sort((a, b) => (b.composite || 0) - (a.composite || 0)).map((r, i) => ({ ...r, rank: i + 1 }));
+};
+const buildStoreRows = (ltrRows) => {
+  const map = {};
+  ltrRows.forEach((r) => {
+    const key = r.store.number || r.store.name;
+    if (!map[key]) map[key] = { store: r.store, market: r.market || "(Unknown)", ltrResponses: [], detractors: [], comments: [] };
+    map[key].ltrResponses.push(r.ltr);
+    if (r.detractor) map[key].detractors.push(r.detractor);
+    if (r.improvementComment) map[key].comments.push(r.improvementComment);
+  });
+  const rows = Object.values(map).map((r) => {
+    const ltr = calcLTR(r.ltrResponses);
+    const detCounts = {};
+    r.detractors.forEach((d) => { detCounts[d] = (detCounts[d] || 0) + 1; });
+    const topDet = Object.entries(detCounts).sort((a, b) => b[1] - a[1])[0]?.[0] || "—";
+    return {
+      storeNum: r.store.number, storeName: r.store.name, market: r.market, ltrTotal: ltr.total, ltrCount910: ltr.count910,
+      ltrCount8: ltr.count8, ltrCount07: ltr.count07, ltrStrict: ltr.strict, ltrNeutral: ltr.neutral, ltrPositive: ltr.positive,
+      detractorCount: r.detractors.length, topDetractor: topDet, lowSample: ltr.total < 5, comments: r.comments,
+    };
+  });
+  // Fleet-wide rank: position among ALL stores regardless of market.
+  const fleetRanked = [...rows].sort((a, b) => (b.ltrStrict ?? -1) - (a.ltrStrict ?? -1));
+  fleetRanked.forEach((r, i) => { r.fleetRank = i + 1; });
+  // Market rank: position among only the stores sharing the same market.
+  const byMarket = {};
+  rows.forEach((r) => { (byMarket[r.market] = byMarket[r.market] || []).push(r); });
+  Object.values(byMarket).forEach((group) => {
+    group.sort((a, b) => (b.ltrStrict ?? -1) - (a.ltrStrict ?? -1));
+    group.forEach((r, i) => {
+      r.marketRank = i + 1;
+      r.marketStoreCount = group.length;
+    });
+  });
+  // Default sort/display order mirrors fleet rank; `rank` kept for backward compatibility
+  // with sort/export code elsewhere that expects a generic `rank` field.
+  return fleetRanked.map((r) => ({ ...r, rank: r.fleetRank }));
+};
+// Market Rankings: LTR-survey-only ranking (Strict/Neutral LTR, response counts, top
+// detractor category) grouped by the "Market" field from the LTR file. Market is not
+// present in the KPI file, so no Completion%/On-Time%/Composite is available here.
+const buildMarketRows = (ltrRows) => {
+  const map = {};
+  const order = [];
+  ltrRows.forEach((r) => {
+    const key = r.market || "(Unknown)";
+    if (!map[key]) { map[key] = { market: key, ltrResponses: [], detractors: [], storeSet: new Set() }; order.push(key); }
+    map[key].ltrResponses.push(r.ltr);
+    if (r.detractor) map[key].detractors.push(r.detractor);
+    if (r.store.number || r.store.name) map[key].storeSet.add(r.store.number || r.store.name);
+  });
+  return order.map((key) => {
+    const r = map[key];
+    const ltr = calcLTR(r.ltrResponses);
+    const detCounts = {};
+    r.detractors.forEach((d) => { detCounts[d] = (detCounts[d] || 0) + 1; });
+    const topDet = Object.entries(detCounts).sort((a, b) => b[1] - a[1])[0]?.[0] || "—";
+    return {
+      market: r.market, storeCount: r.storeSet.size, ltrTotal: ltr.total, ltrCount910: ltr.count910,
+      ltrCount8: ltr.count8, ltrCount07: ltr.count07, ltrStrict: ltr.strict, ltrNeutral: ltr.neutral, ltrPositive: ltr.positive,
+      detractorCount: r.detractors.length, topDetractor: topDet, lowSample: ltr.total > 0 && ltr.total < 5,
+    };
+  }).sort((a, b) => (b.ltrStrict ?? -1) - (a.ltrStrict ?? -1)).map((r, i) => ({ ...r, rank: i + 1 }));
+};
+
+// ─── Upload Page ──────────────────────────────────────────────────────────
+const UploadPage = ({ onLoad }) => {
+  const [kpiFile, setKpiFile] = useState(null);
+  const [ltrFiles, setLtrFiles] = useState([]); // array, 1-4 files
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [progress, setProgress] = useState("");
+  const [loadingDB, setLoadingDB] = useState(false);
+  const [debugStats, setDebugStats] = useState(null);
+
+  const readFile = (file) => new Promise((res, rej) => {
+    const r = new FileReader();
+    r.onload = (e) => { const buf = new Uint8Array(e.target.result); buf.name = file.name; res(buf); };
+    r.onerror = rej;
+    r.readAsArrayBuffer(file);
+  });
+
+  const addLtrFiles = (newFiles) => {
+    const files = Array.from(newFiles || []);
+    if (!files.length) return;
+    setLtrFiles((prev) => {
+      const combined = [...prev, ...files];
+      // Keep at most 4 — if more are added, keep the most recently added ones.
+      return combined.slice(-4);
+    });
+  };
+  const removeLtrFile = (idx) => setLtrFiles((prev) => prev.filter((_, i) => i !== idx));
+
+  const handleLoad = async () => {
+    if (!kpiFile || ltrFiles.length === 0) { setError("Please upload the KPI file and at least one LTR file."); return; }
+    setLoading(true); setError(""); setProgress("Parsing Excel files...");
+    try {
+      const [kpi, ...ltrs] = await Promise.all([readFile(kpiFile), ...ltrFiles.map(readFile)]);
+      const data = parseFiles(kpi, ltrs);
+
+      // Build the driver-name index the same way buildDriverRows does, so the debug
+      // counts on this page reflect exactly what Driver Rankings will show.
+      const driverNameSet = new Set(data.speRows.map((r) => normalizeDriver(r.speName)).filter(Boolean));
+      let matchedDriverLTR = 0, unmatchedDriverLTR = 0;
+      data.ltrRows.forEach((r) => {
+        const n = normalizeDriver(r.contractorCarrier);
+        if (n && driverNameSet.has(n)) matchedDriverLTR++; else unmatchedDriverLTR++;
+      });
+      setDebugStats({
+        spRows: data.debug.spRowCount,
+        speRows: data.debug.speRowCount,
+        ltrRows: data.debug.ltrRowCount,
+        uniqueCarriersSP: data.debug.uniqueCarriersSP.length,
+        uniqueCarriersSPE: data.debug.uniqueCarriersSPE.length,
+        uniqueDriversSPE: data.debug.uniqueDriversSPE.length,
+        matchedDriverLTR, unmatchedDriverLTR,
+        marketsRecovered: data.debug.marketsRecovered,
+        duplicatesSkipped: data.debug.duplicatesSkipped,
+        perFileStats: data.debug.perFileStats,
+      });
+
+      setProgress("Syncing to Supabase...");
+      await syncToSupabase(data.spRows, data.speRows, data.ltrRows, setProgress);
+      onLoad(data);
+    } catch (e) { setError("Error: " + e.message); }
+    setLoading(false); setProgress("");
+  };
+
+  const handleLoadFromDB = async () => {
+    setLoadingDB(true); setError("");
+    try {
+      const data = await loadFromSupabase();
+      if (!data.ltrRows.length && !data.spRows.length) setError("No data found in database. Please upload Excel files first.");
+      else onLoad(data);
+    } catch (e) { setError("Error loading from database: " + e.message); }
+    setLoadingDB(false);
+  };
+
+  const DropZone = ({ label, file, onFile }) => {
+    const ref = useRef();
+    return (
+      <div onClick={() => ref.current.click()} onDragOver={(e) => e.preventDefault()} onDrop={(e) => { e.preventDefault(); onFile(e.dataTransfer.files[0]); }}
+        style={{ border: "2px dashed #334155", borderRadius: 12, padding: "40px 24px", textAlign: "center", cursor: "pointer", background: file ? "rgba(56,189,248,0.05)" : "#0f172a", borderColor: file ? "#38bdf8" : "#334155" }}>
+        <input ref={ref} type="file" accept=".xlsx,.xls" style={{ display: "none" }} onChange={(e) => onFile(e.target.files[0])} />
+        <div style={{ fontSize: 32, marginBottom: 8 }}>📊</div>
+        <div style={{ color: file ? "#38bdf8" : "#64748b", fontWeight: 600 }}>{file ? file.name : label}</div>
+        <div style={{ color: "#475569", fontSize: 12, marginTop: 4 }}>Click or drag & drop .xlsx</div>
+      </div>
+    );
+  };
+
+  const MultiDropZone = ({ label, files, onAdd, onRemove }) => {
+    const ref = useRef();
+    return (
+      <div>
+        <div onClick={() => ref.current.click()} onDragOver={(e) => e.preventDefault()} onDrop={(e) => { e.preventDefault(); onAdd(e.dataTransfer.files); }}
+          style={{ border: "2px dashed #334155", borderRadius: 12, padding: "40px 24px", textAlign: "center", cursor: "pointer", background: files.length ? "rgba(56,189,248,0.05)" : "#0f172a", borderColor: files.length ? "#38bdf8" : "#334155" }}>
+          <input ref={ref} type="file" accept=".xlsx,.xls" multiple style={{ display: "none" }} onChange={(e) => { onAdd(e.target.files); e.target.value = null; }} />
+          <div style={{ fontSize: 32, marginBottom: 8 }}>📊</div>
+          <div style={{ color: files.length ? "#38bdf8" : "#64748b", fontWeight: 600 }}>{files.length ? `${files.length} file${files.length > 1 ? "s" : ""} selected` : label}</div>
+          <div style={{ color: "#475569", fontSize: 12, marginTop: 4 }}>Click or drag & drop — up to 4 files (e.g. one per district group)</div>
+        </div>
+        {files.length > 0 && (
+          <div style={{ marginTop: 8, display: "flex", flexDirection: "column", gap: 4 }}>
+            {files.map((f, i) => (
+              <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", background: "#1e293b", borderRadius: 6, padding: "6px 10px", fontSize: 12 }}>
+                <span style={{ color: "#cbd5e1" }}>{f.name}</span>
+                <span onClick={(e) => { e.stopPropagation(); onRemove(i); }} style={{ color: "#f87171", cursor: "pointer", padding: "0 4px" }}>✕</span>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  return (
+    <div style={{ maxWidth: 700, margin: "40px auto", padding: "0 20px" }}>
+      <h2 style={{ color: "#f1f5f9", fontSize: 22, marginBottom: 8 }}>Upload / Refresh Data</h2>
+      <p style={{ color: "#64748b", marginBottom: 24 }}>Upload your Excel files to sync fresh data to Supabase, or load the last saved dataset.</p>
+      <div style={{ background: "#0f172a", border: "1px solid #1e3a5f", borderRadius: 12, padding: 20, marginBottom: 28, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+        <div>
+          <div style={{ color: "#38bdf8", fontWeight: 600, marginBottom: 4 }}>📦 Load from Supabase</div>
+          <div style={{ color: "#64748b", fontSize: 13 }}>Load the last uploaded dataset without re-uploading files</div>
+        </div>
+        <button onClick={handleLoadFromDB} disabled={loadingDB} style={{ background: "linear-gradient(90deg,#0369a1,#1d4ed8)", color: "#fff", border: "none", borderRadius: 8, padding: "10px 24px", fontSize: 14, fontWeight: 600, cursor: "pointer" }}>
+          {loadingDB ? "Loading..." : "Load Data"}
+        </button>
+      </div>
+      <div style={{ color: "#475569", textAlign: "center", marginBottom: 20, fontSize: 13 }}>— or upload new Excel files —</div>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20, marginBottom: 24, alignItems: "start" }}>
+        <DropZone label="Lowe's Carrier KPI (.xlsx)" file={kpiFile} onFile={setKpiFile} />
+        <MultiDropZone label="LTR Detractor Sheet(s) (.xlsx)" files={ltrFiles} onAdd={addLtrFiles} onRemove={removeLtrFile} />
+      </div>
+      {progress && <div style={{ background: "#1e293b", borderRadius: 8, padding: "10px 16px", marginBottom: 16, color: "#38bdf8", fontSize: 13 }}>⏳ {progress}</div>}
+      {error && <div style={{ color: "#f87171", marginBottom: 16, fontSize: 13 }}>⚠ {error}</div>}
+      <button onClick={handleLoad} disabled={loading} style={{ background: "linear-gradient(90deg,#0ea5e9,#3b82f6)", color: "#fff", border: "none", borderRadius: 8, padding: "12px 32px", fontSize: 15, fontWeight: 600, cursor: "pointer", width: "100%" }}>
+        {loading ? progress || "Processing…" : "Upload & Sync to Supabase"}
+      </button>
+      {debugStats && (
+        <div style={{ marginTop: 28 }}>
+          <div style={{ color: "#94a3b8", fontSize: 12, fontWeight: 600, marginBottom: 10, textTransform: "uppercase", letterSpacing: 0.5 }}>Parse Debug Info</div>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 10 }}>
+            {[
+              ["SP rows loaded", debugStats.spRows, "#38bdf8"],
+              ["SPE rows loaded", debugStats.speRows, "#38bdf8"],
+              ["LTR rows loaded", debugStats.ltrRows, "#38bdf8"],
+              ["Unique carriers (SP)", debugStats.uniqueCarriersSP, "#818cf8"],
+              ["Unique carriers (SPE)", debugStats.uniqueCarriersSPE, "#818cf8"],
+              ["Unique drivers (SPE)", debugStats.uniqueDriversSPE, "#fb923c"],
+              ["Matched driver LTR rows", debugStats.matchedDriverLTR, "#22c55e"],
+              ["Unmatched driver LTR rows", debugStats.unmatchedDriverLTR, debugStats.unmatchedDriverLTR > 0 ? "#ef4444" : "#22c55e"],
+              ["Markets auto-recovered", debugStats.marketsRecovered, debugStats.marketsRecovered > 0 ? "#f59e0b" : "#22c55e"],
+              ["Duplicate LTR rows skipped", debugStats.duplicatesSkipped, debugStats.duplicatesSkipped > 0 ? "#f59e0b" : "#22c55e"],
+            ].map(([label, value, color]) => (
+              <div key={label} style={{ background: "#0f172a", border: `1px solid ${color}40`, borderRadius: 8, padding: "10px 14px" }}>
+                <div style={{ color: "#64748b", fontSize: 10, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 4 }}>{label}</div>
+                <div style={{ color, fontSize: 20, fontWeight: 700 }}>{value}</div>
+              </div>
+            ))}
+          </div>
+          {debugStats.perFileStats && debugStats.perFileStats.length > 1 && (
+            <div style={{ marginTop: 16 }}>
+              <div style={{ color: "#64748b", fontSize: 11, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 8 }}>Per-file LTR breakdown</div>
+              <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                {debugStats.perFileStats.map((f, i) => (
+                  <div key={i} style={{ display: "flex", justifyContent: "space-between", background: "#0f172a", border: "1px solid #1e293b", borderRadius: 6, padding: "8px 12px", fontSize: 12 }}>
+                    <span style={{ color: "#cbd5e1" }}>{f.fileName}</span>
+                    <span style={{ color: "#94a3b8" }}>{f.rowsParsed} parsed{f.rowsKept !== f.rowsParsed ? `, ${f.rowsKept} kept (${f.rowsParsed - f.rowsKept} duplicate)` : ""}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+          {debugStats.speRows === 0 && (
+            <div style={{ marginTop: 10, color: "#f59e0b", fontSize: 12 }}>⚠ SPE rows loaded is 0 — check that the "SPE Weekly Summary" sheet exists and has headers on row 2.</div>
+          )}
+          {debugStats.unmatchedDriverLTR > 0 && (
+            <div style={{ marginTop: 6, color: "#64748b", fontSize: 12 }}>Unmatched LTR rows are usually drivers who left, name variants, or "Unknown" placeholders — not necessarily a bug.</div>
+          )}
+          {debugStats.marketsRecovered > 0 && (
+            <div style={{ marginTop: 6, color: "#64748b", fontSize: 12 }}>{debugStats.marketsRecovered} row(s) had a corrupted Market value (Excel misread it as a date) and were auto-recovered by matching the store to its market elsewhere in the file.</div>
+          )}
+          {debugStats.duplicatesSkipped > 0 && (
+            <div style={{ marginTop: 6, color: "#64748b", fontSize: 12 }}>{debugStats.duplicatesSkipped} row(s) appeared in more than one uploaded LTR file (same store, response date, delivery date, driver, carrier, and score) and were counted only once.</div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+};
+
+// ─── Driver / Carrier / Store / Detractor Pages ────────────────────────────
+const DriverRankings = ({ speRows, ltrRows, filters, setFilters, options, useNeutral }) => {
+  const all = useMemo(() => buildDriverRows(speRows, ltrRows, useNeutral), [speRows, ltrRows, useNeutral]);
+  const filtered = useMemo(() => all.filter((r) => {
+    if (filters.carrier && normalizeCarrier(r.carrier) !== normalizeCarrier(filters.carrier)) return false;
+    if (filters.weekEnding && r.weekEnding !== filters.weekEnding) return false;
+    if (filters.region && r.region !== filters.region) return false;
+    if (filters.district && r.district !== filters.district) return false;
+    if (filters.search) { const s = filters.search.toLowerCase(); if (!r.name.toLowerCase().includes(s) && !r.carrier.toLowerCase().includes(s)) return false; }
+    return true;
+  }), [all, filters]);
+  const { sorted, sortCol, sortDir, sort } = useSortable(filtered, "composite");
+  const th = (col, label, width) => <Th col={col} label={label} sortCol={sortCol} sortDir={sortDir} onSort={sort} width={width} />;
+  return (
+    <div>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+        <h2 style={{ color: "#f1f5f9", fontSize: 20, fontWeight: 700 }}>Driver / SPE Rankings</h2>
+        <button onClick={() => exportCSV(sorted, "driver-rankings.csv")} style={exportBtn}>Export CSV</button>
+      </div>
+      <div style={{ color: "#64748b", fontSize: 12, marginBottom: 16, lineHeight: 1.6 }}>
+        <strong style={{ color: "#94a3b8" }}>Take Rate% / Pos Take Rate% / Neg Take Rate%</strong> = number of survey responses (total / 9-10 scores / 0-7 scores) ÷ Actual Stops (completed deliveries) for that driver — i.e. what share of their completed deliveries generated a survey response at all, and whether it was positive or negative.<br />
+        <strong style={{ color: "#94a3b8" }}>Strict LTR</strong> = (9-10s) ÷ (all responses) — 8s count against the score. <strong style={{ color: "#94a3b8" }}>Neutral LTR</strong> = (9-10s) ÷ (all responses excluding 8s) — 8s are removed entirely. <strong style={{ color: "#94a3b8" }}>Positive LTR</strong> = (9-10s + 8s) ÷ (all responses) — 8s are treated as promoters, same as a 9 or 10.<br />
+        <strong style={{ color: "#94a3b8" }}>Composite</strong> = Completion% (30%) + On-Time In Window% (30%) + LTR Score (40%, {useNeutral ? "Neutral" : "Strict"}). OT% and Redelivery% are not part of this score; LTR contributes 0 when a driver has no survey responses.
+      </div>
+      <FiltersBar filters={filters} setFilters={setFilters} options={options} />
+      <div style={{ overflowX: "auto", borderRadius: 10, border: "1px solid #1e293b" }}>
+        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12, tableLayout: "fixed" }}>
+          <thead><tr>
+            {th("rank", "#", "3%")}{th("name", "Driver/SPE", "10%")}{th("carrier", "Carrier", "9%")}{th("routes", "Routes", "4%")}
+            {th("plannedStops", "Planned", "4%")}{th("actualStops", "Actual", "4%")}{th("completion", "Compl%", "5%")}
+            {th("onTimeInWindow", "OT Win%", "5%")}
+            {th("surveyPct", "Take Rate%", "6%")}{th("positivePct", "Pos Take Rate%", "6%")}{th("negativePct", "Neg Take Rate%", "6%")}
+            {th("ltrTotal", "LTR#", "4%")}{th("ltrCount910", "9-10", "4%")}{th("ltrCount8", "8", "3%")}{th("ltrCount07", "0-7", "4%")}
+            {th("ltrStrict", "Strict LTR", "6%")}{th("ltrNeutral", "Neutral LTR", "6%")}{th("ltrPositive", "Positive LTR", "6%")}{th("composite", "Composite", "5%")}
+          </tr></thead>
+          <tbody>
+            {sorted.map((r, i) => (
+              <tr key={i} style={{ background: i % 2 === 0 ? "#0f172a" : "#111827", borderBottom: "1px solid #1e293b" }}>
+                <td style={td}><span style={{ color: "#64748b" }}>#{r.rank}</span></td>
+                <td style={td}><div style={{ color: "#f1f5f9", fontWeight: 600, ...wrapped }}>{r.name || "—"}</div>{r.lowSample && <Badge color="#f59e0b">Low Sample</Badge>}</td>
+                <td style={td}><span style={{ color: "#94a3b8", ...wrapped, display: "inline-block" }}>{r.carrier || "—"}</span></td>
+                <td style={{ ...td, ...narrow }}>{r.routes ?? "—"}</td>
+                <td style={{ ...td, ...narrow }}>{r.plannedStops ?? "—"}</td>
+                <td style={{ ...td, ...narrow }}>{r.actualStops ?? "—"}</td>
+                <td style={{ ...td, color: colorForScore(r.completion) }}>{r.completion !== null ? r.completion.toFixed(1) + "%" : "—"}</td>
+                <td style={{ ...td, color: colorForScore(r.onTimeInWindow) }}>{r.onTimeInWindow !== null ? r.onTimeInWindow.toFixed(1) + "%" : "—"}</td>
+                <td style={{ ...td, color: "#94a3b8" }}>{r.surveyPct !== null ? r.surveyPct.toFixed(1) + "%" : "—"}</td>
+                <td style={{ ...td, color: "#22c55e" }}>{r.positivePct !== null ? r.positivePct.toFixed(1) + "%" : "—"}</td>
+                <td style={{ ...td, color: "#ef4444" }}>{r.negativePct !== null ? r.negativePct.toFixed(1) + "%" : "—"}</td>
+                <td style={{ ...td, ...narrow }}>{r.ltrTotal}</td>
+                <td style={{ ...td, ...narrow, color: "#22c55e" }}>{r.ltrCount910}</td>
+                <td style={{ ...td, ...narrow, color: "#eab308" }}>{r.ltrCount8}</td>
+                <td style={{ ...td, ...narrow, color: "#ef4444" }}>{r.ltrCount07}</td>
+                <td style={td}>{r.ltrStrict !== null ? <span style={{ color: colorForScore(r.ltrStrict) }}>{r.ltrStrict.toFixed(1)}%</span> : <span style={{ color: "#475569" }}>N/A</span>}</td>
+                <td style={td}>{r.ltrNeutral !== null ? <span style={{ color: colorForScore(r.ltrNeutral) }}>{r.ltrNeutral.toFixed(1)}%</span> : <span style={{ color: "#475569" }}>N/A</span>}</td>
+                <td style={td}>{r.ltrPositive !== null ? <span style={{ color: colorForScore(r.ltrPositive) }}>{r.ltrPositive.toFixed(1)}%</span> : <span style={{ color: "#475569" }}>N/A</span>}</td>
+                <td style={{ ...td, background: bgForScore(r.composite) }}><span style={{ color: colorForScore(r.composite), fontWeight: 700 }}>{r.composite !== null ? r.composite.toFixed(1) : "—"}</span></td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <div style={{ color: "#475569", fontSize: 12, marginTop: 8 }}>{sorted.length} drivers shown</div>
+    </div>
+  );
+};
+
+const CarrierRankings = ({ spRows, ltrRows, filters, setFilters, options, useNeutral }) => {
+  const all = useMemo(() => buildCarrierRows(spRows, ltrRows, useNeutral), [spRows, ltrRows, useNeutral]);
+  const filtered = useMemo(() => all.filter((r) => {
+    if (filters.carrier && normalizeCarrier(r.carrier) !== normalizeCarrier(filters.carrier)) return false;
+    if (filters.region && r.region !== filters.region) return false;
+    if (filters.search && !r.carrier.toLowerCase().includes(filters.search.toLowerCase())) return false;
+    return true;
+  }), [all, filters]);
+  const { sorted, sortCol, sortDir, sort } = useSortable(filtered, "composite");
+  const th = (col, label, width) => <Th col={col} label={label} sortCol={sortCol} sortDir={sortDir} onSort={sort} width={width} />;
+  return (
+    <div>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+        <h2 style={{ color: "#f1f5f9", fontSize: 20, fontWeight: 700 }}>Contractor / Carrier Rankings</h2>
+        <button onClick={() => exportCSV(sorted, "carrier-rankings.csv")} style={exportBtn}>Export CSV</button>
+      </div>
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 10, marginBottom: 20, alignItems: "center" }}>
+        <input placeholder="🔍 Search…" value={filters.search || ""} onChange={(e) => setFilters((f) => ({ ...f, search: e.target.value }))} style={{ background: "#1e293b", color: "#cbd5e1", border: "1px solid #334155", borderRadius: 6, padding: "6px 12px", fontSize: 13, minWidth: 180 }} />
+        <select value={filters.carrier || ""} onChange={(e) => setFilters((f) => ({ ...f, carrier: e.target.value }))} style={{ background: "#1e293b", color: "#cbd5e1", border: "1px solid #334155", borderRadius: 6, padding: "6px 10px", fontSize: 13 }}>
+          <option value="">All Carriers</option>
+          {(options.carrier || []).map((o) => <option key={o} value={o}>{o}</option>)}
+        </select>
+        <select value={filters.region || ""} onChange={(e) => setFilters((f) => ({ ...f, region: e.target.value }))} style={{ background: "#1e293b", color: "#cbd5e1", border: "1px solid #334155", borderRadius: 6, padding: "6px 10px", fontSize: 13 }}>
+          <option value="">All Regions</option>
+          {(options.region || []).map((o) => <option key={o} value={o}>{o}</option>)}
+        </select>
+        <button onClick={() => setFilters((f) => ({ search: "", carrier: "", region: "" }))} style={{ background: "#1e293b", color: "#94a3b8", border: "1px solid #334155", borderRadius: 6, padding: "6px 12px", fontSize: 12, cursor: "pointer" }}>Clear</button>
+      </div>
+      <div style={{ overflowX: "auto", borderRadius: 10, border: "1px solid #1e293b" }}>
+        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12, tableLayout: "fixed" }}>
+          <thead><tr>
+            {th("rank", "#", "3%")}{th("carrier", "Carrier", "14%")}{th("routes", "Routes", "4%")}{th("plannedStops", "Planned", "4%")}
+            {th("actualStops", "Actual", "4%")}{th("completion", "Compl%", "6%")}{th("onTimeInWindow", "OT Win%", "6%")}
+            {th("surveyPct", "Take Rate%", "7%")}{th("positivePct", "Pos Take Rate%", "7%")}{th("negativePct", "Neg Take Rate%", "7%")}
+            {th("ltrTotal", "LTR#", "4%")}{th("ltrCount910", "9-10", "4%")}{th("ltrCount8", "8", "3%")}
+            {th("ltrCount07", "0-7", "4%")}{th("ltrStrict", "Strict LTR", "6%")}{th("ltrNeutral", "Neutral LTR", "6%")}{th("ltrPositive", "Positive LTR", "6%")}{th("composite", "Composite", "5%")}
+          </tr></thead>
+          <tbody>
+            {sorted.map((r, i) => (
+              <tr key={i} style={{ background: i % 2 === 0 ? "#0f172a" : "#111827", borderBottom: "1px solid #1e293b" }}>
+                <td style={td}><span style={{ color: "#64748b" }}>#{r.rank}</span></td>
+                <td style={td}><div style={{ color: "#f1f5f9", fontWeight: 600, ...wrapped }}>{r.carrier || "—"}</div>{r.lowSample && <Badge color="#f59e0b">Low Sample</Badge>}</td>
+                <td style={{ ...td, ...narrow }}>{r.routes ?? "—"}</td>
+                <td style={{ ...td, ...narrow }}>{r.plannedStops ?? "—"}</td>
+                <td style={{ ...td, ...narrow }}>{r.actualStops ?? "—"}</td>
+                <td style={{ ...td, color: colorForScore(r.completion) }}>{r.completion !== null ? r.completion.toFixed(1) + "%" : "—"}</td>
+                <td style={{ ...td, color: colorForScore(r.onTimeInWindow) }}>{r.onTimeInWindow !== null ? r.onTimeInWindow.toFixed(1) + "%" : "—"}</td>
+                <td style={{ ...td, color: "#94a3b8" }}>{r.surveyPct !== null ? r.surveyPct.toFixed(1) + "%" : "—"}</td>
+                <td style={{ ...td, color: "#22c55e" }}>{r.positivePct !== null ? r.positivePct.toFixed(1) + "%" : "—"}</td>
+                <td style={{ ...td, color: "#ef4444" }}>{r.negativePct !== null ? r.negativePct.toFixed(1) + "%" : "—"}</td>
+                <td style={{ ...td, ...narrow }}>{r.ltrTotal}</td>
+                <td style={{ ...td, ...narrow, color: "#22c55e" }}>{r.ltrCount910}</td>
+                <td style={{ ...td, ...narrow, color: "#eab308" }}>{r.ltrCount8}</td>
+                <td style={{ ...td, ...narrow, color: "#ef4444" }}>{r.ltrCount07}</td>
+                <td style={td}>{r.ltrStrict !== null ? <span style={{ color: colorForScore(r.ltrStrict) }}>{r.ltrStrict.toFixed(1)}%</span> : <span style={{ color: "#475569" }}>N/A</span>}</td>
+                <td style={td}>{r.ltrNeutral !== null ? <span style={{ color: colorForScore(r.ltrNeutral) }}>{r.ltrNeutral.toFixed(1)}%</span> : <span style={{ color: "#475569" }}>N/A</span>}</td>
+                <td style={td}>{r.ltrPositive !== null ? <span style={{ color: colorForScore(r.ltrPositive) }}>{r.ltrPositive.toFixed(1)}%</span> : <span style={{ color: "#475569" }}>N/A</span>}</td>
+                <td style={{ ...td, background: bgForScore(r.composite) }}><span style={{ color: colorForScore(r.composite), fontWeight: 700 }}>{r.composite !== null ? r.composite.toFixed(1) : "—"}</span></td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <div style={{ color: "#475569", fontSize: 12, marginTop: 8 }}>{sorted.length} carriers shown</div>
+    </div>
+  );
+};
+
+const StoreRankings = ({ ltrRows, filters, setFilters, options }) => {
+  const [commentStore, setCommentStore] = useState(null);
+  const all = useMemo(() => buildStoreRows(ltrRows), [ltrRows]);
+  const filtered = useMemo(() => all.filter((r) => {
+    if (filters.market && r.market !== filters.market) return false;
+    if (filters.search) { const s = filters.search.toLowerCase(); if (!r.storeNum.includes(s) && !r.storeName.toLowerCase().includes(s)) return false; }
+    return true;
+  }), [all, filters]);
+  // When a market is selected, default the sortable view to rank within that market
+  // rather than fleet-wide, since that's the comparison the filter implies.
+  const sortDefault = filters.market ? "marketRank" : "fleetRank";
+  const { sorted, sortCol, sortDir, sort } = useSortable(filtered, sortDefault);
+  const th = (col, label) => <Th col={col} label={label} sortCol={sortCol} sortDir={sortDir} onSort={sort} />;
+  return (
+    <div>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+        <h2 style={{ color: "#f1f5f9", fontSize: 20, fontWeight: 700 }}>Store Rankings</h2>
+        <button onClick={() => exportCSV(sorted.map(({ comments, ...r }) => r), "store-rankings.csv")} style={exportBtn}>Export CSV</button>
+      </div>
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 10, marginBottom: 20, alignItems: "center" }}>
+        <input placeholder="🔍 Search store…" value={filters.search || ""} onChange={(e) => setFilters((f) => ({ ...f, search: e.target.value }))} style={{ background: "#1e293b", color: "#cbd5e1", border: "1px solid #334155", borderRadius: 6, padding: "6px 12px", fontSize: 13, minWidth: 180 }} />
+        <select value={filters.market || ""} onChange={(e) => setFilters((f) => ({ ...f, market: e.target.value }))} style={{ background: "#1e293b", color: "#cbd5e1", border: "1px solid #334155", borderRadius: 6, padding: "6px 10px", fontSize: 13 }}>
+          <option value="">All Markets</option>
+          {(options.market || []).map((m) => <option key={m} value={m}>{m}</option>)}
+        </select>
+        <button onClick={() => setFilters({})} style={{ background: "#1e293b", color: "#94a3b8", border: "1px solid #334155", borderRadius: 6, padding: "6px 12px", fontSize: 12, cursor: "pointer" }}>Clear</button>
+      </div>
+      {filters.market && (
+        <div style={{ color: "#64748b", fontSize: 12, marginBottom: 12 }}>
+          Showing stores in Market {filters.market} — "Market Rank" reflects standing within this market only; "Fleet Rank" reflects standing across all {all.length} stores.
+        </div>
+      )}
+      <div style={{ overflowX: "auto", borderRadius: 10, border: "1px solid #1e293b" }}>
+        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
+          <thead><tr>
+            {th("fleetRank", "Fleet Rank")}{th("marketRank", "Market Rank")}{th("market", "Market")}{th("storeNum", "Store #")}{th("storeName", "Store Name")}{th("ltrTotal", "LTR#")}
+            {th("ltrCount910", "9-10")}{th("ltrCount8", "8")}{th("ltrCount07", "0-7")}{th("ltrStrict", "Strict LTR")}
+            {th("ltrNeutral", "Neutral LTR")}{th("ltrPositive", "Positive LTR")}{th("detractorCount", "Detractors")}{th("topDetractor", "Top Issue")}
+            <th style={thStyle}>Comments</th>
+          </tr></thead>
+          <tbody>
+            {sorted.map((r, i) => (
+              <tr key={i} style={{ background: i % 2 === 0 ? "#0f172a" : "#111827", borderBottom: "1px solid #1e293b" }}>
+                <td style={td}><span style={{ color: "#64748b" }}>#{r.fleetRank}</span></td>
+                <td style={td}><span style={{ color: "#38bdf8", fontWeight: 600 }}>#{r.marketRank}</span><span style={{ color: "#475569", fontSize: 11 }}> /{r.marketStoreCount}</span></td>
+                <td style={td}><span style={{ color: "#94a3b8" }}>{r.market}</span></td>
+                <td style={td}><span style={{ color: "#38bdf8", fontWeight: 700 }}>{r.storeNum || "—"}</span></td>
+                <td style={td}><div style={{ color: "#f1f5f9", ...truncated }} title={r.storeName}>{r.storeName}</div>{r.lowSample && <Badge color="#f59e0b">Low Sample</Badge>}</td>
+                <td style={td}>{r.ltrTotal}</td>
+                <td style={{ ...td, color: "#22c55e" }}>{r.ltrCount910}</td>
+                <td style={{ ...td, color: "#eab308" }}>{r.ltrCount8}</td>
+                <td style={{ ...td, color: "#ef4444" }}>{r.ltrCount07}</td>
+                <td style={td}>{r.ltrStrict !== null ? <span style={{ color: colorForScore(r.ltrStrict) }}>{r.ltrStrict.toFixed(1)}%</span> : <span style={{ color: "#475569" }}>N/A</span>}</td>
+                <td style={td}>{r.ltrNeutral !== null ? <span style={{ color: colorForScore(r.ltrNeutral) }}>{r.ltrNeutral.toFixed(1)}%</span> : <span style={{ color: "#475569" }}>N/A</span>}</td>
+                <td style={td}>{r.ltrPositive !== null ? <span style={{ color: colorForScore(r.ltrPositive) }}>{r.ltrPositive.toFixed(1)}%</span> : <span style={{ color: "#475569" }}>N/A</span>}</td>
+                <td style={td}><span style={{ color: r.detractorCount > 0 ? "#f87171" : "#94a3b8" }}>{r.detractorCount}</span></td>
+                <td style={td}><span style={{ color: "#94a3b8", fontSize: 12 }}>{r.topDetractor}</span></td>
+                <td style={td}>{r.comments.length > 0 && <button onClick={() => setCommentStore(r)} style={{ background: "#1e40af", color: "#93c5fd", border: "none", borderRadius: 4, padding: "3px 10px", fontSize: 12, cursor: "pointer" }}>View ({r.comments.length})</button>}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <div style={{ color: "#475569", fontSize: 12, marginTop: 8 }}>{sorted.length} stores shown{filters.market ? ` (Market ${filters.market})` : ""}</div>
+      {commentStore && (
+        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.7)", zIndex: 100, display: "flex", alignItems: "center", justifyContent: "center" }}>
+          <div style={{ background: "#1e293b", borderRadius: 12, padding: 28, maxWidth: 600, width: "90%", maxHeight: "80vh", overflowY: "auto" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 16 }}>
+              <h3 style={{ color: "#f1f5f9" }}>Comments — {commentStore.storeNum} {commentStore.storeName}</h3>
+              <button onClick={() => setCommentStore(null)} style={{ background: "none", border: "none", color: "#94a3b8", fontSize: 20, cursor: "pointer" }}>✕</button>
+            </div>
+            {commentStore.comments.map((c, i) => <div key={i} style={{ background: "#0f172a", borderRadius: 8, padding: "10px 14px", marginBottom: 10, color: "#cbd5e1", fontSize: 13 }}>{c}</div>)}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+const MarketRankings = ({ ltrRows, filters, setFilters }) => {
+  const all = useMemo(() => buildMarketRows(ltrRows), [ltrRows]);
+  const filtered = useMemo(() => all.filter((r) => {
+    if (filters.search) { const s = filters.search.toLowerCase(); if (!String(r.market).toLowerCase().includes(s)) return false; }
+    return true;
+  }), [all, filters]);
+  const { sorted, sortCol, sortDir, sort } = useSortable(filtered, "ltrStrict");
+  const th = (col, label) => <Th col={col} label={label} sortCol={sortCol} sortDir={sortDir} onSort={sort} />;
+  return (
+    <div>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+        <h2 style={{ color: "#f1f5f9", fontSize: 20, fontWeight: 700 }}>Market Rankings</h2>
+        <button onClick={() => exportCSV(sorted, "market-rankings.csv")} style={exportBtn}>Export CSV</button>
+      </div>
+      <div style={{ color: "#64748b", fontSize: 13, marginBottom: 16 }}>Based on LTR survey responses only — Market is not present in the KPI carrier/driver data, so no Completion%, On-Time%, or Composite score is shown here.</div>
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 10, marginBottom: 20, alignItems: "center" }}>
+        <input placeholder="🔍 Search market…" value={filters.search || ""} onChange={(e) => setFilters((f) => ({ ...f, search: e.target.value }))} style={{ background: "#1e293b", color: "#cbd5e1", border: "1px solid #334155", borderRadius: 6, padding: "6px 12px", fontSize: 13, minWidth: 180 }} />
+        <button onClick={() => setFilters({})} style={{ background: "#1e293b", color: "#94a3b8", border: "1px solid #334155", borderRadius: 6, padding: "6px 12px", fontSize: 12, cursor: "pointer" }}>Clear</button>
+      </div>
+      <div style={{ overflowX: "auto", borderRadius: 10, border: "1px solid #1e293b" }}>
+        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
+          <thead><tr>
+            {th("rank", "#")}{th("market", "Market")}{th("storeCount", "Stores")}{th("ltrTotal", "LTR#")}
+            {th("ltrCount910", "9-10")}{th("ltrCount8", "8")}{th("ltrCount07", "0-7")}{th("ltrStrict", "Strict LTR")}
+            {th("ltrNeutral", "Neutral LTR")}{th("ltrPositive", "Positive LTR")}{th("detractorCount", "Detractors")}{th("topDetractor", "Top Issue")}
+          </tr></thead>
+          <tbody>
+            {sorted.map((r, i) => (
+              <tr key={i} style={{ background: i % 2 === 0 ? "#0f172a" : "#111827", borderBottom: "1px solid #1e293b" }}>
+                <td style={td}><span style={{ color: "#64748b" }}>#{r.rank}</span></td>
+                <td style={td}><div style={{ color: "#f1f5f9", fontWeight: 600 }}>{r.market}</div>{r.lowSample && <Badge color="#f59e0b">Low Sample</Badge>}</td>
+                <td style={td}>{r.storeCount}</td>
+                <td style={td}>{r.ltrTotal}</td>
+                <td style={{ ...td, color: "#22c55e" }}>{r.ltrCount910}</td>
+                <td style={{ ...td, color: "#eab308" }}>{r.ltrCount8}</td>
+                <td style={{ ...td, color: "#ef4444" }}>{r.ltrCount07}</td>
+                <td style={td}>{r.ltrStrict !== null ? <span style={{ color: colorForScore(r.ltrStrict) }}>{r.ltrStrict.toFixed(1)}%</span> : <span style={{ color: "#475569" }}>N/A</span>}</td>
+                <td style={td}>{r.ltrNeutral !== null ? <span style={{ color: colorForScore(r.ltrNeutral) }}>{r.ltrNeutral.toFixed(1)}%</span> : <span style={{ color: "#475569" }}>N/A</span>}</td>
+                <td style={td}>{r.ltrPositive !== null ? <span style={{ color: colorForScore(r.ltrPositive) }}>{r.ltrPositive.toFixed(1)}%</span> : <span style={{ color: "#475569" }}>N/A</span>}</td>
+                <td style={td}><span style={{ color: r.detractorCount > 0 ? "#f87171" : "#94a3b8" }}>{r.detractorCount}</span></td>
+                <td style={td}><span style={{ color: "#94a3b8", fontSize: 12 }}>{r.topDetractor}</span></td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <div style={{ color: "#475569", fontSize: 12, marginTop: 8 }}>{sorted.length} markets shown</div>
+    </div>
+  );
+};
+
+const DetractorReview = ({ ltrRows, filters, setFilters, options }) => {
+  const [detFilter, setDetFilter] = useState("");
+  const [driverFilter, setDriverFilter] = useState("");
+  const [ltrFilters, setLtrFilters] = useState([]); // array of selected scores (numbers), empty = all
+  const toggleLtrScore = (n) => setLtrFilters((prev) => prev.includes(n) ? prev.filter((x) => x !== n) : [...prev, n]);
+  const filtered = useMemo(() => ltrRows.filter((r) => {
+    // Normalized comparison guards against trivial formatting differences (case,
+    // punctuation, LLC/Inc/Corp suffixes) between how a carrier name is entered across
+    // sheets — without merging genuinely different companies (e.g. "A&M Trucking LLC"
+    // and "A & M Trucking LLC" are confirmed distinct and must NOT be treated as equal).
+    if (filters.carrier && normalizeCarrier(r.carrier) !== normalizeCarrier(filters.carrier)) return false;
+    if (driverFilter && r.contractorCarrier !== driverFilter) return false;
+    if (filters.search) { const s = filters.search.toLowerCase(); if (!r.store.name.toLowerCase().includes(s) && !r.contractorCarrier.toLowerCase().includes(s)) return false; }
+    if (detFilter && r.detractor !== detFilter) return false;
+    if (ltrFilters.length > 0 && !ltrFilters.includes(r.ltr)) return false;
+    return true;
+  }), [ltrRows, filters, detFilter, driverFilter, ltrFilters]);
+  const detCategories = useMemo(() => [...new Set(ltrRows.map((r) => r.detractor).filter(Boolean))], [ltrRows]);
+  const { sorted, sortCol, sortDir, sort } = useSortable(filtered, "deliveryDate");
+  const th = (col, label) => <Th col={col} label={label} sortCol={sortCol} sortDir={sortDir} onSort={sort} />;
+  return (
+    <div>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+        <h2 style={{ color: "#f1f5f9", fontSize: 20, fontWeight: 700 }}>LTR Detail / Detractor Review</h2>
+        <button onClick={() => exportCSV(sorted.map((r) => ({ date: r.deliveryDate, store: r.store.name, carrier: r.carrier, driver: r.contractorCarrier, ltr: r.ltr, detractor: r.detractor, improvement: r.improvementComment, followUp: r.followUpComment })), "detractor-review.csv")} style={exportBtn}>Export CSV</button>
+      </div>
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 10, marginBottom: 14 }}>
+        <input placeholder="🔍 Search store / driver…" value={filters.search || ""} onChange={(e) => setFilters((f) => ({ ...f, search: e.target.value }))} style={{ background: "#1e293b", color: "#cbd5e1", border: "1px solid #334155", borderRadius: 6, padding: "6px 12px", fontSize: 13, minWidth: 200 }} />
+        <select value={filters.carrier || ""} onChange={(e) => setFilters((f) => ({ ...f, carrier: e.target.value }))} style={{ background: "#1e293b", color: "#cbd5e1", border: "1px solid #334155", borderRadius: 6, padding: "6px 10px", fontSize: 13 }}>
+          <option value="">All Carriers</option>{(options.carrier || []).map((o) => <option key={o}>{o}</option>)}
+        </select>
+        <select value={driverFilter} onChange={(e) => setDriverFilter(e.target.value)} style={{ background: "#1e293b", color: "#cbd5e1", border: "1px solid #334155", borderRadius: 6, padding: "6px 10px", fontSize: 13 }}>
+          <option value="">All Drivers/SPE</option>{(options.driver || []).map((o) => <option key={o}>{o}</option>)}
+        </select>
+        <select value={detFilter} onChange={(e) => setDetFilter(e.target.value)} style={{ background: "#1e293b", color: "#cbd5e1", border: "1px solid #334155", borderRadius: 6, padding: "6px 10px", fontSize: 13 }}>
+          <option value="">All Categories</option>{detCategories.map((d) => <option key={d}>{d}</option>)}
+        </select>
+        <button onClick={() => { setFilters({}); setDetFilter(""); setDriverFilter(""); setLtrFilters([]); }} style={{ background: "#1e293b", color: "#94a3b8", border: "1px solid #334155", borderRadius: 6, padding: "6px 12px", fontSize: 12, cursor: "pointer" }}>Clear</button>
+      </div>
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 20, alignItems: "center" }}>
+        <span style={{ color: "#64748b", fontSize: 12 }}>LTR Scores:</span>
+        {[10,9,8,7,6,5,4,3,2,1,0].map((n) => {
+          const active = ltrFilters.includes(n);
+          const color = n >= 9 ? "#22c55e" : n === 8 ? "#eab308" : "#ef4444";
+          return (
+            <button key={n} onClick={() => toggleLtrScore(n)} style={{ background: active ? color + "33" : "#1e293b", color: active ? color : "#64748b", border: `1px solid ${active ? color : "#334155"}`, borderRadius: 6, padding: "4px 10px", fontSize: 13, fontWeight: active ? 700 : 400, cursor: "pointer" }}>{n}</button>
+          );
+        })}
+        {ltrFilters.length > 0 && <button onClick={() => setLtrFilters([])} style={{ background: "none", border: "none", color: "#38bdf8", fontSize: 12, cursor: "pointer", textDecoration: "underline" }}>clear scores</button>}
+      </div>
+      <div style={{ overflowX: "auto", borderRadius: 10, border: "1px solid #1e293b" }}>
+        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
+          <thead><tr>
+            {th("deliveryDate", "Date")}{th("store", "Store")}{th("carrier", "Carrier")}{th("contractorCarrier", "Driver/SPE")}
+            {th("ltr", "LTR")}{th("detractor", "Category")}<th style={thStyle}>Improvement Comment</th><th style={thStyle}>Follow-up Comment</th>
+          </tr></thead>
+          <tbody>
+            {sorted.map((r, i) => (
+              <tr key={i} style={{ background: i % 2 === 0 ? "#0f172a" : "#111827", borderBottom: "1px solid #1e293b" }}>
+                <td style={td}><span style={{ color: "#64748b", whiteSpace: "nowrap" }}>{r.deliveryDate || "—"}</span></td>
+                <td style={td}><span style={{ color: "#38bdf8", fontWeight: 600 }}>{r.store.number}</span><span style={{ color: "#94a3b8", marginLeft: 4, fontSize: 12 }} title={r.store.name}>{r.store.name}</span></td>
+                <td style={{ ...td, ...wrapped }}>{r.carrier || "—"}</td>
+                <td style={{ ...td, ...wrapped }}>{r.contractorCarrier || "—"}</td>
+                <td style={td}><span style={{ fontWeight: 700, fontSize: 15, color: r.ltr >= 9 ? "#22c55e" : r.ltr === 8 ? "#eab308" : "#ef4444" }}>{r.ltr}</span></td>
+                <td style={td}>{r.detractor ? <Badge color="#f87171">{r.detractor}</Badge> : <span style={{ color: "#475569" }}>—</span>}</td>
+                <td style={{ ...td, ...truncated, maxWidth: 200, display: "table-cell" }} title={r.improvementComment}><span style={{ color: "#94a3b8", fontSize: 12 }}>{r.improvementComment || "—"}</span></td>
+                <td style={{ ...td, ...truncated, maxWidth: 200, display: "table-cell" }} title={r.followUpComment}><span style={{ color: "#94a3b8", fontSize: 12 }}>{r.followUpComment || "—"}</span></td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <div style={{ color: "#475569", fontSize: 12, marginTop: 8 }}>{sorted.length} records shown</div>
+    </div>
+  );
+};
+
+const CHART_COLORS = ["#38bdf8", "#818cf8", "#34d399", "#fb923c", "#f472b6", "#a78bfa", "#fbbf24", "#6ee7b7"];
+
+const ExecutiveSummary = ({ spRows, speRows, ltrRows, useNeutral }) => {
+  const driverRows = useMemo(() => buildDriverRows(speRows, ltrRows, useNeutral), [speRows, ltrRows, useNeutral]);
+  const carrierRows = useMemo(() => buildCarrierRows(spRows, ltrRows, useNeutral), [spRows, ltrRows, useNeutral]);
+  const totalLTR = ltrRows.length;
+  const ltr910 = ltrRows.filter((r) => r.ltr >= 9).length;
+  const ltr8 = ltrRows.filter((r) => r.ltr === 8).length;
+  const ltr07 = ltrRows.filter((r) => r.ltr <= 7).length;
+  const strictOverall = totalLTR ? ((ltr910 / totalLTR) * 100).toFixed(1) : "N/A";
+  const neutDenom = totalLTR - ltr8;
+  const neutralOverall = neutDenom > 0 ? ((ltr910 / neutDenom) * 100).toFixed(1) : "N/A";
+  // Fleet-wide survey-to-delivery rates: sum Actual Stops across the SP sheet (total
+  // completed deliveries) as the denominator, rather than averaging per-carrier
+  // percentages, since that would overweight low-volume carriers.
+  const totalActualStops = spRows.reduce((s, r) => s + (r.actualStops || 0), 0);
+  const surveyOverall = totalActualStops > 0 ? ((totalLTR / totalActualStops) * 100).toFixed(1) : "N/A";
+  const positiveOverall = totalActualStops > 0 ? ((ltr910 / totalActualStops) * 100).toFixed(1) : "N/A";
+  // Negative matches Strict LTR's definition: anything below 9 (including 8s) counts
+  // against the score, rather than excluding 8s.
+  const negativeOverall = totalActualStops > 0 ? (((ltr07 + ltr8) / totalActualStops) * 100).toFixed(1) : "N/A";
+  const detMap = {};
+  ltrRows.forEach((r) => { if (r.detractor) detMap[r.detractor] = (detMap[r.detractor] || 0) + 1; });
+  const detData = Object.entries(detMap).map(([name, value]) => ({ name, value })).sort((a, b) => b.value - a.value).slice(0, 8);
+  const ltrDist = [
+    { name: "10", value: ltrRows.filter((r) => r.ltr === 10).length },
+    { name: "9", value: ltrRows.filter((r) => r.ltr === 9).length },
+    { name: "8", value: ltr8 },
+    { name: "7-", value: ltr07 },
+  ];
+  const top10D = driverRows.slice(0, 10);
+  const bot10D = [...driverRows].sort((a, b) => (a.composite || 0) - (b.composite || 0)).slice(0, 10);
+  const top10C = carrierRows.slice(0, 10);
+  const bot10C = [...carrierRows].sort((a, b) => (a.composite || 0) - (b.composite || 0)).slice(0, 10);
+  const MiniTable = ({ rows, nameKey, title }) => (
+    <div style={{ background: "#0f172a", borderRadius: 10, padding: 16, border: "1px solid #1e293b" }}>
+      <div style={{ color: "#94a3b8", fontSize: 12, fontWeight: 600, marginBottom: 10, textTransform: "uppercase", letterSpacing: 0.5 }}>{title}</div>
+      {rows.map((r, i) => (
+        <div key={i} style={{ display: "flex", justifyContent: "space-between", padding: "5px 0", borderBottom: "1px solid #1e293b" }}>
+          <div style={{ display: "flex", gap: 8, alignItems: "center" }}><span style={{ color: "#475569", fontSize: 11, minWidth: 20 }}>#{r.rank}</span><span style={{ color: "#e2e8f0", fontSize: 13 }}>{r[nameKey] || "—"}</span></div>
+          <span style={{ color: colorForScore(r.composite), fontWeight: 700, fontSize: 13 }}>{r.composite !== null ? r.composite.toFixed(1) : "—"}</span>
+        </div>
+      ))}
+    </div>
+  );
+  return (
+    <div>
+      <h2 style={{ color: "#f1f5f9", fontSize: 20, fontWeight: 700, marginBottom: 20 }}>Executive Summary</h2>
+      <div style={{ background: "#0f172a", borderRadius: 10, padding: 16, border: "1px solid #1e293b", marginBottom: 20 }}>
+        <div style={{ color: "#94a3b8", fontSize: 12, fontWeight: 600, marginBottom: 12, textTransform: "uppercase", letterSpacing: 0.5 }}>Composite Score Weights</div>
+        <div style={{ display: "flex", width: "100%", height: 28, borderRadius: 6, overflow: "hidden", marginBottom: 10 }}>
+          <div style={{ width: "30%", background: "#38bdf8", display: "flex", alignItems: "center", justifyContent: "center", color: "#06283d", fontSize: 12, fontWeight: 700 }}>30%</div>
+          <div style={{ width: "30%", background: "#818cf8", display: "flex", alignItems: "center", justifyContent: "center", color: "#1a1a3d", fontSize: 12, fontWeight: 700 }}>30%</div>
+          <div style={{ width: "40%", background: "#22c55e", display: "flex", alignItems: "center", justifyContent: "center", color: "#06281a", fontSize: 12, fontWeight: 700 }}>40%</div>
+        </div>
+        <div style={{ display: "flex", gap: 20, flexWrap: "wrap", fontSize: 12 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 6 }}><div style={{ width: 10, height: 10, borderRadius: 2, background: "#38bdf8" }} /><span style={{ color: "#cbd5e1" }}>Completion % — 30%</span></div>
+          <div style={{ display: "flex", alignItems: "center", gap: 6 }}><div style={{ width: 10, height: 10, borderRadius: 2, background: "#818cf8" }} /><span style={{ color: "#cbd5e1" }}>On-Time In Window % — 30%</span></div>
+          <div style={{ display: "flex", alignItems: "center", gap: 6 }}><div style={{ width: 10, height: 10, borderRadius: 2, background: "#22c55e" }} /><span style={{ color: "#cbd5e1" }}>LTR Score ({useNeutral ? "Neutral" : "Strict"}) — 40%</span></div>
+        </div>
+        <div style={{ color: "#64748b", fontSize: 11, marginTop: 10 }}>On-Time % and Redelivery % are shown in the rankings tables for reference but are not part of the Composite score.</div>
+      </div>
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 12, marginBottom: 24 }}>
+        <KPICard label="Total LTR Responses" value={totalLTR} color="#38bdf8" />
+        <KPICard label="Strict LTR Score" value={strictOverall + "%"} color="#22c55e" sub="9-10 / Total" />
+        <KPICard label="Neutral LTR Score" value={neutralOverall + "%"} color="#818cf8" sub="9-10 / (Total − 8s)" />
+        <KPICard label="Promoters (9-10)" value={ltr910} color="#22c55e" />
+        <KPICard label="Neutrals (8)" value={ltr8} color="#eab308" />
+        <KPICard label="Detractors (0-7)" value={ltr07} color="#ef4444" />
+        <KPICard label="Active Drivers" value={speRows.length} color="#38bdf8" />
+        <KPICard label="Active Carriers" value={carrierRows.length} color="#fb923c" />
+        <KPICard label="Take Rate % of Deliveries" value={surveyOverall + "%"} color="#94a3b8" sub="Surveys / Actual Stops" />
+        <KPICard label="Positive Take Rate % of Deliveries" value={positiveOverall + "%"} color="#22c55e" sub="9-10 / Actual Stops" />
+        <KPICard label="Negative Take Rate % of Deliveries" value={negativeOverall + "%"} color="#ef4444" sub="0-7 / Actual Stops" />
+      </div>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 24 }}>
+        <div style={{ background: "#0f172a", borderRadius: 10, padding: 16, border: "1px solid #1e293b" }}>
+          <div style={{ color: "#94a3b8", fontSize: 12, fontWeight: 600, marginBottom: 12, textTransform: "uppercase", letterSpacing: 0.5 }}>LTR Distribution</div>
+          <div style={{ display: "flex", alignItems: "flex-end", gap: 16, height: 180, padding: "0 8px" }}>
+            {ltrDist.map((d, i) => {
+              const max = Math.max(...ltrDist.map((x) => x.value), 1);
+              const barColor = ["#22c55e", "#4ade80", "#eab308", "#ef4444"][i];
+              const heightPct = (d.value / max) * 100;
+              return (
+                <div key={d.name} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "flex-end", height: "100%" }}>
+                  <div style={{ color: "#cbd5e1", fontSize: 12, fontWeight: 700, marginBottom: 6 }}>{d.value}</div>
+                  <div style={{ width: "100%", maxWidth: 56, background: barColor, borderRadius: "4px 4px 0 0", height: `${Math.max(heightPct, 2)}%`, transition: "height .3s" }} />
+                  <div style={{ color: "#64748b", fontSize: 12, marginTop: 8 }}>{d.name}</div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+        <div style={{ background: "#0f172a", borderRadius: 10, padding: 16, border: "1px solid #1e293b" }}>
+          <div style={{ color: "#94a3b8", fontSize: 12, fontWeight: 600, marginBottom: 12, textTransform: "uppercase", letterSpacing: 0.5 }}>Top Detractor Categories</div>
+          <div style={{ height: 180, overflowY: "auto", paddingRight: 4 }}>
+            {detData.length === 0 && <div style={{ color: "#475569", fontSize: 13, paddingTop: 20, textAlign: "center" }}>No detractor data</div>}
+            {detData.map((d, i) => {
+              const total = detData.reduce((s, x) => s + x.value, 0) || 1;
+              const pct = (d.value / total) * 100;
+              const barColor = CHART_COLORS[i % CHART_COLORS.length];
+              return (
+                <div key={d.name} style={{ marginBottom: 10 }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, marginBottom: 4 }}>
+                    <span style={{ color: "#cbd5e1" }}>{d.name}</span>
+                    <span style={{ color: "#94a3b8" }}>{d.value} ({pct.toFixed(0)}%)</span>
+                  </div>
+                  <div style={{ background: "#1e293b", borderRadius: 4, height: 8, overflow: "hidden" }}>
+                    <div style={{ background: barColor, height: "100%", width: `${pct}%`, borderRadius: 4 }} />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 16 }}>
+        <MiniTable rows={top10D} nameKey="name" title="Top 10 Drivers" />
+        <MiniTable rows={bot10D} nameKey="name" title="Bottom 10 Drivers" />
+        <MiniTable rows={top10C} nameKey="carrier" title="Top 10 Carriers" />
+        <MiniTable rows={bot10C} nameKey="carrier" title="Bottom 10 Carriers" />
+      </div>
+    </div>
+  );
+};
+
+const TABS = ["Executive Summary", "Driver Rankings", "Carrier Rankings", "Store Rankings", "Market Rankings", "Detractor Review", "Upload / Refresh"];
+
+function App() {
+  const [data, setData] = useState(null);
+  const [tab, setTab] = useState("Upload / Refresh");
+  const [filters, setFilters] = useState({});
+  const [useNeutral, setUseNeutral] = useState(false);
+  const [autoLoading, setAutoLoading] = useState(true);
+
+  useEffect(() => {
+    loadFromSupabase().then((d) => {
+      if (d.ltrRows.length || d.spRows.length) { setData(d); setTab("Executive Summary"); }
+    }).catch(() => {}).finally(() => setAutoLoading(false));
+  }, []);
+
+  const options = useMemo(() => {
+    if (!data) return {};
+    // Dedupe carrier names by normalized identity so near-duplicate spellings from the
+    // two source files (e.g. "A&M Trucking LLC" vs "A & M Trucking LLC") don't show up
+    // as two separate, confusing dropdown entries. Prefer the KPI/SP file's spelling as
+    // the canonical display label, since that's what the rankings tables already use;
+    // fall back to the LTR file's spelling for carriers that only appear there.
+    const carrierByNorm = {};
+    data.spRows.forEach((r) => { if (r.carrier) carrierByNorm[normalizeCarrier(r.carrier)] = r.carrier; });
+    data.ltrRows.forEach((r) => { const n = normalizeCarrier(r.carrier); if (r.carrier && !carrierByNorm[n]) carrierByNorm[n] = r.carrier; });
+    return {
+      weekEnding: [...new Set([...data.speRows.map((r) => r.weekEnding), ...data.spRows.map((r) => r.weekEnding)])].filter(Boolean).sort(),
+      carrier: Object.values(carrierByNorm).sort(),
+      region: [...new Set([...data.speRows.map((r) => r.region), ...data.spRows.map((r) => r.region)])].filter(Boolean).sort(),
+      district: [...new Set([...data.speRows.map((r) => r.district), ...data.spRows.map((r) => r.district)])].filter(Boolean).sort(),
+      market: [...new Set(data.ltrRows.map((r) => r.market))].filter(Boolean).sort(),
+      driver: [...new Set(data.ltrRows.map((r) => r.contractorCarrier))].filter(Boolean).sort(),
+    };
+  }, [data]);
+
+  if (autoLoading) {
+    return (
+      <div style={{ minHeight: "100vh", background: "#060f1e", display: "flex", alignItems: "center", justifyContent: "center", flexDirection: "column", gap: 16 }}>
+        <div style={{ color: "#38bdf8", fontSize: 32 }}>📊</div>
+        <div style={{ color: "#94a3b8", fontSize: 16 }}>Loading data from Supabase...</div>
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ minHeight: "100vh", background: "#060f1e", fontFamily: "'Inter','Segoe UI',sans-serif", color: "#e2e8f0" }}>
+      <div style={{ background: "linear-gradient(90deg,#0a1628 0%,#0f2040 100%)", borderBottom: "1px solid #1e3a5f", padding: "0 24px", display: "flex", alignItems: "center", justifyContent: "space-between", position: "sticky", top: 0, zIndex: 50, height: 56 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+          <div style={{ background: "linear-gradient(135deg,#004C97,#0069C4)", borderRadius: 8, padding: "5px 10px", fontWeight: 800, fontSize: 15, color: "#fff", letterSpacing: 0.5 }}>LOWE'S</div>
+          <div style={{ color: "#94a3b8", fontSize: 14 }}>Delivery Performance Dashboard</div>
+        </div>
+        {data && (
+          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+            <span style={{ color: "#475569", fontSize: 12 }}>Composite:</span>
+            <button onClick={() => setUseNeutral(false)} style={{ background: !useNeutral ? "#1e40af" : "#1e293b", color: !useNeutral ? "#93c5fd" : "#64748b", border: "1px solid #334155", borderRadius: "6px 0 0 6px", padding: "4px 12px", fontSize: 12, cursor: "pointer" }}>Strict LTR</button>
+            <button onClick={() => setUseNeutral(true)} style={{ background: useNeutral ? "#1e40af" : "#1e293b", color: useNeutral ? "#93c5fd" : "#64748b", border: "1px solid #334155", borderRadius: "0 6px 6px 0", padding: "4px 12px", fontSize: 12, cursor: "pointer" }}>Neutral 8</button>
+          </div>
+        )}
+      </div>
+      <div style={{ background: "#0a1628", borderBottom: "1px solid #1e293b", padding: "0 24px", display: "flex", gap: 0, overflowX: "auto" }}>
+        {TABS.map((t) => (
+          <button key={t} onClick={() => setTab(t)} style={{ background: "none", border: "none", padding: "12px 18px", fontSize: 13, cursor: "pointer", whiteSpace: "nowrap", fontWeight: tab === t ? 600 : 400, color: tab === t ? "#38bdf8" : "#64748b", borderBottom: tab === t ? "2px solid #38bdf8" : "2px solid transparent" }}>{t}</button>
+        ))}
+      </div>
+      <div style={{ background: "#0a1628", borderBottom: "1px solid #1e293b", padding: "6px 24px", display: "flex", gap: 20, alignItems: "center", flexWrap: "wrap" }}>
+        {[["#22c55e", "≥95% Excellent"], ["#eab308", "90-94% Good"], ["#ef4444", "<90% Needs Attention"]].map(([c, l]) => (
+          <div key={l} style={{ display: "flex", alignItems: "center", gap: 6 }}><div style={{ width: 10, height: 10, borderRadius: 2, background: c }} /><span style={{ color: "#64748b", fontSize: 11 }}>{l}</span></div>
+        ))}
+        <div style={{ marginLeft: "auto", color: "#475569", fontSize: 11 }}>Composite = Completion(30%) + OT Window(30%) + LTR(40%) — OT% and Redelivery% are informational only</div>
+      </div>
+      <div style={{ padding: "24px", maxWidth: 1600, margin: "0 auto" }}>
+        {tab === "Upload / Refresh" && <UploadPage onLoad={(d) => { setData(d); setTab("Executive Summary"); }} />}
+        {tab === "Executive Summary" && data && <ExecutiveSummary spRows={data.spRows} speRows={data.speRows} ltrRows={data.ltrRows} useNeutral={useNeutral} />}
+        {tab === "Driver Rankings" && data && <DriverRankings speRows={data.speRows} ltrRows={data.ltrRows} filters={filters} setFilters={setFilters} options={options} useNeutral={useNeutral} />}
+        {tab === "Carrier Rankings" && data && <CarrierRankings spRows={data.spRows} ltrRows={data.ltrRows} filters={filters} setFilters={setFilters} options={options} useNeutral={useNeutral} />}
+        {tab === "Store Rankings" && data && <StoreRankings ltrRows={data.ltrRows} filters={filters} setFilters={setFilters} options={options} />}
+        {tab === "Market Rankings" && data && <MarketRankings ltrRows={data.ltrRows} filters={filters} setFilters={setFilters} />}
+        {tab === "Detractor Review" && data && <DetractorReview ltrRows={data.ltrRows} filters={filters} setFilters={setFilters} options={options} />}
+        {!data && tab !== "Upload / Refresh" && (
+          <div style={{ textAlign: "center", paddingTop: 80, color: "#475569" }}>
+            <div style={{ fontSize: 40, marginBottom: 16 }}>📊</div>
+            <div style={{ fontSize: 18 }}>No data loaded yet.</div>
+            <button onClick={() => setTab("Upload / Refresh")} style={{ ...exportBtn, marginTop: 16, padding: "10px 24px" }}>Go to Upload</button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ─── Sign-in gate ─────────────────────────────────────────────────────
+// The data tables only answer to signed-in HSCS staff. supabase-js keeps the session in the browser and sends
+// the user's token with every request, so nothing below needs to know about it. Signing out unmounts <App/>,
+// which drops the loaded data from memory.
+function AuthGate({ children }) {
+  const [session, setSession] = useState(undefined); // undefined = still checking
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [err, setErr] = useState("");
+  const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data }) => setSession(data.session || null));
+    const { data: sub } = supabase.auth.onAuthStateChange((_event, s) => setSession(s || null));
+    return () => sub.subscription.unsubscribe();
+  }, []);
+
+  const signIn = async (e) => {
+    e.preventDefault(); setBusy(true); setErr("");
+    const { error } = await supabase.auth.signInWithPassword({ email: email.trim(), password });
+    if (error) setErr(error.message === "Invalid login credentials" ? "Email or password not recognised." : error.message);
+    setBusy(false);
+  };
+
+  const shell = { minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "#060f1e", color: "#e2e8f0", fontFamily: "'Inter','Segoe UI',sans-serif" };
+  const field = { width: "100%", padding: "10px 12px", marginTop: 6, marginBottom: 14, borderRadius: 8, border: "1px solid #334155", background: "#0f172a", color: "#e2e8f0", fontSize: 14 };
+
+  if (session === undefined) return <div style={shell}>Checking sign-in…</div>;
+  if (!session) {
+    return (
+      <div style={shell}>
+        <form onSubmit={signIn} style={{ width: 340, padding: 28, borderRadius: 14, background: "#0b1730", border: "1px solid #1e293b" }}>
+          <div style={{ fontSize: 18, fontWeight: 700, marginBottom: 4 }}>Lowe's KPI Dashboard</div>
+          <div style={{ fontSize: 13, color: "#94a3b8", marginBottom: 20 }}>Sign in with your Herman Supply Chain Solutions staff account.</div>
+          <label style={{ fontSize: 12, color: "#94a3b8" }}>Email</label>
+          <input type="email" autoComplete="username" required value={email} onChange={(e) => setEmail(e.target.value)} style={field} />
+          <label style={{ fontSize: 12, color: "#94a3b8" }}>Password</label>
+          <input type="password" autoComplete="current-password" required value={password} onChange={(e) => setPassword(e.target.value)} style={field} />
+          {err && <div role="alert" style={{ color: "#f87171", fontSize: 13, marginBottom: 12 }}>{err}</div>}
+          <button type="submit" disabled={busy} style={{ width: "100%", padding: "11px 0", border: "none", borderRadius: 8, background: "linear-gradient(90deg,#0ea5e9,#3b82f6)", color: "#fff", fontWeight: 600, fontSize: 15, cursor: "pointer" }}>{busy ? "Signing in…" : "Sign in"}</button>
+        </form>
+      </div>
+    );
+  }
+  return (
+    <React.Fragment key={session.user.id}>
+      <button onClick={() => supabase.auth.signOut()} style={{ position: "fixed", top: 10, right: 12, zIndex: 1000, padding: "6px 12px", borderRadius: 8, border: "1px solid #334155", background: "#0f172a", color: "#94a3b8", fontSize: 12, cursor: "pointer" }}>Sign out ({session.user.email})</button>
+      {children}
+    </React.Fragment>
+  );
+}
+
+try {
+  ReactDOM.createRoot(document.getElementById('root')).render(<AuthGate><App /></AuthGate>);
+} catch (err) {
+  document.getElementById('root').innerHTML =
+    '<div style="color:#f87171;background:#0f172a;padding:40px;font-family:sans-serif;white-space:pre-wrap;">Dashboard failed to load.\n\n' +
+    String(err) + '</div>';
+}
+</script>
+<script>
+  (function() {
+    if (window.__dashboardLoaded) return;
+    window.__dashboardLoaded = true;
+    try {
+      var src = document.getElementById('app-source').textContent;
+      var output = Babel.transform(src, { presets: [["react", { runtime: "classic" }]] }).code;
+      var execScript = document.createElement('script');
+      execScript.textContent = '(function(){' + output + '})();';
+      document.body.appendChild(execScript);
+    } catch (err) {
+      document.getElementById('root').innerHTML =
+        '<div style="color:#f87171;background:#0f172a;padding:40px;font-family:monospace;white-space:pre-wrap;min-height:100vh;">Babel transform failed:\n\n' +
+        String(err && err.message ? err.message : err) + '</div>';
+    }
+  })();
+</script>
+</body>
+</html>
