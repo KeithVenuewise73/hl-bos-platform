@@ -831,6 +831,22 @@ async function api(route, body, headers) {
     );
     await flaky2.context().close();
 
+    console.log("\nA big game: tiles keep their shape before their pictures arrive");
+    const slow = await (await context()).newPage();
+    await slow.route(/-thumb\.jpg/, () => {
+      /* never answers: the pictures have not arrived */
+    });
+    await slow.goto(gameUrl);
+    await slow.waitForSelector(".tp-tile");
+    check(
+      "a tile is already full height with no picture yet (so a 900-photo game does not ask for every thumbnail at once)",
+      (await slow
+        .locator(".tp-tile")
+        .first()
+        .evaluate((e) => e.getBoundingClientRect().height)) > 60,
+    );
+    await slow.context().close();
+
     console.log("\nIf the service is unreachable");
     const down = await context();
     await down.route(/\/site\//, (r) => r.abort());
