@@ -751,6 +751,86 @@ async function api(route, body, headers) {
         (await v.locator("[data-testid=game-missing] a").count()) === 1,
     );
 
+    console.log(
+      "\nA busy storage service: the viewer says so, tries again, and falls back",
+    );
+    const flaky = await (await context()).newPage();
+    let webHits = 0;
+    let mode = "busy-twice"; // then "always-busy"
+    await flaky.route(/-web\.jpg/, async (route) => {
+      webHits += 1;
+      if (mode === "always-busy" || webHits <= 2)
+        return route.fulfill({
+          status: 429,
+          contentType: "application/json",
+          body: '{"error":"Too many requests"}',
+        });
+      return route.continue();
+    });
+    await flaky.goto(gameUrl);
+    await flaky.waitForSelector("[data-testid=album]");
+    await flaky.locator(".tp-tile").first().click();
+    await flaky.waitForSelector(".tp-lb:not([hidden])");
+    check(
+      "while the picture loads, the viewer says it is loading",
+      /Loading the picture/.test(
+        await flaky.locator("[data-testid=viewer-note]").innerText(),
+      ),
+    );
+    await flaky.waitForFunction(
+      () => {
+        const i = document.querySelector(".tp-big");
+        return i && i.complete && i.naturalWidth > 0;
+      },
+      null,
+      { timeout: 20000 },
+    );
+    check(
+      "after two busy answers it tries again and the picture appears",
+      webHits >= 3 &&
+        (await flaky.locator("[data-testid=viewer-note]").innerText()) === "",
+      `hits ${webHits}`,
+    );
+    mode = "always-busy";
+    await flaky.context().close();
+    // A fresh browser, so the picture just loaded is not simply served from its memory.
+    const flaky2 = await (await context()).newPage();
+    await flaky2.route(/-web\.jpg/, (route) =>
+      route.fulfill({
+        status: 429,
+        contentType: "application/json",
+        body: '{"error":"Too many requests"}',
+      }),
+    );
+    await flaky2.goto(gameUrl);
+    await flaky2.waitForSelector("[data-testid=album]");
+    await flaky2.locator(".tp-tile").first().click();
+    try {
+      await flaky2.waitForFunction(
+        () =>
+          /could not load right now/.test(
+            document.querySelector("[data-testid=viewer-note]")?.textContent ?? "",
+          ),
+        null,
+        { timeout: 25000 },
+      );
+    } catch (e) {
+      console.log(
+        "DEBUG",
+        webHits,
+        await flaky2.locator("[data-testid=viewer-note]").innerText(),
+        await flaky2.locator(".tp-big").evaluate((i) => i.src + " " + i.complete),
+        await flaky2.locator(".tp-lb").isVisible(),
+      );
+      throw e;
+    }
+    check(
+      "if it never loads, it says so in words and shows the small picture, with Download still there",
+      (await flaky2.locator(".tp-big").evaluate((i) => i.src.includes("-thumb"))) &&
+        (await flaky2.locator("[data-testid=viewer-download]").isVisible()),
+    );
+    await flaky2.context().close();
+
     console.log("\nIf the service is unreachable");
     const down = await context();
     await down.route(/\/site\//, (r) => r.abort());
