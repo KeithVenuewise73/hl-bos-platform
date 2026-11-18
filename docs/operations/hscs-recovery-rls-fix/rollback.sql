@@ -18,6 +18,7 @@ alter table public.recovery_clients drop constraint if exists recovery_clients_t
 alter table public.recovery_documents drop constraint if exists recovery_documents_text_limits;
 grant all on public.recovery_compliance_exceptions to anon, authenticated;
 drop policy if exists recovery_docs_intake_upload on storage.objects;
+drop policy if exists recovery_docs_staff_insert on storage.objects;
 drop policy if exists recovery_docs_staff_read on storage.objects;
 drop policy if exists recovery_docs_staff_update on storage.objects;
 drop policy if exists recovery_docs_staff_delete on storage.objects;

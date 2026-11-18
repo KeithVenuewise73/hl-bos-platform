@@ -64,6 +64,7 @@ select t.rows('select 1 from storage.objects where bucket_id = ''recovery-docume
 select t.affected('delete from storage.objects where bucket_id = ''recovery-documents''', 0, 'stranger deletes 0 stored documents');
 select t.affected('update public.recovery_clients set status = ''active''', 0, 'stranger updates 0 clients');
 select t.refused('insert into public.recovery_assets (holder_name) values (''x'')', 'stranger cannot insert assets');
+select t.refused('insert into storage.objects (bucket_id, name) values (''recovery-documents'', ''clients/abc/evil.pdf'')', 'stranger cannot upload outside intake/');
 select t.rows('select 1 from storage.objects where bucket_id = ''glp-documents''', 1, 'the other bucket''s own policy is untouched (replica policy is open on purpose)');
 rollback;
 begin; set local role authenticated; select set_config('request.jwt.claim.sub', :'carr', true);
@@ -97,6 +98,14 @@ rollback;
 begin; set local role authenticated; select set_config('request.jwt.claim.sub', :'ops', true);
 select t.rows('select 1 from public.recovery_claims', 1, 'operations_manager reads claims');
 select t.affected('update public.recovery_claims set notes = ''n''', 1, 'operations_manager updates a claim');
+rollback;
+
+-- ================= staff uploads outside intake/ (found missing by the lockdown test) =================
+begin; set local role authenticated; select set_config('request.jwt.claim.sub', :'ceo', true);
+select t.affected('insert into storage.objects (bucket_id, name) values (''recovery-documents'', ''clients/abc/staff-upload.pdf'')', 1, 'owner_ceo uploads a document outside intake/');
+rollback;
+begin; set local role authenticated; select set_config('request.jwt.claim.sub', :'ops', true);
+select t.affected('insert into storage.objects (bucket_id, name) values (''recovery-documents'', ''clients/abc/ops-upload.pdf'')', 1, 'operations_manager uploads a document outside intake/');
 rollback;
 
 -- ================= server role and bucket settings =================

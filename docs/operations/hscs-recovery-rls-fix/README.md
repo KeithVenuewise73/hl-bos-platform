@@ -1,6 +1,6 @@
 # Recovery module: staff-only data, tightened public intake
 
-**Status: written, tested locally AND on a Supabase branch (since deleted). NOT applied to production. Needs owner approval.** Independent of the KPI and dpi fixes (it can be applied before or after either).
+**Status: APPLIED TO PRODUCTION on 2026-11-18 with the owner's approval ("yes, go ahead and fix it"): `migration.sql` plus `lockdown.sql`. Verified live; see "Applied to production" below.** Independent of the KPI and dpi fixes (it can be applied before or after either).
 
 Problem (legacy audit findings 3 and 4, 2026-11-18): the six `recovery_*` tables carry client tax ids, decedent details, claims
 and outreach, yet one policy let **any signed-in user** read and write them all. Bucket `recovery-documents` let **anyone**
@@ -74,3 +74,20 @@ there; no new helper functions, no bucket limits, no new constraints.
 1. Who is Recovery staff? (Placeholder above.) Is Recovery meant to share logins with HSCS operations at all?
 2. Is the public intake live or planned? If planned and not built, an even safer option is to close anonymous insert entirely until it is.
 3. Is public sign-up on Supabase Auth switched off? It decides how serious the original hole was.
+
+## Applied to production (2026-11-18)
+- **What ran, in order** on project `bkfsjhhclbqrhaolvhmz`, via migrations `hscs_recovery_rls_fix` then `hscs_recovery_lockdown_intake`:
+  `migration.sql` (as it now stands, including the staff-upload policy) and `lockdown.sql`.
+- **Pre-flight (before applying):** 0 Recovery rows, 0 stored files, all 12 old policies present, helper function absent, 1 active staff member (role `owner_ceo`).
+- **Owner choice that was made on the owner's behalf:** the owner did not say whether the public intake is live, so the default
+  stated to them was used: **anonymous intake is closed completely** (`lockdown.sql`). Only Recovery staff can insert rows or upload files.
+  To reopen it later, re-run the "public intake" sections of `migration.sql`.
+- **Differences from what was branch-tested:** two additions made after the branch test and verified only locally plus the live probes below:
+  (1) a staff INSERT policy on stored files (the branch-tested version let staff upload only under `intake/`; found by the lockdown test),
+  (2) the lockdown add-on. Local suite: 64 assertions; lockdown suite: 10.
+- **Live verification (rolled-back probes, no data written):** anon cannot read any Recovery table or the compliance view, cannot submit an
+  intake client or document row, cannot upload anywhere in the bucket; a signed-in stranger sees 0 clients and 0 stored files and cannot insert or
+  upload; bucket limit 10 MB with 5 types; row security on for all 6 tables; 0 old open policies left; anon holds 0 privileges on the Recovery
+  tables; exactly 1 person passes the staff check; Recovery rows and files unchanged (0 / 0).
+- **Rollback:** `rollback.sql` (reopens the holes).
+- **Not verified live:** the real Storage upload service, a real signed-in session, and any intake form (none found).

@@ -95,12 +95,15 @@ drop policy if exists "recovery docs staff read" on storage.objects;
 drop policy if exists "recovery docs staff update" on storage.objects;
 drop policy if exists "recovery docs staff delete" on storage.objects;
 drop policy if exists recovery_docs_intake_upload on storage.objects;
+drop policy if exists recovery_docs_staff_insert on storage.objects;
 drop policy if exists recovery_docs_staff_read on storage.objects;
 drop policy if exists recovery_docs_staff_update on storage.objects;
 drop policy if exists recovery_docs_staff_delete on storage.objects;
 
 create policy recovery_docs_intake_upload on storage.objects for insert to anon, authenticated
   with check (bucket_id = 'recovery-documents' and name like 'intake/%');
+create policy recovery_docs_staff_insert on storage.objects for insert to authenticated
+  with check (bucket_id = 'recovery-documents' and hscs_glp.is_recovery_staff());
 create policy recovery_docs_staff_read on storage.objects for select to authenticated
   using (bucket_id = 'recovery-documents' and hscs_glp.is_recovery_staff());
 create policy recovery_docs_staff_update on storage.objects for update to authenticated
