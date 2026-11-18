@@ -75,8 +75,17 @@ const SYNCED = { published: 0, unpublished: 0, failed: 0, remaining: 0 };
 
 const SOCIAL_POST = "dddddddd-dddd-dddd-dddd-dddddddddddd";
 
+const LARGE_BATCH = "99999999-9999-9999-9999-999999999998";
+
 function world(over: Partial<ReviewDeps> = {}) {
   const calls: string[] = [];
+  // Large copies: which photos have one, the owner's switch, and the links handed out.
+  const large = {
+    enabled: true,
+    have: new Set<string>([P1]),
+    attached: [] as string[],
+    links: [] as string[],
+  };
   // The posting queue: targets still to be worked on, and what the (fake) publisher answers.
   const soc = {
     pending: [
@@ -155,9 +164,14 @@ function world(over: Partial<ReviewDeps> = {}) {
     },
     createBatch(p) {
       calls.push("batch:" + p.name);
+      const knownHashes = p.hashes.filter((h) => known.has(h));
       return Promise.resolve({
         batchId: BATCH,
-        known: p.hashes.filter((h) => known.has(h)),
+        known: knownHashes,
+        // A photo already here but with no large copy yet: where its files live.
+        needLarge: knownHashes
+          .filter((h) => !large.attached.includes(h))
+          .map((hash) => ({ hash, batch_id: LARGE_BATCH })),
       });
     },
     commitPhotos(_b, photos) {
@@ -384,7 +398,41 @@ function world(over: Partial<ReviewDeps> = {}) {
       ]);
     },
     publicTeam(slug) {
-      return Promise.resolve(slug === "cazenovia-chiefs" ? PAGE : null);
+      if (slug !== "cazenovia-chiefs") return Promise.resolve(null);
+      return Promise.resolve({
+        ...PAGE,
+        large_downloads: large.enabled,
+        albums: PAGE.albums.map((a) => ({
+          ...a,
+          photos: a.photos.map((p) => ({ ...p, large: large.have.has(p.id) })),
+        })),
+      });
+    },
+    attachLarge(hash) {
+      calls.push(`attachLarge:${hash.slice(0, 4)}`);
+      if (hash === "9".repeat(64)) return Promise.resolve(false); // its file is not there
+      large.attached.push(hash);
+      return Promise.resolve(true);
+    },
+    largeSettings() {
+      return Promise.resolve({
+        enabled: large.enabled,
+        large_photos: large.have.size,
+        public_photos: 3,
+      });
+    },
+    setLargeDownloads(enabled) {
+      calls.push(`large:${enabled}`);
+      large.enabled = enabled;
+      return Promise.resolve();
+    },
+    publicLarge(photo) {
+      if (photo !== P1 && photo !== P2) return Promise.resolve(null);
+      return Promise.resolve({
+        path:
+          large.enabled && large.have.has(photo) ? `${BATCH}/${H1}-large.jpg` : null,
+        enabled: large.enabled,
+      });
     },
     recordInterest(slug, voter) {
       calls.push(`interest:${slug}:${voter}`);
@@ -415,6 +463,10 @@ function world(over: Partial<ReviewDeps> = {}) {
       removePublic(paths) {
         pub.removed.push(...paths);
         return Promise.resolve();
+      },
+      signedDownload(path, filename, seconds) {
+        large.links.push(`${path}|${filename}|${seconds}`);
+        return Promise.resolve(`https://files.test/dl/${path}?name=${filename}`);
       },
       removePrivate(paths) {
         if (pub.failRemovePrivate) return Promise.reject(new Error("storage down"));
@@ -460,6 +512,7 @@ function world(over: Partial<ReviewDeps> = {}) {
     requested,
     pub,
     soc,
+    large,
     closeWindow: () => (windowOpen = false),
     setPublisher: (sha: string | null) => (deps.publisherKeySha256 = sha),
   };
@@ -612,7 +665,11 @@ Deno.test(
     );
     assertEquals(
       batch.json,
-      { batch_id: BATCH, known: [H2] },
+      {
+        batch_id: BATCH,
+        known: [H2],
+        need_large: [{ hash: H2, batch_id: LARGE_BATCH }],
+      },
       "batch and known fingerprints",
     );
 
@@ -1922,6 +1979,222 @@ Deno.test(
       [200, false],
       "and the accounts list says posting is not switched on",
     );
+  },
+);
+
+Deno.test(
+  "large copies from DateSort: a photo sent earlier is reported as needing one, its large file goes under the batch it was first stored in, and it is recorded only when its file is really there",
+  async () => {
+    const w = world();
+    w.setPublisher(KEY_SHA);
+    const batch = await out(
+      await handle(
+        post(
+          "/review/batch",
+          {
+            label: { name: "Game", sport: "Hockey", date: "2026-10-24" },
+            folder: "x",
+            counts: { photos: 2, videos: 0 },
+            hashes: [H1, H2],
+          },
+          asPublisher,
+        ),
+        w.deps,
+      ),
+    );
+    assertEquals(
+      batch.json["need_large"],
+      [{ hash: H2, batch_id: LARGE_BATCH }],
+      "the photo already here is reported, with the batch its files live under",
+    );
+    const up = await out(
+      await handle(
+        post(
+          "/review/uploads",
+          {
+            batch_id: BATCH,
+            files: [
+              { hash: H2, kind: "large", batch_id: LARGE_BATCH },
+              { hash: H1, kind: "large" },
+            ],
+          },
+          asPublisher,
+        ),
+        w.deps,
+      ),
+    );
+    assertEquals(up.status, 200, "large uploads are allowed");
+    assertEquals(
+      w.requested.filter((r) => r.startsWith("upload:")),
+      [`upload:${LARGE_BATCH}/${H2}-large.jpg`, `upload:${BATCH}/${H1}-large.jpg`],
+      "an earlier photo's large file goes under its own batch; a new one under this batch",
+    );
+    const badBatch = await out(
+      await handle(
+        post(
+          "/review/uploads",
+          { batch_id: BATCH, files: [{ hash: H2, kind: "large", batch_id: "../etc" }] },
+          asPublisher,
+        ),
+        w.deps,
+      ),
+    );
+    assertEquals(badBatch.status, 400, "a made-up batch id cannot name another place");
+    const web = await out(
+      await handle(
+        post(
+          "/review/uploads",
+          {
+            batch_id: BATCH,
+            files: [{ hash: H1, kind: "web", batch_id: LARGE_BATCH }],
+          },
+          asPublisher,
+        ),
+        w.deps,
+      ),
+    );
+    assertEquals(
+      w.requested.filter((r) => r.startsWith("upload:")).pop(),
+      `upload:${BATCH}/${H1}-web.jpg`,
+      "the batch override applies only to large copies",
+    );
+    assertEquals(web.status, 200, "a web upload still works");
+    const rec = await out(
+      await handle(
+        post(
+          "/review/large",
+          {
+            items: [
+              { hash: H2, bytes: 2400000 },
+              { hash: "9".repeat(64), bytes: 1000 },
+            ],
+          },
+          asPublisher,
+        ),
+        w.deps,
+      ),
+    );
+    assertEquals(
+      rec.json["attached"],
+      1,
+      "only the one whose file is there is recorded",
+    );
+    const bad = await out(
+      await handle(
+        post("/review/large", { items: [{ hash: "nope", bytes: 5 }] }, asPublisher),
+        w.deps,
+      ),
+    );
+    assertEquals(bad.status, 400, "a malformed item is refused");
+    const stranger = await out(
+      await handle(
+        post(
+          "/review/large",
+          { items: [{ hash: H1, bytes: 5 }] },
+          { "x-review-publisher-key": "wrong" },
+        ),
+        w.deps,
+      ),
+    );
+    assertEquals(
+      stranger.status,
+      401,
+      "only the connected DateSort may record large copies",
+    );
+  },
+);
+
+Deno.test(
+  "download large: a short-lived private link, only while the switch is on and the photo qualifies; the public page says which photos have one",
+  async () => {
+    const w = world();
+    const get = (q: string) =>
+      handle(new Request(`${BASE}/site/large?${q}`, { method: "GET" }), w.deps);
+    const ok = await get(`photo=${P1}&name=Cazenovia%20Chiefs_Game%20one_IMG 1.JPG`);
+    assertEquals(ok.status, 302, "an eligible photo redirects to a download link");
+    assert(
+      (ok.headers.get("location") ?? "").startsWith("https://files.test/dl/"),
+      "to a link on the private storage, not a public address",
+    );
+    assertEquals(ok.headers.get("cache-control"), "no-store", "never cached");
+    assertEquals(
+      w.large.links[0],
+      `${BATCH}/${H1}-large.jpg|Cazenovia-Chiefs_Game-one_IMG-1.JPG|300`,
+      "the name is made safe, and the link lasts 5 minutes",
+    );
+    assertEquals(
+      (await get(`photo=${P1}&name=..%2F..%2Fx`)).status,
+      302,
+      "a hostile name is only ever a file name",
+    );
+    assert(
+      w.large.links[1]!.endsWith("|x.jpg|300") || w.large.links[1]!.includes("x"),
+      "and gets a .jpg ending",
+    );
+    assertEquals(
+      (await get(`photo=${P2}`)).status,
+      404,
+      "a photo with no large copy is not found",
+    );
+    assertEquals((await get("photo=nope")).status, 404, "a malformed id is not found");
+    assertEquals(
+      (await get("photo=00000000-0000-0000-0000-000000000000")).status,
+      404,
+      "an unknown photo is not found",
+    );
+    const page = await handle(
+      new Request(`${BASE}/site/team?slug=cazenovia-chiefs`, { method: "GET" }),
+      w.deps,
+    );
+    const pj = (await page.json()) as {
+      large_downloads: boolean;
+      albums: { photos: { large: boolean }[] }[];
+    };
+    assertEquals(pj.large_downloads, true, "the page says downloads are on");
+    assertEquals(
+      pj.albums[0]!.photos[0]!.large,
+      true,
+      "and which photo has a large copy",
+    );
+    assert(!JSON.stringify(pj).includes("large_path"), "and never where it is kept");
+
+    // The owner's switch.
+    const off = await out(
+      await handle(post("/owner/large-downloads", { enabled: false }, asOwner), w.deps),
+    );
+    assertEquals(
+      [off.status, off.json["enabled"]],
+      [200, false],
+      "the owner switches it off",
+    );
+    const refused = await get(`photo=${P1}`);
+    assertEquals(refused.status, 403, "with it off, a download is refused in words");
+    const after = (await (
+      await handle(
+        new Request(`${BASE}/site/team?slug=cazenovia-chiefs`, { method: "GET" }),
+        w.deps,
+      )
+    ).json()) as { large_downloads: boolean };
+    assertEquals(after.large_downloads, false, "and the page says downloads are off");
+    const settings = await out(await handle(post("/owner/large", {}, asOwner), w.deps));
+    assertEquals(settings.json["enabled"], false, "the owner can read the switch");
+    const before = w.calls.length;
+    const stranger = await out(
+      await handle(
+        post(
+          "/owner/large-downloads",
+          { enabled: true },
+          { authorization: "Bearer other-token" },
+        ),
+        w.deps,
+      ),
+    );
+    assertEquals(stranger.status, 403, "a stranger cannot flip it");
+    assertEquals(w.calls.length, before, "and nothing changed");
+    const bad = await out(
+      await handle(post("/owner/large-downloads", { enabled: "yes" }, asOwner), w.deps),
+    );
+    assertEquals(bad.status, 400, "on or off must be true or false");
   },
 );
 

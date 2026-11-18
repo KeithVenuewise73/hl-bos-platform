@@ -112,6 +112,9 @@ const deps = (): Promise<ReviewDeps> =>
       async removePrivate(paths) {
         await sql`delete from storage.objects where bucket_id = 'review-photos' and name = any(${paths})`;
       },
+      // A short-lived download link on the private storage (the stand-in just spells it out).
+      signedDownload: (path, name, seconds) =>
+        Promise.resolve(`https://files.test/dl/${path}?name=${name}&exp=${seconds}`),
       publicUrl: (path) => `https://public.test/${path}`,
       signedUrls: (paths, s) =>
         Promise.resolve(
@@ -246,6 +249,65 @@ check(
   "sending the day again reports every photo as already there",
   again.json.known.length === 4,
   again.json,
+);
+
+// A large copy (3,600 px) for each photo already sent: the website says which ones still need one.
+check(
+  "sending the day again also lists the 4 photos that still have no large copy, with the batch their files live under",
+  again.json.need_large.length === 4 &&
+    again.json.need_large.every(
+      (n: { batch_id: string }) => n.batch_id === batch.json.batch_id,
+    ),
+  again.json.need_large,
+);
+const largeUp = await call(
+  "/review/uploads",
+  {
+    batch_id: again.json.batch_id,
+    files: hashes.slice(0, 3).map((hash: string) => ({
+      hash,
+      kind: "large",
+      batch_id: again.json.need_large.find((n: { hash: string }) => n.hash === hash)
+        .batch_id,
+    })),
+  },
+  pub,
+);
+check(
+  "their large files are uploaded under the ORIGINAL batch's folder, not the new send's",
+  largeUp.json.uploads.length === 3 &&
+    uploaded.filter(
+      (u) => u.includes(batch.json.batch_id + "/") && u.endsWith("-large.jpg"),
+    ).length === 3,
+  uploaded.filter((u) => u.endsWith("-large.jpg")),
+);
+const attachedLarge = await call(
+  "/review/large",
+  { items: hashes.slice(0, 4).map((h: string) => ({ hash: h, bytes: 2500000 })) },
+  pub,
+);
+check(
+  "3 large copies are recorded; the 4th (no file uploaded) is not",
+  attachedLarge.json.attached === 3 &&
+    (
+      await sql`select count(*)::int n from review.photos where large_path is not null`
+    )[0].n === 3,
+  attachedLarge,
+);
+check(
+  "a third send now lists only the one photo still needing a large copy",
+  (
+    await call(
+      "/review/batch",
+      {
+        label: { name: "varsity vs wheatfield", sport: "hockey", date: "2026-10-24" },
+        folder: "third",
+        counts: { photos: 4, videos: 0 },
+        hashes,
+      },
+      pub,
+    )
+  ).json.need_large.length === 1,
 );
 
 console.log("\nReview (the owner)");
@@ -527,6 +589,64 @@ check(
   filed.json.public.published === 2 && (await pubObjects()) === 4,
   filed.json,
 );
+// Download large: the private file, by a short-lived link, only while the switch is on.
+const lg = await sql`select id from review.photos
+  where public_at is not null and large_path is not null order by filename limit 1`;
+// (make sure one public photo has no large copy)
+await sql`update review.photos set large_path = null, large_bytes = null
+  where id = (select id from review.photos where public_at is not null and large_path is not null
+              order by filename offset 1 limit 1)`;
+const noLg = await sql`select id from review.photos
+  where public_at is not null and large_path is null order by filename limit 1`;
+const dlRes = async (q: string) => {
+  const r = await handle(
+    new Request(BASE + "/site/large?" + q, { method: "GET" }),
+    await deps(),
+  );
+  return {
+    status: r.status,
+    location: r.headers.get("location"),
+    cache: r.headers.get("cache-control"),
+  };
+};
+const dl1 = await dlRes(`photo=${lg[0].id}&name=Team_Game_IMG%201.JPG`);
+check(
+  "Download large for a public photo with a large copy gives a short-lived private link, named safely",
+  dl1.status === 302 &&
+    /^https:\/\/files\.test\/dl\/.+-large\.jpg\?name=Team_Game_IMG-1\.JPG&exp=300$/.test(
+      dl1.location ?? "",
+    ) &&
+    dl1.cache === "no-store",
+  dl1,
+);
+check(
+  "a public photo with no large copy is simply not available",
+  (await dlRes(`photo=${noLg[0].id}`)).status === 404,
+);
+const pageLarge = await getJson("/site/team?slug=cazenovia-chiefs");
+check(
+  "the public team page says downloads are on and which photos have a large copy, never where it is kept",
+  pageLarge.json.large_downloads === true &&
+    pageLarge.json.albums[0].photos.some((p: { large: boolean }) => p.large === true) &&
+    pageLarge.json.albums[0].photos.some(
+      (p: { large: boolean }) => p.large === false,
+    ) &&
+    !JSON.stringify(pageLarge.json).includes("-large.jpg"),
+  pageLarge.json,
+);
+const swOff = await call("/owner/large-downloads", { enabled: false }, own);
+check(
+  "the owner's switch turns large downloads off everywhere at once",
+  swOff.json.enabled === false &&
+    (await dlRes(`photo=${lg[0].id}`)).status === 403 &&
+    (await getJson("/site/team?slug=cazenovia-chiefs")).json.large_downloads === false,
+  swOff.json,
+);
+const swOn = await call("/owner/large-downloads", { enabled: true }, own);
+check(
+  "and back on again, with nothing to put back",
+  swOn.json.enabled === true && (await dlRes(`photo=${lg[0].id}`)).status === 302,
+);
 const lst = await getJson("/site/teams");
 check(
   "the team is listed with its 2 photos and a public cover",
@@ -667,6 +787,30 @@ check(
   "asking to delete only the approved photo deletes nothing",
   delApprovedAgain.json.deleted === 0 && (await filesOf()) === 2,
   delApprovedAgain,
+);
+
+// Deleting a photo that is not approved removes its large file as well.
+const [lgFolder] =
+  await sql`insert into review.folders (name, event_date) values ('Large-delete fixture', '2026-10-26') returning id`;
+const [lgBatch] =
+  await sql`insert into review.batches (folder_id, source_folder, photo_count, video_count)
+  values (${lgFolder.id}, 'x', 1, 0) returning id`;
+const lgHash = "c".repeat(64);
+const lgBase = lgBatch.id + "/" + lgHash;
+const [lgPhoto] = await sql`insert into review.photos
+  (batch_id, folder_id, file_hash, filename, web_bytes, web_path, thumb_path, large_path, large_bytes)
+  values (${lgBatch.id}, ${lgFolder.id}, ${lgHash}, 'LG.JPG', 10, ${lgBase + "-web.jpg"}, ${lgBase + "-thumb.jpg"}, ${lgBase + "-large.jpg"}, 20)
+  returning id`;
+await sql`insert into storage.objects (bucket_id, name) values
+  ('review-photos', ${lgBase + "-web.jpg"}), ('review-photos', ${lgBase + "-thumb.jpg"}), ('review-photos', ${lgBase + "-large.jpg"})`;
+const delLg = await call("/owner/delete-photos", { ids: [lgPhoto.id] }, own);
+check(
+  "deleting an unapproved photo removes its large file along with the web copy and thumbnail",
+  delLg.json.deleted === 1 &&
+    (
+      await sql`select count(*)::int n from storage.objects where bucket_id = 'review-photos' and name like ${lgBatch.id + "/%"}`
+    )[0].n === 0,
+  delLg.json,
 );
 
 // Renaming a team: the name changes, the page address does not; a taken or empty name is refused.

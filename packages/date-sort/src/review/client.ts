@@ -8,8 +8,13 @@
  *   POST /review/register  {key_sha256}                     connect this computer (one-time window)
  *   POST /review/batch     {label, folder, counts, hashes}  -> {batch_id, known:[hash]}
  *   POST /review/uploads   {batch_id, files:[{hash,kind}]}  -> {uploads:[{hash,kind,url}]}
- *   PUT  <url>             the bytes                        (kind is "web" or "thumb")
+ *   PUT  <url>             the bytes                        (kind is "web", "thumb" or "large";
+ *                                                            "large" may name the photo's own batch_id)
  *   POST /review/commit    {batch_id, photos:[...]}         -> {added}
+ *   POST /review/large     {items:[{hash,bytes}]}           -> {attached}   (after the large file is up)
+ *
+ * /review/batch also answers need_large:[{hash,batch_id}], the photos already
+ * there that still lack a large copy; they are topped up from the originals.
  *
  * Every call except /register carries the publisher key in x-review-publisher-key.
  * A photo whose fingerprint is already known to the service (in review, or
@@ -23,6 +28,7 @@ import {
   hashOf,
   listForReview,
   prepare,
+  prepareLarge,
   type PreparedPhoto,
   type ReviewCandidate,
 } from "./prepare";
@@ -38,7 +44,7 @@ export interface GameLabel {
 }
 
 export interface SendProgress {
-  readonly phase: "reading" | "checking" | "sending" | "done";
+  readonly phase: "reading" | "checking" | "sending" | "large" | "done";
   readonly done: number;
   readonly total: number;
   readonly current: string | null;
@@ -50,6 +56,8 @@ export interface SendResult {
   readonly sent: number;
   /** Photos the website already had, so not sent again. */
   readonly alreadyThere: number;
+  /** Photos that already were there and just got their large (3,600 px) copy. */
+  readonly largeAdded: number;
   /** Photos that could not be read or sent, each with the reason. */
   readonly failed: ReadonlyArray<{ readonly path: string; readonly reason: string }>;
   /** Files that are not photos or cannot be sent (raw, too big…), with the reason. */
@@ -267,6 +275,13 @@ export async function sendForReview(o: SendOptions): Promise<SendResult> {
     throw new ReviewError("The website did not start a review batch.");
   const known = new Set((batch["known"] as string[] | undefined) ?? []);
   const todo = [...hashes.entries()].filter(([h]) => !known.has(h));
+  const needLarge = new Map(
+    ((batch["need_large"] ?? []) as { hash: string; batch_id: string }[]).map((n) => [
+      n.hash,
+      n.batch_id,
+    ]),
+  );
+  const topUp = [...hashes.entries()].filter(([h]) => known.has(h) && needLarge.has(h));
 
   let sent = 0;
   for (let i = 0; i < todo.length; i += CHUNK) {
@@ -295,6 +310,7 @@ export async function sendForReview(o: SendOptions): Promise<SendResult> {
         files: ready.flatMap((p) => [
           { hash: p.hash, kind: "web" },
           { hash: p.hash, kind: "thumb" },
+          { hash: p.hash, kind: "large" },
         ]),
       },
       sent,
@@ -307,10 +323,12 @@ export async function sendForReview(o: SendOptions): Promise<SendResult> {
     for (const p of ready) {
       const web = urls.get(`${p.hash}:web`);
       const thumb = urls.get(`${p.hash}:thumb`);
-      if (!web || !thumb)
+      const large = urls.get(`${p.hash}:large`);
+      if (!web || !thumb || !large)
         throw new ReviewError("The website gave no upload address.", sent);
       await put(net, web, p.web, sent);
       await put(net, thumb, p.thumb, sent);
+      await put(net, large, p.large, sent);
     }
     await call(
       net,
@@ -334,13 +352,78 @@ export async function sendForReview(o: SendOptions): Promise<SendResult> {
       },
       sent,
     );
+    await call(
+      net,
+      o.serviceUrl,
+      o.key,
+      "/review/large",
+      { items: ready.map((p) => ({ hash: p.hash, bytes: p.large.length })) },
+      sent,
+    );
     sent += ready.length;
+  }
+
+  // Photos sent before large copies existed: make the large copy from the original.
+  let largeAdded = 0;
+  for (let i = 0; i < topUp.length; i += CHUNK) {
+    const chunk = topUp.slice(i, i + CHUNK);
+    const ready: { hash: string; large: Buffer; batchId: string }[] = [];
+    for (const [h, c] of chunk) {
+      stopped();
+      progress({
+        phase: "large",
+        done: largeAdded,
+        total: topUp.length,
+        current: c.path,
+      });
+      try {
+        const made = await prepareLarge(o.folder, c);
+        ready.push({ ...made, hash: h, batchId: needLarge.get(h)! });
+      } catch (e) {
+        failed.push({
+          path: c.path,
+          reason: e instanceof Error ? e.message : "Could not be read.",
+        });
+      }
+    }
+    if (ready.length === 0) continue;
+    const out = await call(
+      net,
+      o.serviceUrl,
+      o.key,
+      "/review/uploads",
+      {
+        batch_id: batchId,
+        files: ready.map((p) => ({ hash: p.hash, kind: "large", batch_id: p.batchId })),
+      },
+      sent,
+    );
+    const urls = new Map(
+      ((out["uploads"] ?? []) as { hash: string; kind: string; url: string }[]).map(
+        (u) => [`${u.hash}:${u.kind}`, u.url],
+      ),
+    );
+    for (const p of ready) {
+      const url = urls.get(`${p.hash}:large`);
+      if (!url) throw new ReviewError("The website gave no upload address.", sent);
+      await put(net, url, p.large, sent);
+    }
+    await call(
+      net,
+      o.serviceUrl,
+      o.key,
+      "/review/large",
+      { items: ready.map((p) => ({ hash: p.hash, bytes: p.large.length })) },
+      sent,
+    );
+    largeAdded += ready.length;
   }
   progress({ phase: "done", done: sent, total: todo.length, current: null });
   return {
     batchId,
     sent,
     alreadyThere: hashes.size - todo.length,
+    largeAdded,
     failed,
     skipped: listing.skipped,
     videosNotSent: listing.videos,

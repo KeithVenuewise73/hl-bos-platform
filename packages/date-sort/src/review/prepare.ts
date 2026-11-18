@@ -26,6 +26,8 @@ import { flagsFor, measure, type QualityFlag } from "./quality";
 
 export const WEB_EDGE = 2400;
 export const THUMB_EDGE = 480;
+/** The large copy offered as "Download large" (long edge, pixels). */
+export const LARGE_EDGE = 3600;
 /** The farthest one photo is read in full (a bigger file is reported, not sent). */
 export const MAX_PHOTO_BYTES = 80 * 1024 * 1024;
 
@@ -94,6 +96,8 @@ export interface PreparedPhoto {
   readonly height: number;
   readonly web: Buffer;
   readonly thumb: Buffer;
+  /** The 3,600 px copy for "Download large". */
+  readonly large: Buffer;
   readonly sharpness: number;
   readonly brightness: number;
   readonly flags: readonly QualityFlag[];
@@ -109,6 +113,43 @@ export async function hashOf(root: string, rel: string): Promise<string> {
     return h.digest("hex");
   } finally {
     await file.close();
+  }
+}
+
+/** The large copy: 3,600 px on the long edge, camera orientation applied, metadata (incl. location) dropped. */
+async function makeLarge(bytes: Uint8Array): Promise<Buffer> {
+  return sharp(bytes)
+    .rotate()
+    .resize({
+      width: LARGE_EDGE,
+      height: LARGE_EDGE,
+      fit: "inside",
+      withoutEnlargement: true,
+    })
+    .jpeg({ quality: 88 })
+    .toBuffer();
+}
+
+/** Only the large copy of an original (for photos sent before large copies existed). */
+export async function prepareLarge(
+  root: string,
+  c: ReviewCandidate,
+): Promise<{ hash: string; large: Buffer }> {
+  const file = await openForReading(`${root}/${c.path}`);
+  let bytes: Uint8Array;
+  try {
+    bytes = await file.read(0, file.size);
+  } finally {
+    await file.close();
+  }
+  const hash = createHash("sha256").update(bytes).digest("hex");
+  try {
+    return { hash, large: await makeLarge(bytes) };
+  } catch (e) {
+    throw new Error(
+      `${basename(c.path)} could not be read as a picture${e instanceof Error ? `: ${e.message}` : "."}`,
+      { cause: e },
+    );
   }
 }
 
@@ -147,6 +188,7 @@ export async function prepare(
       })
       .jpeg({ quality: 78 })
       .toBuffer();
+    const large = await makeLarge(bytes);
     const meta = await sharp(bytes).rotate().metadata();
     const originalLong = Math.max(meta.width ?? 0, meta.height ?? 0);
     const reading = await measure(web.data);
@@ -159,6 +201,7 @@ export async function prepare(
       height: web.info.height,
       web: web.data,
       thumb,
+      large,
       sharpness: reading.sharpness,
       brightness: reading.brightness,
       flags: flagsFor(reading, originalLong > 0 ? originalLong : null),

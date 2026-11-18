@@ -6,7 +6,14 @@ import { join } from "node:path";
 import sharp from "sharp";
 import { describe, expect, it } from "vitest";
 
-import { hashOf, listForReview, prepare, THUMB_EDGE, WEB_EDGE } from "./prepare";
+import {
+  hashOf,
+  LARGE_EDGE,
+  listForReview,
+  prepare,
+  THUMB_EDGE,
+  WEB_EDGE,
+} from "./prepare";
 
 const noise = (w: number, h: number, mean = 128) =>
   sharp({
@@ -80,6 +87,20 @@ describe("making a photo ready", () => {
     expect(Math.max(thumb.width, thumb.height)).toBe(THUMB_EDGE);
   });
 
+  it("makes a large copy at 3,600 px, and never enlarges", async () => {
+    const dir = folder();
+    writeFileSync(join(dir, "huge.jpg"), await photo(4800, 3200));
+    writeFileSync(join(dir, "mid.jpg"), await photo(3000, 2000));
+    const found = (await listForReview(dir)).photos;
+    const sizes: Record<string, number> = {};
+    for (const c of found) {
+      const p = await prepare(dir, c);
+      const m = await sharp(p.large).metadata();
+      sizes[c.path] = Math.max(m.width, m.height);
+    }
+    expect(sizes).toEqual({ "huge.jpg": LARGE_EDGE, "mid.jpg": 3000 });
+  });
+
   it("never enlarges a small photo", async () => {
     const dir = folder();
     writeFileSync(join(dir, "small.jpg"), await photo(900, 600));
@@ -96,7 +117,7 @@ describe("making a photo ready", () => {
     writeFileSync(join(dir, "x.jpg"), original);
     const [c] = (await listForReview(dir)).photos;
     const p = await prepare(dir, c!);
-    for (const bytes of [p.web, p.thumb]) {
+    for (const bytes of [p.web, p.thumb, p.large]) {
       const m = await sharp(bytes).metadata();
       expect(m.exif).toBeUndefined();
       expect(Buffer.from(bytes).includes(Buffer.from("private-camera-detail"))).toBe(

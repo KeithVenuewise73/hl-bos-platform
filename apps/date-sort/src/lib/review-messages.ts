@@ -5,6 +5,7 @@
 export interface ResultFacts {
   readonly sent: number;
   readonly alreadyThere: number;
+  readonly largeAdded: number;
   readonly failed: ReadonlyArray<{ readonly path: string; readonly reason: string }>;
   readonly skipped: ReadonlyArray<{ readonly path: string; readonly reason: string }>;
   readonly videosNotSent: number;
@@ -23,7 +24,11 @@ export function resultLines(r: ResultFacts): string[] {
     lines.push(
       `${photos(r.alreadyThere)} ${r.alreadyThere === 1 ? "was" : "were"} already there, so not sent again.`,
     );
-  if (r.sent === 0 && r.alreadyThere > 0 && r.failed.length === 0)
+  if (r.largeAdded > 0)
+    lines.push(
+      `Added the large (3,600 px) copy for ${photos(r.largeAdded)} that were already there, so they can be offered as "Download large".`,
+    );
+  if (r.sent === 0 && r.alreadyThere > 0 && r.largeAdded === 0 && r.failed.length === 0)
     lines.push("Everything in this folder is already waiting for review.");
   if (r.failed.length > 0)
     lines.push(
@@ -44,7 +49,7 @@ export function resultLines(r: ResultFacts): string[] {
 }
 
 export interface ProgressFacts {
-  readonly phase: "reading" | "checking" | "sending" | "done";
+  readonly phase: "reading" | "checking" | "sending" | "large" | "done";
   readonly done: number;
   readonly total: number;
 }
@@ -56,5 +61,7 @@ export function progressLine(p: ProgressFacts): string {
     return `Checking what the website already has… ${p.done.toLocaleString("en-US")} of ${p.total.toLocaleString("en-US")}`;
   if (p.phase === "sending")
     return `Sending for review… ${p.done.toLocaleString("en-US")} of ${p.total.toLocaleString("en-US")}`;
+  if (p.phase === "large")
+    return `Adding large copies… ${p.done.toLocaleString("en-US")} of ${p.total.toLocaleString("en-US")}`;
   return "Finishing…";
 }

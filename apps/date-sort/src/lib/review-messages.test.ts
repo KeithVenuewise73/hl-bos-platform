@@ -2,7 +2,14 @@ import { describe, expect, it } from "vitest";
 
 import { progressLine, resultLines } from "./review-messages";
 
-const base = { sent: 0, alreadyThere: 0, failed: [], skipped: [], videosNotSent: 0 };
+const base = {
+  sent: 0,
+  alreadyThere: 0,
+  largeAdded: 0,
+  failed: [],
+  skipped: [],
+  videosNotSent: 0,
+};
 
 describe("what is said after sending", () => {
   it("says the photos are private until approved", () => {
