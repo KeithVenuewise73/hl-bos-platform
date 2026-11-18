@@ -42,6 +42,24 @@ None of the *code* is usable as is. Two *designs* are worth following:
 1. The private-bucket plus path-scoped storage policy plus orphan-cleanup pattern in the Fleet medical-card migrations. It has to be re-implemented for Recruitment, not shared.
 2. `comms.consent` / `comms.suppression`, for opt-out and do-not-contact.
 
+## 1a. Third product: HSCS delivery operations (added after owner correction)
+
+Source: the owner's screenshot of the GitHub page for `KeithVenuewise73/herman-supply-chain`, plus read-only column names from the legacy Supabase project. **I have not opened the repository itself.**
+
+| Item | Evidence |
+| --- | --- |
+| Repo | `herman-supply-chain`, public, 44 commits, `main` not protected (per GitHub's banner). A static HTML/JS site on GitHub Pages (about, services, assessment, contact) plus a "Lowe's KPI Dashboard" (React, Vite, Supabase, Recharts, SheetJS). |
+| What the dashboard does | Reads Lowe's carrier and driver delivery KPIs: executive summary, driver and carrier rankings, store rankings, detractor review. Composite score formula is published in its README. Data comes from two uploaded Excel files. |
+| Database | Legacy project `bkfsjhhclbqrhaolvhmz`: `public.ltr_data` (1,144 rows), `public.kpi_sp_weekly` (287), `public.kpi_spe_weekly` (1,050). The README names exactly these three tables. Also `hscs_glp.kpi_catalog` (14) and `hscs_glp.contract_kpis` (3). |
+| HL-BOS Core | Only a generic, empty `scorecard` schema. No HSCS KPI data. |
+
+Conclusions:
+
+1. HSCS delivery operations is a **third, separate business** with its own repo and database. Driver Recruitment must not read, write or reference its tables, and must not reuse its `hscs_glp.carriers` as a prospect list.
+2. The dashboard ranks individual drivers by name. That is personal performance data and must never flow into candidate or employer records.
+3. Risks to carry forward, unverified until the repo is read: the README tells the user to put a Supabase URL and anon key in `.env`, so the legacy project's row-level security is the only protection for those tables; the repo is public; `main` is unprotected.
+4. The earlier note that the legacy project is "out of scope" in `CLAUDE.md` still applies. Nothing here was changed.
+
 ## 2. Current database and authentication boundaries
 
 - **HL-BOS Core** is one Postgres database and one `auth.users` table (3 users) shared by about 20 schemas: Fleet, BarberOS, ATS, JobScout, review/gallery media, Venture Studio, SceneFlow and others. Tenancy is `platform.tenants` plus `identity.memberships`.
@@ -149,12 +167,12 @@ Status: ⬜ not started · 🟦 blocked on a decision · ✅ done and verified.
 | D1 | Approve creating a **new Supabase project** and a **new GitHub repository** for Driver Recruitment | Separate database and auth cannot be met inside HL-BOS Core. A Supabase project may carry a monthly cost. I cannot create the repository from this session's scope. |
 | D2 | Where Fleet Management should live long term: stay in HL-BOS Core, or move to its own project | Today its customers share a login table with every other HL-BOS product. Moving it is a data migration and needs your approval. |
 | B3 | Network access to `data.transportation.gov` for this environment | Needed to inspect the real FMCSA dataset. I will ask through the environment-settings approval when Phase 2 starts. |
-| B4 | Access to the private `HSCS-GLP` repository | The session's attempt to attach it was denied. It may hold earlier recruiting or carrier work, and I would rather read it than rebuild something. |
+| B4 | Read-only access to `herman-supply-chain` (and `HSCS-GLP`, whose attach was denied) | To confirm they hold no recruiting or carrier-prospect work before Phase 1. I have only seen `herman-supply-chain` in a screenshot. |
 | B5 | Where the Fleet front-end lives | I found only its database. If it is in a repository I cannot see, I need access to audit it. |
 | B6 | Legal sign-off on commercial email from FMCSA-sourced contacts, plus the sender identity and physical address | Required before any outreach is enabled. |
 
 ## Not audited
 
-- `HSCS-GLP` (private; attach denied), `5star-sports-media`, `herman-supply-chain`, `characterstudio` and the other listed repositories: not opened.
+- `herman-supply-chain` (seen only in a screenshot), `HSCS-GLP` (private; attach denied), `5star-sports-media`, `characterstudio` and the other listed repositories: not opened.
 - The Venuewise Platform project was listed, not inspected. Its tables are HomeHuddle youth sports.
 - No SAFER or FMCSA site was reached.
