@@ -1,14 +1,16 @@
 /**
  * Herman Legacy Digital — public content (copy as data).
  *
- * Centralized so pages stay thin and copy is testable. It emphasizes business
- * outcomes and assessment-led transformation — NOT website/SEO/agency language —
- * and never exposes internal terms (schema names, registries, engineering laws).
+ * Centralized so pages stay thin and copy is testable (content.test.ts). HLD is
+ * Herman Legacy Group's operating digital agency: websites, marketing and
+ * practical technology. Copy never publishes a price that is not approved,
+ * never presents a product in development as available, and never exposes
+ * internal terms (schema names, registries, engineering laws).
  */
 
 export const NAV_PRIMARY = [
   { label: "How We Transform", href: "/transformation" },
-  { label: "Solutions", href: "/solutions" },
+  { label: "Services", href: "/solutions" },
   { label: "Industries", href: "/industries" },
   { label: "Marketing & Growth", href: "/marketing" },
   { label: "Marketplace", href: "/marketplace" },
@@ -48,7 +50,51 @@ export const BTDI = {
 };
 
 export const POSITIONING =
-  "Herman Legacy Digital helps organizations improve visibility, operations, customer acquisition, and growth through AI-powered business transformation.";
+  "Herman Legacy Digital helps businesses improve their online presence, attract customers and operate more efficiently through websites, marketing and practical technology.";
+
+/**
+ * The services HLD delivers today. NO PRICES: every price is a draft awaiting
+ * CEO approval (docs/products/herman-legacy-digital/agency-launch-package), so
+ * the site says "quoted after a free consultation" until one is approved.
+ */
+export const SERVICES = [
+  {
+    name: "Visibility Assessment",
+    summary:
+      "An evidence-based review of how your business shows up online — website basics, contact options and your Google listing — with a ranked list of fixes. We tell you which checks ran and which did not.",
+  },
+  {
+    name: "Website Design & Build",
+    summary:
+      "A professional, mobile-friendly website of up to five pages, built from facts you confirm, with a contact form that reaches your inbox.",
+  },
+  {
+    name: "Website Care",
+    summary:
+      "Hosting, updates, uptime checks, small content edits and a plain-English monthly report on your site and visibility.",
+  },
+  {
+    name: "Local Visibility Setup",
+    summary:
+      "Your Google Business Profile completed and consistent — categories, hours, services, photos — with your business keeping ownership.",
+  },
+  {
+    name: "Content & Social",
+    summary:
+      "Monthly posts, short promotional videos from your own photos, and website updates — each approved by you before it is published.",
+  },
+] as const;
+
+export const PRICING_NOTE =
+  "Pricing is quoted after a free consultation, based on what your business needs.";
+
+/** Products that are planned but NOT available. Said plainly, never sold. */
+export const NOT_YET_AVAILABLE =
+  "Automated missed-call text-back and automated review requests are in development and are not available yet.";
+
+/** Shown wherever the product portfolio is listed. */
+export const PORTFOLIO_NOTE =
+  "These are Herman Legacy products and capabilities. Many are in development and not yet available — an advisor will tell you what is available today.";
 
 export const FOCUS_MARKETS = [
   {
@@ -100,34 +146,38 @@ export interface PageCopy {
 
 export const PAGES: Record<string, PageCopy> = {
   home: {
-    title: "AI-powered business transformation",
+    title: "Websites, marketing and practical technology",
     lede: POSITIONING,
     sections: [
       {
-        heading: "Assessment-led, not guesswork",
-        body: "We start with a real assessment of your visibility and business, then build a plan tied to outcomes — visibility, operations, customer acquisition and growth.",
+        heading: "Get found",
+        body: "A professional website and a complete Google listing, so customers can find you and reach you.",
       },
       {
-        heading: "Reusable technology, faster results",
-        body: "We assemble proven capabilities rather than rebuilding from scratch, so transformation moves faster and costs less.",
+        heading: "Attract customers",
+        body: "Clear calls to action, content and local visibility that turn searches into inquiries.",
       },
       {
-        heading: "A long-term partnership",
-        body: "We measure what matters, report honestly, and review progress with you every quarter.",
+        heading: "Operate more efficiently",
+        body: "Practical technology that saves time — chosen for your business, not for its own sake.",
       },
     ],
   },
   about: {
     title: "About Herman Legacy Digital",
-    lede: "The customer-facing operating company for Herman Legacy's Business Transformation practice. Herman Legacy Group remains the parent holding company.",
+    lede: "Herman Legacy Digital is the digital agency of Herman Legacy Group.",
     sections: [
       {
         heading: "What we do",
-        body: "We help organizations improve visibility, operations, customer acquisition and growth through AI-powered business transformation — assessment first, outcomes always.",
+        body: POSITIONING,
       },
       {
-        heading: "How we are different",
-        body: "We are not a website company, an SEO agency, or a generic AI agency. We run a disciplined transformation methodology backed by reusable technology.",
+        heading: "How we work",
+        body: "We start by looking at how your business shows up today, recommend what will make the most difference, and build only what you approve. We publish only facts you confirm, and we report only what we have measured.",
+      },
+      {
+        heading: "Our work",
+        body: "We build for Herman Legacy Group's own businesses first. We will show client results here only when they are real and the client has agreed.",
       },
     ],
   },
@@ -142,8 +192,8 @@ export const PAGES: Record<string, PageCopy> = {
     ],
   },
   solutions: {
-    title: "Solutions",
-    lede: "Outcomes we deliver, assembled from proven Herman Legacy capabilities.",
+    title: "Services",
+    lede: "Websites, marketing and practical technology for businesses that want to be found, win customers and run more efficiently.",
     sections: [],
   },
   industries: {
@@ -163,11 +213,15 @@ export const PAGES: Record<string, PageCopy> = {
   },
   marketing: {
     title: "Marketing & Growth",
-    lede: "We turn your transformation plan into demand — content, campaigns and measurable pipeline.",
+    lede: "Content and local visibility that help the right customers find you and get in touch.",
     sections: [
       {
-        heading: "Growth that follows the plan",
-        body: "Marketing is part of the transformation, not a bolt-on. We build demand around the outcomes your assessment identifies.",
+        heading: "What we do",
+        body: "Social posts, short videos made from your own photos, website updates and Google Business Profile upkeep — each approved by you before it goes out.",
+      },
+      {
+        heading: "What we report",
+        body: "Only what we can measure. Where something was not measured, the report says so.",
       },
     ],
   },
@@ -193,7 +247,7 @@ export const PAGES: Record<string, PageCopy> = {
   },
   contact: {
     title: "Contact",
-    lede: "Talk to Herman Legacy Digital.",
+    lede: "Tell us about your business. A person at Herman Legacy Digital reads every request and replies.",
     sections: [],
   },
 };

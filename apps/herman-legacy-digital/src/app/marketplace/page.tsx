@@ -1,5 +1,5 @@
 import { ContentPage, Section, Grid, Card, CTA } from "@/components/ui";
-import { PAGES } from "@/lib/content";
+import { PAGES, PORTFOLIO_NOTE } from "@/lib/content";
 import { solutionsByCategory } from "@/lib/public-data";
 
 export const dynamic = "force-dynamic";
@@ -12,9 +12,8 @@ export default function MarketplacePage() {
     <ContentPage copy={PAGES["marketplace"]!}>
       <Section>
         <p style={{ fontSize: 13.5, color: "#5b6672" }}>
-          This is a public introduction. Your personalized recommendations and
-          transformation roadmap live in your client portal — your advisor sets the
-          plan, always.
+          {PORTFOLIO_NOTE} Your personalized recommendations live in your client portal
+          — your advisor sets the plan, always.
         </p>
         <div style={{ marginTop: 10 }}>
           <CTA href="/book">Talk to an advisor</CTA>
