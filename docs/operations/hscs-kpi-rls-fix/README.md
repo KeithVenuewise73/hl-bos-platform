@@ -61,3 +61,13 @@ afterwards it still has the 3 "Allow all" policies and none of the new helper fu
   returned "denied" again.
 - Not tested: the HTTP API (PostgREST), a real signed-in session, and the dashboard pages. Roles were switched with
   `set_config('role', ...)` inside a database function.
+
+## Applied to production (2026-11-18)
+- Applied `migration.sql` unchanged (the text tested locally and on the branch) to project `bkfsjhhclbqrhaolvhmz`.
+- **Why it was safe to apply before the dashboards had sign-in:** the owner confirmed the Lowe's dashboard is a **template, not used by Lowe's or HSCS**.
+  `Lowes-KPI.html` and `dashboard.html` in `herman-supply-chain` still read with the public key, so they now return nothing until they get the sign-in change in
+  `dashboard-signin/`. That publishing is no longer urgent.
+- **Pre-flight:** 1,144 / 287 / 1,050 rows, 3 open policies present, helpers absent, 3 sequences present, no dependent views.
+- **Live verification (rolled-back probes):** anon cannot read, insert, update or delete any of the three tables; a signed-in non-staff user sees 0 rows and cannot insert;
+  0 old policies, 0 anon privileges, row security on; **row counts unchanged**; exactly one person (the active `owner_ceo`) can read or write.
+- **Rollback:** `rollback.sql` (reopens the hole).

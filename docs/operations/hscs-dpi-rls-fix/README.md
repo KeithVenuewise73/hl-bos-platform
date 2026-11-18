@@ -1,6 +1,6 @@
 # HSCS delivery-performance (dpi) tables: close public read and public insert
 
-**Status: written, tested locally AND on a Supabase branch (since deleted). NOT applied to production. Needs owner approval.**
+**Status: APPLIED TO PRODUCTION on 2026-11-18 with the owner's approval (migration `hscs_dpi_rls_fix`, after the KPI fix). Verified live.**
 
 Problem (found 2026-11-18): `dpi.deliveries`, `dpi.surveys`, `dpi.drivers`, `dpi.dsp_companies` in the legacy project
 (`bkfsjhhclbqrhaolvhmz`) have "Public read" (SELECT, role public, USING true) and "Public insert" policies. The `anon`
@@ -64,3 +64,11 @@ policies, no helper functions, anon still has USAGE on `dpi`.
 ## Order of events (so nothing goes dark)
 1. Publish the sign-in pages (`../hscs-kpi-rls-fix/dashboard-signin/`). 2. Apply the KPI fix. 3. Apply this fix.
 Applying this before `dashboard.html` has the sign-in change would make that page show "Connection failed".
+
+## Applied to production (2026-11-18)
+- Applied `migration.sql` unchanged, immediately after the KPI migration (its guard passed).
+- Pre-flight: 400 deliveries, 244 surveys, 0 drivers, 5 DSP companies; 8 open policies present.
+- Live verification (rolled-back probes): anon cannot read deliveries, surveys or DSP contacts and cannot insert a delivery; a signed-in non-staff user sees 0 rows and cannot insert;
+  anon has no USAGE on schema `dpi` and no privileges on the four tables; **row counts unchanged (400 / 244 / 0 / 5)**.
+- `dashboard.html` (a template, per the owner) now returns nothing until it gets the sign-in change. Not urgent.
+- Rollback: `rollback.sql`.
