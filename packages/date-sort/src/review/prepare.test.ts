@@ -89,8 +89,13 @@ describe("making a photo ready", () => {
 
   it("makes a large copy at 3,600 px, and never enlarges", async () => {
     const dir = folder();
-    writeFileSync(join(dir, "huge.jpg"), await photo(4800, 3200));
-    writeFileSync(join(dir, "mid.jpg"), await photo(3000, 2000));
+    // Plain pictures: only the size matters here, and they encode fast on a busy machine.
+    const plain = (w: number, h: number) =>
+      sharp({ create: { width: w, height: h, channels: 3, background: "#808080" } })
+        .jpeg({ quality: 80 })
+        .toBuffer();
+    writeFileSync(join(dir, "huge.jpg"), await plain(4800, 3200));
+    writeFileSync(join(dir, "mid.jpg"), await plain(3000, 2000));
     const found = (await listForReview(dir)).photos;
     const sizes: Record<string, number> = {};
     for (const c of found) {
@@ -99,7 +104,7 @@ describe("making a photo ready", () => {
       sizes[c.path] = Math.max(m.width, m.height);
     }
     expect(sizes).toEqual({ "huge.jpg": LARGE_EDGE, "mid.jpg": 3000 });
-  });
+  }, 30_000);
 
   it("never enlarges a small photo", async () => {
     const dir = folder();
