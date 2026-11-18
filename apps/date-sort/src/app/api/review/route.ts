@@ -69,7 +69,9 @@ export async function POST(request: Request): Promise<Response> {
     );
   }
   const found = await dayFolder(day, eventName, "review");
-  if (!found.ok) return Response.json({ error: found.error }, { status: found.status });
+  // skip: this date simply has no folder ready yet (Send all passes it by and carries on).
+  if (!found.ok)
+    return Response.json({ error: found.error, skip: true }, { status: found.status });
   if (busy)
     return Response.json(
       { error: "Photos are already being sent. Wait for that to finish." },
