@@ -1,7 +1,6 @@
 # Recovery module: staff-only data, tightened public intake
 
-**Status: written and tested LOCALLY only. NOT applied to any Supabase project. NOT tested on a Supabase branch.
-Needs owner approval.** Independent of the KPI and dpi fixes (it can be applied before or after either).
+**Status: written, tested locally AND on a Supabase branch (since deleted). NOT applied to production. Needs owner approval.** Independent of the KPI and dpi fixes (it can be applied before or after either).
 
 Problem (legacy audit findings 3 and 4, 2026-11-18): the six `recovery_*` tables carry client tax ids, decedent details, claims
 and outreach, yet one policy let **any signed-in user** read and write them all. Bucket `recovery-documents` let **anyone**
@@ -38,13 +37,35 @@ empty today (0 rows, 0 objects), so nothing has leaked yet.
 - Re-applying is harmless (61 pass again). Two separate mutations (any-signed-in-user read policy; open bucket upload policy) are
   each caught. `rollback.sql` restores the open state.
 
+## Supabase branch result (2026-11-18)
+Branch `recovery-rls-fix-test` (project ref `xxrgkwuizkoxoptdiqti`), created from the legacy project and **deleted afterwards**.
+Production was re-checked after the test and is unchanged: the 6 old open table policies and the open upload policy are still
+there; no new helper functions, no bucket limits, no new constraints.
+
+- **The branch is incomplete, as before** (it replayed 4 of production's migrations and stopped). This time it did have the
+  **real Supabase `storage` schema** (0 buckets, 0 policies), so the storage policies were tested on Supabase's own tables. I
+  recreated the Recovery tables, the two buckets, the live before-state policies, a minimal `hscs_glp` and fake users by hand.
+  The real `hscs_glp` objects and the two enforcement triggers on matches/outreach were not exercised.
+- **Before:** all five holes reproduced on the real stack: anon upload anywhere in the bucket; anon insert of a client already
+  "active" with forged notes; a signed-in stranger reading clients, seeing stored documents, and deleting them.
+- **Platform guard found:** Supabase blocks direct SQL `DELETE` on `storage.objects` (trigger `protect_delete`, error 42501) unless
+  the setting `storage.allow_delete_query` is `true`, which its Storage API sets after the policy checks. To test the delete
+  policies I set that setting inside the test function. The first before-run, without it, showed the guard, not the policy.
+- **After** (applied with `apply_migration`): **59 of 59 checks hold**, the same scenarios as `after.sql` (anon on every table
+  and the view; allowed intake; 13 refused intake attempts; strangers, carrier_user, inactive owner_ceo, readonly_exec,
+  finance_manager see nothing; owner_ceo and operations_manager read, write, rename and delete; the other bucket's policy
+  untouched; `service_role`).
+- **Mutations:** a policy letting any signed-in user read clients, and a policy re-opening anonymous upload, were each caught.
+- Bucket `recovery-documents` now has a 10 MB limit and a 5-type allowlist; the other bucket is unchanged; all six tables
+  have row security on.
+
 ## What this does NOT prove, and side effects
 - **I could not find the intake front-end** (no code in any repository I can read uses these tables or the bucket). It may break it:
   an insert that asks for the new row back (`RETURNING`, or `Prefer: return=representation`) is now refused for visitors, because
   they cannot read; the document row can no longer be attached to a claim or match; uploads must go under `intake/`.
   **Test the real intake form before applying.**
-- Emulation: superuser session with `SET ROLE`; a minimal emulation of Storage's tables. Supabase Storage's HTTP layer, where the
-  size and type limits are enforced, was **not** exercised. The two enforcement triggers on matches and outreach are omitted from the replica.
+- Roles were switched inside a database function, not through the HTTP API. Supabase Storage's HTTP layer, where the size and
+  type limits are **enforced**, was **not** exercised: only that the limits were set on the bucket.
 - **Not solved: the number of anonymous uploads.** Nothing in SQL can rate-limit it; 10 MB x unlimited uploads is still storage
   abuse. The proper fix is a server-issued signed upload URL behind a captcha when the intake front-end is built.
 - A signed-in user is still allowed to upload under `intake/` (same as anonymous).
