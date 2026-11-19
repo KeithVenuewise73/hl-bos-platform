@@ -28,7 +28,7 @@ Single source of state so Claude and ChatGPT can resume. Update at the end of ev
 - Exports: 850 prospects (`service-pool.json`), 4 CRM files, 5 reviews, 13 ingest records, 0 offers.
 - Sports (105 seed entries) and Hockey (27 records, 7 comparison rows) are separate workspaces for later.
 - `integration/source-files.json` = 13-file patch for `apps/hl-bti-alpha` (browser-local Revenue Center UI, base 7b67610). 7 files are new, 6 modify existing files. `apps/hl-bti-alpha` has no changes between 7b67610 and HEAD, so the patch applies on the same base. Not yet applied. It has no Supabase writes.
-- Optional `HLG-BTI-Revenue-Center.zip` was NOT supplied.
+- Optional `HLG-BTI-Revenue-Center.zip` was supplied later and inspected: its 13 `apps/hl-bti-alpha` + docs files are byte-identical to `integration/source-files.json` in the Nov 17 archive, and `HLG-BTI-Revenue-Center.patch` passes `git apply --check` on this branch (13 files, +8607/-13). NOT applied yet (browser-local UI; applying is a separate step). Its `discovery-server/` is an OLDER copy of the BTI server: no `service_offers` table (`drizzle/0003`), no offer builder, no `worker/offers.js`/`index.js`, older `api.js`/`reviews.js`. The Nov 17 `service-source.zip` is the newer superset, so port from that and ignore the old `discovery-server/`.
 
 ### Tests actually run
 - `node scripts/test-discovery.mjs` on the BTI source: PASS (seed, atomic removal/backfill, exclusion suppression, domain dedupe, manual vacancy fill, idempotent replay, URL validation, removal validation, cross-origin rejection, restore, 50-slot cap).
