@@ -9,9 +9,17 @@ Single source of state so Claude and ChatGPT can resume. Update at the end of ev
 | Repo | KeithVenuewise73/hl-bos-platform (existing, private) |
 | Branch | `claude/hlg-revenue-center-supabase-jeq433` |
 | Base commit | `4593202` (main at session start) |
-| Step completed | 1 - verify source and destination (read-only) |
-| Migrations added | none |
+| Step completed | 1 - verify source and destination (read-only); 2a - core Postgres schema, RLS and schema tests (local only) |
+| Migrations added | `revenue-center/supabase/migrations/20261119000001_revenue_0001_core.sql` (NOT applied anywhere) |
 | Remote changes made | none (no Supabase writes, no deploys) |
+
+## Step 2a result (local only)
+- Kept in `revenue-center/` (not `supabase/migrations/`) so the platform's gated `db-migrate.yml` can never pick it up.
+- Schema `revenue`: organizations, organization_members, discovery_prospects, discovery_runs, crm_businesses, crm_review_jobs, catalog_items, service_offers, proposals, follow_ups. RLS on all 10 tables; anon has no grants.
+- Kept: legacy text IDs, partial open-review index, per-sector unique identity, composite FKs (cross-organization links are impossible). New: failed/blocked jobs must carry an error; proposals cannot be Sent/Accepted/Declined without an approver and timestamps; catalog prices seed as `pending_approval`.
+- Review jobs and discovery runs are written by the server worker only (service role); members can read them.
+- Tests run: `bash revenue-center/tests/schema-tests.sh` against a throwaway local Postgres 16: **42 passed, 0 failed** (structure, anonymous, cross-organization isolation, roles, integrity, proposal approval gate). Two of my own first-draft tests were wrong and were fixed; the schema was not changed.
+- UNVERIFIED: Supabase security/performance advisors (need a real project), behaviour under real Supabase Auth/PostgREST (local test uses a stand-in `auth.uid()`), generated database types, the review_findings table (findings still live inside `report` jsonb as in the original).
 
 ## Step 1 findings
 
@@ -42,4 +50,4 @@ Single source of state so Claude and ChatGPT can resume. Update at the end of ev
 3. Provide the browser backup export for legacy BTI workspace data, and fresh D1 export before cutover.
 
 ## Next action (owner: Claude)
-Step 2, local only: scaffold `revenue/` Postgres migrations, RLS and tests against local Postgres. No remote changes until decisions 1-2 are answered.
+Step 2b, local only: add atomic enqueue + claim/lease/complete functions (port of enrollReview/claim/complete), normalized review findings, then port `test-discovery.mjs` assertions to Postgres. No remote changes until decision 1 is answered.
