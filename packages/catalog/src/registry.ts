@@ -619,6 +619,43 @@ const ASSETS: Asset[] = [
       "packages/site-builder; tests green; the Claude writer tested with an injected client only — never run against the live API (no key configured)",
   },
   {
+    id: "pkg.sitegen-spec",
+    kind: "package",
+    name: "@hl-bos/sitegen-spec",
+    summary:
+      "The SiteGen site specification: a zod schema for the JSON every generated site is made of (theme tokens, business profile, hero choice, pages, SEO, sourced claims), the barber vertical as data, which part of a site a change touches (mirrors the database's edit-scope rule), the contrast helper, a starter spec built from intake facts only, and a check that lists factual claims the intake does not back. No AI and no network.",
+    maturity: "built_undeployed",
+    reuse: ["reusable"],
+    owner: "Herman Legacy Platform",
+    layer: "HL-BOS",
+    key: "sitegen-spec",
+    location: "packages/sitegen-spec",
+    tags: ["package", "domain-logic", "site-generation", "validation"],
+    relationships: [{ kind: "owned_by", to: "repo.hl-bos-platform" }],
+    evidence:
+      "packages/sitegen-spec; 66 tests passing; the rules restate the database's, and nothing compares the two automatically",
+  },
+  {
+    id: "pkg.sitegen-renderer",
+    kind: "package",
+    name: "@hl-bos/sitegen-renderer",
+    summary:
+      "The SiteGen barber renderer: turns a validated site specification into one HTML page with no client-side JavaScript, SEO tags, OpenGraph and schema.org JSON-LD containing only facts in the spec. Text colors are derived to meet a 4.5 contrast ratio. Nothing is fetched and nothing invented.",
+    maturity: "built_undeployed",
+    reuse: ["reusable"],
+    owner: "Herman Legacy Platform",
+    layer: "HL-BOS",
+    key: "sitegen-renderer",
+    location: "packages/sitegen-renderer",
+    tags: ["package", "site-generation", "rendering"],
+    relationships: [
+      { kind: "uses", to: "pkg.sitegen-spec" },
+      { kind: "owned_by", to: "repo.hl-bos-platform" },
+    ],
+    evidence:
+      "packages/sitegen-renderer; 31 tests passing; loaded in Chromium at 390 px with no console errors, failed requests or sideways scroll; Lighthouse not measured",
+  },
+  {
     id: "mod.sceneflow-local",
     kind: "module",
     name: "sceneflow-local (image worker)",
@@ -1644,6 +1681,25 @@ const ASSETS: Asset[] = [
     relationships: [{ kind: "owned_by", to: "repo.hl-bos-platform" }],
     evidence:
       "migration 0056 verified from empty against a local PostgreSQL (31 pgTAP assertions) and by the repository's own CI against the real Supabase stack; run end to end through the media-review function and a real browser; UNAPPLIED to any project",
+  },
+
+  {
+    id: "db.sitegen",
+    kind: "database",
+    name: "SiteGen (sitegen)",
+    summary:
+      "The multi-tenant website generator's data: sites, immutable versions, assets, plan limits and usage kept as data, and a few catalogs (verticals, fonts, reserved addresses, hero library). A client edits only what its entitlements allow, compared against the base version inside the database; only publish() can put a site live; claims need a source. Not API-exposed; RLS enabled and forced with a policy on every table; no client role can write a table.",
+    maturity: "built_undeployed",
+    reuse: ["reusable"],
+    owner: "Herman Legacy Platform",
+    layer: "HL-BOS",
+    key: "sitegen",
+    location: "sitegen schema",
+    tags: ["schema", "postgres", "rls", "multi-tenant"],
+    metrics: { tables: 10 },
+    relationships: [{ kind: "owned_by", to: "repo.hl-bos-platform" }],
+    evidence:
+      "migration 0060 verified from empty against a local PostgreSQL 17.6 (109 pgTAP assertions; 1533 across the suite, 0 failing; 12 simultaneous counter calls against a limit of 3 gave exactly 3); advisors not run on it; UNAPPLIED to any project",
   },
 
   ...db(

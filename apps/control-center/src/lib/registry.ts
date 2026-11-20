@@ -28,6 +28,15 @@ export interface Product {
 
 export const PORTFOLIO: readonly Product[] = [
   {
+    name: "HLG SiteGen",
+    stage: "development",
+    status:
+      "Phase 1 built and tested locally, not applied anywhere. Database: sites with immutable versions, edit scopes and plan limits kept as data, publish-only go-live, row-level security (migration 0060, 109 database checks passing). Code: the site specification schema and a barber site renderer (97 tests passing). Not built yet: client sign-up, the theme editor, staff AI editing, custom domains. No site has been published and no AI has been run.",
+    version: null,
+    location:
+      "this repository (supabase/migrations 0060, packages/sitegen-spec, packages/sitegen-renderer)",
+  },
+  {
     name: "HLG Instant Site Builder",
     stage: "development",
     status:

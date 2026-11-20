@@ -420,6 +420,10 @@
     {
       "title": "SceneFlow on a phone: say honestly whether one can reach it, and add the Windows firewall rule on request",
       "done": true
+    },
+    {
+      "title": "HLG SiteGen Phase 1: database, site specification and barber renderer built and tested locally; not applied",
+      "done": false
     }
   ],
   "blockers": [

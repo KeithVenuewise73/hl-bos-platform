@@ -98,7 +98,7 @@ describe("registry integrity", () => {
     expect(dangling, `dangling targets: ${dangling.join(", ")}`).toEqual([]);
   });
 
-  it("registers the 26 application databases and 12 edge functions", () => {
+  it("registers the 27 application databases and 12 edge functions", () => {
     // 20th: `highlight` (migration 0049, HighlightAI Football).
     // 22nd: `hype` (migration 0051, 5-Star Hype Video), unapplied.
     // 23rd: `jerseysort` (migration 0052, JerseySort AI), unapplied.
@@ -107,7 +107,7 @@ describe("registry integrity", () => {
     // 25th and 26th: `review` (migrations 0055 + 0057, photo review) and `site`
     // (migration 0056, website page switches), unapplied, with the 12th edge
     // function, media-review.
-    expect(assetsByKind(catalog, "database").length).toBe(26);
+    expect(assetsByKind(catalog, "database").length).toBe(27);
     expect(assetsByKind(catalog, "edge_function").length).toBe(12);
   });
 
@@ -160,8 +160,8 @@ describe("repository scan (ground truth)", () => {
     // Plus 0055-0057 (photo review, website page switches, publishing approved photos),
     // applied to canonical production under the owner's approval, and 0058 (posting
     // approved photos to the owner's Instagram and Facebook) and 0059 (a large copy of
-    // each photo, offered as a download).
-    expect(inv.migrations.length).toBe(59);
+    // each photo, offered as a download), and 0060 (sitegen — HLG SiteGen).
+    expect(inv.migrations.length).toBe(60);
     expect(inv.edgeFunctions).toContain("ai-gateway");
     expect(inv.edgeFunctions).not.toContain("tests");
     expect(inv.apps).toEqual(
@@ -195,7 +195,7 @@ describe("executive metrics", () => {
     const catalog = buildCatalog();
     const inv = await scanRepository(REPO_ROOT);
     const m = metrics(catalog, completeness(catalog, inv));
-    expect(m.databases).toBe(26);
+    expect(m.databases).toBe(27);
     expect(m.edgeFunctions).toBe(12);
     expect(m.sharedServices).toBeGreaterThanOrEqual(12);
     expect(m.products).toBeGreaterThanOrEqual(3);

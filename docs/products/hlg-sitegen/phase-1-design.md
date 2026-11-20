@@ -12,11 +12,11 @@ invalid spec is rejected, never published.
 
 ## Tiers (entitlements are data)
 
-|                  | Who edits                                                                      | AI                         | Domain         |
-| ---------------- | ------------------------------------------------------------------------------ | -------------------------- | -------------- |
-| Free             | Client: theme tokens, logo, one hero graphic, basic business info              | None, costs nothing to run | Subdomain only |
-| Assisted         | HLG staff apply a client's change request, with AI help, after review         | Staff only                 | Custom allowed |
-| Custom build     | HLG, in admin, with full SiteSpec editing, tracked as a project with a quote   | Staff only                 | Custom allowed |
+|              | Who edits                                                                    | AI                         | Domain         |
+| ------------ | ---------------------------------------------------------------------------- | -------------------------- | -------------- |
+| Free         | Client: theme tokens, logo, one hero graphic, basic business info            | None, costs nothing to run | Subdomain only |
+| Assisted     | HLG staff apply a client's change request, with AI help, after review        | Staff only                 | Custom allowed |
+| Custom build | HLG, in admin, with full SiteSpec editing, tracked as a project with a quote | Staff only                 | Custom allowed |
 
 Code never asks "which tier". It asks `entitlements.has_feature(tenant, 'sitegen.…')` or
 `sitegen.limit_for(tenant, 'sitegen.…')`. Tiers are rows in `billing.plans`. A test fails
@@ -24,21 +24,21 @@ if a tier name appears in any SiteGen function body.
 
 ## Decisions made on the CEO's behalf (2026-11-20, "defer to you")
 
-| Question                         | Decision                                                                                  |
-| -------------------------------- | ----------------------------------------------------------------------------------------- |
+| Question                          | Decision                                                                                                          |
+| --------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
 | Production migrations not in repo | Inventory done; import deferred, needs a lineage ADR (`docs/operations/production-migration-drift-2026-11-20.md`) |
-| `site_domains`                   | Phase 4, with the domain provider                                                         |
-| Staff access                     | Platform-level permissions (`sitegen.admin.*`), not membership in each client tenant      |
-| BarberOS                         | Left alone; import into SiteGen later                                                     |
-| Plans                            | Free plus one internal "HLG-managed" plan, placeholders, **no prices**                    |
-| Change request statuses          | submitted, in_progress, review, approved, published, plus rejected and withdrawn          |
-| Project statuses                 | lead, quoted, accepted, in_progress, delivered, cancelled                                 |
-| Assisted allowance               | Counts on approval; over the limit staff see a flag and decide                            |
-| AI cost attribution              | Against the client's tenant                                                               |
-| Apps                             | One authenticated app (client dashboard and staff admin) plus a separate public host app  |
-| Free signup                      | Verified email; `sitegen.max_sites` defaults to 1 and is a data limit                     |
-| Logos                            | PNG, JPEG, WebP only; SVG excluded (scripts)                                              |
-| Custom domains                   | Cloudflare for SaaS recommended; **CEO decision pending** (Namecheap registrar, no domain chosen yet) |
+| `site_domains`                    | Phase 4, with the domain provider                                                                                 |
+| Staff access                      | Platform-level permissions (`sitegen.admin.*`), not membership in each client tenant                              |
+| BarberOS                          | Left alone; import into SiteGen later                                                                             |
+| Plans                             | Free plus one internal "HLG-managed" plan, placeholders, **no prices**                                            |
+| Change request statuses           | submitted, in_progress, review, approved, published, plus rejected and withdrawn                                  |
+| Project statuses                  | lead, quoted, accepted, in_progress, delivered, cancelled                                                         |
+| Assisted allowance                | Counts on approval; over the limit staff see a flag and decide                                                    |
+| AI cost attribution               | Against the client's tenant                                                                                       |
+| Apps                              | One authenticated app (client dashboard and staff admin) plus a separate public host app                          |
+| Free signup                       | Verified email; `sitegen.max_sites` defaults to 1 and is a data limit                                             |
+| Logos                             | PNG, JPEG, WebP only; SVG excluded (scripts)                                                                      |
+| Custom domains                    | Cloudflare for SaaS recommended; **CEO decision pending** (Namecheap registrar, no domain chosen yet)             |
 
 ## What Phase 1 builds
 
@@ -69,14 +69,14 @@ mirrors the database rules, and the barber renderer (zero client JavaScript).
 
 ## Deliberately not in Phase 1, and why
 
-| Left out                                    | Why                                                                           |
-| ------------------------------------------- | ----------------------------------------------------------------------------- |
+| Left out                                                    | Why                                                                                           |
+| ----------------------------------------------------------- | --------------------------------------------------------------------------------------------- |
 | `generation_jobs`, `patches`, `change_requests`, `projects` | No writer exists until Phase 3/4; a table nobody can write is a control that controls nothing |
-| `leads`                                     | Needs the public form endpoint (Phase 2)                                      |
-| Free signup (`start_free_site`)             | Phase 2: needs the email-verified path, rate limits and a zero-price subscription path |
-| Image re-encode / EXIF strip                | Happens in the upload Edge Function (Phase 2); the database only caps type and size |
-| Hero library images                         | Table is empty on purpose: no pictures have been curated, none invented       |
-| Advisor check on the new objects            | Not run: it needs the objects applied. See "Verification" below              |
+| `leads`                                                     | Needs the public form endpoint (Phase 2)                                                      |
+| Free signup (`start_free_site`)                             | Phase 2: needs the email-verified path, rate limits and a zero-price subscription path        |
+| Image re-encode / EXIF strip                                | Happens in the upload Edge Function (Phase 2); the database only caps type and size           |
+| Hero library images                                         | Table is empty on purpose: no pictures have been curated, none invented                       |
+| Advisor check on the new objects                            | Not run: it needs the objects applied. See "Verification" below                               |
 
 ## Verification, honestly
 

@@ -1,0 +1,30 @@
+{
+  "name": "@hl-bos/sitegen-renderer",
+  "version": "0.1.0",
+  "private": true,
+  "description": "HLG SiteGen renderer. A validated SiteSpec in, a single script-free, mobile-first HTML page per page out (plus head tags, JSON-LD and sitemap entries), server-side with react-dom/server. Pure: it never fetches anything and renders nothing that is not in the spec.",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "default": "./src/index.ts"
+    }
+  },
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run",
+    "clean": "rm -rf dist *.tsbuildinfo"
+  },
+  "dependencies": {
+    "@hl-bos/sitegen-spec": "workspace:*",
+    "react": "catalog:",
+    "react-dom": "catalog:"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "@types/react": "catalog:",
+    "@types/react-dom": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  }
+}

@@ -1,0 +1,26 @@
+{
+  "name": "@hl-bos/sitegen-spec",
+  "version": "0.1.0",
+  "private": true,
+  "description": "HLG SiteGen SiteSpec v1: the zod schema every generated website is validated against (mirroring the database's save-time rules), the edit-scope comparison that mirrors the database, the contrast maths, the font allowlist, the vertical registry, a facts-only starter spec, and the unsupported-claims finder for staff review. No HTML, no network, no AI.",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "default": "./src/index.ts"
+    }
+  },
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run",
+    "clean": "rm -rf dist *.tsbuildinfo"
+  },
+  "dependencies": {
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  }
+}
