@@ -16,6 +16,7 @@ import {
   connectReview,
   fingerprint,
   ReviewError,
+  reviewKnown,
   reviewStatus,
   sendForReview,
   type Fetch,
@@ -116,6 +117,9 @@ function service(
         uploaded.add(p.hash);
       }
       return json({ added: (data.photos ?? []).length });
+    }
+    if (url.pathname === "/review/known") {
+      return json({ known: (data.hashes ?? []).filter((h) => known.has(h)) });
     }
     if (url.pathname === "/review/status") {
       const per = new Map<string, number>();
@@ -236,6 +240,27 @@ describe("which dates are on the website", () => {
     ]);
     await expect(
       reviewStatus(BASE, "some-other-key-some-other-key-some-other-key-123", svc.fetch),
+    ).rejects.toThrow(/not connected/);
+  });
+});
+
+describe("which photos 5Star already holds", () => {
+  it("reports only the fingerprints it has, and refuses a stranger", async () => {
+    const dir = await dayFolder(2);
+    const svc = service();
+    await run(dir, svc);
+    const have = [...svc.known.keys()];
+    const other = "f".repeat(64);
+    const got = await reviewKnown(BASE, KEY, [...have, other], svc.fetch);
+    expect([...got].sort()).toEqual(have.sort());
+    expect(got.has(other)).toBe(false);
+    await expect(
+      reviewKnown(
+        BASE,
+        "some-other-key-some-other-key-some-other-key-123",
+        have,
+        svc.fetch,
+      ),
     ).rejects.toThrow(/not connected/);
   });
 });

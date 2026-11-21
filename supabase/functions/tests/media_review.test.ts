@@ -174,6 +174,10 @@ function world(over: Partial<ReviewDeps> = {}) {
           .map((hash) => ({ hash, batch_id: LARGE_BATCH })),
       });
     },
+    knownHashes(hashes) {
+      calls.push("known:" + hashes.length);
+      return Promise.resolve(hashes.filter((h) => h === H1));
+    },
     commitPhotos(_b, photos) {
       calls.push("commit:" + photos.length);
       return Promise.resolve(photos.length);
@@ -2101,6 +2105,40 @@ Deno.test(
       401,
       "only the connected DateSort may record large copies",
     );
+  },
+);
+
+Deno.test(
+  "known: DateSort can ask which photos 5Star already holds (before it offers to free up a card), with the publisher key only",
+  async () => {
+    const w = world();
+    w.setPublisher(KEY_SHA);
+    const ok = await out(
+      await handle(post("/review/known", { hashes: [H1, H2] }, asPublisher), w.deps),
+    );
+    assertEquals(ok.status, 200, "the connected DateSort may ask");
+    assertEquals(
+      ok.json["known"],
+      [H1],
+      "only the photo the service holds is reported",
+    );
+    for (const bad of [{ hashes: [] }, { hashes: ["nope"] }, {}]) {
+      const r = await out(
+        await handle(post("/review/known", bad, asPublisher), w.deps),
+      );
+      assertEquals(
+        r.status,
+        400,
+        "a malformed list is refused: " + JSON.stringify(bad),
+      );
+    }
+    const stranger = await out(
+      await handle(
+        post("/review/known", { hashes: [H1] }, { "x-review-publisher-key": "wrong" }),
+        w.deps,
+      ),
+    );
+    assertEquals(stranger.status, 401, "nobody else may ask");
   },
 );
 
