@@ -4,7 +4,8 @@ import { useEffect, useState } from "react";
 
 import type { CopyState } from "@/components/CopyPanel.tsx";
 import type { ReviewLine } from "@/app/api/review/route.ts";
-import { progressLine, resultLines } from "@/lib/review-messages.ts";
+import { dayStatus, progressLine, resultLines } from "@/lib/review-messages.ts";
+import { refreshReviewDays, useReviewDays } from "@/lib/review-days.ts";
 
 type Status = { configured: boolean; connected: boolean } | null;
 type State =
@@ -19,7 +20,16 @@ type State =
  * approves them before anything is public. Says plainly when the website is not
  * set up or this computer is not connected: it never pretends to send.
  */
-export function CardReview({ day, copy }: { day: string; copy: CopyState }) {
+export function CardReview({
+  day,
+  photos,
+  copy,
+}: {
+  day: string;
+  photos: number;
+  copy: CopyState;
+}) {
+  const onSite = useReviewDays();
   const [status, setStatus] = useState<Status>(null);
   const [state, setState] = useState<State>({ kind: "idle" });
 
@@ -81,6 +91,7 @@ export function CardReview({ day, copy }: { day: string; copy: CopyState }) {
           else if (m.type === "done") {
             finished = true;
             setState({ kind: "done", lines: resultLines(m.result) });
+            void refreshReviewDays();
           } else {
             finished = true;
             setState({ kind: "error", message: m.message });
@@ -102,8 +113,27 @@ export function CardReview({ day, copy }: { day: string; copy: CopyState }) {
   }
 
   const working = state.kind === "working";
+  const here = onSite?.[day];
+  const badge =
+    onSite === null ? null : dayStatus(photos, here?.photos ?? 0, here?.approved ?? 0);
   return (
     <div className="space-y-1 text-xs" data-testid="card-review">
+      {badge !== null && status?.configured === true && status.connected ? (
+        <p
+          data-testid="site-status"
+          data-state={badge.kind}
+          className={
+            badge.kind === "all"
+              ? "font-semibold text-brand"
+              : badge.kind === "partial"
+                ? "font-semibold text-estimate"
+                : "text-muted"
+          }
+        >
+          {badge.kind === "all" ? "✓ " : ""}
+          {badge.text}
+        </p>
+      ) : null}
       {status !== null && !status.configured ? (
         <>
           <button

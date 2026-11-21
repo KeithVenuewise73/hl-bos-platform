@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { allDoneLines, progressLine, resultLines } from "./review-messages";
+import { allDoneLines, dayStatus, progressLine, resultLines } from "./review-messages";
 
 const base = {
   sent: 0,
@@ -83,5 +83,19 @@ describe("what is said after Send all", () => {
       /1 date was passed by because its folder is not ready: 2026-10-01/,
     );
     expect(l.join("\n")).toMatch(/2026-10-02 stopped: Lost the connection\./);
+  });
+});
+
+describe("the badge on a date card", () => {
+  it("says not yet, partly, or all", () => {
+    expect(dayStatus(282, 0, 0)).toEqual({ kind: "none", text: "Not on 5Star yet." });
+    expect(dayStatus(282, 120, 0)).toEqual({
+      kind: "partial",
+      text: "On 5Star: 120 of 282 photos. Send for review adds the rest.",
+    });
+    expect(dayStatus(282, 282, 250)).toEqual({
+      kind: "all",
+      text: "On 5Star: all 282 photos (250 approved).",
+    });
   });
 });

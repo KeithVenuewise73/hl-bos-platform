@@ -2105,6 +2105,28 @@ Deno.test(
 );
 
 Deno.test(
+  "status: DateSort can ask which dates already have photos in review, with the publisher key only",
+  async () => {
+    const w = world();
+    w.setPublisher(KEY_SHA);
+    const ok = await out(await handle(post("/review/status", {}, asPublisher), w.deps));
+    assertEquals(ok.status, 200, "the connected DateSort may ask");
+    assertEquals(
+      ok.json["days"],
+      [{ date: "2026-10-24", photos: 1, waiting: 1, approved: 0, rejected: 0 }],
+      "one entry per date, with how many photos are there",
+    );
+    const stranger = await out(
+      await handle(
+        post("/review/status", {}, { "x-review-publisher-key": "wrong" }),
+        w.deps,
+      ),
+    );
+    assertEquals(stranger.status, 401, "nobody else may ask");
+  },
+);
+
+Deno.test(
   "download large: a short-lived private link, only while the switch is on and the photo qualifies; the public page says which photos have one",
   async () => {
     const w = world();
