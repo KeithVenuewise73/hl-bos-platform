@@ -80,7 +80,7 @@ Under **Copy to dated folders**:
 
 The rules (`packages/date-sort/src/copy`):
 
-- **Copy only.** Originals are opened for reading, never moved, renamed, edited or deleted.
+- **Copy only.** Copying opens originals for reading and never moves, renames, edits or deletes them. (Deleting is a separate, confirmed step: see _Free up the card_ below.)
 - **Never overwrites.** If a file of that name is already in the folder, it is compared byte for byte.
   The same photo counts as "already there"; a different file is **left alone** and listed.
 - **Checked.** Each copy is written under a temporary name, read back and compared with its original
@@ -90,6 +90,28 @@ The rules (`packages/date-sort/src/copy`):
   different `IMG_0001.JPG`. The second copy is named `IMG_0001 (2).JPG`, the same way every time.
 - **Safe to repeat.** Pressing it again only copies what is missing, so an interrupted copy is
   finished by pressing the button again.
+
+## Free up the card
+
+The one place DateSort deletes originals (`packages/date-sort/src/free-card`; only `remove.ts` can delete).
+The panel **Free up the card** works in two steps, and deletes nothing until the person has seen the
+numbers and pressed a red confirmation.
+
+1. **Check** (reads only). For every photo and video DateSort found on the card:
+   - the date's folder on the hard drive must hold a copy that is **byte for byte identical** (SHA-256 of both);
+   - that copy must be a **different file on a different drive**: never the original itself, a link to it, a
+     folder inside the card, or the card's own drive;
+   - for photos, **5Star's review area must already hold the photo** (asked by fingerprint; if 5Star cannot be
+     asked, every photo is kept). Videos are not sent to 5Star, so the hard-drive copy is enough for them;
+   - the original must not have changed while it was being read.
+     Anything else is **kept**, with the reason in words.
+2. **Delete** (needs the check's result and a typed-out confirmation from the page). Each file is **re-proved
+   just before it goes**: the original untouched, the copy still there and **read again**, 5Star asked again. A
+   record (`freed-from-card.log`, in DateSort's settings folder) is written _before_ each deletion.
+
+Files that are not photos or videos, and folders, are never touched. A card has no Recycle Bin: deleted files
+cannot be brought back from the card, which is why their copies are re-checked first.
+
 - **The laptop stays awake while it scans and copies.** A laptop that goes to sleep cuts the page off from
   DateSort, which stops the copy (cleanly). So while a scan or copy runs, DateSort asks Windows not to
   sleep (`src/lib/keep-awake.ts`, the same request a video player makes), and lets go when the copy

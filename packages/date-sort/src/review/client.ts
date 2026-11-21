@@ -16,6 +16,7 @@
  * /review/batch also answers need_large:[{hash,batch_id}], the photos already
  * there that still lack a large copy; they are topped up from the originals.
  *
+ *   POST /review/known    {hashes:[...]}                    -> {known:[hash]}   (read only)
  *   POST /review/status   {}                                -> {days:[{date,photos,waiting,approved,rejected}]}
  *
  * Every call except /register carries the publisher key in x-review-publisher-key.
@@ -461,4 +462,32 @@ export async function reviewStatus(
       approved: Number(d["approved"] ?? 0),
       rejected: Number(d["rejected"] ?? 0),
     }));
+}
+
+/**
+ * Which of these original-file fingerprints does 5Star already hold? Read only.
+ * Throws when 5Star cannot be asked: the caller must then treat every photo as NOT on 5Star.
+ */
+export async function reviewKnown(
+  base: string,
+  key: string,
+  hashes: readonly string[],
+  fetchImpl: Fetch,
+): Promise<Set<string>> {
+  const net = withRetry(fetchImpl);
+  const known = new Set<string>();
+  const unique = [...new Set(hashes)];
+  for (let i = 0; i < unique.length; i += 5000) {
+    const out = await call(
+      net,
+      base,
+      key,
+      "/review/known",
+      { hashes: unique.slice(i, i + 5000) },
+      0,
+    );
+    for (const h of Array.isArray(out["known"]) ? (out["known"] as unknown[]) : [])
+      if (typeof h === "string") known.add(h);
+  }
+  return known;
 }

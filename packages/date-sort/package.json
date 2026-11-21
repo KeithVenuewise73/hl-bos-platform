@@ -28,6 +28,10 @@
     "./sport-rules": {
       "types": "./src/sport/sports.ts",
       "default": "./src/sport/sports.ts"
+    },
+    "./free-card": {
+      "types": "./src/free-card/index.ts",
+      "default": "./src/free-card/index.ts"
     }
   },
   "scripts": {

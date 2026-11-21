@@ -408,6 +408,12 @@ async function api(route, body, headers) {
     );
     await shot(page, "owner-folders");
 
+    check(
+      "folders with photos waiting come first, under a heading that counts them",
+      /Needs review \(14 photos waiting in 1 folder\)/.test(
+        await page.locator("[data-testid=needs-review-head]").innerText(),
+      ),
+    );
     console.log("\nReviewing a folder");
     await page.click("button:has-text('Review')");
     await page.waitForSelector(".pr-tile");

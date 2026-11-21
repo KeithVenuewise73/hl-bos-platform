@@ -38,6 +38,11 @@ export function pgStore(sql: any): ReviewStore {
         })),
       };
     },
+    async knownHashes(hashes) {
+      const r = await sql`select file_hash from review.photos
+        where file_hash = any(${hashes}::text[])`;
+      return [...r].map((x: any) => String(x.file_hash));
+    },
     async commitPhotos(batchId, photos) {
       const r =
         await sql`select review.commit_photos(${batchId}::uuid, ${sql.json(photos)}) as n`;

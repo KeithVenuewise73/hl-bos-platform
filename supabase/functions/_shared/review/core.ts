@@ -198,6 +198,8 @@ export interface ReviewStore {
     needLarge: { hash: string; batch_id: string }[];
   }>;
   commitPhotos(batchId: string, photos: Record<string, unknown>[]): Promise<number>;
+  /** Which of these fingerprints the review area already holds (their files are stored). */
+  knownHashes(hashes: string[]): Promise<string[]>;
   folders(): Promise<FolderRow[]>;
   folderPhotos(
     folder: string,
@@ -719,6 +721,18 @@ async function publisher(
       if (await deps.store.attachLarge(text(p["hash"]), num(p["bytes"], 0)))
         attached += 1;
     return json(req, 200, { attached });
+  }
+  if (route === "/review/known") {
+    // Read only: which photos does 5Star already hold? DateSort asks before it offers to
+    // free up a card; it never changes anything here.
+    const hashes = Array.isArray(b["hashes"]) ? b["hashes"].map(text) : [];
+    if (
+      hashes.length === 0 ||
+      hashes.length > MAX_HASHES_PER_BATCH ||
+      !hashes.every((h) => HASH.test(h))
+    )
+      return json(req, 400, { error: "hashes must be SHA-256 fingerprints." });
+    return json(req, 200, { known: await deps.store.knownHashes(hashes) });
   }
   if (route === "/review/status") {
     // Which dates already have photos in review (any state), so DateSort can show it on each date.

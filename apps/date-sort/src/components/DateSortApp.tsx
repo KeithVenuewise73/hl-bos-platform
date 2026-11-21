@@ -19,6 +19,7 @@ import {
 import { IphoneButton } from "@/components/IphoneButton.tsx";
 import { CardJersey } from "@/components/JerseyButton.tsx";
 import { CardReview } from "@/components/ReviewButton.tsx";
+import { FreeCardPanel } from "@/components/FreeCardPanel.tsx";
 import { SendAllReview } from "@/components/SendAllReview.tsx";
 import {
   CardSport,
@@ -410,6 +411,7 @@ function Report({ view }: { view: ScanView }) {
           copy={copy}
         />
       ) : null}
+      {r.days.length > 0 ? <FreeCardPanel view={view} copy={copy} /> : null}
 
       {r.days.length === 0 ? (
         <p className="card p-5 text-sm text-muted" data-testid="no-dates">
