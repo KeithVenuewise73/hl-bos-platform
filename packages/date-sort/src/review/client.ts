@@ -16,6 +16,8 @@
  * /review/batch also answers need_large:[{hash,batch_id}], the photos already
  * there that still lack a large copy; they are topped up from the originals.
  *
+ *   POST /review/status   {}                                -> {days:[{date,photos,waiting,approved,rejected}]}
+ *
  * Every call except /register carries the publisher key in x-review-publisher-key.
  * A photo whose fingerprint is already known to the service (in review, or
  * already published) is skipped, so sending twice is safe and cheap, and an
@@ -428,4 +430,35 @@ export async function sendForReview(o: SendOptions): Promise<SendResult> {
     skipped: listing.skipped,
     videosNotSent: listing.videos,
   };
+}
+
+/** How many photos the website holds for one date (all states). */
+export interface ReviewDay {
+  readonly date: string;
+  readonly photos: number;
+  readonly waiting: number;
+  readonly approved: number;
+  readonly rejected: number;
+}
+
+/** Which dates already have photos on the website, so each date card can say so. */
+export async function reviewStatus(
+  base: string,
+  key: string,
+  fetchImpl: Fetch,
+): Promise<ReviewDay[]> {
+  const net = withRetry(fetchImpl);
+  const out = await call(net, base, key, "/review/status", {}, 0);
+  const days = Array.isArray(out["days"])
+    ? (out["days"] as Record<string, unknown>[])
+    : [];
+  return days
+    .filter((d) => typeof d["date"] === "string")
+    .map((d) => ({
+      date: String(d["date"]),
+      photos: Number(d["photos"] ?? 0),
+      waiting: Number(d["waiting"] ?? 0),
+      approved: Number(d["approved"] ?? 0),
+      rejected: Number(d["rejected"] ?? 0),
+    }));
 }
