@@ -138,7 +138,8 @@ export function FreeCardPanel({ view, copy }: { view: ScanView; copy: CopyState 
       <ul className="space-y-1 text-sm" data-testid="free-kept">
         {kept.map((g) => (
           <li key={g.reason}>
-            <b>{files(g.count)}</b> stay on the card: {g.words}
+            <b>{files(g.count)}</b> {g.count === 1 ? "stays" : "stay"} on the card:{" "}
+            {g.words}
             <span className="text-muted">
               {" "}
               ({g.examples.join(", ")}
@@ -159,7 +160,10 @@ export function FreeCardPanel({ view, copy }: { view: ScanView; copy: CopyState 
         the numbers and confirmed.
       </p>
 
-      {state.kind === "idle" || state.kind === "error" || state.kind === "freed" ? (
+      {state.kind === "idle" ||
+      state.kind === "error" ||
+      state.kind === "freed" ||
+      state.kind === "checked" ? (
         <button
           type="button"
           className="btn"
@@ -167,7 +171,9 @@ export function FreeCardPanel({ view, copy }: { view: ScanView; copy: CopyState 
           disabled={blocked}
           onClick={() => void check()}
         >
-          Check what can be deleted from the card
+          {state.kind === "checked"
+            ? "Check again"
+            : "Check what can be deleted from the card"}
         </button>
       ) : null}
 
