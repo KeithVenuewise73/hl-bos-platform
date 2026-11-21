@@ -110,3 +110,21 @@ export function allDoneLines(t: AllTotals, stopped: boolean): string[] {
     lines.push(`${p.day} stopped: ${p.reason}`);
   return lines;
 }
+
+/** How a date card says how much of it is already on the website. */
+export type DayStatus =
+  | { readonly kind: "none"; readonly text: string }
+  | { readonly kind: "partial"; readonly text: string }
+  | { readonly kind: "all"; readonly text: string };
+
+export function dayStatus(photos: number, onSite: number, approved: number): DayStatus {
+  const n = (v: number) => v.toLocaleString("en-US");
+  if (onSite <= 0) return { kind: "none", text: "Not on 5Star yet." };
+  const extra = approved > 0 ? ` (${n(approved)} approved)` : "";
+  if (onSite >= photos)
+    return { kind: "all", text: `On 5Star: all ${n(photos)} photos${extra}.` };
+  return {
+    kind: "partial",
+    text: `On 5Star: ${n(onSite)} of ${n(photos)} photos${extra}. Send for review adds the rest.`,
+  };
+}

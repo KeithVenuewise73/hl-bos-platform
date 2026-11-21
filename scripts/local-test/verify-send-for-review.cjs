@@ -107,6 +107,24 @@ function startService() {
           state.known.set(p.hash, { ...p, batch: body.batch_id });
         return json({ added: body.photos.length });
       }
+      if (url.pathname === "/review/status") {
+        const per = new Map();
+        state.batches.forEach((b, i) => {
+          const n = [...state.known.values()].filter(
+            (p) => p.batch === `b${i + 1}`,
+          ).length;
+          per.set(b.label.date, (per.get(b.label.date) ?? 0) + n);
+        });
+        return json({
+          days: [...per].map(([date, photos]) => ({
+            date,
+            photos,
+            waiting: photos,
+            approved: 0,
+            rejected: 0,
+          })),
+        });
+      }
       if (url.pathname === "/review/large") {
         for (const it of body.items) state.large.add(it.hash);
         return json({ attached: body.items.length });
@@ -280,6 +298,27 @@ function startService() {
           crypto.createHash("sha256").update(saved.key).digest("hex"),
     );
 
+    console.log("\nWhich dates are on the website");
+    await page.reload();
+    await page.fill("[data-testid=source-input]", path.join(work, "card"));
+    await page.click("[data-testid=scan-button]");
+    await page.waitForSelector("[data-testid=scan-report]", { timeout: 300_000 });
+    const s1 = page
+      .locator("[data-testid=date-card][data-day='2026-10-24']")
+      .locator("[data-testid=site-status]");
+    await s1.waitFor({ timeout: 30_000 });
+    check(
+      "before anything is sent, the date card says it is not on 5Star yet",
+      /Not on 5Star yet/.test(await s1.innerText()),
+      await s1.innerText(),
+    );
+    check(
+      "the Send all panel counts the dates fully on 5Star",
+      /0 of 2 dates are fully on 5Star/.test(
+        await page.locator("[data-testid=send-all-summary]").innerText(),
+      ),
+      await page.locator("[data-testid=send-all-summary]").innerText(),
+    );
     console.log("\nSending");
     await d3.locator("[data-testid=send-review]").click();
     await d3.locator("[data-testid=review-result]").waitFor({ timeout: 120_000 });
@@ -323,6 +362,17 @@ function startService() {
     check(
       "the folder on the drive is byte-for-byte unchanged",
       fingerprint(folder) === before,
+    );
+
+    await d3
+      .locator("[data-testid=site-status][data-state=all]")
+      .waitFor({ timeout: 30_000 });
+    check(
+      "after sending, the card says all 4 photos are on 5Star",
+      /On 5Star: all 4 photos/.test(
+        await d3.locator("[data-testid=site-status]").innerText(),
+      ),
+      await d3.locator("[data-testid=site-status]").innerText(),
     );
 
     console.log("\nSending again");

@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 
 import type { CopyState } from "@/components/CopyPanel.tsx";
 import { allDoneLines, type AllTotals } from "@/lib/review-messages.ts";
+import { refreshReviewDays, useReviewDays } from "@/lib/review-days.ts";
 import { sendDay } from "@/lib/send-day.ts";
 
 type Status = { configured: boolean; connected: boolean } | null;
@@ -25,7 +26,14 @@ const EMPTY: AllTotals = {
  * time. Dates whose folder is not ready are passed by and listed at the end. Nothing sent
  * is public: it all waits for the owner's approval.
  */
-export function SendAllReview({ days, copy }: { days: string[]; copy: CopyState }) {
+export function SendAllReview({
+  days,
+  copy,
+}: {
+  days: { day: string; photos: number }[];
+  copy: CopyState;
+}) {
+  const onSite = useReviewDays();
   const [status, setStatus] = useState<Status>(null);
   const [running, setRunning] = useState(false);
   const [line, setLine] = useState("");
@@ -53,7 +61,7 @@ export function SendAllReview({ days, copy }: { days: string[]; copy: CopyState 
     setFatal(null);
     let t: AllTotals = EMPTY;
     setTotals(t);
-    const ordered = [...days].sort(); // oldest first
+    const ordered = days.map((d) => d.day).sort(); // oldest first
     let stopped = false;
     for (const [i, day] of ordered.entries()) {
       if (ctl.signal.aborted) {
@@ -100,6 +108,7 @@ export function SendAllReview({ days, copy }: { days: string[]; copy: CopyState 
     abort.current = null;
     setRunning(false);
     setLine("");
+    void refreshReviewDays();
     setFinished({ lines: allDoneLines(t, stopped) });
   }
 
@@ -135,6 +144,16 @@ export function SendAllReview({ days, copy }: { days: string[]; copy: CopyState 
           </button>
         )}
       </div>
+      {onSite !== null ? (
+        <p className="text-sm text-muted" data-testid="send-all-summary">
+          {(() => {
+            const complete = days.filter(
+              (d) => (onSite[d.day]?.photos ?? 0) >= d.photos,
+            ).length;
+            return `${complete.toLocaleString("en-US")} of ${days.length.toLocaleString("en-US")} dates are fully on 5Star.`;
+          })()}
+        </p>
+      ) : null}
       {running ? (
         <div className="space-y-1 text-sm" data-testid="send-all-progress">
           <p>{line}</p>

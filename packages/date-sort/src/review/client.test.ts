@@ -16,6 +16,7 @@ import {
   connectReview,
   fingerprint,
   ReviewError,
+  reviewStatus,
   sendForReview,
   type Fetch,
   type SendProgress,
@@ -116,6 +117,23 @@ function service(
       }
       return json({ added: (data.photos ?? []).length });
     }
+    if (url.pathname === "/review/status") {
+      const per = new Map<string, number>();
+      batches.forEach((b, i) => {
+        const date = String((b as { label?: { date?: string } }).label?.date ?? "");
+        const n = [...batchOf.values()].filter((v) => v === `b${i + 1}`).length;
+        per.set(date, (per.get(date) ?? 0) + n);
+      });
+      return json({
+        days: [...per.entries()].map(([date, photos]) => ({
+          date,
+          photos,
+          waiting: photos,
+          approved: 0,
+          rejected: 0,
+        })),
+      });
+    }
     if (url.pathname === "/review/large") {
       let attached = 0;
       for (const it of data.items ?? []) {
@@ -206,6 +224,21 @@ const snapshot = (dir: string) =>
         .digest("hex"),
     ]),
   );
+
+describe("which dates are on the website", () => {
+  it("reports how many photos the website holds for each date, and refuses a stranger", async () => {
+    const dir = await dayFolder(3);
+    const svc = service();
+    expect(await reviewStatus(BASE, KEY, svc.fetch)).toEqual([]);
+    await run(dir, svc);
+    expect(await reviewStatus(BASE, KEY, svc.fetch)).toEqual([
+      { date: "2026-10-24", photos: 3, waiting: 3, approved: 0, rejected: 0 },
+    ]);
+    await expect(
+      reviewStatus(BASE, "some-other-key-some-other-key-some-other-key-123", svc.fetch),
+    ).rejects.toThrow(/not connected/);
+  });
+});
 
 describe("large copies", () => {
   it("makes a 3,600 px copy with no camera details, and tops up photos that were sent without one", async () => {

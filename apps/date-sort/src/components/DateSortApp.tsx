@@ -405,7 +405,10 @@ function Report({ view }: { view: ScanView }) {
       {r.days.length > 0 ? <SportPanel view={view} sport={sport} copy={copy} /> : null}
       {r.days.length > 0 ? <CopyPanel view={view} copy={copy} /> : null}
       {r.days.length > 0 ? (
-        <SendAllReview days={r.days.map((d) => d.day)} copy={copy} />
+        <SendAllReview
+          days={r.days.map((d) => ({ day: d.day, photos: d.photos }))}
+          copy={copy}
+        />
       ) : null}
 
       {r.days.length === 0 ? (
@@ -578,7 +581,7 @@ function DateCard({
       <CardSport day={day.day} sport={sport} copy={copy} />
       <CardCopy day={day.day} copy={copy} />
       <CardJersey day={day.day} copy={copy} />
-      <CardReview day={day.day} copy={copy} />
+      <CardReview day={day.day} photos={day.photos} copy={copy} />
     </article>
   );
 }
