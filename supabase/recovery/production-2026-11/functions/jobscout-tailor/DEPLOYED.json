@@ -1,0 +1,42 @@
+{
+ "slug": "jobscout-tailor",
+ "id": "1de6eaad-e4cc-4904-9427-caa6d088bd58",
+ "name": "jobscout-tailor",
+ "status": "ACTIVE",
+ "version": 3,
+ "verify_jwt": false,
+ "import_map": false,
+ "entrypoint_path": "file:///tmp/user_fn_mvvtngiopdrgiedjmhfb_1de6eaad-e4cc-4904-9427-caa6d088bd58_3/source/jobscout-tailor/index.ts",
+ "ezbr_sha256": "d620b94463f15fac8fbc801ce7bb6452f927dc545521e38b9f4eeb0eb88fc2cf",
+ "created_at_ms": 1787713051176,
+ "created_at_iso": "2026-08-26T02:57:31.176Z",
+ "updated_at_ms": 1787713709134,
+ "updated_at_iso": "2026-08-26T03:08:29.134Z",
+ "files": [
+  "_shared/auth.ts",
+  "_shared/tailor.ts",
+  "jobscout-tailor/index.ts"
+ ],
+ "cmp_vs_phase3": {
+  "_shared/auth.ts": "SAME",
+  "_shared/tailor.ts": "SAME",
+  "jobscout-tailor/index.ts": "SAME"
+ },
+ "matches_phase3": true,
+ "env_var_names": [
+  "ANTHROPIC_API_KEY",
+  "JOBSCOUT_RESUME_LABEL",
+  "JOBSCOUT_TAILOR_EFFORT",
+  "SUPABASE_SERVICE_ROLE_KEY",
+  "SUPABASE_URL"
+ ],
+ "phase3_meta": {
+  "v": 3,
+  "jwt": false,
+  "created": "2026-08-26",
+  "updated": "2026-08-26",
+  "sha": "d620b94463f1"
+ },
+ "change_vs_phase3": "none",
+ "verified_at_utc": "2026-11-04T14:44:14Z"
+}

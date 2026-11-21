@@ -1,0 +1,40 @@
+{
+ "slug": "site",
+ "id": "cc8dd610-9653-42c5-ad75-1ff76fa6f940",
+ "name": "site",
+ "status": "ACTIVE",
+ "version": 3,
+ "verify_jwt": false,
+ "import_map": false,
+ "entrypoint_path": "file:///tmp/user_fn_mvvtngiopdrgiedjmhfb_cc8dd610-9653-42c5-ad75-1ff76fa6f940_3/source/site/index.ts",
+ "ezbr_sha256": "41e60c6c6661a978985b2cc46d41011089f36d25b8350eddf3028c6422232481",
+ "created_at_ms": 1789080044059,
+ "created_at_iso": "2026-09-10T22:40:44.059Z",
+ "updated_at_ms": 1789080603454,
+ "updated_at_iso": "2026-09-10T22:50:03.454Z",
+ "files": [
+  "_shared/barberos/site_render.ts",
+  "_shared/barberos/site_server.ts",
+  "_shared/barberos/site_source_rest.ts",
+  "site/index.ts"
+ ],
+ "cmp_vs_phase3": {
+  "_shared/barberos/site_render.ts": "SAME",
+  "_shared/barberos/site_server.ts": "SAME",
+  "_shared/barberos/site_source_rest.ts": "SAME",
+  "site/index.ts": "SAME"
+ },
+ "matches_phase3": true,
+ "env_var_names": [
+  "SITE_PUBLIC_BASE"
+ ],
+ "phase3_meta": {
+  "v": 3,
+  "jwt": false,
+  "created": "2026-09-10",
+  "updated": "2026-09-10",
+  "sha": "41e60c6c6661"
+ },
+ "change_vs_phase3": "none",
+ "verified_at_utc": "2026-11-04T14:44:14Z"
+}

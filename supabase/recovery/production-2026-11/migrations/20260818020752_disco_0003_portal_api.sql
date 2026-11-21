@@ -1,0 +1,163 @@
+-- Portal API surface. PostgREST only exposes `public`, so these thin wrappers
+-- are the browser's only door into vstudio/disco. Every one re-checks the
+-- SAME permission the vstudio RPCs use. No new permission model.
+
+create or replace function public.hlvs_board()
+returns jsonb language plpgsql stable security definer set search_path to '' as $fn$
+begin
+  if not identity.has_platform_permission('vstudio.opportunity.read'::extensions.citext) then
+    raise exception 'insufficient privilege' using errcode='insufficient_privilege';
+  end if;
+  return coalesce((
+    select jsonb_agg(x order by x->>'net' desc) from (
+      select jsonb_build_object(
+        'id', b.id, 'title', b.title, 'problem', b.problem_statement,
+        'customer', b.proposed_customer, 'category', b.category,
+        'event_kind', b.event_kind, 'trigger', b.trigger_event,
+        'status', b.status, 'net', b.score_net, 'gross', b.score_gross,
+        'penalty', b.score_penalty, 'confidence', b.confidence,
+        'build', b.build_difficulty, 'acq', b.acquisition_difficulty,
+        'recurring', b.recurring_potential, 'low_touch', b.low_touch_potential,
+        'price_low', b.suggested_price_low, 'price_high', b.suggested_price_high,
+        'price_model', b.price_model, 'builder', b.builder_recommendation,
+        'quick_cash_flow', b.quick_cash_flow,
+        'ef', b.evidence_for_count, 'ea', b.evidence_against_count,
+        'top_against', (select ea.statement from disco.evidence_against ea
+                        where ea.opportunity_id=b.id order by ea.severity desc limit 1)
+      ) as x
+      from disco.v_opportunity_board b
+    ) q), '[]'::jsonb);
+end $fn$;
+
+create or replace function public.hlvs_opportunity(p_id uuid)
+returns jsonb language plpgsql stable security definer set search_path to '' as $fn$
+declare r jsonb;
+begin
+  if not identity.has_platform_permission('vstudio.opportunity.read'::extensions.citext) then
+    raise exception 'insufficient privilege' using errcode='insufficient_privilege';
+  end if;
+  select jsonb_build_object(
+    'id', b.id, 'title', b.title, 'problem', b.problem_statement,
+    'customer', b.proposed_customer, 'category', b.category,
+    'event_kind', b.event_kind, 'trigger', b.trigger_event, 'status', b.status,
+    'net', b.score_net, 'gross', b.score_gross, 'penalty', b.score_penalty,
+    'confidence', b.confidence, 'build', b.build_difficulty,
+    'acq', b.acquisition_difficulty, 'recurring', b.recurring_potential,
+    'low_touch', b.low_touch_potential, 'price_low', b.suggested_price_low,
+    'price_high', b.suggested_price_high, 'price_model', b.price_model,
+    'builder', b.builder_recommendation, 'gap', b.product_gap,
+    'competitors', b.competitors, 'risks', b.risks,
+    'channels', (select a.acquisition_channels from disco.assessments a where a.opportunity_id=b.id),
+    'mvp', (select a.mvp_scope from disco.assessments a where a.opportunity_id=b.id),
+    'rationale', b.rank_rationale, 'source_url', b.source_url,
+    'factors', (select e.dimension_scores from vstudio.evaluations e
+                where e.opportunity_id=b.id order by e.created_at desc limit 1),
+    'evidence_for', coalesce((select jsonb_agg(jsonb_build_object(
+        'type', ev.evidence_type, 'title', ev.title,
+        'url', ev.source_url, 'source', ev.source_name) order by ev.created_at)
+      from vstudio.evidence ev where ev.opportunity_id=b.id), '[]'::jsonb),
+    'evidence_against', coalesce((select jsonb_agg(jsonb_build_object(
+        'mode', ea.failure_mode, 'statement', ea.statement, 'severity', ea.severity)
+        order by ea.severity desc)
+      from disco.evidence_against ea where ea.opportunity_id=b.id), '[]'::jsonb),
+    'decision', (select d.decision::text from vstudio.decisions d
+                 where d.opportunity_id=b.id order by d.created_at desc limit 1)
+  ) into r from disco.v_opportunity_board b where b.id = p_id;
+  return coalesce(r, '{}'::jsonb);
+end $fn$;
+
+-- Writes the authoritative CEO decision through the EXISTING vstudio RPC,
+-- which enforces vstudio.decision.create (platform_owner only) internally.
+create or replace function public.hlvs_decide(p_id uuid, p_decision text, p_rationale text default '')
+returns jsonb language plpgsql security definer set search_path to '' as $fn$
+declare v uuid;
+begin
+  v := vstudio.record_decision(p_id, p_decision::vstudio.decision,
+         jsonb_build_object('rationale', p_rationale,
+           'factory_authorized', (p_decision = 'build')));
+  return jsonb_build_object('decision_id', v, 'decision', p_decision);
+end $fn$;
+
+-- 22-element build package rendered read-only from the opportunity record.
+-- Mirrors disco.render_builder_prompt but sources from the opportunity rather
+-- than an order, so browsing the portal never writes factory rows.
+create or replace function public.hlvs_build_package(p_id uuid)
+returns text language plpgsql stable security definer set search_path to '' as $fn$
+declare o record; a record; v_for text; v_ag text; v_dec text; mobile boolean;
+begin
+  if not identity.has_platform_permission('vstudio.opportunity.read'::extensions.citext) then
+    raise exception 'insufficient privilege' using errcode='insufficient_privilege';
+  end if;
+  select * into o from vstudio.opportunities where id=p_id;
+  select * into a from disco.assessments where opportunity_id=p_id;
+  mobile := coalesce(a.category,'') ilike '%mobile%';
+  select string_agg(format('- [%s] %s%s', ev.evidence_type, ev.title,
+      coalesce(' <'||ev.source_url||'>','')), chr(10) order by ev.created_at)
+    into v_for from vstudio.evidence ev where ev.opportunity_id=p_id;
+  select string_agg(format('- [%s severity %s/10] %s', ea.failure_mode, ea.severity, ea.statement),
+      chr(10) order by ea.severity desc)
+    into v_ag from disco.evidence_against ea where ea.opportunity_id=p_id;
+  select d.decision::text into v_dec from vstudio.decisions d
+    where d.opportunity_id=p_id order by d.created_at desc limit 1;
+
+  return
+    '# BUILD PACKAGE - '||coalesce(o.title,'')||chr(10)||
+    'Generated by HLVS Opportunity Discovery'||chr(10)||chr(10)||
+    '## 1 PRODUCT CONCEPT'||chr(10)||coalesce(o.summary,'(not set)')||chr(10)||chr(10)||
+    '## 2 TARGET CUSTOMER'||chr(10)||coalesce(o.proposed_customer,'(not set)')||chr(10)||chr(10)||
+    '## 3 CUSTOMER PROBLEM'||chr(10)||coalesce(o.problem_statement,'(not set)')||chr(10)||chr(10)||
+    '## 4 VALUE PROPOSITION'||chr(10)||coalesce(a.product_gap,'(not set)')||chr(10)||chr(10)||
+    '## 5 SUPPORTING EVIDENCE'||chr(10)||coalesce(v_for,'(none)')||chr(10)||chr(10)||
+    '## 6 COUNTER-EVIDENCE / MAJOR RISKS'||chr(10)||
+      coalesce(v_ag,'(none recorded - treat as UNASSESSED, not risk-free)')||chr(10)||
+      coalesce(chr(10)||'Additional risks: '||array_to_string(a.risks,'; '),'')||chr(10)||chr(10)||
+    '## 7 MVP SCOPE'||chr(10)||coalesce(a.mvp_scope,'(not set)')||chr(10)||chr(10)||
+    '## 8 FEATURE LIST'||chr(10)||coalesce(a.mvp_scope,'(not set)')||chr(10)||chr(10)||
+    '## 9 SCREENS'||chr(10)||'1. Onboarding/sign-in  2. Primary workspace  3. History  4. Settings  5. Paywall'||chr(10)||chr(10)||
+    '## 10 NAVIGATION'||chr(10)||'Primary workspace is root. History and Settings as panels. Paywall modal on limit.'||chr(10)||chr(10)||
+    '## 11 DATA MODEL REQUIREMENTS'||chr(10)||'Per-user/tenant scoped tables, RLS on every table.'||chr(10)||chr(10)||
+    '## 12 AUTHENTICATION REQUIREMENTS'||chr(10)||'Supabase Auth. RLS on every table. No service_role key in any client bundle.'||chr(10)||chr(10)||
+    '## 13 SUBSCRIPTION / MONETIZATION MODEL'||chr(10)||coalesce(a.price_model,'?')||' | '||
+      coalesce(a.suggested_price_low::text,'?')||' - '||coalesce(a.suggested_price_high::text,'?')||chr(10)||chr(10)||
+    '## 14 REVENUECAT REQUIREMENTS'||chr(10)||
+      case when mobile then 'Required - RevenueCat for App Store / Play entitlement sync.'
+           else 'Not applicable - Stripe Checkout + customer portal.' end||chr(10)||chr(10)||
+    '## 15 SUPABASE / BACKEND REQUIREMENTS'||chr(10)||'Postgres + Auth + RLS. Per-user/tenant scoping on every table.'||chr(10)||chr(10)||
+    '## 16 ANALYTICS / EVENTS'||chr(10)||'signup, activation, paywall_view, subscribe, churn'||chr(10)||chr(10)||
+    '## 17 PRIVACY / REGULATORY'||chr(10)||
+      case when exists (select 1 from disco.evidence_against x
+                        where x.opportunity_id=p_id and x.failure_mode='regulatory_load')
+        then 'REGULATORY LOAD FLAGGED - obtain compliance review BEFORE build.'
+        else 'Minimise collection; publish a plain-language policy.' end||chr(10)||chr(10)||
+    '## 18 LAUNCH PRICING'||chr(10)||coalesce(a.suggested_price_low::text,'?')||' - '||
+      coalesce(a.suggested_price_high::text,'?')||' ('||coalesce(a.price_model,'?')||')'||chr(10)||chr(10)||
+    '## 19 FIRST-100-USER ACQUISITION'||chr(10)||
+      coalesce(array_to_string(a.acquisition_channels,', '),'(not set)')||chr(10)||chr(10)||
+    '## 20 RECOMMENDED BUILDER'||chr(10)||coalesce(a.builder_recommendation,'requires_investigation')||chr(10)||chr(10)||
+    '## 21 BUILD COMPLEXITY'||chr(10)||'build='||coalesce(a.build_difficulty::text,'unknown')||
+      ' | acquisition='||coalesce(a.acquisition_difficulty::text,'unknown')||
+      ' | recurring='||coalesce(a.recurring_potential::text,'unknown')||
+      ' | low_touch='||coalesce(a.low_touch_potential::text,'unknown')||chr(10)||chr(10)||
+    '## 22 OPPORTUNITY SCORE AND CONFIDENCE'||chr(10)||
+      coalesce(a.score_gross::text,'?')||' gross - '||coalesce(a.score_penalty::text,'?')||
+      ' counter-evidence = '||coalesce(a.score_net::text,'?')||' net | confidence '||
+      coalesce(a.confidence,'unknown')||chr(10)||
+      coalesce('Rank rationale: '||a.rank_rationale,'')||chr(10)||chr(10)||
+    '## LINEAGE'||chr(10)||'opportunity='||p_id||chr(10)||
+      'ceo_decision='||coalesce(v_dec,'(none recorded)')||chr(10)||
+      'source='||coalesce(o.source_url,'(none)')||chr(10)||chr(10)||
+    '## GOVERNANCE (hlvs.prompt_packages - authoritative)'||chr(10)||
+    '- Mandatory reuse analysis before writing new code'||chr(10)||
+    '- Prohibited duplication of existing HLG capabilities'||chr(10)||
+    '- Repository and branch restrictions apply'||chr(10)||
+    '- No live production deployment without CEO approval'||chr(10);
+end $fn$;
+
+revoke execute on function public.hlvs_board() from anon, public;
+revoke execute on function public.hlvs_opportunity(uuid) from anon, public;
+revoke execute on function public.hlvs_decide(uuid, text, text) from anon, public;
+revoke execute on function public.hlvs_build_package(uuid) from anon, public;
+grant execute on function public.hlvs_board() to authenticated;
+grant execute on function public.hlvs_opportunity(uuid) to authenticated;
+grant execute on function public.hlvs_decide(uuid, text, text) to authenticated;
+grant execute on function public.hlvs_build_package(uuid) to authenticated;

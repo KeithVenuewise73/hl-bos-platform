@@ -1,0 +1,4 @@
+# False positive (reviewed 2026-11-04): marketing copy in a verbatim production seed
+# migration ("The family calendar for hockey families ..."), flagged as generic-api-key.
+# The recovery archive is byte-for-byte production SQL and must not be edited.
+4c510a97060348e260d8159ecfc28fed4a31b753:supabase/recovery/production-2026-11/migrations/20260808214519_dma_0016_hh001_search_seed.sql:generic-api-key:44

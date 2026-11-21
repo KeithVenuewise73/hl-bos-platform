@@ -1,0 +1,44 @@
+{
+ "slug": "jobscout-discover",
+ "id": "3639b4b8-c06a-4bbd-8fc1-534d63159b21",
+ "name": "jobscout-discover",
+ "status": "ACTIVE",
+ "version": 7,
+ "verify_jwt": true,
+ "import_map": false,
+ "entrypoint_path": "file:///tmp/user_fn_mvvtngiopdrgiedjmhfb_3639b4b8-c06a-4bbd-8fc1-534d63159b21_7/source/jobscout-discover/index.ts",
+ "ezbr_sha256": "9cbdaaffd84686ea1b76df33348315b628c57e7ebe6d24d5a4e2650845de9e4d",
+ "created_at_ms": 1787677832415,
+ "created_at_iso": "2026-08-25T17:10:32.415Z",
+ "updated_at_ms": 1787702113540,
+ "updated_at_iso": "2026-08-25T23:55:13.540Z",
+ "files": [
+  "_shared/auth.ts",
+  "_shared/discover.ts",
+  "_shared/url.ts",
+  "jobscout-discover/index.ts"
+ ],
+ "cmp_vs_phase3": {
+  "_shared/auth.ts": "SAME",
+  "_shared/discover.ts": "SAME",
+  "_shared/url.ts": "SAME",
+  "jobscout-discover/index.ts": "SAME"
+ },
+ "matches_phase3": true,
+ "env_var_names": [
+  "JOBSCOUT_DISCOVER_BATCH",
+  "JOBSCOUT_DISCOVER_BUDGET_MS",
+  "JOBSCOUT_DISCOVER_COMPANY_MS",
+  "SUPABASE_SERVICE_ROLE_KEY",
+  "SUPABASE_URL"
+ ],
+ "phase3_meta": {
+  "v": 7,
+  "jwt": true,
+  "created": "2026-08-25",
+  "updated": "2026-08-25",
+  "sha": "9cbdaaffd846"
+ },
+ "change_vs_phase3": "none",
+ "verified_at_utc": "2026-11-04T14:44:14Z"
+}

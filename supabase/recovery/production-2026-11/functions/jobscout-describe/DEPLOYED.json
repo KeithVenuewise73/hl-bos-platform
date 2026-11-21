@@ -1,0 +1,41 @@
+{
+ "slug": "jobscout-describe",
+ "id": "5e450f52-4954-4ec6-a55b-ba6d79459544",
+ "name": "jobscout-describe",
+ "status": "ACTIVE",
+ "version": 4,
+ "verify_jwt": true,
+ "import_map": false,
+ "entrypoint_path": "file:///tmp/user_fn_mvvtngiopdrgiedjmhfb_5e450f52-4954-4ec6-a55b-ba6d79459544_4/source/jobscout-describe/index.ts",
+ "ezbr_sha256": "5e0d2278b595cd29b3838b947d4735c93585569f1bcb8ef1e542b10c00a7ec07",
+ "created_at_ms": 1787695175749,
+ "created_at_iso": "2026-08-25T21:59:35.749Z",
+ "updated_at_ms": 1787702409860,
+ "updated_at_iso": "2026-08-26T00:00:09.860Z",
+ "files": [
+  "_shared/auth.ts",
+  "_shared/describe.ts",
+  "_shared/url.ts",
+  "jobscout-describe/index.ts"
+ ],
+ "cmp_vs_phase3": {
+  "_shared/auth.ts": "SAME",
+  "_shared/describe.ts": "SAME",
+  "_shared/url.ts": "SAME",
+  "jobscout-describe/index.ts": "SAME"
+ },
+ "matches_phase3": true,
+ "env_var_names": [
+  "SUPABASE_SERVICE_ROLE_KEY",
+  "SUPABASE_URL"
+ ],
+ "phase3_meta": {
+  "v": 4,
+  "jwt": true,
+  "created": "2026-08-25",
+  "updated": "2026-08-26",
+  "sha": "5e0d2278b595"
+ },
+ "change_vs_phase3": "none",
+ "verified_at_utc": "2026-11-04T14:44:14Z"
+}

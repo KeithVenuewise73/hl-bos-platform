@@ -1,0 +1,174 @@
+// jobscout-score — reads the open postings and scores them against the resume.
+//
+// WIRING ONLY. Calibration, batching, deduplication and the cost accounting
+// all live in ../_shared/.
+
+import { createClient } from "jsr:@supabase/supabase-js@2";
+import { authorize, type TokenStore } from "../_shared/auth.ts";
+import Anthropic from "npm:@anthropic-ai/sdk@0";
+import {
+  MODEL, runScore, SCHEMA, SYSTEM,
+  type Ask, type Company, type Job, type Resume, type ScoreRow, type Verdict,
+} from "../_shared/score.ts";
+
+const BUDGET_MS = Number(Deno.env.get("JOBSCOUT_SCORE_BUDGET_MS") ?? 120_000);
+const EFFORT = Deno.env.get("JOBSCOUT_SCORE_EFFORT") ?? "medium";
+const LIMIT = Number(Deno.env.get("JOBSCOUT_SCORE_LIMIT") ?? 250);
+const RESUME_LABEL = Deno.env.get("JOBSCOUT_RESUME_LABEL") ?? "keith-ops-2026";
+
+// The expected run token, read over the service-role connection. Absent until
+// the schedule migration is applied, which is what arms the check.
+const tokenStore = (admin: {
+  from: (t: string) => {
+    select: (c: string) => { limit: (n: number) => Promise<{ data: unknown; error: unknown }> };
+  };
+}): TokenStore => ({
+  async expected() {
+    const { data, error } = await admin.from("runtime").select("cron_token").limit(1);
+    // A missing table means the migration has not been applied yet, which is
+    // "not configured", not "broken".
+    if (error) {
+      const msg = String((error as { message?: string }).message ?? error);
+      if (/does not exist|schema cache|relation/i.test(msg)) return null;
+      throw new Error(msg);
+    }
+    const rows = data as { cron_token?: string }[] | null;
+    return rows?.[0]?.cron_token ?? null;
+  },
+});
+
+Deno.serve(async (req) => {
+  const admin = createClient(
+    Deno.env.get("SUPABASE_URL")!,
+    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+    { db: { schema: "jobscout" } },
+  );
+
+  // A valid JWT is necessary and not sufficient: the anon key is public.
+  const auth = await authorize(req, tokenStore(admin));
+  if (!auth.ok) return json({ ok: false, error: auth.reason }, 401);
+
+  const apiKey = Deno.env.get("ANTHROPIC_API_KEY");
+  if (!apiKey) {
+    const near = Object.entries(Deno.env.toObject())
+      .filter(([k]) => /ANTHROPIC|CLAUDE|_API_KEY$/i.test(k))
+      .map(([k, v]) => `${k} (${v.length} chars)`)
+      .sort();
+    return json({
+      ok: false,
+      error: "ANTHROPIC_API_KEY is not set for this function",
+      similar_secrets_present: near.length ? near : "none",
+      fix: "Add it under Edge Functions -> Secrets for this project, named " +
+        "exactly ANTHROPIC_API_KEY.",
+    }, 503);
+  }
+  const claude = new Anthropic({ apiKey });
+
+  const { data: resumes, error: rErr } = await admin
+    .from("resumes").select("*").eq("label", RESUME_LABEL).limit(1);
+  if (rErr) return json({ ok: false, error: rErr.message }, 500);
+  if (!resumes?.length) {
+    return json({ ok: false, error: `no resume labeled '${RESUME_LABEL}' — insert one first` }, 412);
+  }
+  const resume = resumes[0] as Resume;
+
+  // Already-scored postings, WITH their verdicts: a copy of a job already
+  // judged inherits that verdict instead of buying another call.
+  const { data: scored } = await admin
+    .from("scores")
+    .select("job_id,fit_score,verdict,why_fits,why_not,resume_angle")
+    .eq("resume_id", resume.id);
+  const verdicts = new Map(
+    (scored ?? []).map((s: Record<string, unknown>) => [s.job_id as number, {
+      fit_score: s.fit_score as number,
+      verdict: s.verdict as Verdict["verdict"],
+      why_fits: (s.why_fits ?? "") as string,
+      why_not: (s.why_not ?? "") as string,
+      resume_angle: (s.resume_angle ?? "") as string,
+    }]),
+  );
+  const already = new Set(verdicts.keys());
+
+  const { data: allJobs, error: jErr } = await admin
+    .from("jobs").select("*").eq("is_open", true)
+    .order("first_seen", { ascending: false }).limit(2000);
+  if (jErr) return json({ ok: false, error: jErr.message }, 500);
+  const open = (allJobs ?? []) as Job[];
+  const jobs = open.filter((j) => !already.has(j.id));
+  const known = open
+    .filter((j) => already.has(j.id))
+    .map((j) => ({ job: j, verdict: verdicts.get(j.id)! }));
+
+  const { data: cos } = await admin.from("companies").select("*");
+  const companies = new Map<number, Company>(
+    ((cos ?? []) as Company[]).map((c) => [c.id!, c]),
+  );
+
+  const ask: Ask = async (prefix, posting) => {
+    const r = await claude.messages.create({
+      model: MODEL,
+      // Thinking is ON BY DEFAULT on this model and its tokens count against
+      // this cap. A truncated response is a failed posting, not a cheap one.
+      max_tokens: 16000,
+      system: SYSTEM,
+      messages: [{
+        role: "user",
+        content: [
+          // cache_control ends the cached prefix here. Everything before it is
+          // identical across postings; everything after it is this posting.
+          { type: "text", text: prefix, cache_control: { type: "ephemeral" } },
+          { type: "text", text: posting },
+        ],
+      }],
+      output_config: {
+        effort: EFFORT,
+        format: { type: "json_schema", schema: SCHEMA },
+      },
+      // deno-lint-ignore no-explicit-any
+    } as any);
+
+    if (r.stop_reason === "refusal") {
+      throw new Error(`refused: ${r.stop_details?.category ?? "unknown"}`);
+    }
+    const block = r.content.find((b: { type: string }) => b.type === "text");
+    if (!block) throw new Error("no text block in response");
+    return {
+      verdict: JSON.parse(block.text),
+      usage: {
+        input: (r.usage.input_tokens ?? 0) + (r.usage.cache_creation_input_tokens ?? 0),
+        cached: r.usage.cache_read_input_tokens ?? 0,
+        output: r.usage.output_tokens ?? 0,
+      },
+    };
+  };
+
+  const save = async (rows: ScoreRow[]) => {
+    const { error } = await admin
+      .from("scores").upsert(rows, { onConflict: "job_id,resume_id" });
+    if (error) throw new Error(error.message);
+  };
+
+  try {
+    const report = await runScore({
+      resume, jobs, known, companies, ask, save,
+      budgetMs: BUDGET_MS, limit: LIMIT,
+    });
+    await admin.from("runs").insert({
+      kind: "score", ok: report.failed === 0, report,
+    });
+    return json({ ok: true, resume: resume.label, effort: EFFORT, ...report });
+  } catch (e) {
+    const err = e as Error;
+    await admin.from("runs").insert({
+      kind: "score", ok: false, report: { error: `${err.name}: ${err.message}` },
+    });
+    return json({ ok: false, error: `${err.name}: ${err.message}` }, 500);
+  }
+});
+
+function json(body: unknown, status = 200) {
+  return new Response(JSON.stringify(body, null, 2), {
+    status,
+    headers: { "content-type": "application/json" },
+  });
+}
