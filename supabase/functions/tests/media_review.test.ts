@@ -86,6 +86,9 @@ function world(over: Partial<ReviewDeps> = {}) {
     attached: [] as string[],
     links: [] as string[],
   };
+  // Short clips: when on, the folder and the public page hold one clip beside the photo.
+  const clip = { on: false, ids: new Set<string>() };
+  const CLIP = "cccccccc-cccc-cccc-cccc-cccccccccccc";
   // The posting queue: targets still to be worked on, and what the (fake) publisher answers.
   const soc = {
     pending: [
@@ -174,6 +177,18 @@ function world(over: Partial<ReviewDeps> = {}) {
           .map((hash) => ({ hash, batch_id: LARGE_BATCH })),
       });
     },
+    statusDays() {
+      return Promise.resolve([
+        {
+          date: "2026-10-24",
+          photos: 1,
+          clips: clip.on ? 1 : 0,
+          waiting: clip.on ? 2 : 1,
+          approved: 0,
+          rejected: 0,
+        },
+      ]);
+    },
     knownHashes(hashes) {
       calls.push("known:" + hashes.length);
       return Promise.resolve(hashes.filter((h) => h === H1));
@@ -213,7 +228,22 @@ function world(over: Partial<ReviewDeps> = {}) {
         thumb_path: `${BATCH}/${H1}-thumb.jpg`,
         total: 7,
       };
-      return Promise.resolve([p]);
+      const rows: PhotoRow[] = [p];
+      if (clip.on)
+        rows.push({
+          ...p,
+          id: CLIP,
+          filename: "C0001.MOV",
+          flags: [],
+          web_path: `${BATCH}/${H2}-web.jpg`,
+          thumb_path: `${BATCH}/${H2}-thumb.jpg`,
+          video_path: `${BATCH}/${H2}-video.mp4`,
+          duration_seconds: 12.5,
+        });
+      return Promise.resolve(rows);
+    },
+    videoIds(ids) {
+      return Promise.resolve(ids.filter((i) => i === CLIP || clip.ids.has(i)));
     },
     decide(ids, status, reason, by) {
       calls.push(`decide:${ids.length}:${status}:${reason}:${by}`);
@@ -408,7 +438,26 @@ function world(over: Partial<ReviewDeps> = {}) {
         large_downloads: large.enabled,
         albums: PAGE.albums.map((a) => ({
           ...a,
-          photos: a.photos.map((p) => ({ ...p, large: large.have.has(p.id) })),
+          photos: [
+            ...a.photos.map((p) => ({ ...p, large: large.have.has(p.id) })),
+            ...(clip.on
+              ? [
+                  {
+                    id: CLIP,
+                    filename: "C0001.MOV",
+                    taken_at: "2026-10-24T10:05:00",
+                    width: 1920,
+                    height: 1080,
+                    large: false,
+                    video: true,
+                    duration: 12.5,
+                    video_path: `${BATCH}/${H2}-video.mp4`,
+                    web_path: `${BATCH}/${H2}-web.jpg`,
+                    thumb_path: `${BATCH}/${H2}-thumb.jpg`,
+                  },
+                ]
+              : []),
+          ],
         })),
       });
     },
@@ -517,6 +566,8 @@ function world(over: Partial<ReviewDeps> = {}) {
     pub,
     soc,
     large,
+    clip,
+    CLIP,
     closeWindow: () => (windowOpen = false),
     setPublisher: (sha: string | null) => (deps.publisherKeySha256 = sha),
   };
@@ -2109,6 +2160,141 @@ Deno.test(
 );
 
 Deno.test(
+  "video clips: an mp4 is uploaded under the batch, the owner can play it, a sync copies it with its poster, the public page says it is a clip, and a clip cannot be posted as a photo",
+  async () => {
+    const w = world();
+    w.setPublisher(KEY_SHA);
+    const up = await out(
+      await handle(
+        post(
+          "/review/uploads",
+          {
+            batch_id: BATCH,
+            files: [
+              { hash: H2, kind: "web" },
+              { hash: H2, kind: "thumb" },
+              { hash: H2, kind: "video" },
+            ],
+          },
+          asPublisher,
+        ),
+        w.deps,
+      ),
+    );
+    assertEquals(up.status, 200, "the three files of a clip can be uploaded");
+    assertEquals(
+      w.requested.filter((r) => r.startsWith("upload:")).slice(-3),
+      [
+        `upload:${BATCH}/${H2}-web.jpg`,
+        `upload:${BATCH}/${H2}-thumb.jpg`,
+        `upload:${BATCH}/${H2}-video.mp4`,
+      ],
+      "the clip goes up as an mp4, the poster and thumbnail as jpegs",
+    );
+    const bad = await out(
+      await handle(
+        post(
+          "/review/uploads",
+          { batch_id: BATCH, files: [{ hash: H2, kind: "movie" }] },
+          asPublisher,
+        ),
+        w.deps,
+      ),
+    );
+    assertEquals(bad.status, 400, "no other kind is accepted");
+
+    w.clip.on = true;
+    const list = await out(
+      await handle(post("/owner/photos", { folder: FOLDER }, asOwner), w.deps),
+    );
+    const photos = list.json["photos"] as Record<string, unknown>[];
+    const clipRow = photos.find((p) => p["id"] === w.CLIP)!;
+    assertEquals(clipRow["video"], true, "the owner is told it is a clip");
+    assertEquals(clipRow["duration"], 12.5, "and how long");
+    assertEquals(
+      String(clipRow["video_url"]).includes(`${H2}-video.mp4`),
+      true,
+      "and gets an expiring link to play it",
+    );
+    assertEquals(photos[0]!["video"], false, "a photo is not a clip");
+    assertEquals(photos[0]!["video_url"], null, "and has no clip link");
+
+    w.pub.wanted = [
+      {
+        id: w.CLIP,
+        web_path: `${BATCH}/${H2}-web.jpg`,
+        thumb_path: `${BATCH}/${H2}-thumb.jpg`,
+        video_path: `${BATCH}/${H2}-video.mp4`,
+      },
+    ];
+    const sync = await out(await handle(post("/owner/sync", {}, asOwner), w.deps));
+    assertEquals(sync.json["public"]["published"], 1, "the clip is published");
+    assertEquals(
+      w.pub.copied.includes(`${BATCH}/${H2}-video.mp4`) &&
+        w.pub.copied.includes(`${BATCH}/${H2}-web.jpg`),
+      true,
+      "its mp4 is copied to the public bucket with its poster",
+    );
+    w.pub.wanted = [];
+    w.pub.unwanted = [
+      {
+        id: w.CLIP,
+        web_path: `${BATCH}/${H2}-web.jpg`,
+        thumb_path: `${BATCH}/${H2}-thumb.jpg`,
+        video_path: `${BATCH}/${H2}-video.mp4`,
+      },
+    ];
+    await handle(post("/owner/sync", {}, asOwner), w.deps);
+    assertEquals(
+      w.pub.removed.includes(`${BATCH}/${H2}-video.mp4`),
+      true,
+      "a clip taken down also loses its public mp4",
+    );
+
+    const page = await out(
+      await handle(
+        new Request(
+          "https://x.test/functions/v1/media-review/site/team?slug=cazenovia-chiefs",
+        ),
+        w.deps,
+      ),
+    );
+    const pub = (page.json["albums"] as { photos: Record<string, unknown>[] }[])[0]!
+      .photos;
+    const pc = pub.find((p) => p["id"] === w.CLIP)!;
+    assertEquals(pc["video"], true, "the public page marks the clip");
+    assertEquals(pc["duration"], 12.5, "with its length");
+    assertEquals(
+      pc["video_url"],
+      `https://public.test/${BATCH}/${H2}-video.mp4`,
+      "and its public address",
+    );
+    assertEquals(
+      JSON.stringify(page.json).includes("video_path"),
+      false,
+      "no storage path is ever shown",
+    );
+    assertEquals(pub[0]!["video_url"], null, "a photo has no clip address");
+
+    const social = await out(
+      await handle(
+        post(
+          "/owner/social/post",
+          { photos: [w.CLIP], accounts: [SOCIAL_POST], caption: "x" },
+          asOwner,
+        ),
+        w.deps,
+      ),
+    );
+    assertEquals(
+      social.status,
+      400,
+      "a clip is refused as an Instagram/Facebook photo post",
+    );
+  },
+);
+
+Deno.test(
   "known: DateSort can ask which photos 5Star already holds (before it offers to free up a card), with the publisher key only",
   async () => {
     const w = world();
@@ -2151,8 +2337,17 @@ Deno.test(
     assertEquals(ok.status, 200, "the connected DateSort may ask");
     assertEquals(
       ok.json["days"],
-      [{ date: "2026-10-24", photos: 1, waiting: 1, approved: 0, rejected: 0 }],
-      "one entry per date, with how many photos are there",
+      [
+        {
+          date: "2026-10-24",
+          photos: 1,
+          clips: 0,
+          waiting: 1,
+          approved: 0,
+          rejected: 0,
+        },
+      ],
+      "one entry per date, with how many photos and clips are there",
     );
     const stranger = await out(
       await handle(

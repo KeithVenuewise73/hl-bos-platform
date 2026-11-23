@@ -407,7 +407,10 @@ function Report({ view }: { view: ScanView }) {
       {r.days.length > 0 ? <CopyPanel view={view} copy={copy} /> : null}
       {r.days.length > 0 ? (
         <SendAllReview
-          days={r.days.map((d) => ({ day: d.day, photos: d.photos }))}
+          days={r.days.map((d) => {
+            const clips = d.byFormat.mov + d.byFormat.mp4;
+            return { day: d.day, photos: d.photos - clips, clips };
+          })}
           copy={copy}
         />
       ) : null}
@@ -583,7 +586,12 @@ function DateCard({
       <CardSport day={day.day} sport={sport} copy={copy} />
       <CardCopy day={day.day} copy={copy} />
       <CardJersey day={day.day} copy={copy} />
-      <CardReview day={day.day} photos={day.photos} copy={copy} />
+      <CardReview
+        day={day.day}
+        photos={day.photos - day.byFormat.mov - day.byFormat.mp4}
+        clips={day.byFormat.mov + day.byFormat.mp4}
+        copy={copy}
+      />
     </article>
   );
 }

@@ -9,6 +9,9 @@ const base = {
   failed: [],
   skipped: [],
   videosNotSent: 0,
+  clipsSent: 0,
+  clipsAlreadyThere: 0,
+  clipNotes: [] as string[],
 };
 
 describe("what is said after sending", () => {
@@ -37,9 +40,21 @@ describe("what is said after sending", () => {
     );
   });
 
-  it("is honest that videos are not sent yet", () => {
+  it("says clips are sent and private until approved", () => {
+    expect(resultLines({ ...base, clipsSent: 3 })[0]).toBe(
+      "Sent 3 clips for review. They are private until you approve them on the website.",
+    );
+  });
+
+  it("says plainly that clips need ffmpeg when it is missing", () => {
     expect(resultLines({ ...base, sent: 1, videosNotSent: 2 }).join(" ")).toMatch(
-      /2 videos in this folder were not sent: videos are not part of review yet\./,
+      /2 clips were not sent: converting a clip needs a free program called ffmpeg/,
+    );
+  });
+
+  it("shows clip progress", () => {
+    expect(progressLine({ phase: "clips", done: 2, total: 9 })).toBe(
+      "Converting and sending clips… 2 of 9",
     );
   });
 
@@ -57,6 +72,9 @@ describe("what is said after Send all", () => {
     alreadyThere: 40,
     largeAdded: 0,
     failedPhotos: 0,
+    clipsSent: 0,
+    clipsAlreadyThere: 0,
+    clipsNeedTool: 0,
     skippedDays: [],
     problemDays: [],
   };
@@ -65,6 +83,14 @@ describe("what is said after Send all", () => {
       "Finished. 3 dates done: 120 photos newly sent for review, 40 photos already there.",
     ]);
     expect(allDoneLines(t, true)[0]).toMatch(/^Stopped\. 3 dates done/);
+  });
+  it("totals clips and the missing tool", () => {
+    const l = allDoneLines(
+      { ...t, clipsSent: 4, clipsAlreadyThere: 1, clipsNeedTool: 2 },
+      false,
+    );
+    expect(l.join("\n")).toMatch(/Clips: 4 newly sent, 1 already there\./);
+    expect(l.join("\n")).toMatch(/2 clips were not sent: .*ffmpeg/);
   });
   it("names dates that were passed by and dates that stopped", () => {
     const l = allDoneLines(
@@ -97,5 +123,27 @@ describe("the badge on a date card", () => {
       kind: "all",
       text: "On 5Star: all 282 photos (250 approved).",
     });
+  });
+});
+
+describe("the on-5Star badge keeps photos and clips apart", () => {
+  it("does not call a clip-only date complete because of photos on the site", () => {
+    expect(dayStatus(0, 0, 0, 112, 0)).toEqual({
+      kind: "none",
+      text: "Not on 5Star yet.",
+    });
+  });
+  it("says all clips when all are there", () => {
+    expect(dayStatus(0, 0, 0, 3, 3)).toEqual({
+      kind: "all",
+      text: "On 5Star: all 3 clips.",
+    });
+  });
+  it("joins photo and clip parts, partial when they differ", () => {
+    const s = dayStatus(10, 10, 0, 4, 1);
+    expect(s.kind).toBe("partial");
+    expect(s.text).toBe(
+      "On 5Star: all 10 photos. On 5Star: 1 of 4 clips. Send for review adds the rest.",
+    );
   });
 });

@@ -1,0 +1,222 @@
+import { execFileSync } from "node:child_process";
+import { createHash } from "node:crypto";
+import { mkdtempSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+
+import sharp from "sharp";
+import { describe, expect, it } from "vitest";
+
+import { listForReview } from "./prepare";
+import {
+  ffmpegCandidates,
+  ffprobeBeside,
+  findTools,
+  parseProbe,
+  prepareClip,
+  transcodeArgs,
+  type Tools,
+} from "./video";
+
+const facts = {
+  durationSeconds: 10,
+  width: 1920,
+  height: 1080,
+  hdr: false,
+  hasAudio: true,
+};
+
+describe("finding ffmpeg", () => {
+  const places = {
+    pathDirs: ["C:\\tools\\", "C:\\other"],
+    localAppData: "C:\\Users\\k\\AppData\\Local",
+    programFiles: "C:\\Program Files",
+    programData: "C:\\ProgramData",
+    home: "C:\\Users\\k",
+  };
+  it("tries the PATH first, then where Windows installers put it", () => {
+    const c = ffmpegCandidates(places, true);
+    expect(c[0]).toBe("C:\\tools\\ffmpeg.exe");
+    expect(c).toContain(
+      "C:\\Users\\k\\AppData\\Local\\Microsoft\\WinGet\\Links\\ffmpeg.exe",
+    );
+    expect(c).toContain("C:\\ProgramData\\chocolatey\\bin\\ffmpeg.exe");
+    expect(c).toContain("C:\\Users\\k\\scoop\\shims\\ffmpeg.exe");
+    expect(c).toContain("C:\\Program Files\\ffmpeg\\bin\\ffmpeg.exe");
+  });
+  it("finds ffprobe beside ffmpeg", () => {
+    expect(ffprobeBeside("C:\\x\\ffmpeg.exe")).toBe("C:\\x\\ffprobe.exe");
+    expect(ffprobeBeside("/usr/bin/ffmpeg")).toBe("/usr/bin/ffprobe");
+  });
+});
+
+describe("reading what ffprobe said", () => {
+  it("applies the phone's rotation and spots HDR and audio", () => {
+    const f = parseProbe({
+      streams: [
+        {
+          codec_type: "video",
+          width: 1920,
+          height: 1080,
+          color_transfer: "arib-std-b67",
+          side_data_list: [{ rotation: -90 }],
+        },
+        { codec_type: "audio" },
+      ],
+      format: { duration: "12.345" },
+    });
+    expect(f).toEqual({
+      durationSeconds: 12.35,
+      width: 1080,
+      height: 1920,
+      hdr: true,
+      hasAudio: true,
+    });
+  });
+  it("gives nothing for something that is not a video", () => {
+    expect(
+      parseProbe({ streams: [{ codec_type: "audio" }], format: { duration: "3" } }),
+    ).toBeNull();
+    expect(parseProbe(null)).toBeNull();
+  });
+});
+
+describe("the conversion rules", () => {
+  it("makes H.264/AAC MP4 with metadata removed", () => {
+    const a = transcodeArgs("in.mov", "out.mp4", facts, 0, false);
+    expect(a).toContain("libx264");
+    expect(a).toContain("aac");
+    expect(a.join(" ")).toMatch(/-map_metadata -1/);
+    expect(a.join(" ")).toMatch(/min\(1920/);
+  });
+  it("tries smaller the second time, and drops audio when there is none", () => {
+    const a = transcodeArgs(
+      "in.mov",
+      "out.mp4",
+      { ...facts, hasAudio: false },
+      1,
+      false,
+    );
+    expect(a.join(" ")).toMatch(/min\(1280/);
+    expect(a).toContain("-an");
+    expect(a).not.toContain("aac");
+  });
+  it("converts HDR colours only when ffmpeg can", () => {
+    const hdr = { ...facts, hdr: true };
+    expect(transcodeArgs("i", "o", hdr, 0, true).join(" ")).toMatch(/tonemap/);
+    expect(transcodeArgs("i", "o", hdr, 0, false).join(" ")).not.toMatch(/tonemap/);
+  });
+});
+
+const tools = await findTools();
+describe.skipIf(tools === null)("with a real ffmpeg", () => {
+  const t = tools as Tools;
+  function makeClip(seconds: number, name = "clip.mp4"): { dir: string; sha: string } {
+    const dir = mkdtempSync(join(tmpdir(), "clip-test-"));
+    execFileSync(t.ffmpeg, [
+      "-hide_banner",
+      "-loglevel",
+      "error",
+      "-y",
+      "-f",
+      "lavfi",
+      "-i",
+      `testsrc=size=2560x1440:rate=24:duration=${seconds}`,
+      "-f",
+      "lavfi",
+      "-i",
+      `sine=frequency=440:duration=${seconds}`,
+      "-c:v",
+      "libx264",
+      "-pix_fmt",
+      "yuv420p",
+      "-c:a",
+      "aac",
+      "-shortest",
+      "-metadata",
+      "location=+40.7128-074.0060/",
+      join(dir, name),
+    ]);
+    return {
+      dir,
+      sha: createHash("sha256")
+        .update(readFileSync(join(dir, name)))
+        .digest("hex"),
+    };
+  }
+
+  it("lists, converts, fingerprints the original, and cleans up", async () => {
+    const { dir, sha } = makeClip(2);
+    const listing = await listForReview(dir);
+    expect(listing.clips.map((c) => c.path)).toEqual(["clip.mp4"]);
+    const before = readdirSync(tmpdir()).filter((f) => f.startsWith("datesort-clip-"));
+    const c = await prepareClip(dir, listing.clips[0]!, t);
+    expect(c.hash).toBe(sha);
+    expect(c.durationSeconds).toBeGreaterThan(1.5);
+    expect(c.video.length).toBeGreaterThan(1000);
+    expect(Math.max(c.width, c.height)).toBeLessThanOrEqual(2400);
+    expect((await sharp(c.web).metadata()).format).toBe("jpeg");
+    const out = join(mkdtempSync(join(tmpdir(), "clip-out-")), "o.mp4");
+    writeFileSync(out, c.video);
+    const probe = JSON.parse(
+      execFileSync(t.ffprobe, [
+        "-v",
+        "error",
+        "-print_format",
+        "json",
+        "-show_format",
+        "-show_streams",
+        out,
+      ]).toString(),
+    ) as {
+      streams: { codec_name: string; width?: number }[];
+      format: { tags?: Record<string, string> };
+    };
+    expect(probe.streams.map((s) => s.codec_name).sort()).toEqual(["aac", "h264"]);
+    expect(probe.streams.find((s) => s.codec_name === "h264")!.width).toBe(1920);
+    expect(JSON.stringify(probe.format.tags ?? {})).not.toMatch(/40\.7128/);
+    expect(readdirSync(tmpdir()).filter((f) => f.startsWith("datesort-clip-"))).toEqual(
+      before,
+    );
+    expect(
+      createHash("sha256")
+        .update(readFileSync(join(dir, "clip.mp4")))
+        .digest("hex"),
+    ).toBe(sha);
+  }, 60_000);
+
+  it("refuses a clip that is too long and says to use GameCut", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "clip-long-"));
+    execFileSync(t.ffmpeg, [
+      "-hide_banner",
+      "-loglevel",
+      "error",
+      "-y",
+      "-f",
+      "lavfi",
+      "-i",
+      "color=c=blue:size=160x90:rate=1:duration=200",
+      "-c:v",
+      "libx264",
+      "-pix_fmt",
+      "yuv420p",
+      join(dir, "long.mp4"),
+    ]);
+    const [cand] = (await listForReview(dir)).clips;
+    await expect(prepareClip(dir, cand!, t)).rejects.toThrow(
+      /up to 180 seconds; use GameCut/,
+    );
+  }, 60_000);
+
+  it("says a file that is not a video could not be read", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "clip-bad-"));
+    writeFileSync(join(dir, "x.mp4"), Buffer.alloc(64, 1));
+    await expect(
+      prepareClip(
+        dir,
+        { path: "x.mp4", size: 64, takenAt: null, dateEstimated: true },
+        t,
+      ),
+    ).rejects.toThrow(/could not be read as a video/);
+  }, 30_000);
+});

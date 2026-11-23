@@ -906,6 +906,73 @@ async function api(route, body, headers) {
     await second.ctx.close();
     await socDb.end();
 
+    console.log("\nA short clip in a folder");
+    {
+      const h = sha("owner-clip");
+      const b = await api(
+        "/review/batch",
+        {
+          label: { name: "Clip folder", sport: "Football", date: "2026-11-07" },
+          folder: "clips",
+          counts: { photos: 0, videos: 1 },
+          hashes: [h],
+        },
+        pub,
+      );
+      await api(
+        "/review/uploads",
+        {
+          batch_id: b.json.batch_id,
+          files: [
+            { hash: h, kind: "web" },
+            { hash: h, kind: "thumb" },
+            { hash: h, kind: "video" },
+          ],
+        },
+        pub,
+      );
+      await api(
+        "/review/commit",
+        {
+          batch_id: b.json.batch_id,
+          photos: [
+            {
+              hash: h,
+              kind: "video",
+              filename: "C0001.MOV",
+              taken_at: "2026-11-07T12:00:00",
+              width: 1920,
+              height: 1080,
+              flags: [],
+              web_bytes: 1000,
+              video_bytes: 9000,
+              duration: 74,
+            },
+          ],
+        },
+        pub,
+      );
+      await page.click("button.pr-tab:has-text('Folders')");
+      await page.waitForSelector("text=Clip folder");
+      await page
+        .locator(".pr-card", { hasText: "Clip folder" })
+        .locator("button:has-text('Review')")
+        .click();
+      await page.waitForSelector(".pr-tile");
+      check(
+        "a clip's tile has a play badge with its length (1:14)",
+        /▶ 1:14/.test(await page.locator("[data-testid=clip-badge]").innerText()),
+      );
+      check(
+        "it says it is a clip, and offers Play clip, an expiring link to the video (not the picture)",
+        /Clip ·/.test(await page.locator(".pr-tile").first().innerText()) &&
+          /-video\.mp4/.test(
+            (await page.locator("[data-testid=clip-play]").getAttribute("href")) ?? "",
+          ),
+      );
+      await page.click("button.pr-tab:has-text('Folders')");
+    }
+
     console.log("\nSigning out");
     await page.click("button:has-text('Sign out')");
     await page.waitForSelector("#email");

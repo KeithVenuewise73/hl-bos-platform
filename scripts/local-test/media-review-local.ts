@@ -1031,6 +1031,171 @@ check(
   recent.json.posts.map((p: { caption: string }) => p.caption),
 );
 
+// ---- Short video clips beside the photos of a game ----------------------------------------------
+const CLIP_HASH = "c".repeat(64);
+const clipBatch = await call(
+  "/review/batch",
+  {
+    label: { name: "Clip game", sport: "Football", date: "2026-11-07" },
+    folder: "clips",
+    counts: { photos: 0, videos: 1 },
+    hashes: [CLIP_HASH],
+  },
+  pub,
+);
+const clipUp = await call(
+  "/review/uploads",
+  {
+    batch_id: clipBatch.json.batch_id,
+    files: [
+      { hash: CLIP_HASH, kind: "web" },
+      { hash: CLIP_HASH, kind: "thumb" },
+      { hash: CLIP_HASH, kind: "video" },
+    ],
+  },
+  pub,
+);
+const clipPaths =
+  await sql`select name from storage.objects where bucket_id = 'review-photos'
+  and name like ${clipBatch.json.batch_id + "/%"}`;
+check(
+  "a clip goes up as three files under its batch: poster, thumbnail and an .mp4",
+  clipUp.status === 200 &&
+    clipPaths
+      .map((r) => String(r.name).split("-").pop())
+      .sort()
+      .join() === "thumb.jpg,video.mp4,web.jpg",
+  clipPaths.map((r) => r.name),
+);
+const clipCommit = await call(
+  "/review/commit",
+  {
+    batch_id: clipBatch.json.batch_id,
+    photos: [
+      {
+        hash: CLIP_HASH,
+        kind: "video",
+        filename: "C0001.MOV",
+        taken_at: "2026-11-07T12:00:00",
+        width: 1920,
+        height: 1080,
+        web_bytes: 1000,
+        video_bytes: 5_000_000,
+        duration: 14.2,
+      },
+    ],
+  },
+  pub,
+);
+check("the clip is recorded", clipCommit.json.added === 1, clipCommit);
+const dayStatus = await call("/review/status", {}, pub);
+const nov7 = dayStatus.json.days.find((d: { date: string }) => d.date === "2026-11-07");
+check(
+  "the status for the clip's date counts it as a clip and not as a photo, so DateSort never mistakes one for the other",
+  nov7?.clips === 1 && nov7?.photos === 0 && nov7?.waiting === 1,
+  nov7,
+);
+const clipFolder = (await call("/owner/folders", {}, own)).json.folders.find(
+  (f: { name: string }) => f.name === "Clip game",
+);
+check(
+  "the folder counts the clip as one waiting item",
+  clipFolder.waiting === 1,
+  clipFolder,
+);
+const clipList = await call(
+  "/owner/photos",
+  { folder: clipFolder.id, status: "all" },
+  own,
+);
+check(
+  "the owner is shown it is a clip, 14.2 seconds, with an expiring link to play it",
+  clipList.json.photos.length === 1 &&
+    clipList.json.photos[0].video === true &&
+    clipList.json.photos[0].duration === 14.2 &&
+    String(clipList.json.photos[0].video_url).includes("-video.mp4"),
+  clipList.json.photos[0],
+);
+const clipTeam = (await call("/owner/create-team", { name: "Clip Team" }, own)).json
+  .team;
+await sql`update review.teams set visibility = 'public' where id = ${clipTeam}`;
+const publicBefore =
+  await sql`select count(*)::int n from storage.objects where bucket_id = 'review-public'
+  and name like ${clipBatch.json.batch_id + "/%"}`;
+await call("/owner/set-team", { folder: clipFolder.id, team: clipTeam }, own);
+const approvedClip = await call(
+  "/owner/decide",
+  { ids: [clipList.json.photos[0].id], status: "approved" },
+  own,
+);
+const publicAfter =
+  await sql`select name from storage.objects where bucket_id = 'review-public'
+  and name like ${clipBatch.json.batch_id + "/%"}`;
+check(
+  "approved and filed under a public team, the clip is copied with its poster and thumbnail (nothing before)",
+  publicBefore[0].n === 0 &&
+    approvedClip.json.public.published === 1 &&
+    publicAfter
+      .map((r) => String(r.name).split("-").pop())
+      .sort()
+      .join() === "thumb.jpg,video.mp4,web.jpg",
+  { before: publicBefore, after: publicAfter.map((r) => r.name) },
+);
+const clipSlug = (await sql`select slug from review.teams where id = ${clipTeam}`)[0]
+  .slug;
+const clipPage = await getJson(`/site/team?slug=${clipSlug}`);
+const clipOnPage = clipPage.json.albums
+  .flatMap((a: { photos: unknown[] }) => a.photos)
+  .find((p: { filename: string }) => p.filename === "C0001.MOV");
+check(
+  "the public page lists it as a clip with its length and its public .mp4 address, and shows no storage path",
+  clipOnPage?.video === true &&
+    clipOnPage.duration === 14.2 &&
+    /-video\.mp4$/.test(clipOnPage.video_url) &&
+    !JSON.stringify(clipPage.json).includes("video_path"),
+  clipOnPage,
+);
+const clipPost = await call(
+  "/owner/social/post",
+  {
+    photos: [clipList.json.photos[0].id],
+    accounts: [crypto.randomUUID()],
+    caption: "Great play",
+  },
+  own,
+);
+check(
+  "a clip cannot be posted to Instagram or Facebook as a photo",
+  clipPost.status === 400 && /clips can't be posted/i.test(clipPost.json.error ?? ""),
+  clipPost.json,
+);
+await call(
+  "/owner/decide",
+  { ids: [clipList.json.photos[0].id], status: "rejected", reason: "shaky" },
+  own,
+);
+const publicGone =
+  await sql`select count(*)::int n from storage.objects where bucket_id = 'review-public'
+  and name like ${clipBatch.json.batch_id + "/%"}`;
+check(
+  "rejecting it takes the clip and its poster off the public bucket",
+  publicGone[0].n === 0,
+  publicGone,
+);
+const delClip = await call(
+  "/owner/delete-photos",
+  { ids: [clipList.json.photos[0].id] },
+  own,
+);
+const privateLeft =
+  await sql`select count(*)::int n from storage.objects where bucket_id = 'review-photos'
+  and name like ${clipBatch.json.batch_id + "/%"}`;
+check(
+  "deleting a rejected clip also removes its mp4 and poster from private storage",
+  delClip.json.deleted === 1 && privateLeft[0].n === 0,
+  { delClip: delClip.json, privateLeft },
+);
+
 await sql.end();
 console.log(`\n${checks - failures}/${checks} checks passed`);
 Deno.exit(failures === 0 ? 0 : 1);

@@ -19,7 +19,7 @@ select is((select count(*)::int from pg_proc p where p.pronamespace = 'review'::
             and not has_function_privilege('service_role', p.oid, 'execute')),
   0, 't_service_role_runs_all_of_them');
 select ok((select public from storage.buckets where id = 'review-public'), 't_the_public_bucket_is_public');
-select ok((select allowed_mime_types = array['image/jpeg'] from storage.buckets where id = 'review-public'), 't_and_takes_only_jpeg');
+select ok((select allowed_mime_types <@ array['image/jpeg', 'video/mp4'] and 'image/jpeg' = any (allowed_mime_types) from storage.buckets where id = 'review-public'), 't_and_takes_only_jpeg_and_mp4');
 select ok(not (select public from storage.buckets where id = 'review-photos'), 't_the_review_bucket_stays_private');
 select is((select count(*)::int from pg_policies where schemaname = 'storage' and tablename = 'objects'
              and (qual ilike '%review-public%' or with_check ilike '%review-public%')), 0, 't_no_storage_policy_lets_anyone_write_the_public_bucket');

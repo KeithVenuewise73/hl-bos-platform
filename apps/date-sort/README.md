@@ -102,7 +102,7 @@ numbers and pressed a red confirmation.
    - that copy must be a **different file on a different drive**: never the original itself, a link to it, a
      folder inside the card, or the card's own drive;
    - for photos, **5Star's review area must already hold the photo** (asked by fingerprint; if 5Star cannot be
-     asked, every photo is kept). Videos are not sent to 5Star, so the hard-drive copy is enough for them;
+     asked, every photo is kept). Clips are not checked against 5Star (the converted copy there is not the original), so the hard-drive copy is enough for them;
    - the original must not have changed while it was being read.
      Anything else is **kept**, with the reason in words.
 2. **Delete** (needs the check's result and a typed-out confirmation from the page). Each file is **re-proved
@@ -170,6 +170,23 @@ already copied, DateSort **renames that date's folder** (only in the destination
 and only to a name nothing else has). The copy then finishes in it, and no photo is
 copied twice. If a date already has two or more folders, DateSort copies nothing
 for that date and lists them, so you can keep one.
+
+## Short clips for review (built)
+
+**Send for review** now sends short clips (plays, shifts) beside the photos of the same date.
+
+- **What is sent.** For each MOV/MP4 on the date, a small web video (H.264/AAC MP4, at most
+  1920 px, camera details and location removed) and a poster picture. Private until approved
+  on the website; once approved it shows on the team's game page with a play badge.
+- **Needs ffmpeg**, the free program GameCut also uses. DateSort looks on the PATH and where
+  Windows installers keep it (WinGet, Chocolatey, Scoop, Program Files). If it is missing
+  the clips are left alone and the result says so in words. Photos still send.
+- **Limits.** Up to 180 seconds and 45 MB after converting (a bigger one is tried again
+  smaller). Longer recordings are named and skipped: use GameCut for a whole game.
+- **Originals are only read.** The fingerprint is of the original, so a clip is never sent
+  twice. Clips cannot be posted to Instagram/Facebook yet; the service refuses.
+- **The date badge** counts photos and clips separately ("On 5Star: all 10 photos. On 5Star: 1 of 4 clips.").
+- Tests: `packages/date-sort/src/review/video.test.ts` (real ffmpeg, skipped where absent).
 
 ## Videos: iPhone MOV and MP4 (built)
 

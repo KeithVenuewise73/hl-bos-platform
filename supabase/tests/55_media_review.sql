@@ -39,8 +39,10 @@ select ok(not has_function_privilege('service_role', 'review.reset_publisher(int
 select is((select count(*)::int from pg_proc p where p.pronamespace = 'review'::regnamespace and p.prosecdef),
   0, 't_no_security_definer_function');
 select ok(not (select public from storage.buckets where id = 'review-photos'), 't_bucket_is_private');
-select ok((select allowed_mime_types = array['image/jpeg'] from storage.buckets where id = 'review-photos'),
-  't_bucket_takes_only_jpeg');
+-- 0060 added short MP4 clips: JPEG and MP4 only, nothing else.
+select ok((select allowed_mime_types <@ array['image/jpeg', 'video/mp4'] and 'image/jpeg' = any (allowed_mime_types)
+             from storage.buckets where id = 'review-photos'),
+  't_bucket_takes_only_jpeg_and_mp4');
 
 -- --- 2. Connecting DateSort -------------------------------------------------
 select ok((select connect_until > now() + interval '23 hours' from review.settings),

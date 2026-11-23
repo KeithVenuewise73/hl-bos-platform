@@ -15,6 +15,9 @@ const EMPTY: AllTotals = {
   alreadyThere: 0,
   largeAdded: 0,
   failedPhotos: 0,
+  clipsSent: 0,
+  clipsAlreadyThere: 0,
+  clipsNeedTool: 0,
   skippedDays: [],
   problemDays: [],
 };
@@ -30,7 +33,7 @@ export function SendAllReview({
   days,
   copy,
 }: {
-  days: { day: string; photos: number }[];
+  days: { day: string; photos: number; clips: number }[];
   copy: CopyState;
 }) {
   const onSite = useReviewDays();
@@ -85,6 +88,9 @@ export function SendAllReview({
           alreadyThere: t.alreadyThere + r.alreadyThere,
           largeAdded: t.largeAdded + r.largeAdded,
           failedPhotos: t.failedPhotos + r.failed.length,
+          clipsSent: t.clipsSent + r.clipsSent,
+          clipsAlreadyThere: t.clipsAlreadyThere + r.clipsAlreadyThere,
+          clipsNeedTool: t.clipsNeedTool + r.videosNotSent,
         };
       } else if (out.kind === "skip") {
         t = { ...t, skippedDays: [...t.skippedDays, { day, reason: out.message }] };
@@ -148,7 +154,9 @@ export function SendAllReview({
         <p className="text-sm text-muted" data-testid="send-all-summary">
           {(() => {
             const complete = days.filter(
-              (d) => (onSite[d.day]?.photos ?? 0) >= d.photos,
+              (d) =>
+                (onSite[d.day]?.photos ?? 0) >= d.photos &&
+                (onSite[d.day]?.clips ?? 0) >= d.clips,
             ).length;
             return `${complete.toLocaleString("en-US")} of ${days.length.toLocaleString("en-US")} dates are fully on 5Star.`;
           })()}
