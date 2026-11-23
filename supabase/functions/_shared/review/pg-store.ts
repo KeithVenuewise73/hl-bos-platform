@@ -43,6 +43,11 @@ export function pgStore(sql: any): ReviewStore {
         where file_hash = any(${hashes}::text[])`;
       return [...r].map((x: any) => String(x.file_hash));
     },
+    async videoIds(ids) {
+      const r = await sql`select id from review.photos
+        where id = any(${ids}::uuid[]) and video_path is not null`;
+      return [...r].map((x: any) => String(x.id));
+    },
     async commitPhotos(batchId, photos) {
       const r =
         await sql`select review.commit_photos(${batchId}::uuid, ${sql.json(photos)}) as n`;
@@ -59,8 +64,8 @@ export function pgStore(sql: any): ReviewStore {
       return [
         ...(await sql`select id, filename, to_char(taken_at, 'YYYY-MM-DD"T"HH24:MI:SS') as taken_at,
                              date_estimated, width, height, flags, status, reason,
-                             web_path, thumb_path, total::int
-                        from review.folder_photos(${folder}::uuid, ${status}, ${limit}, ${offset})`),
+                             web_path, thumb_path, total::int, video_path, duration_seconds::float8
+                        from review.folder_items(${folder}::uuid, ${status}, ${limit}, ${offset})`),
       ];
     },
     async decide(ids, status, reason, by) {
@@ -96,11 +101,11 @@ export function pgStore(sql: any): ReviewStore {
       // Never an approved photo, and never one that is on the public page.
       const rows = await sql`delete from review.photos
         where id = any(${ids}::uuid[]) and status <> 'approved' and public_at is null
-        returning web_path, thumb_path, large_path`;
+        returning web_path, thumb_path, large_path, video_path`;
       return {
         deleted: rows.length,
         paths: rows.flatMap((r: any) =>
-          [r.web_path, r.thumb_path, r.large_path].filter(Boolean),
+          [r.web_path, r.thumb_path, r.large_path, r.video_path].filter(Boolean),
         ),
       };
     },
@@ -163,12 +168,12 @@ export function pgStore(sql: any): ReviewStore {
     },
     async publicWanted() {
       return [
-        ...(await sql`select id, web_path, thumb_path from review.public_wanted()`),
+        ...(await sql`select id, web_path, thumb_path, video_path from review.public_wanted_v2()`),
       ];
     },
     async publicUnwanted() {
       return [
-        ...(await sql`select id, web_path, thumb_path from review.public_unwanted()`),
+        ...(await sql`select id, web_path, thumb_path, video_path from review.public_unwanted_v2()`),
       ];
     },
     async markPublic(ids) {

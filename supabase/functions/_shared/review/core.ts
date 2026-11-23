@@ -57,6 +57,9 @@ export interface PhotoRow {
   web_path: string;
   thumb_path: string;
   total: number;
+  /** A clip's mp4 and length; null for a photo. (A clip's web/thumb are its poster still.) */
+  video_path?: string | null;
+  duration_seconds?: number | null;
 }
 
 export interface PageRow {
@@ -80,6 +83,8 @@ export interface PublicRow {
   id: string;
   web_path: string;
   thumb_path: string;
+  /** A clip's mp4, copied with its poster; null for a photo. */
+  video_path?: string | null;
 }
 
 export interface PublicTeamRow {
@@ -107,6 +112,10 @@ export interface PublicTeamPage {
       height: number | null;
       /** Whether a large copy exists (never where it is kept). */
       large?: boolean;
+      /** A short clip: its poster is web/thumb, its mp4 is video_path. */
+      video?: boolean;
+      duration?: number | null;
+      video_path?: string | null;
       web_path: string;
       thumb_path: string;
     }[];
@@ -198,6 +207,8 @@ export interface ReviewStore {
     needLarge: { hash: string; batch_id: string }[];
   }>;
   commitPhotos(batchId: string, photos: Record<string, unknown>[]): Promise<number>;
+  /** Which of these items are short clips (they cannot be posted as photos yet). */
+  videoIds(ids: string[]): Promise<string[]>;
   /** Which of these fingerprints the review area already holds (their files are stored). */
   knownHashes(hashes: string[]): Promise<string[]>;
   folders(): Promise<FolderRow[]>;
@@ -515,6 +526,12 @@ export async function handle(req: Request, deps: ReviewDeps): Promise<Response> 
             width: p.width,
             height: p.height,
             large: p.large === true,
+            video: p.video === true,
+            duration: p.video === true ? (p.duration ?? null) : null,
+            video_url:
+              p.video === true && p.video_path
+                ? deps.files.publicUrl(p.video_path)
+                : null,
             thumb_url: deps.files.publicUrl(p.thumb_path),
             web_url: deps.files.publicUrl(p.web_path),
           })),
@@ -604,6 +621,8 @@ export async function syncPublic(deps: ReviewDeps): Promise<SyncResult> {
       try {
         await deps.files.copyToPublic(p.web_path);
         await deps.files.copyToPublic(p.thumb_path);
+        // A clip is public only once its mp4 is copied too.
+        if (p.video_path) await deps.files.copyToPublic(p.video_path);
         done.push(p.id);
       } catch {
         out.failed += 1;
@@ -617,7 +636,13 @@ export async function syncPublic(deps: ReviewDeps): Promise<SyncResult> {
     let cleared = 0;
     if (down.length > 0) {
       try {
-        await deps.files.removePublic(down.flatMap((p) => [p.web_path, p.thumb_path]));
+        await deps.files.removePublic(
+          down.flatMap((p) =>
+            p.video_path
+              ? [p.web_path, p.thumb_path, p.video_path]
+              : [p.web_path, p.thumb_path],
+          ),
+        );
         cleared = await deps.store.clearPublic(down.map((p) => p.id));
         out.unpublished = cleared;
       } catch {
@@ -779,8 +804,10 @@ async function publisher(
       const kind = text(f["kind"]);
       if (!HASH.test(hash))
         return json(req, 400, { error: "hash must be a SHA-256 fingerprint." });
-      if (kind !== "web" && kind !== "thumb" && kind !== "large")
-        return json(req, 400, { error: 'kind must be "web", "thumb" or "large".' });
+      if (kind !== "web" && kind !== "thumb" && kind !== "large" && kind !== "video")
+        return json(req, 400, {
+          error: 'kind must be "web", "thumb", "large" or "video".',
+        });
       // A large copy for a photo sent earlier goes under the batch that photo was first
       // stored in (its files are pinned there). Nothing else can name another place.
       let into = batch;
@@ -793,7 +820,9 @@ async function publisher(
       uploads.push({
         hash,
         kind,
-        url: await deps.files.signedUploadUrl(`${into}/${hash}-${kind}.jpg`),
+        url: await deps.files.signedUploadUrl(
+          `${into}/${hash}-${kind}.${kind === "video" ? "mp4" : "jpg"}`,
+        ),
       });
     }
     return json(req, 200, { uploads });
@@ -857,6 +886,11 @@ async function social(
     if (photos === null || photos.length > 10)
       return json(req, 400, { error: "Choose 1 to 10 photos." });
     if (accounts === null) return json(req, 400, { error: "Choose where to post." });
+    if ((await deps.store.videoIds(photos)).length > 0)
+      return json(req, 400, {
+        error:
+          "Short clips can't be posted to Instagram and Facebook yet. Choose photos.",
+      });
     const post = await deps.store.socialCreatePost(
       photos,
       text(b["caption"]),
@@ -969,7 +1003,11 @@ async function owner(req: Request, route: string, deps: ReviewDeps): Promise<Res
     const offset = Math.max(num(b["offset"], 0), 0);
     const rows = await deps.store.folderPhotos(folder, status, limit, offset);
     const urls = await deps.files.signedUrls(
-      rows.flatMap((p) => [p.thumb_path, p.web_path]),
+      rows.flatMap((p) =>
+        p.video_path
+          ? [p.thumb_path, p.web_path, p.video_path]
+          : [p.thumb_path, p.web_path],
+      ),
       PHOTO_URL_SECONDS,
     );
     return json(req, 200, {
@@ -987,6 +1025,9 @@ async function owner(req: Request, route: string, deps: ReviewDeps): Promise<Res
         reason: p.reason,
         thumb_url: urls.get(p.thumb_path) ?? null,
         web_url: urls.get(p.web_path) ?? null,
+        video: !!p.video_path,
+        duration: p.video_path ? (p.duration_seconds ?? null) : null,
+        video_url: p.video_path ? (urls.get(p.video_path) ?? null) : null,
       })),
     });
   }
