@@ -68,6 +68,8 @@ export interface Found {
   readonly todoBytes: number;
   /** Left out for being older than the chosen days. */
   readonly older: number;
+  /** Whole month folders skipped for ending before the chosen days. */
+  readonly olderFolders?: number;
   /** Left out because of the size choice (the other half). */
   readonly held: number;
 }
@@ -91,6 +93,12 @@ export function previewSentence(
   }
   if (f.older > 0) {
     parts.push(`${f.older.toLocaleString("en-US")} older files are left on the phone.`);
+  }
+  if ((f.olderFolders ?? 0) > 0) {
+    const n = f.olderFolders ?? 0;
+    parts.push(
+      `${n.toLocaleString("en-US")} older month${n === 1 ? "" : "s"} on the phone ${n === 1 ? "was" : "were"} skipped without being read.`,
+    );
   }
   return parts.join(" ");
 }

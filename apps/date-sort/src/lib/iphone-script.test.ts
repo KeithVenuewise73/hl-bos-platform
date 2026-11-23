@@ -66,6 +66,11 @@ describe("the iPhone copy script", () => {
     expect(IPHONE_SCRIPT).toContain("$when.Year -gt 1980 -and $when -lt $cutoff");
     // The number of files left out for age is reported, not hidden.
     expect(IPHONE_SCRIPT).toContain("older = $older");
+    // A phone often gives no usable file date, so a month folder (202510_a) that ended before
+    // the cutoff is skipped whole, and counted.
+    expect(IPHONE_SCRIPT).toContain("^(\\d{4})(\\d{2})_");
+    expect(IPHONE_SCRIPT).toContain("AddMonths(1) -le $cutoff");
+    expect(IPHONE_SCRIPT).toContain("olderFolders = $olderFolders");
   });
 
   it("brings the smallest files in first, can split small from large, and can only look", () => {

@@ -25,6 +25,8 @@ interface Tally {
   total: number;
   /** Left out because the phone dates them older than the chosen days. */
   older: number;
+  /** Whole month folders skipped for ending before the chosen days. */
+  olderFolders: number;
   /** Left out because of the size choice: the other half, for another time. */
   held: number;
   /** Not in the folder yet when it started, and how big that is together. */
@@ -304,6 +306,7 @@ function IphoneCopy({
               device: m.device,
               total: m.total,
               older: m.older ?? 0,
+              olderFolders: m.olderFolders ?? 0,
               held: m.held ?? 0,
               todo: m.todo ?? m.total,
               todoBytes: m.todoBytes ?? m.bytes,
@@ -338,6 +341,7 @@ function IphoneCopy({
                 todo: tally.todo,
                 todoBytes: tally.todoBytes,
                 older: tally.older,
+                olderFolders: tally.olderFolders,
                 held: tally.held,
               })}${roomNote === "" ? "" : ` ${roomNote}`}`,
             });
