@@ -171,6 +171,15 @@ and only to a name nothing else has). The copy then finishes in it, and no photo
 copied twice. If a date already has two or more folders, DateSort copies nothing
 for that date and lists them, so you can keep one.
 
+## Show dates from (built)
+
+A drop-down above the date cards limits what is shown to recent shooting dates: **All dates**,
+last 30, 60, 90 days, 6 months or a year. It is for a phone or card holding years of old pictures.
+Copy all and Send all work only on the dates shown, and the summary says how many are hidden
+("Showing 12 of 214 dates ... hidden, not removed"). The choice is remembered on this computer.
+Nothing is hidden by default. _Free up the card_ always looks at the whole card.
+Tests: `src/lib/since.test.ts`, `scripts/local-test/verify-since.cjs`.
+
 ## Short clips for review (built)
 
 **Send for review** now sends short clips (plays, shifts) beside the photos of the same date.

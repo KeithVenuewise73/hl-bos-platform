@@ -20,6 +20,13 @@ import { IphoneButton } from "@/components/IphoneButton.tsx";
 import { CardJersey } from "@/components/JerseyButton.tsx";
 import { CardReview } from "@/components/ReviewButton.tsx";
 import { FreeCardPanel } from "@/components/FreeCardPanel.tsx";
+import {
+  filterSince,
+  isSinceChoice,
+  SINCE_CHOICES,
+  sinceCutoff,
+  type SinceChoice,
+} from "@/lib/since.ts";
 import { SendAllReview } from "@/components/SendAllReview.tsx";
 import {
   CardSport,
@@ -304,13 +311,34 @@ function Stat({
   );
 }
 
-function Report({ view }: { view: ScanView }) {
+const SINCE_KEY = "datesort.since";
+
+function rememberedSince(): SinceChoice {
+  try {
+    const v = window.localStorage.getItem(SINCE_KEY);
+    return isSinceChoice(v) ? v : "all";
+  } catch {
+    return "all";
+  }
+}
+
+function Report({ view: scanned }: { view: ScanView }) {
+  const [since, setSince] = useState<SinceChoice>("all");
+  useEffect(() => setSince(rememberedSince()), []);
+  const cutoff = sinceCutoff(since);
+  const allDays = scanned.report.days;
+  // From here on the report only holds the dates being shown: the cards, Copy all, Send all and the
+  // counts on the panels all follow the choice. (Free up the card always looks at the whole card.)
+  const view: ScanView = {
+    ...scanned,
+    report: { ...scanned.report, days: filterSince(allDays, cutoff) },
+  };
   const r = view.report;
   const videos = r.byFormat.mov + r.byFormat.mp4;
   // Video columns only when there are videos: camera cards look as before.
   const formats: PhotoFormat[] = PHOTO_FORMATS.filter((f) => !isVideo(f) || videos > 0);
-  const copy = useCopy(view);
-  const sport = useSport(view);
+  const copy = useCopy(scanned);
+  const sport = useSport(scanned);
   const [showEstimated, setShowEstimated] = useState(false);
   const [showUnsupported, setShowUnsupported] = useState(false);
   return (
@@ -403,6 +431,44 @@ function Report({ view }: { view: ScanView }) {
         )}
       </div>
 
+      {allDays.length > 0 ? (
+        <div
+          className="card flex flex-wrap items-center gap-3 p-4"
+          data-testid="since-panel"
+        >
+          <label htmlFor="since" className="text-sm font-semibold">
+            Show dates from
+          </label>
+          <select
+            id="since"
+            data-testid="since-select"
+            className="rounded-md border border-line bg-surface px-3 py-2 text-sm"
+            value={since}
+            onChange={(e) => {
+              const v = e.target.value;
+              if (!isSinceChoice(v)) return;
+              setSince(v);
+              try {
+                window.localStorage.setItem(SINCE_KEY, v);
+              } catch {
+                // not remembered: the choice still applies now
+              }
+            }}
+          >
+            {SINCE_CHOICES.map((c) => (
+              <option key={c.value} value={c.value}>
+                {c.label}
+              </option>
+            ))}
+          </select>
+          <p className="text-sm text-muted" data-testid="since-summary">
+            {cutoff === null
+              ? `Showing all ${count(allDays.length, "date")}.`
+              : `Showing ${r.days.length.toLocaleString("en-US")} of ${count(allDays.length, "date")}, from ${cutoff} on. Older dates are hidden, not removed.`}
+          </p>
+        </div>
+      ) : null}
+
       {r.days.length > 0 ? <SportPanel view={view} sport={sport} copy={copy} /> : null}
       {r.days.length > 0 ? <CopyPanel view={view} copy={copy} /> : null}
       {r.days.length > 0 ? (
@@ -416,7 +482,11 @@ function Report({ view }: { view: ScanView }) {
       ) : null}
       {r.days.length > 0 ? <FreeCardPanel view={view} copy={copy} /> : null}
 
-      {r.days.length === 0 ? (
+      {r.days.length === 0 && allDays.length > 0 ? (
+        <p className="card p-5 text-sm text-muted" data-testid="no-dates-since">
+          No shooting dates in this period. Choose a longer period above.
+        </p>
+      ) : r.days.length === 0 ? (
         <p className="card p-5 text-sm text-muted" data-testid="no-dates">
           No photos with a date were found in this folder
           {view.includeSubfolders
