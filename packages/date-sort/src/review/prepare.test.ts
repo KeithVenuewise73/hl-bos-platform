@@ -70,6 +70,7 @@ describe("what is in the folder", () => {
     expect(l.photos[0]!.takenAt).toBe("2026-10-24T18:00:00");
     expect(l.photos[0]!.dateEstimated).toBe(false);
     expect(l.videos).toBe(1);
+    expect(l.clips.map((c) => c.path)).toEqual(["clip.mov"]);
     expect(l.skipped.map((s) => s.path)).toContain("notes.txt");
   });
 });

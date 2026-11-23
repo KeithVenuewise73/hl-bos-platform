@@ -1088,6 +1088,13 @@ const clipCommit = await call(
   pub,
 );
 check("the clip is recorded", clipCommit.json.added === 1, clipCommit);
+const dayStatus = await call("/review/status", {}, pub);
+const nov7 = dayStatus.json.days.find((d: { date: string }) => d.date === "2026-11-07");
+check(
+  "the status for the clip's date counts it as a clip and not as a photo, so DateSort never mistakes one for the other",
+  nov7?.clips === 1 && nov7?.photos === 0 && nov7?.waiting === 1,
+  nov7,
+);
 const clipFolder = (await call("/owner/folders", {}, own)).json.folders.find(
   (f: { name: string }) => f.name === "Clip game",
 );

@@ -38,6 +38,20 @@ export function pgStore(sql: any): ReviewStore {
         })),
       };
     },
+    async statusDays() {
+      return [
+        ...(await sql`select to_char(f.event_date, 'YYYY-MM-DD') as date,
+                             (count(p.id) filter (where p.video_path is null))::int as photos,
+                             (count(p.id) filter (where p.video_path is not null))::int as clips,
+                             (count(p.id) filter (where p.status = 'waiting'))::int as waiting,
+                             (count(p.id) filter (where p.status = 'approved'))::int as approved,
+                             (count(p.id) filter (where p.status = 'rejected'))::int as rejected
+                        from review.folders f
+                        left join review.photos p on p.folder_id = f.id
+                       group by f.event_date
+                       order by f.event_date`),
+      ] as never;
+    },
     async knownHashes(hashes) {
       const r = await sql`select file_hash from review.photos
         where file_hash = any(${hashes}::text[])`;

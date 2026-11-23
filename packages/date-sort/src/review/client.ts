@@ -8,6 +8,7 @@
  *   POST /review/register  {key_sha256}                     connect this computer (one-time window)
  *   POST /review/batch     {label, folder, counts, hashes}  -> {batch_id, known:[hash]}
  *   POST /review/uploads   {batch_id, files:[{hash,kind}]}  -> {uploads:[{hash,kind,url}]}
+ *                          (kind: web, thumb, large, or video for a short clip's .mp4)
  *   PUT  <url>             the bytes                        (kind is "web", "thumb" or "large";
  *                                                            "large" may name the photo's own batch_id)
  *   POST /review/commit    {batch_id, photos:[...]}         -> {added}
@@ -35,6 +36,7 @@ import {
   type PreparedPhoto,
   type ReviewCandidate,
 } from "./prepare";
+import { findTools, prepareClip, type PreparedClip, type Tools } from "./video";
 
 export type Fetch = (input: string, init?: RequestInit) => Promise<Response>;
 
@@ -47,7 +49,7 @@ export interface GameLabel {
 }
 
 export interface SendProgress {
-  readonly phase: "reading" | "checking" | "sending" | "large" | "done";
+  readonly phase: "reading" | "checking" | "sending" | "large" | "clips" | "done";
   readonly done: number;
   readonly total: number;
   readonly current: string | null;
@@ -65,8 +67,14 @@ export interface SendResult {
   readonly failed: ReadonlyArray<{ readonly path: string; readonly reason: string }>;
   /** Files that are not photos or cannot be sent (raw, too big…), with the reason. */
   readonly skipped: ReadonlyArray<{ readonly path: string; readonly reason: string }>;
-  /** Videos in the folder: not sent yet. */
+  /** Short clips newly sent for review. */
+  readonly clipsSent: number;
+  /** Clips the website already had. */
+  readonly clipsAlreadyThere: number;
+  /** Clips left unsent because ffmpeg (the free video tool) is not on this computer. */
   readonly videosNotSent: number;
+  /** Words about a clip that was sent but may not look right (for example HDR colours). */
+  readonly clipNotes: readonly string[];
 }
 
 /** A problem to tell the person in plain words. */
@@ -189,12 +197,13 @@ async function put(
   url: string,
   bytes: Buffer,
   sent: number,
+  contentType = "image/jpeg",
 ): Promise<void> {
   let res: Response;
   try {
     res = await fetchImpl(url, {
       method: "PUT",
-      headers: { "content-type": "image/jpeg", "x-upsert": "true" },
+      headers: { "content-type": contentType, "x-upsert": "true" },
       body: new Uint8Array(bytes),
     });
   } catch {
@@ -220,6 +229,14 @@ export interface SendOptions {
   readonly signal?: AbortSignal;
   /** Waits before each retry of a failed request (tests use short ones). */
   readonly retryDelaysMs?: readonly number[];
+  /** Tests only: where ffmpeg is, and how a clip is made ready. */
+  readonly findTools?: () => Promise<Tools | null>;
+  readonly makeClip?: (
+    root: string,
+    c: ReviewCandidate,
+    tools: Tools,
+    signal?: AbortSignal,
+  ) => Promise<PreparedClip>;
 }
 
 /** Send every photo in the folder for review. Never changes the folder. */
@@ -239,8 +256,11 @@ export async function sendForReview(o: SendOptions): Promise<SendResult> {
     throw e;
   }
   const photos = listing.photos;
-  if (photos.length === 0)
-    throw new ReviewError("There are no photos in that folder to send for review.");
+  const clips = listing.clips;
+  if (photos.length === 0 && clips.length === 0)
+    throw new ReviewError(
+      "There are no photos or clips in that folder to send for review.",
+    );
 
   // Fingerprint every original, to ask what the website already has.
   const hashes = new Map<string, ReviewCandidate>();
@@ -260,6 +280,27 @@ export async function sendForReview(o: SendOptions): Promise<SendResult> {
     n += 1;
   }
 
+  // Clips are fingerprinted the same way (the SHA-256 of the original), so 5Star can say which it has.
+  const clipHashes = new Map<string, ReviewCandidate>();
+  for (const c of clips) {
+    stopped();
+    progress({
+      phase: "checking",
+      done: n,
+      total: photos.length + clips.length,
+      current: c.path,
+    });
+    try {
+      clipHashes.set(await hashOf(o.folder, c.path), c);
+    } catch (e) {
+      failed.push({
+        path: c.path,
+        reason: `Could not be read: ${e instanceof Error ? e.message : "unknown error"}`,
+      });
+    }
+    n += 1;
+  }
+
   const batch = await call(
     net,
     o.serviceUrl,
@@ -269,7 +310,7 @@ export async function sendForReview(o: SendOptions): Promise<SendResult> {
       label: o.game,
       folder: o.folder.split(/[\\/]/).filter(Boolean).pop() ?? "",
       counts: { photos: photos.length, videos: listing.videos },
-      hashes: [...hashes.keys()],
+      hashes: [...hashes.keys(), ...clipHashes.keys()],
     },
     0,
   );
@@ -421,7 +462,102 @@ export async function sendForReview(o: SendOptions): Promise<SendResult> {
     );
     largeAdded += ready.length;
   }
-  progress({ phase: "done", done: sent, total: todo.length, current: null });
+  // Short clips: converted to a small web video with a poster frame, then sent like a photo.
+  const clipTodo = [...clipHashes.entries()].filter(([h]) => !known.has(h));
+  let clipsSent = 0;
+  let needTool = 0;
+  const clipNotes: string[] = [];
+  if (clipTodo.length > 0) {
+    const tools = await (o.findTools ?? findTools)();
+    if (tools === null) {
+      needTool = clipTodo.length;
+    } else {
+      for (const [, c] of clipTodo) {
+        stopped();
+        progress({
+          phase: "clips",
+          done: clipsSent,
+          total: clipTodo.length,
+          current: c.path,
+        });
+        let clip: PreparedClip;
+        try {
+          clip = await (o.makeClip ?? prepareClip)(o.folder, c, tools, o.signal);
+        } catch (e) {
+          if (o.signal?.aborted === true) throw new ReviewError("Stopped.");
+          failed.push({
+            path: c.path,
+            reason: e instanceof Error ? e.message : "Could not be converted.",
+          });
+          continue;
+        }
+        const out = await call(
+          net,
+          o.serviceUrl,
+          o.key,
+          "/review/uploads",
+          {
+            batch_id: batchId,
+            files: [
+              { hash: clip.hash, kind: "web" },
+              { hash: clip.hash, kind: "thumb" },
+              { hash: clip.hash, kind: "video" },
+            ],
+          },
+          sent + clipsSent,
+        );
+        const urls = new Map(
+          ((out["uploads"] ?? []) as { hash: string; kind: string; url: string }[]).map(
+            (u) => [`${u.hash}:${u.kind}`, u.url],
+          ),
+        );
+        const web = urls.get(`${clip.hash}:web`);
+        const thumb = urls.get(`${clip.hash}:thumb`);
+        const video = urls.get(`${clip.hash}:video`);
+        if (!web || !thumb || !video)
+          throw new ReviewError(
+            "The website gave no upload address.",
+            sent + clipsSent,
+          );
+        await put(net, web, clip.web, sent + clipsSent);
+        await put(net, thumb, clip.thumb, sent + clipsSent);
+        await put(net, video, clip.video, sent + clipsSent, "video/mp4");
+        await call(
+          net,
+          o.serviceUrl,
+          o.key,
+          "/review/commit",
+          {
+            batch_id: batchId,
+            photos: [
+              {
+                hash: clip.hash,
+                kind: "video",
+                filename: clip.filename,
+                taken_at: clip.takenAt,
+                date_estimated: clip.dateEstimated,
+                width: clip.width,
+                height: clip.height,
+                flags: [],
+                web_bytes: clip.web.length,
+                video_bytes: clip.video.length,
+                duration: clip.durationSeconds,
+              },
+            ],
+          },
+          sent + clipsSent,
+        );
+        clipsSent += 1;
+        clipNotes.push(...clip.notes);
+      }
+    }
+  }
+  progress({
+    phase: "done",
+    done: sent + clipsSent,
+    total: todo.length + clipTodo.length,
+    current: null,
+  });
   return {
     batchId,
     sent,
@@ -429,7 +565,10 @@ export async function sendForReview(o: SendOptions): Promise<SendResult> {
     largeAdded,
     failed,
     skipped: listing.skipped,
-    videosNotSent: listing.videos,
+    clipsSent,
+    clipsAlreadyThere: clipHashes.size - clipTodo.length,
+    videosNotSent: needTool,
+    clipNotes,
   };
 }
 
@@ -437,6 +576,8 @@ export async function sendForReview(o: SendOptions): Promise<SendResult> {
 export interface ReviewDay {
   readonly date: string;
   readonly photos: number;
+  /** Short clips held for this date (a clip is never counted as a photo). */
+  readonly clips: number;
   readonly waiting: number;
   readonly approved: number;
   readonly rejected: number;
@@ -458,6 +599,7 @@ export async function reviewStatus(
     .map((d) => ({
       date: String(d["date"]),
       photos: Number(d["photos"] ?? 0),
+      clips: Number(d["clips"] ?? 0),
       waiting: Number(d["waiting"] ?? 0),
       approved: Number(d["approved"] ?? 0),
       rejected: Number(d["rejected"] ?? 0),

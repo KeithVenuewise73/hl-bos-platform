@@ -41,8 +41,14 @@ export interface ReviewCandidate {
   readonly dateEstimated: boolean;
 }
 
+/** The farthest one video is read in full to be fingerprinted and converted. */
+export const MAX_CLIP_ORIGINAL_BYTES = 2 * 1024 * 1024 * 1024;
+
 export interface ReviewListing {
   readonly photos: readonly ReviewCandidate[];
+  /** Short clips (iPhone MOV / MP4), with the time the phone says they were filmed. */
+  readonly clips: readonly ReviewCandidate[];
+  /** How many videos there are in all (clips plus ones too big to send). */
   readonly videos: number;
   /** Files that cannot be sent, with the reason in words. */
   readonly skipped: ReadonlyArray<{ readonly path: string; readonly reason: string }>;
@@ -55,6 +61,7 @@ export async function listForReview(
 ): Promise<ReviewListing> {
   const scan = await scanFolder(folder, { includeSubfolders: true, ...options });
   const photos: ReviewCandidate[] = [];
+  const clips: ReviewCandidate[] = [];
   const skipped: { path: string; reason: string }[] = [];
   let videos = 0;
   for (const f of scan.files) {
@@ -62,6 +69,15 @@ export async function listForReview(
       skipped.push({ path: f.path, reason: f.reason });
     } else if (isVideo(f.format)) {
       videos += 1;
+      if (f.size > MAX_CLIP_ORIGINAL_BYTES)
+        skipped.push({ path: f.path, reason: "The video is larger than 2 GB." });
+      else
+        clips.push({
+          path: f.path,
+          size: f.size,
+          takenAt: f.takenAt,
+          dateEstimated: f.dateSource === "FileModified",
+        });
     } else if (f.format === "cr2" || f.format === "cr3") {
       skipped.push({
         path: f.path,
@@ -83,7 +99,11 @@ export async function listForReview(
     (a, b) =>
       (a.takenAt ?? "").localeCompare(b.takenAt ?? "") || a.path.localeCompare(b.path),
   );
-  return { photos, videos, skipped };
+  clips.sort(
+    (a, b) =>
+      (a.takenAt ?? "").localeCompare(b.takenAt ?? "") || a.path.localeCompare(b.path),
+  );
+  return { photos, clips, videos, skipped };
 }
 
 export interface PreparedPhoto {

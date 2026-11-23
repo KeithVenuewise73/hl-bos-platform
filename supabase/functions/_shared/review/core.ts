@@ -211,6 +211,17 @@ export interface ReviewStore {
   videoIds(ids: string[]): Promise<string[]>;
   /** Which of these fingerprints the review area already holds (their files are stored). */
   knownHashes(hashes: string[]): Promise<string[]>;
+  /** Per date: photos and clips held, and how many are waiting, approved and rejected. */
+  statusDays(): Promise<
+    {
+      date: string;
+      photos: number;
+      clips: number;
+      waiting: number;
+      approved: number;
+      rejected: number;
+    }[]
+  >;
   folders(): Promise<FolderRow[]>;
   folderPhotos(
     folder: string,
@@ -760,32 +771,9 @@ async function publisher(
     return json(req, 200, { known: await deps.store.knownHashes(hashes) });
   }
   if (route === "/review/status") {
-    // Which dates already have photos in review (any state), so DateSort can show it on each date.
-    const days = new Map<
-      string,
-      {
-        date: string;
-        photos: number;
-        waiting: number;
-        approved: number;
-        rejected: number;
-      }
-    >();
-    for (const f of await deps.store.folders()) {
-      const d = days.get(f.event_date) ?? {
-        date: f.event_date,
-        photos: 0,
-        waiting: 0,
-        approved: 0,
-        rejected: 0,
-      };
-      d.waiting += Number(f.waiting);
-      d.approved += Number(f.approved);
-      d.rejected += Number(f.rejected);
-      d.photos += Number(f.waiting) + Number(f.approved) + Number(f.rejected);
-      days.set(f.event_date, d);
-    }
-    return json(req, 200, { days: [...days.values()] });
+    // Which dates already have photos and clips in review (any state), so DateSort can say so on
+    // each date. Photos and clips are counted apart: a clip is never a photo.
+    return json(req, 200, { days: await deps.store.statusDays() });
   }
   const batch = text(b["batch_id"]);
   if (!UUID.test(batch)) return json(req, 400, { error: "batch_id must be a uuid." });

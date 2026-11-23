@@ -177,6 +177,18 @@ function world(over: Partial<ReviewDeps> = {}) {
           .map((hash) => ({ hash, batch_id: LARGE_BATCH })),
       });
     },
+    statusDays() {
+      return Promise.resolve([
+        {
+          date: "2026-10-24",
+          photos: 1,
+          clips: clip.on ? 1 : 0,
+          waiting: clip.on ? 2 : 1,
+          approved: 0,
+          rejected: 0,
+        },
+      ]);
+    },
     knownHashes(hashes) {
       calls.push("known:" + hashes.length);
       return Promise.resolve(hashes.filter((h) => h === H1));
@@ -2325,8 +2337,17 @@ Deno.test(
     assertEquals(ok.status, 200, "the connected DateSort may ask");
     assertEquals(
       ok.json["days"],
-      [{ date: "2026-10-24", photos: 1, waiting: 1, approved: 0, rejected: 0 }],
-      "one entry per date, with how many photos are there",
+      [
+        {
+          date: "2026-10-24",
+          photos: 1,
+          clips: 0,
+          waiting: 1,
+          approved: 0,
+          rejected: 0,
+        },
+      ],
+      "one entry per date, with how many photos and clips are there",
     );
     const stranger = await out(
       await handle(

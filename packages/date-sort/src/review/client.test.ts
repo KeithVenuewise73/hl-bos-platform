@@ -43,6 +43,9 @@ interface Stored {
   taken_at: string | null;
   flags: string[];
   web_bytes: number;
+  kind?: string;
+  video_bytes?: number;
+  duration?: number;
 }
 
 function service(
@@ -101,7 +104,7 @@ function service(
       return json({
         uploads: (data.files ?? []).map((f) => ({
           ...f,
-          url: `https://storage.test/${f.batch_id ?? data.batch_id}/${f.hash}-${f.kind}.jpg`,
+          url: `https://storage.test/${f.batch_id ?? data.batch_id}/${f.hash}-${f.kind}.${f.kind === "video" ? "mp4" : "jpg"}`,
         })),
       });
     }
@@ -112,6 +115,11 @@ function service(
         const thumb = `https://storage.test/${data.batch_id}/${p.hash}-thumb.jpg`;
         if (!storage.has(web) || !storage.has(thumb))
           return json({ error: "files missing" }, 409);
+        if (p.kind === "video") {
+          const vid = `https://storage.test/${data.batch_id}/${p.hash}-video.mp4`;
+          if (!storage.has(vid) || storage.get(vid)!.length !== p.video_bytes)
+            return json({ error: "video missing" }, 409);
+        }
         known.set(p.hash, p);
         batchOf.set(p.hash, data.batch_id ?? "");
         uploaded.add(p.hash);
@@ -122,17 +130,23 @@ function service(
       return json({ known: (data.hashes ?? []).filter((h) => known.has(h)) });
     }
     if (url.pathname === "/review/status") {
-      const per = new Map<string, number>();
+      const per = new Map<string, { photos: number; clips: number }>();
       batches.forEach((b, i) => {
         const date = String((b as { label?: { date?: string } }).label?.date ?? "");
-        const n = [...batchOf.values()].filter((v) => v === `b${i + 1}`).length;
-        per.set(date, (per.get(date) ?? 0) + n);
+        const cur = per.get(date) ?? { photos: 0, clips: 0 };
+        for (const [h, v] of batchOf.entries()) {
+          if (v !== `b${i + 1}`) continue;
+          if (known.get(h)?.kind === "video") cur.clips += 1;
+          else cur.photos += 1;
+        }
+        per.set(date, cur);
       });
       return json({
-        days: [...per.entries()].map(([date, photos]) => ({
+        days: [...per.entries()].map(([date, { photos, clips }]) => ({
           date,
           photos,
-          waiting: photos,
+          clips,
+          waiting: photos + clips,
           approved: 0,
           rejected: 0,
         })),
@@ -236,7 +250,7 @@ describe("which dates are on the website", () => {
     expect(await reviewStatus(BASE, KEY, svc.fetch)).toEqual([]);
     await run(dir, svc);
     expect(await reviewStatus(BASE, KEY, svc.fetch)).toEqual([
-      { date: "2026-10-24", photos: 3, waiting: 3, approved: 0, rejected: 0 },
+      { date: "2026-10-24", photos: 3, clips: 0, waiting: 3, approved: 0, rejected: 0 },
     ]);
     await expect(
       reviewStatus(BASE, "some-other-key-some-other-key-some-other-key-123", svc.fetch),
@@ -379,7 +393,7 @@ describe("sending a day's photos for review", () => {
     expect(r.failed[0]!.reason).toMatch(/could not be read as a picture/);
   });
 
-  it("counts videos as not sent, and explains raw files it cannot send", async () => {
+  it("leaves clips unsent, and says so, when ffmpeg is not on this computer", async () => {
     const dir = await dayFolder(1);
     writeFileSync(
       join(dir, "clip.mov"),
@@ -389,14 +403,16 @@ describe("sending a day's photos for review", () => {
         Buffer.alloc(32),
       ]),
     );
-    const r = await run(dir, service());
+    const r = await run(dir, service(), { findTools: () => Promise.resolve(null) });
     expect(r.videosNotSent).toBe(1);
     expect(r.sent).toBe(1);
   });
 
   it("refuses an empty folder in words", async () => {
     const dir = mkdtempSync(join(tmpdir(), "review-empty-"));
-    await expect(run(dir, service())).rejects.toThrow(/no photos in that folder/);
+    await expect(run(dir, service())).rejects.toThrow(
+      /no photos or clips in that folder/,
+    );
   });
 });
 
@@ -547,5 +563,97 @@ describe("connecting this computer", () => {
     const closed = service();
     closed.closeWindow();
     expect(await connectReview(BASE, KEY, closed.fetch)).toBe("closed");
+  });
+});
+
+describe("short clips", () => {
+  const tools = { ffmpeg: "ffmpeg", ffprobe: "ffprobe", tonemap: false };
+  async function clipDay() {
+    const dir = await dayFolder(1);
+    writeFileSync(
+      join(dir, "IMG_9000.mov"),
+      Buffer.concat([
+        Buffer.from([0, 0, 0, 20]),
+        Buffer.from("ftypqt  "),
+        Buffer.alloc(32, 7),
+      ]),
+    );
+    return dir;
+  }
+  const makeClip = async (root: string, c: { path: string }) => ({
+    hash: createHash("sha256")
+      .update(readFileSync(join(root, c.path)))
+      .digest("hex"),
+    filename: c.path,
+    takenAt: "2026-10-24T18:05:00.000Z",
+    dateEstimated: false,
+    width: 1920,
+    height: 1080,
+    durationSeconds: 12.5,
+    web: await sharp({
+      create: { width: 640, height: 360, channels: 3, background: "#123" },
+    })
+      .jpeg()
+      .toBuffer(),
+    thumb: await sharp({
+      create: { width: 160, height: 90, channels: 3, background: "#123" },
+    })
+      .jpeg()
+      .toBuffer(),
+    video: Buffer.alloc(2048, 1),
+    notes: ["note about colours"],
+  });
+
+  it("sends a clip with its poster and the video, once", async () => {
+    const dir = await clipDay();
+    const svc = service();
+    const first = await run(dir, svc, {
+      findTools: () => Promise.resolve(tools),
+      makeClip,
+    });
+    expect(first.sent).toBe(1);
+    expect(first.clipsSent).toBe(1);
+    expect(first.videosNotSent).toBe(0);
+    expect(first.clipNotes).toEqual(["note about colours"]);
+    expect([...svc.storage.keys()].some((k) => k.endsWith("-video.mp4"))).toBe(true);
+    expect([...svc.known.values()].filter((k) => k.kind === "video")).toHaveLength(1);
+    const again = await run(dir, svc, {
+      findTools: () => Promise.resolve(tools),
+      makeClip,
+    });
+    expect(again.clipsSent).toBe(0);
+    expect(again.clipsAlreadyThere).toBe(1);
+    expect(await reviewStatus(BASE, KEY, svc.fetch)).toEqual([
+      { date: "2026-10-24", photos: 1, clips: 1, waiting: 2, approved: 0, rejected: 0 },
+    ]);
+  });
+
+  it("names a clip that could not be converted and carries on", async () => {
+    const dir = await clipDay();
+    const r = await run(dir, service(), {
+      findTools: () => Promise.resolve(tools),
+      makeClip: () =>
+        Promise.reject(new Error("IMG_9000.mov could not be read as a video.")),
+    });
+    expect(r.sent).toBe(1);
+    expect(r.failed[0]?.reason).toMatch(/could not be read as a video/);
+  });
+
+  it("sends a folder of only clips", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "review-clips-"));
+    writeFileSync(
+      join(dir, "a.mov"),
+      Buffer.concat([
+        Buffer.from([0, 0, 0, 20]),
+        Buffer.from("ftypqt  "),
+        Buffer.alloc(32, 3),
+      ]),
+    );
+    const r = await run(dir, service(), {
+      findTools: () => Promise.resolve(tools),
+      makeClip,
+    });
+    expect(r.clipsSent).toBe(1);
+    expect(r.sent).toBe(0);
   });
 });

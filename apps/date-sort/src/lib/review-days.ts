@@ -5,6 +5,7 @@ import { useSyncExternalStore } from "react";
 /** One date as the website holds it. */
 export interface SiteDay {
   readonly photos: number;
+  readonly clips: number;
   readonly approved: number;
 }
 type Snapshot = Record<string, SiteDay> | null;

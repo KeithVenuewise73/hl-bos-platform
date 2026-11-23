@@ -23,10 +23,12 @@ type State =
 export function CardReview({
   day,
   photos,
+  clips,
   copy,
 }: {
   day: string;
   photos: number;
+  clips: number;
   copy: CopyState;
 }) {
   const onSite = useReviewDays();
@@ -115,7 +117,15 @@ export function CardReview({
   const working = state.kind === "working";
   const here = onSite?.[day];
   const badge =
-    onSite === null ? null : dayStatus(photos, here?.photos ?? 0, here?.approved ?? 0);
+    onSite === null
+      ? null
+      : dayStatus(
+          photos,
+          here?.photos ?? 0,
+          here?.approved ?? 0,
+          clips,
+          here?.clips ?? 0,
+        );
   return (
     <div className="space-y-1 text-xs" data-testid="card-review">
       {badge !== null && status?.configured === true && status.connected ? (
