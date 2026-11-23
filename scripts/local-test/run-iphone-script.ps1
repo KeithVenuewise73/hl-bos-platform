@@ -90,7 +90,25 @@ $smallRun = Run 'sizes-small' $sizePhone $destSmall 'videos' '' 'small' '1'
 $largeRun = Run 'sizes-large' $sizePhone $destLarge 'videos' '' 'large' '1'
 $checkRun = Run 'sizes-check' $sizePhone $destCheck 'videos' '' 'all' '1' '1'
 
+# A phone that gives no usable file dates (every file looks brand new) but names its folders by
+# month: "the last 30 days" must skip the old months whole, however new the files look.
+$oldMonthName = (Get-Date).AddMonths(-6).ToString('yyyyMM') + '_a'
+$newMonthName = (Get-Date).ToString('yyyyMM') + '_a'
+$daysPhone = Join-Path $T 'fake-daysmonths\Apple iPhone'
+$daysMonths = Join-Path $daysPhone 'Internal Storage'
+New-Item -ItemType Directory -Force (Join-Path $daysMonths $oldMonthName), (Join-Path $daysMonths $newMonthName) | Out-Null
+Copy-Item "$fx\header-only.mp4" (Join-Path $daysMonths "$oldMonthName\IMG_OLD.MP4")
+Copy-Item "$fx\iphone-style.mov" (Join-Path $daysMonths "$newMonthName\IMG_NEW.MOV")
+$destDM = Join-Path $T 'kept\Days by month'
+New-Item -ItemType Directory -Force $destDM | Out-Null
+$daysMonthRun = Run 'days-by-month' $daysPhone $destDM 'videos' '30'
+$daysMonthAll = Run 'days-by-month-all' $daysPhone (Join-Path $T 'kept\Days by month all') 'videos' ''
+
 $ok = $true
+if ((& { @(Get-ChildItem -Recurse -File $destDM | Where-Object { $_.FullName -notmatch '\.datesort-incoming' } | ForEach-Object { $_.Name }) -join ',' }) -ne 'IMG_NEW.MOV') { Write-Host "last 30 days did not skip the old month folder"; $ok = $false }
+if ($daysMonthRun -notmatch '"olderFolders":1') { Write-Host "the skipped old month was not counted: $daysMonthRun"; $ok = $false }
+if ($daysMonthRun -match [regex]::Escape($oldMonthName)) { Write-Host "the old month folder was read anyway"; $ok = $false }
+if ($daysMonthAll -notmatch '"total":2') { Write-Host "with no days choice both months should be found"; $ok = $false }
 foreach ($f in '100APPLE\IMG_0042.MOV', '100APPLE\IMG_0043.MP4', '100APPLE\IMG_0044.HEIC', '101APPLE\IMG_0050.JPG') {
   $a = Join-Path $src $f; $b = Join-Path $dest $f
   if (-not (Test-Path $b) -or (Get-FileHash $a).Hash -ne (Get-FileHash $b).Hash) { Write-Host "MISSING OR DIFFERENT: $f"; $ok = $false }

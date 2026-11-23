@@ -95,3 +95,18 @@ describe("when the phone gives no sizes", () => {
     expect(text).not.toMatch(/minute/);
   });
 });
+
+describe("older months skipped by the days choice", () => {
+  const f = { total: 40, todo: 40, todoBytes: 1e9, older: 0, held: 0 };
+  it("says how many months were skipped without being read", () => {
+    expect(previewSentence("videos", "all", { ...f, olderFolders: 130 })).toContain(
+      "130 older months on the phone were skipped without being read.",
+    );
+    expect(previewSentence("videos", "all", { ...f, olderFolders: 1 })).toContain(
+      "1 older month on the phone was skipped without being read.",
+    );
+  });
+  it("says nothing when none were skipped", () => {
+    expect(previewSentence("videos", "all", f)).not.toContain("skipped");
+  });
+});

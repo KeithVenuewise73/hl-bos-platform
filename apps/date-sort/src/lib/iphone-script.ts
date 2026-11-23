@@ -153,6 +153,7 @@ try {
   $videoExt = '\.(mov|mp4|m4v)$'
   $photoExt = '\.(heic|heif|jpg|jpeg|png|dng|gif|tif|tiff)$'
   $older = 0
+  $olderFolders = 0
   $size = [string]$env:DS_SIZE
   $splitMb = 1024
   [void][int]::TryParse([string]$env:DS_SPLIT_MB, [ref]$splitMb)
@@ -161,6 +162,13 @@ try {
   $held = 0
   $files = New-Object System.Collections.ArrayList
   foreach ($sub in @($root.Items())) {
+    # Newer iPhones name their folders by month (202510_a). A month that ended before the
+    # cutoff is skipped whole, without listing it: the phone's own file dates are not always
+    # given, and reading every old month of a full phone takes most of an hour.
+    if ($cutoff -and $sub.Name -match '^(\d{4})(\d{2})_') {
+      $fy = [int]$Matches[1]; $fm = [int]$Matches[2]
+      if ($fy -gt 1980 -and $fm -ge 1 -and $fm -le 12 -and (New-Object DateTime $fy, $fm, 1).AddMonths(1) -le $cutoff) { $olderFolders += 1; continue }
+    }
     # A phone's folders do not always say IsFolder; one that opens is one.
     $subFolder = $sub.GetFolder
     if (-not $subFolder) { continue }
@@ -202,7 +210,7 @@ try {
   }
   $todo = 0; $todoBytes = [int64]0
   foreach ($x in $files) { if (-not (Have $x)) { $todo += 1; $todoBytes += $x.size } }
-  Say @{ type = 'found'; device = $device; total = $files.Count; bytes = $bytes; older = $older; held = $held; todo = $todo; todoBytes = $todoBytes }
+  Say @{ type = 'found'; device = $device; total = $files.Count; bytes = $bytes; older = $older; olderFolders = $olderFolders; held = $held; todo = $todo; todoBytes = $todoBytes }
   if ($env:DS_PREVIEW -eq '1') { Say @{ type = 'previewed' }; exit 0 }
 
   $incoming = Join-Path $dest '.datesort-incoming'
@@ -334,6 +342,8 @@ export type IphoneLine =
       readonly bytes: number;
       /** Left out because the phone dates them older than the chosen days. */
       readonly older?: number;
+      /** Whole month folders skipped because the month ended before the chosen days. */
+      readonly olderFolders?: number;
       /** Left out because of the size choice (the other half, for another time). */
       readonly held?: number;
       /** Not in the folder yet, and how big they are together. */
