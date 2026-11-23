@@ -93,8 +93,11 @@ describe("bringing in the iPhone's photos and videos", () => {
     const c = await press({ folder: "D:\\P", kind: "photos", days: "30; rm -rf" });
     await open("photos");
     await lines(c);
-    expect(calls.map((x) => x.days)).toEqual([30, null, null]);
-    expect(calls.every((x) => x.kind === "photos")).toBe(true);
+    const d = await press({ folder: "D:\\V", kind: "videos", days: 7 });
+    await open("videos");
+    await lines(d);
+    expect(calls.map((x) => x.days)).toEqual([30, null, null, 7]);
+    expect(calls.slice(0, 3).every((x) => x.kind === "photos")).toBe(true);
   });
 
   it("passes the size choice and the check-only request, and ignores nonsense", async () => {

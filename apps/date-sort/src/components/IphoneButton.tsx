@@ -111,6 +111,7 @@ const SIZES: ReadonlyArray<{ readonly value: SizeChoice; readonly label: string 
 
 const RANGES: ReadonlyArray<{ readonly days: number | null; readonly label: string }> =
   [
+    { days: 7, label: "from the last 7 days" },
     { days: 30, label: "from the last 30 days" },
     { days: 90, label: "from the last 90 days" },
     { days: 365, label: "from the last year" },
