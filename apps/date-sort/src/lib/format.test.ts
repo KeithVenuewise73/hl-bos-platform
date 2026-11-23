@@ -1,6 +1,14 @@
 import { describe, expect, it } from "vitest";
 
-import { clockTime, count, dateAndTime, longDate, number } from "./format";
+import {
+  clockTime,
+  count,
+  dateAndTime,
+  longDate,
+  mediaCount,
+  mediaNoun,
+  number,
+} from "./format";
 
 describe("dates on screen", () => {
   it("reads the camera's wall clock without any time-zone shift", () => {
@@ -48,5 +56,23 @@ describe("number", () => {
     for (let i = 0; i < 1000; i += 1) number(i);
     expect(number(1487)).toBe(first);
     expect(number(1487)).toBe("1,487");
+  });
+});
+
+describe("saying photos for photos and videos for videos", () => {
+  it("reads as before when there are only photos", () => {
+    expect(mediaCount(12, 0)).toBe("12 photos");
+    expect(mediaCount(1, 0)).toBe("1 photo");
+    expect(mediaCount(0, 0)).toBe("0 photos");
+  });
+  it("says videos when there are only videos", () => {
+    expect(mediaCount(0, 777)).toBe("777 videos");
+    expect(mediaCount(0, 1)).toBe("1 video");
+  });
+  it("names both when mixed", () => {
+    expect(mediaCount(12, 3)).toBe("12 photos · 3 videos");
+    expect(mediaNoun(12, 3)).toBe("file");
+    expect(mediaNoun(0, 3)).toBe("video");
+    expect(mediaNoun(5, 0)).toBe("photo");
   });
 });

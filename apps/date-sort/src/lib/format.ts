@@ -70,6 +70,22 @@ export function number(n: number): string {
   return NUMBER.format(n);
 }
 
+/**
+ * "12 photos", "3 videos" or "12 photos · 3 videos": a count that says what it counts.
+ * Nothing but photos reads exactly as before.
+ */
+export function mediaCount(stills: number, videos: number): string {
+  if (videos === 0) return count(stills, "photo");
+  if (stills === 0) return count(videos, "video");
+  return `${count(stills, "photo")} · ${count(videos, "video")}`;
+}
+
+/** The word for a total that mixes both: "photo", "video", or "file" when it is both. */
+export function mediaNoun(stills: number, videos: number): "photo" | "video" | "file" {
+  if (videos === 0) return "photo";
+  return stills === 0 ? "video" : "file";
+}
+
 export function count(n: number, one: string, many = `${one}s`): string {
   return `${number(n)} ${n === 1 ? one : many}`;
 }

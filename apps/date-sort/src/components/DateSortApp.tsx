@@ -34,7 +34,14 @@ import {
   useSport,
   type SportState,
 } from "@/components/SportPanel.tsx";
-import { clockTime, count, dateAndTime, longDate, number } from "@/lib/format.ts";
+import {
+  clockTime,
+  count,
+  dateAndTime,
+  longDate,
+  mediaCount,
+  number,
+} from "@/lib/format.ts";
 import type { ScanMessage, ScanView } from "@/lib/scan-view.ts";
 
 type Progress = { phase: "listing" | "reading"; found: number; read: number };
@@ -364,7 +371,7 @@ function Report({ view: scanned }: { view: ScanView }) {
           className={`grid grid-cols-2 gap-2 sm:grid-cols-4 ${videos > 0 ? "lg:grid-cols-5" : "lg:grid-cols-8"}`}
         >
           <Stat id="total" label="Files scanned" value={r.totalFiles} />
-          <Stat id="photos" label="Photos" value={r.photos} />
+          <Stat id="photos" label="Photos" value={r.photos - videos} />
           <Stat id="jpeg" label="JPG / JPEG" value={r.byFormat.jpeg} />
           <Stat id="png" label="PNG" value={r.byFormat.png} />
           <Stat id="heic" label="HEIC" value={r.byFormat.heic} />
@@ -604,7 +611,10 @@ function DateCard({
     <article className="card space-y-3 p-5" data-testid="date-card" data-day={day.day}>
       <h3 className="display text-base text-brand">{longDate(day.day)}</h3>
       <p className="text-2xl font-semibold" data-col="photos">
-        {count(day.photos, "photo")}
+        {mediaCount(
+          day.photos - day.byFormat.mov - day.byFormat.mp4,
+          day.byFormat.mov + day.byFormat.mp4,
+        )}
       </p>
       <dl
         className={`grid ${formats.length > 5 ? "grid-cols-7" : "grid-cols-5"} gap-1 text-center`}
@@ -654,7 +664,12 @@ function DateCard({
         </span>
       </p>
       <CardSport day={day.day} sport={sport} copy={copy} />
-      <CardCopy day={day.day} copy={copy} />
+      <CardCopy
+        day={day.day}
+        copy={copy}
+        stills={day.photos - day.byFormat.mov - day.byFormat.mp4}
+        videos={day.byFormat.mov + day.byFormat.mp4}
+      />
       <CardJersey day={day.day} copy={copy} />
       <CardReview
         day={day.day}
