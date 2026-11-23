@@ -5,7 +5,7 @@ import { useEffect, useRef, useState } from "react";
 import { folderName } from "@hl-bos/date-sort";
 
 import { copyHealth } from "@/lib/copy-watch.ts";
-import { count, longDate, number } from "@/lib/format.ts";
+import { count, longDate, mediaCount, mediaNoun, number } from "@/lib/format.ts";
 import type { CopyMessage, DayCopyView, ScanView } from "@/lib/scan-view.ts";
 
 type Progress = Extract<CopyMessage, { type: "progress" }>;
@@ -221,7 +221,10 @@ export type CopyState = ReturnType<typeof useCopy>;
 /** The panel above the date cards: destination, Copy all, progress. */
 export function CopyPanel({ view, copy }: { view: ScanView; copy: CopyState }) {
   const days = view.report.days;
-  const photos = days.reduce((n, d) => n + d.photos, 0);
+  const total = days.reduce((n, d) => n + d.photos, 0);
+  const videos = days.reduce((n, d) => n + d.byFormat.mov + d.byFormat.mp4, 0);
+  const stills = total - videos;
+  const noun = mediaNoun(stills, videos);
   const busy = copy.running !== null;
   return (
     <section className="card space-y-4 p-5" data-testid="copy-panel">
@@ -301,7 +304,7 @@ export function CopyPanel({ view, copy }: { view: ScanView; copy: CopyState }) {
       {copy.note !== null ? <p className="text-sm text-estimate">{copy.note}</p> : null}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <p className="text-sm text-muted">
-          {count(days.length, "date")} · {count(photos, "photo")}
+          {count(days.length, "date")} · {mediaCount(stills, videos)}
         </p>
         {busy ? (
           <button
@@ -323,7 +326,7 @@ export function CopyPanel({ view, copy }: { view: ScanView; copy: CopyState }) {
                 void copy.run([]); // shows the "no folder chosen" message
               } else if (
                 window.confirm(
-                  `Copy ${count(photos, "photo")} into ${count(days.length, "dated folder")} in\n${copy.destination}?\n\nYour originals are not moved or changed.`,
+                  `Copy ${mediaCount(stills, videos)} into ${count(days.length, "dated folder")} in\n${copy.destination}?\n\nYour originals are not moved or changed.`,
                 )
               ) {
                 void copy.run(days.map((d) => d.day));
@@ -341,7 +344,7 @@ export function CopyPanel({ view, copy }: { view: ScanView; copy: CopyState }) {
             <span className="font-mono">
               {copy.progress.folder.split(/[\\/]/).pop()}
             </span>
-            … {number(copy.progress.done)} of {count(copy.progress.total, "photo")} ·{" "}
+            … {number(copy.progress.done)} of {count(copy.progress.total, noun)} ·{" "}
             {gb(copy.progress.bytesCopied)} copied
             {copy.progress.alreadyThere > 0
               ? ` · ${number(copy.progress.alreadyThere)} already there, skipped`
@@ -379,13 +382,19 @@ export function CopyPanel({ view, copy }: { view: ScanView; copy: CopyState }) {
         </p>
       ) : null}
       {Object.keys(copy.results).length > 0 && !busy ? (
-        <CopySummary results={copy.results} />
+        <CopySummary results={copy.results} noun={noun} />
       ) : null}
     </section>
   );
 }
 
-function CopySummary({ results }: { results: Record<string, DayCopyView> }) {
+function CopySummary({
+  results,
+  noun,
+}: {
+  results: Record<string, DayCopyView>;
+  noun: "photo" | "video" | "file";
+}) {
   const all = Object.values(results);
   const sum = (k: "copied" | "alreadyThere") => all.reduce((n, r) => n + r[k], 0);
   const conflicts = all.flatMap((r) =>
@@ -400,7 +409,7 @@ function CopySummary({ results }: { results: Record<string, DayCopyView> }) {
       data-testid="copy-summary"
     >
       <p>
-        <span data-testid="sum-copied">{count(sum("copied"), "photo")} copied</span> ·{" "}
+        <span data-testid="sum-copied">{count(sum("copied"), noun)} copied</span> ·{" "}
         <span data-testid="sum-already">
           {number(sum("alreadyThere"))} already there
         </span>{" "}
@@ -444,7 +453,17 @@ function CopySummary({ results }: { results: Record<string, DayCopyView> }) {
 }
 
 /** The Create Folder part of one date card. */
-export function CardCopy({ day, copy }: { day: string; copy: CopyState }) {
+export function CardCopy({
+  day,
+  copy,
+  stills = 1,
+  videos = 0,
+}: {
+  day: string;
+  copy: CopyState;
+  stills?: number;
+  videos?: number;
+}) {
   const name = copy.names[day] ?? "";
   const result = copy.results[day];
   const busy = copy.running !== null;
@@ -484,7 +503,7 @@ export function CardCopy({ day, copy }: { day: string; copy: CopyState }) {
           ? "Copying…"
           : result
             ? "Copy again (finishes anything missing)"
-            : "Create folder & copy photos"}
+            : `Create folder & copy ${videos === 0 ? "photos" : stills === 0 ? "videos" : "photos & videos"}`}
       </button>
       {result ? (
         <p className="text-xs" data-testid="card-result">
