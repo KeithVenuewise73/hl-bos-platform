@@ -43,6 +43,30 @@ const MIME = {
   ".svg": "image/svg+xml",
   ".json": "application/json",
 };
+// A tiny real MP4 for the "clip" requests (the browser test only needs a file that is one).
+let CLIP_MP4 = null;
+try {
+  const out = path.join(os.tmpdir(), `clip-test-${process.pid}.mp4`);
+  execFileSync(
+    "ffmpeg",
+    [
+      "-y",
+      "-f",
+      "lavfi",
+      "-i",
+      "testsrc=size=320x240:rate=10:duration=2",
+      "-pix_fmt",
+      "yuv420p",
+      "-movflags",
+      "+faststart",
+      out,
+    ],
+    { stdio: "ignore" },
+  );
+  CLIP_MP4 = fs.readFileSync(out);
+} catch {
+  // no ffmpeg here: the clip checks are skipped, and say so
+}
 const palette = ["#1f4f8f", "#2c7a4b", "#8f3b1f", "#6a3d8f", "#8f7a1f", "#1f7a8f"];
 const siteServer = http.createServer(async (req, res) => {
   const u = new URL(req.url, "http://x");
@@ -52,6 +76,16 @@ const siteServer = http.createServer(async (req, res) => {
     return;
   }
   if (u.pathname.startsWith("/img/")) {
+    if (/-video\.mp4$/.test(u.pathname) && CLIP_MP4 !== null) {
+      res
+        .writeHead(200, {
+          "content-type": "video/mp4",
+          "content-length": CLIP_MP4.length,
+          "access-control-allow-origin": "*",
+        })
+        .end(CLIP_MP4);
+      return;
+    }
     const hash = /([0-9a-f]{64})-(web|thumb)/.exec(u.pathname);
     const colour = palette[hash ? parseInt(hash[1][0], 16) % palette.length : 0];
     const size = hash && hash[2] === "web" ? [1200, 800] : [320, 240];
@@ -846,6 +880,162 @@ async function api(route, body, headers) {
         .evaluate((e) => e.getBoundingClientRect().height)) > 60,
     );
     await slow.context().close();
+
+    console.log("\nA game with short clips beside its photos");
+    if (CLIP_MP4 === null) {
+      console.log("  SKIPPED  no ffmpeg on this computer to make a test clip");
+    } else {
+      const OWN = { authorization: "Bearer owner-token" };
+      const hashesC = ["photoA", "photoB", "clipC"].map((n) => sha(`clip-game-${n}`));
+      const batchC = await api(
+        "/review/batch",
+        {
+          label: { name: "Clip game", sport: "Football", date: "2026-11-07" },
+          folder: "clips",
+          counts: { photos: 2, videos: 1 },
+          hashes: hashesC,
+        },
+        pub,
+      );
+      await api(
+        "/review/uploads",
+        {
+          batch_id: batchC.json.batch_id,
+          files: [
+            { hash: hashesC[0], kind: "web" },
+            { hash: hashesC[0], kind: "thumb" },
+            { hash: hashesC[1], kind: "web" },
+            { hash: hashesC[1], kind: "thumb" },
+            { hash: hashesC[2], kind: "web" },
+            { hash: hashesC[2], kind: "thumb" },
+            { hash: hashesC[2], kind: "video" },
+          ],
+        },
+        pub,
+      );
+      const commitC = await api(
+        "/review/commit",
+        {
+          batch_id: batchC.json.batch_id,
+          photos: [
+            {
+              hash: hashesC[0],
+              filename: "IMG_1.JPG",
+              taken_at: "2026-11-07T12:00:00",
+              width: 2400,
+              height: 1600,
+              flags: [],
+              web_bytes: 1000,
+            },
+            {
+              hash: hashesC[1],
+              filename: "IMG_2.JPG",
+              taken_at: "2026-11-07T12:02:00",
+              width: 2400,
+              height: 1600,
+              flags: [],
+              web_bytes: 1000,
+            },
+            {
+              hash: hashesC[2],
+              kind: "video",
+              filename: "C0001.MOV",
+              taken_at: "2026-11-07T12:01:00",
+              width: 1920,
+              height: 1080,
+              flags: [],
+              web_bytes: 1000,
+              video_bytes: CLIP_MP4.length,
+              duration: 14.2,
+            },
+          ],
+        },
+        pub,
+      );
+      const team = await api("/owner/create-team", { name: "Clip Team" }, OWN);
+      const folderC = (
+        await db.query("select id from review.folders where name = 'Clip game'")
+      ).rows[0].id;
+      await api("/owner/set-team", { folder: folderC, team: team.json.team }, OWN);
+      const idsC = (
+        await db.query("select id from review.photos where folder_id = $1", [folderC])
+      ).rows.map((r) => r.id);
+      await api("/owner/decide", { ids: idsC, status: "approved" }, OWN);
+      await api("/owner/sync", {}, OWN);
+      check(
+        "two photos and a clip are sent and approved",
+        commitC.json.added === 3,
+        commitC.json,
+      );
+
+      await v.goto(base + "/team.html?team=clip-team");
+      await v.waitForSelector("[data-testid=game-link]");
+      await v.locator("[data-testid=game-link]").first().click();
+      await v.waitForSelector("[data-testid=album]");
+      check(
+        "the game says how many photos and how many clips it holds",
+        /2 photos · 1 clip/.test(await v.locator(".tp-meta").first().innerText()),
+        await v.locator(".tp-meta").first().innerText(),
+      );
+      check(
+        "the clip's tile has a play badge with its length",
+        (await v.locator("[data-testid=clip-badge]").count()) === 1 &&
+          /▶ 0:14/.test(await v.locator("[data-testid=clip-badge]").innerText()),
+      );
+      check(
+        "its Download saves an .mp4 named for the team and game",
+        /Clip-Team_Clip-game_C0001\.mp4/.test(
+          await v
+            .locator(
+              ".tp-cell:has([data-testid=clip-badge]) [data-testid=tile-download]",
+            )
+            .getAttribute("download"),
+        ),
+        await v
+          .locator(".tp-cell:has([data-testid=clip-badge]) [data-testid=tile-download]")
+          .getAttribute("download"),
+      );
+      await v.locator(".tp-tile:has([data-testid=clip-badge])").click();
+      await v.waitForSelector(".tp-lb:not([hidden])");
+      const vsrc =
+        (await v.locator("[data-testid=viewer-video]").getAttribute("src")) ?? "";
+      check(
+        "opening the clip shows a video player (not the picture) pointed at the public .mp4, with its poster",
+        !(await v.locator("[data-testid=viewer-video]").evaluate((e) => e.hidden)) &&
+          (await v.locator("img.tp-big").evaluate((e) => e.hidden)) &&
+          /-video\.mp4/.test(vsrc) &&
+          /-web\.jpg/.test(
+            await v.locator("[data-testid=viewer-video]").evaluate((e) => e.poster),
+          ) &&
+          (await v.locator("[data-testid=viewer-video]").evaluate((e) => e.controls)),
+        vsrc,
+      );
+      check(
+        "the caption says it is a clip and how long, and Download Large is not offered for it",
+        /Clip 0:14/.test(await v.locator(".tp-cap").innerText()) &&
+          (await v
+            .locator("[data-testid=viewer-download-large]")
+            .evaluate((e) => e.hidden)) &&
+          /\.mp4/.test(
+            (await v
+              .locator("[data-testid=viewer-download]")
+              .getAttribute("download")) ?? "",
+          ),
+        await v.locator(".tp-cap").innerText(),
+      );
+      await v.keyboard.press("ArrowRight");
+      check(
+        "moving to a photo swaps the player for the picture",
+        (await v.locator("[data-testid=viewer-video]").evaluate((e) => e.hidden)) &&
+          !(await v.locator("img.tp-big").evaluate((e) => e.hidden)),
+      );
+      await v.keyboard.press("ArrowLeft");
+      await v.keyboard.press("Escape");
+      check(
+        "closing the viewer stops the clip (no sound keeps playing)",
+        (await v.locator("[data-testid=viewer-video]").getAttribute("src")) === null,
+      );
+    }
 
     console.log("\nIf the service is unreachable");
     const down = await context();
