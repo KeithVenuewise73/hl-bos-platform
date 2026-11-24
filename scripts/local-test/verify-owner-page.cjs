@@ -688,7 +688,12 @@ async function api(route, body, headers) {
     await cleanDb.end();
 
     console.log("\nTicking a whole folder (a combined day of 1,100 photos)");
-    const bigDb = new pg.Client({ host: "/tmp", port: 5433, user: "postgres", database: "hlbos" });
+    const bigDb = new pg.Client({
+      host: "/tmp",
+      port: 5433,
+      user: "postgres",
+      database: "hlbos",
+    });
     await bigDb.connect();
     const bigBatch = (
       await bigDb.query(
@@ -723,7 +728,10 @@ async function api(route, body, headers) {
     );
     await page.click("[data-testid=tick-folder]");
     await page.waitForFunction(
-      () => /^1,100 ticked$/.test(document.querySelector("[data-testid=tick-count]")?.textContent || ""),
+      () =>
+        /^1,100 ticked$/.test(
+          document.querySelector("[data-testid=tick-count]")?.textContent || "",
+        ),
       null,
       { timeout: 120000 },
     );
@@ -731,7 +739,9 @@ async function api(route, body, headers) {
     await page.locator("summary:has-text('Wrong folder?')").click();
     await page.selectOption("#moveTo", { label: "2026-09-02 · Move target (test)" });
     await page.click("button.pr-btn:text-is('Move')");
-    await page.waitForSelector("#toast:has-text('Moved 1,100 photos')", { timeout: 120000 });
+    await page.waitForSelector("#toast:has-text('Moved 1,100 photos')", {
+      timeout: 120000,
+    });
     const moved = (
       await bigDb.query(
         `select count(*) filter (where f.name = 'Move target (test)')::int as there,
