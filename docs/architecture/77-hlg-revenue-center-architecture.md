@@ -209,7 +209,7 @@ per-seat charge on the existing plan; future staff are simply invited.
 | ------------------------------------------------- | -------------------------------------------------------------------------------- |
 | `src/import-v1.ts`                                | The contract (zod). Source of truth                                              |
 | `schemas/prospect-import.v1.schema.json`          | JSON Schema 2020-12, generated; a test asserts it matches the source             |
-| `templates/prospect-import.v1.template.csv`       | The CSV ChatGPT fills in: 52 columns, header + one clearly synthetic example row |
+| `templates/prospect-import.v1.template.csv`       | The CSV ChatGPT fills in: 50 columns, header + one clearly synthetic example row |
 | `src/csv.ts`                                      | RFC 4180 parser, CSV → report converter, row-and-column error messages           |
 | `fixtures/synthetic/weekly-report.synthetic.json` | 3 invented prospects; all refs `SYNTH-…`, all domains reserved `example.*`       |
 

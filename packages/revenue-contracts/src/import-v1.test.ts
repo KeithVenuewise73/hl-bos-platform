@@ -24,7 +24,11 @@ describe("committed artefacts are generated from the zod source", () => {
     expect(JSON.parse(rd("schemas/prospect-import.v1.schema.json"))).toEqual(gen);
   });
   it("CSV template file is current", () => {
-    expect(rd("templates/prospect-import.v1.template.csv")).toBe(templateCsv());
+    // git may normalise line endings on checkout; the content is what matters
+    const eol = (x: string) => x.replace(/\r\n/g, "\n");
+    expect(eol(rd("templates/prospect-import.v1.template.csv"))).toBe(
+      eol(templateCsv()),
+    );
   });
 });
 
