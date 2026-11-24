@@ -755,6 +755,69 @@ async function api(route, body, headers) {
       moved.there === 1100 && moved.left_behind === 0,
       moved,
     );
+    console.log("\nMoving ticked photos by hand, from page 5 of a 300-photo folder");
+    const manBatch = (
+      await bigDb.query(
+        "select batch_id from review.create_batch('Manual move (test)', 'Football', '2026-09-03', 'test', 300, 0, '{}'::text[])",
+      )
+    ).rows[0].batch_id;
+    await bigDb.query(
+      `insert into review.photos (batch_id, folder_id, file_hash, filename, taken_at, width, height, web_bytes, web_path, thumb_path)
+       select b.id, b.folder_id, h.h, 'IMG_M' || lpad(i::text, 4, '0') || '.JPG',
+              timestamp '2026-09-03 10:00:00' + (i || ' seconds')::interval, 1200, 800, 1000,
+              b.id::text || '/' || h.h || '-web.jpg', b.id::text || '/' || h.h || '-thumb.jpg'
+         from review.batches b, generate_series(1, 300) i,
+              lateral (select md5('m' || i::text) || md5('n' || (i * 7)::text) as h) h
+        where b.id = $1`,
+      [manBatch],
+    );
+    await page.click("button.pr-tab:has-text('Folders')");
+    await page.waitForSelector("text=Manual move (test)");
+    await page
+      .locator(`.pr-card:has(h2:text-is("Manual move (test)"))`)
+      .locator("button.pr-btn.gold")
+      .click();
+    await page.waitForSelector(".pr-tile");
+    for (let i = 0; i < 4; i++) {
+      await page.click("button:has-text('Next')");
+      await page.waitForFunction(
+        (n) =>
+          new RegExp("Page " + n + " of 5").test(
+            document.getElementById("app").innerText,
+          ),
+        i + 2,
+      );
+    }
+    const tiles = page.locator(".pr-tile");
+    for (let i = 24; i < 60; i++) await tiles.nth(i).click();
+    check(
+      "36 photos ticked by hand on page 5 show as 36 ticked",
+      /^36 ticked$/.test(await page.locator("[data-testid=tick-count]").innerText()),
+    );
+    await page.locator("summary:has-text('Wrong folder?')").click();
+    await page.selectOption("#moveTo", { label: "2026-09-02 · Move target (test)" });
+    await page.click("button.pr-btn:text-is('Move')");
+    await page.waitForSelector("#toast:has-text('Moved 36 photos')", {
+      timeout: 60000,
+    });
+    const manual = (
+      await bigDb.query(
+        `select count(*) filter (where f.name = 'Move target (test)' and p.filename like 'IMG_M%')::int as there,
+                count(*) filter (where f.name = 'Manual move (test)')::int as left_behind
+           from review.photos p join review.folders f on f.id = p.folder_id`,
+      )
+    ).rows[0];
+    check(
+      "pressing Move moves exactly the 36 ticked photos",
+      manual.there === 36 && manual.left_behind === 264,
+      manual,
+    );
+    await bigDb.query(
+      "delete from review.photos where folder_id in (select id from review.folders where name = 'Manual move (test)')",
+    );
+    await bigDb.query("delete from review.batches where id = $1", [manBatch]);
+    await bigDb.query("delete from review.folders where name = 'Manual move (test)'");
+
     await bigDb.query(
       "delete from review.photos where folder_id in (select id from review.folders where name in ('Move target (test)','Combined day (test)'))",
     );
