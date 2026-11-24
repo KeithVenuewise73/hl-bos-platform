@@ -1,0 +1,187 @@
+{
+  "schema": "hlg.prospect-import",
+  "schema_version": "1.0.0",
+  "report": {
+    "report_id": "SYNTH-2026-W01",
+    "workspace_slug": "venuewise-hockey",
+    "task_name": "Hockey Intelligence Prospecting",
+    "generated_by": "synthetic-fixture",
+    "generated_at": "2026-01-05T08:00:00-05:00",
+    "is_synthetic": true,
+    "notes": "SYNTHETIC DEVELOPMENT FIXTURE. Every organization, person, URL and number below is invented. Never import into a real workspace."
+  },
+  "prospects": [
+    {
+      "external_ref": "SYNTH-001",
+      "organization_name": "Synthetic Lakeshore Youth Hockey Association",
+      "organization_type": "association",
+      "official_website": "https://synthetic-lakeshore.example.com",
+      "location": { "city": "Exampleville", "state_province": "NY", "country": "US" },
+      "team_count": 14,
+      "scoresheet_provider": {
+        "value": "Paper scoresheets",
+        "status": "verified",
+        "source_urls": ["https://synthetic-lakeshore.example.com/rules"]
+      },
+      "registration_provider": {
+        "value": null,
+        "status": "unknown",
+        "source_urls": []
+      },
+      "analytics_capabilities": {
+        "value": "Standings only",
+        "status": "inferred",
+        "source_urls": []
+      },
+      "decision_makers": [
+        {
+          "name": "Pat Example",
+          "title": "Registrar",
+          "source_urls": ["https://synthetic-lakeshore.example.com/board"],
+          "email": null,
+          "phone": null
+        }
+      ],
+      "business_contact": {
+        "email": null,
+        "phone": null,
+        "address": null,
+        "source_urls": []
+      },
+      "operational_needs": [
+        {
+          "need": "Consolidate game scheduling",
+          "status": "verified",
+          "source_urls": ["https://synthetic-lakeshore.example.com/schedule"]
+        },
+        {
+          "need": "Player development reporting",
+          "status": "assumption",
+          "source_urls": []
+        }
+      ],
+      "verified_facts": [
+        {
+          "statement": "Lists 14 teams across 4 age groups",
+          "source_urls": ["https://synthetic-lakeshore.example.com/teams"]
+        }
+      ],
+      "inferences_and_assumptions": [
+        {
+          "statement": "Volunteer-run; likely limited IT staff",
+          "basis": "Board page lists only volunteer roles"
+        }
+      ],
+      "recommended_modules": ["Standings", "Scheduling"],
+      "integration_recommendation": "integrate",
+      "priority": "high",
+      "estimated_annual_contract_value": {
+        "amount": 2800,
+        "currency": "USD",
+        "pricing_assumptions": "14 teams x $200/team/year. Assumption, not a quote."
+      },
+      "recommended_next_action": "Confirm registration provider from public pages",
+      "research_date": "2026-01-04",
+      "source_urls": ["https://synthetic-lakeshore.example.com"]
+    },
+    {
+      "external_ref": "SYNTH-002",
+      "organization_name": "Synthetic Northern Prairie Hockey League",
+      "organization_type": "league",
+      "official_website": "https://synthetic-prairie.example.org",
+      "location": { "city": "Sampleton", "state_province": "ON", "country": "CA" },
+      "team_count": null,
+      "scoresheet_provider": {
+        "value": "Third-party app (name not published)",
+        "status": "inferred",
+        "source_urls": []
+      },
+      "registration_provider": {
+        "value": "Third-party registration platform",
+        "status": "verified",
+        "source_urls": ["https://synthetic-prairie.example.org/register"]
+      },
+      "analytics_capabilities": {
+        "value": null,
+        "status": "unknown",
+        "source_urls": []
+      },
+      "decision_makers": [],
+      "business_contact": {
+        "email": "info@synthetic-prairie.example.org",
+        "phone": null,
+        "address": null,
+        "source_urls": ["https://synthetic-prairie.example.org/contact"]
+      },
+      "operational_needs": [],
+      "verified_facts": [],
+      "inferences_and_assumptions": [
+        { "statement": "Team count not published; size unknown", "basis": null }
+      ],
+      "recommended_modules": ["Analytics"],
+      "integration_recommendation": "undetermined",
+      "priority": "low",
+      "estimated_annual_contract_value": {
+        "amount": null,
+        "currency": "CAD",
+        "pricing_assumptions": null
+      },
+      "recommended_next_action": "Find a public decision-maker before any outreach",
+      "research_date": "2026-01-04",
+      "source_urls": []
+    },
+    {
+      "external_ref": "SYNTH-003",
+      "organization_name": "Synthetic Riverside Ice Arena",
+      "organization_type": "facility",
+      "official_website": "https://synthetic-riverside.example.net",
+      "location": { "city": "Mockford", "state_province": "MA", "country": "US" },
+      "team_count": 6,
+      "scoresheet_provider": { "value": null, "status": "unknown", "source_urls": [] },
+      "registration_provider": {
+        "value": null,
+        "status": "unknown",
+        "source_urls": []
+      },
+      "analytics_capabilities": {
+        "value": null,
+        "status": "unknown",
+        "source_urls": []
+      },
+      "decision_makers": [
+        {
+          "name": "Sam Sample",
+          "title": "Facility Director",
+          "source_urls": ["https://synthetic-riverside.example.net/staff"],
+          "email": null,
+          "phone": "555-0100"
+        }
+      ],
+      "business_contact": {
+        "email": null,
+        "phone": "555-0100",
+        "address": null,
+        "source_urls": ["https://synthetic-riverside.example.net/staff"]
+      },
+      "operational_needs": [],
+      "verified_facts": [
+        {
+          "statement": "Hosts 6 resident teams",
+          "source_urls": ["https://synthetic-riverside.example.net/teams"]
+        }
+      ],
+      "inferences_and_assumptions": [],
+      "recommended_modules": ["Scheduling"],
+      "integration_recommendation": "coexist",
+      "priority": "medium",
+      "estimated_annual_contract_value": {
+        "amount": 1200,
+        "currency": "USD",
+        "pricing_assumptions": "6 teams x $200. Assumption."
+      },
+      "recommended_next_action": "Review public ice schedule for tooling clues",
+      "research_date": "2026-01-04",
+      "source_urls": []
+    }
+  ]
+}

@@ -1,5 +1,7 @@
 # 76 — Venuewise Hockey Intelligence Revenue Center: Architecture for Approval
 
+> **SUPERSEDED by [doc 77](77-hlg-revenue-center-architecture.md) (2026-11-24).** Kept for history; it was hockey-specific.
+
 **Owner:** Keith Herman, CEO & Product Owner · **Author:** Claude (engineering) ·
 **Date:** 2026-11-24 · **Status:** Architecture for approval. **Nothing is built, applied or deployed.**
 
