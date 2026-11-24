@@ -686,6 +686,83 @@ async function api(route, body, headers) {
       { afterDelete, approvedBefore },
     );
     await cleanDb.end();
+
+    console.log("\nTicking a whole folder (a combined day of 1,100 photos)");
+    const bigDb = new pg.Client({
+      host: "/tmp",
+      port: 5433,
+      user: "postgres",
+      database: "hlbos",
+    });
+    await bigDb.connect();
+    const bigBatch = (
+      await bigDb.query(
+        "select batch_id from review.create_batch('Combined day (test)', 'Hockey', '2026-09-01', 'test', 1100, 0, '{}'::text[])",
+      )
+    ).rows[0].batch_id;
+    await bigDb.query(
+      `insert into review.photos (batch_id, folder_id, file_hash, filename, taken_at, width, height, web_bytes, web_path, thumb_path)
+       select b.id, b.folder_id, h.h, 'IMG_' || lpad(i::text, 5, '0') || '.JPG',
+              timestamp '2026-09-01 10:00:00' + (i || ' seconds')::interval, 1200, 800, 1000,
+              b.id::text || '/' || h.h || '-web.jpg', b.id::text || '/' || h.h || '-thumb.jpg'
+         from review.batches b, generate_series(1, 1100) i,
+              lateral (select md5(i::text) || md5((i * 7)::text) as h) h
+        where b.id = $1`,
+      [bigBatch],
+    );
+    await bigDb.query(
+      "insert into review.folders (name, event_date) values ('Move target (test)', '2026-09-02')",
+    );
+    await page.click("button.pr-tab:has-text('Folders')");
+    await page.waitForSelector("text=Combined day (test)");
+    await page
+      .locator(`.pr-card:has(h2:text-is("Combined day (test)"))`)
+      .locator("button.pr-btn.gold")
+      .click();
+    await page.waitForSelector("[data-testid=tick-folder]");
+    check(
+      "a folder of more than one page offers to tick all 1,100 in the folder",
+      /Tick all 1,100 waiting in this folder/.test(
+        await page.locator("[data-testid=tick-folder]").innerText(),
+      ),
+    );
+    await page.click("[data-testid=tick-folder]");
+    await page.waitForFunction(
+      () =>
+        /^1,100 ticked$/.test(
+          document.querySelector("[data-testid=tick-count]")?.textContent || "",
+        ),
+      null,
+      { timeout: 120000 },
+    );
+    check("ticking the folder ticks all 1,100 (not only the 60 on the page)", true);
+    await page.locator("summary:has-text('Wrong folder?')").click();
+    await page.selectOption("#moveTo", { label: "2026-09-02 · Move target (test)" });
+    await page.click("button.pr-btn:text-is('Move')");
+    await page.waitForSelector("#toast:has-text('Moved 1,100 photos')", {
+      timeout: 120000,
+    });
+    const moved = (
+      await bigDb.query(
+        `select count(*) filter (where f.name = 'Move target (test)')::int as there,
+                count(*) filter (where f.name = 'Combined day (test)')::int as left_behind
+           from review.photos p join review.folders f on f.id = p.folder_id
+          where f.name in ('Move target (test)', 'Combined day (test)')`,
+      )
+    ).rows[0];
+    check(
+      "moving 1,100 ticked photos (more than one action allows) moves every one, in pieces",
+      moved.there === 1100 && moved.left_behind === 0,
+      moved,
+    );
+    await bigDb.query(
+      "delete from review.photos where folder_id in (select id from review.folders where name in ('Move target (test)','Combined day (test)'))",
+    );
+    await bigDb.query("delete from review.batches where id = $1", [bigBatch]);
+    await bigDb.query(
+      "delete from review.folders where name in ('Move target (test)','Combined day (test)')",
+    );
+    await bigDb.end();
     await page.click("button.pr-tab:has-text('Folders')");
 
     console.log("\nTeams");
