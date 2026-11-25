@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  sortSentence,
   ALL_CHOICES,
   checkSentence,
   defaultBaseFolder,
@@ -154,5 +155,23 @@ describe("where to suggest keeping everything", () => {
     expect(defaultBaseFolder(null, ok)).toBeNull();
     expect(defaultBaseFolder("", ok)).toBeNull();
     expect(defaultBaseFolder("C:\\Pictures", () => "C: fills up")).toBeNull();
+  });
+});
+
+describe("sorting by length, in words", () => {
+  const none = { looked: 40, long: 0, moved: 0, conflicts: 0, unreadable: 0 };
+  it("says when everything is a short clip", () => {
+    expect(sortSentence(none, true)).toMatch(/all are short clips/);
+  });
+  it("says what moved, and that they are game recordings", () => {
+    const text = sortSentence({ ...none, long: 11, moved: 11 }, true);
+    expect(text).toMatch(/11 of 11 videos are longer than 3 minutes/);
+    expect(text).toMatch(/moved from Short Clips to Game Footage/);
+  });
+  it("says what would move when only checking, and mentions what was left alone", () => {
+    expect(sortSentence({ ...none, long: 2 }, false)).toMatch(/would move/);
+    expect(
+      sortSentence({ ...none, long: 2, moved: 1, conflicts: 1, unreadable: 1 }, true),
+    ).toMatch(/left in place because Game Footage already has[\s\S]*could not be read/);
   });
 });

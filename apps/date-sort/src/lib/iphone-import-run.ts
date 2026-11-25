@@ -230,3 +230,64 @@ export async function listDates(
     );
   }
 }
+
+/** What sorting the Short Clips folder by length found. */
+export interface SortReport {
+  readonly looked: number;
+  /** Videos longer than a short clip (game recordings). */
+  readonly long: number;
+  readonly moved: number;
+  readonly conflicts: number;
+  readonly unreadable: number;
+}
+
+export type SortOutcome =
+  | { readonly kind: "ok"; readonly report: SortReport }
+  | { readonly kind: "problem"; readonly message: string };
+
+/**
+ * Moves videos longer than a short clip out of Short Clips into Game Footage beside it
+ * (apply = false only counts them). Nothing is copied or deleted, nothing on the phone is touched.
+ */
+export async function sortClipsByLength(
+  clipsFolder: string,
+  apply: boolean,
+  fetchImpl: typeof fetch = fetch,
+): Promise<SortOutcome> {
+  try {
+    const res = await fetchImpl("/api/sort-length", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ clipsFolder, apply }),
+    });
+    const out = (await res.json().catch(() => ({}))) as {
+      error?: string;
+      kind?: string;
+      message?: string;
+      looked?: number;
+      long?: readonly unknown[];
+      moved?: number;
+      conflicts?: readonly unknown[];
+      unreadable?: readonly unknown[];
+    };
+    if (!res.ok)
+      return { kind: "problem", message: out.error ?? "Could not sort by length." };
+    if (out.kind === "needs-tool")
+      return { kind: "problem", message: out.message ?? "ffmpeg was not found." };
+    return {
+      kind: "ok",
+      report: {
+        looked: out.looked ?? 0,
+        long: out.long?.length ?? 0,
+        moved: out.moved ?? 0,
+        conflicts: out.conflicts?.length ?? 0,
+        unreadable: out.unreadable?.length ?? 0,
+      },
+    };
+  } catch {
+    return {
+      kind: "problem",
+      message: "DateSort could not be reached to sort by length. Try again.",
+    };
+  }
+}

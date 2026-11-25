@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { importSteps, ALL_CHOICES } from "./iphone-import";
-import { listDates, NO_PHONE, runStep } from "./iphone-import-run";
+import { listDates, NO_PHONE, runStep, sortClipsByLength } from "./iphone-import-run";
 
 const step = importSteps("D:\\P", "Ph", ALL_CHOICES)[0]!;
 
@@ -220,5 +220,40 @@ describe("one step of the import", () => {
     expect(out.kind === "problem" && out.message).toMatch(
       /lost touch with this page \(TypeError: Failed to fetch\)/,
     );
+  });
+});
+
+describe("sorting Short Clips by length", () => {
+  it("asks only about the Short Clips folder and reports counts", async () => {
+    let body: Record<string, unknown> = {};
+    const f = ((_u: string, init?: RequestInit) => {
+      body = JSON.parse(init?.body as string) as Record<string, unknown>;
+      return Promise.resolve(
+        Response.json({
+          kind: "sorted",
+          looked: 9,
+          long: [1, 2],
+          moved: 2,
+          conflicts: [],
+          unreadable: [],
+        }),
+      );
+    }) as unknown as typeof fetch;
+    const out = await sortClipsByLength("D:\\P\\Ph\\Short Clips", true, f);
+    expect(body).toEqual({ clipsFolder: "D:\\P\\Ph\\Short Clips", apply: true });
+    expect(out).toEqual({
+      kind: "ok",
+      report: { looked: 9, long: 2, moved: 2, conflicts: 0, unreadable: 0 },
+    });
+  });
+  it("says so in words when ffmpeg is missing", async () => {
+    const f = (() =>
+      Promise.resolve(
+        Response.json({ kind: "needs-tool", message: "needs ffmpeg" }),
+      )) as unknown as typeof fetch;
+    expect(await sortClipsByLength("D:\\Short Clips", true, f)).toEqual({
+      kind: "problem",
+      message: "needs ffmpeg",
+    });
   });
 });

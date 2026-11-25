@@ -138,6 +138,23 @@ function answer(body, mode) {
             .join("\n") + "\n",
       });
     });
+    const sortRequests = [];
+    await page.route("**/api/sort-length", async (route) => {
+      const body = JSON.parse(route.request().postData() || "{}");
+      sortRequests.push(body);
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          kind: "sorted",
+          looked: 40,
+          long: [{}, {}, {}],
+          moved: 3,
+          conflicts: [],
+          unreadable: [],
+        }),
+      });
+    });
     const text = (sel) => page.locator(sel).first().innerText();
     const settings = () => fetch(`${BASE}/api/settings`).then((r) => r.json());
     /** Wait (up to 15 s) for the saved settings to satisfy a test: a save finishes after the page moves on. */
@@ -325,6 +342,7 @@ function answer(body, mode) {
 
     console.log("\nOne press");
     requests.length = 0;
+    sortRequests.length = 0;
     await page.click("[data-testid=phone-import-button]");
     await page.waitForSelector("[data-testid=phone-done]", { timeout: 60000 });
     check(
@@ -358,6 +376,15 @@ function answer(body, mode) {
         /5 photos brought in/.test(done) &&
         /2 game recordings brought in/.test(done),
       done,
+    );
+    check(
+      "after the short clips, long videos are sorted out by length, and it says so",
+      sortRequests.length === 1 &&
+        sortRequests[0].apply === true &&
+        sortRequests[0].clipsFolder ===
+          "D:\\Phone Imports\\Game phone 13 Pro\\Short Clips" &&
+        /3 of 3 videos are longer than 3 minutes/.test(done),
+      { sortRequests, done },
     );
     check(
       "it reminds that nothing on the phone was changed",
