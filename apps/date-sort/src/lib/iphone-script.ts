@@ -64,6 +64,7 @@ public static class DateSortDialogs {
   [DllImport("user32.dll")] private static extern bool EnumWindows(EnumProc cb, IntPtr p);
   [DllImport("user32.dll")] private static extern bool EnumChildWindows(IntPtr parent, EnumProc cb, IntPtr p);
   [DllImport("user32.dll", CharSet = CharSet.Unicode)] private static extern int GetWindowText(IntPtr h, StringBuilder s, int n);
+  [DllImport("user32.dll", CharSet = CharSet.Unicode)] private static extern int GetClassName(IntPtr h, StringBuilder s, int n);
   [DllImport("user32.dll")] private static extern bool IsWindowVisible(IntPtr h);
   [DllImport("user32.dll")] private static extern IntPtr GetWindow(IntPtr h, uint cmd);
   [DllImport("user32.dll")] private static extern bool PostMessage(IntPtr h, uint msg, IntPtr w, IntPtr l);
@@ -72,6 +73,19 @@ public static class DateSortDialogs {
     GetWindowText(h, s, 512);
     return s.ToString();
   }
+  private static string ClassOf(IntPtr h) {
+    StringBuilder s = new StringBuilder(256);
+    GetClassName(h, s, 256);
+    return s.ToString();
+  }
+  /// Windows' own copy progress window. Its title changes as it works ("Copying...", "37% complete"),
+  /// so the title alone is not enough: its window class is "OperationStatusWindow".
+  private static bool IsCopyProgress(IntPtr owner) {
+    string t = TitleOf(owner);
+    if (t.StartsWith("Copying") || t.StartsWith("Moving")) return true;
+    if (t.EndsWith("% complete")) return true;
+    return ClassOf(owner) == "OperationStatusWindow";
+  }
   /// Closes one such box if there is one; returns what it said, or null.
   public static string DismissCopyError() {
     string found = null;
@@ -79,7 +93,7 @@ public static class DateSortDialogs {
       if (found != null || !IsWindowVisible(h)) return true;
       if (TitleOf(h) != "Error Copying File or Folder") return true;
       IntPtr owner = GetWindow(h, 4); // GW_OWNER: the window the box belongs to
-      if (owner == IntPtr.Zero || !TitleOf(owner).StartsWith("Copying")) return true;
+      if (owner == IntPtr.Zero || !IsCopyProgress(owner)) return true;
       StringBuilder said = new StringBuilder();
       EnumChildWindows(h, delegate (IntPtr c, IntPtr q) {
         string t = TitleOf(c);

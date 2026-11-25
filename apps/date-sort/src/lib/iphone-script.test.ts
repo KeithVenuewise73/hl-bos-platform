@@ -102,6 +102,10 @@ describe("the iPhone copy script", () => {
     expect(DIALOG_CSHARP).toContain('TitleOf(h) != "Error Copying File or Folder"');
     expect(DIALOG_CSHARP).toContain("GetWindow(h, 4)");
     expect(DIALOG_CSHARP).toContain('StartsWith("Copying")');
+    // Windows' progress window retitles itself as it works ("37% complete"): that and its
+    // window class are recognised too, so a box over a retitled window is not left open.
+    expect(DIALOG_CSHARP).toContain('EndsWith("% complete")');
+    expect(DIALOG_CSHARP).toContain('"OperationStatusWindow"');
     expect(DIALOG_CSHARP).toContain("owner == IntPtr.Zero");
     // Closing is WM_CLOSE (same as OK on a one-button box); nothing else is sent.
     expect(DIALOG_CSHARP.match(/PostMessage\(/g)).toHaveLength(2); // declaration + one call
