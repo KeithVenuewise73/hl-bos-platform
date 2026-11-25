@@ -30,6 +30,16 @@ export const MAX_CLIP_BYTES = 45 * 1024 * 1024;
 
 export class ClipError extends Error {}
 
+/**
+ * How long one conversion may take: at least five minutes, and twenty times the clip's length.
+ * Always a whole number of milliseconds: length x 20,000 is often not one in floating point
+ * (17.24 s came out as 344799.99999999994), and Node refuses such a timeout, so every clip longer
+ * than about 15 seconds could fail with 'The value of "delay" is out of range'.
+ */
+export function conversionTimeoutMs(durationSeconds: number): number {
+  return Math.ceil(Math.max(300_000, Math.round(durationSeconds * 100) * 200));
+}
+
 export interface Tools {
   readonly ffmpeg: string;
   readonly ffprobe: string;
@@ -86,7 +96,8 @@ function run(
   timeoutMs = 60_000,
 ): Promise<Ran> {
   return new Promise((resolve, reject) => {
-    const guard = AbortSignal.timeout(timeoutMs);
+    // A timeout must be a whole number of milliseconds (Node refuses 344799.99999999994).
+    const guard = AbortSignal.timeout(Math.ceil(timeoutMs));
     const child = spawn(cmd, [...args], {
       windowsHide: true,
       stdio: ["ignore", "pipe", "pipe"],
@@ -314,7 +325,7 @@ export async function prepareClip(
         tools.ffmpeg,
         transcodeArgs(input, out, facts, tryNo, tools.tonemap),
         signal,
-        Math.max(300_000, facts.durationSeconds * 20_000),
+        conversionTimeoutMs(facts.durationSeconds),
       );
       if (r.code !== 0)
         throw new ClipError(

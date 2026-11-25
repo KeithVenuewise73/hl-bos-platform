@@ -9,6 +9,7 @@ import { describe, expect, it } from "vitest";
 
 import { listForReview } from "./prepare";
 import {
+  conversionTimeoutMs,
   ffmpegCandidates,
   ffprobeBeside,
   findTools,
@@ -81,6 +82,24 @@ describe("reading what ffprobe said", () => {
   });
 });
 
+describe("how long a conversion may take", () => {
+  it("is always a whole number of milliseconds, for every length a clip can have", () => {
+    // 17.24 s x 20,000 came out as 344799.99999999994, which Node refuses as a timeout:
+    // clips over about 15 seconds failed with 'The value of "delay" is out of range'.
+    expect(17.24 * 20_000).not.toBe(344_800);
+    expect(conversionTimeoutMs(17.24)).toBe(344_800);
+    for (let hundredths = 1; hundredths <= 18_000; hundredths++) {
+      const ms = conversionTimeoutMs(hundredths / 100);
+      expect(Number.isInteger(ms)).toBe(true);
+      expect(ms).toBeGreaterThanOrEqual(300_000);
+    }
+  });
+  it("is at least five minutes, and twenty times the length for longer clips", () => {
+    expect(conversionTimeoutMs(3)).toBe(300_000);
+    expect(conversionTimeoutMs(100)).toBe(2_000_000);
+  });
+});
+
 describe("the conversion rules", () => {
   it("makes H.264/AAC MP4 with metadata removed", () => {
     const a = transcodeArgs("in.mov", "out.mp4", facts, 0, false);
@@ -144,6 +163,14 @@ describe.skipIf(tools === null)("with a real ffmpeg", () => {
         .digest("hex"),
     };
   }
+
+  it("converts a clip whose length makes the time allowance a fraction (17.24 s)", async () => {
+    const { dir } = makeClip(17.24);
+    const listing = await listForReview(dir);
+    const c = await prepareClip(dir, listing.clips[0]!, t);
+    expect(c.durationSeconds).toBeGreaterThan(17);
+    expect(c.video.length).toBeGreaterThan(1000);
+  }, 120_000);
 
   it("lists, converts, fingerprints the original, and cleans up", async () => {
     const { dir, sha } = makeClip(2);
