@@ -19,12 +19,18 @@ import {
   phoneFolders,
   pickedSentence,
   sortDays,
+  sortSentence,
   type ImportChoices,
   type DayRow,
   type ImportStep,
   type StepResult,
 } from "@/lib/iphone-import.ts";
-import { listDates, runStep, type StepProgress } from "@/lib/iphone-import-run.ts";
+import {
+  listDates,
+  runStep,
+  sortClipsByLength,
+  type StepProgress,
+} from "@/lib/iphone-import-run.ts";
 import { secondsLeft } from "@/lib/iphone-progress.ts";
 import { folderWarning } from "@/lib/iphone-space.ts";
 
@@ -48,6 +54,7 @@ type State =
       readonly preview: boolean;
     }
   | { readonly kind: "counting" }
+  | { readonly kind: "sorted"; readonly text: string }
   | { readonly kind: "checked"; readonly text: string }
   | {
       readonly kind: "done";
@@ -235,6 +242,32 @@ export function IphoneImport({
     }
   }
 
+  /** Move the long videos out of Short Clips (or just count them): the length decides, not the size. */
+  async function sortLength(apply: boolean) {
+    if (running.current) return;
+    const into = base;
+    if (into === null || phone === "") {
+      setState({
+        kind: "problem",
+        message: "Choose the phone and where its files are kept first.",
+        lines: [],
+      });
+      return;
+    }
+    running.current = true;
+    setState({ kind: "counting" });
+    try {
+      const out = await sortClipsByLength(phoneFolders(into, phone).clips, apply);
+      setState(
+        out.kind === "ok"
+          ? { kind: "sorted", text: sortSentence(out.report, apply) }
+          : { kind: "problem", message: out.message, lines: [] },
+      );
+    } finally {
+      running.current = false;
+    }
+  }
+
   async function bringIn(preview: boolean) {
     if (running.current) return;
     if (phone === "") {
@@ -277,6 +310,7 @@ export function IphoneImport({
     // A shared phone is always asked about the same month, so a day left unticked is not lost.
     const days = shared ? FIRST_TIME_DAYS : lookBackDays(last[phone], startedAt);
     const results: StepResult[] = [];
+    let sortedNote = "";
     try {
       for (const [index, step] of steps.entries()) {
         setState({
@@ -307,6 +341,12 @@ export function IphoneImport({
           pick,
         );
         results.push(out.result);
+        if (step.id === "clips" && !preview && out.kind === "ok") {
+          // The size split is only a guess: a video longer than a short clip is a game recording.
+          const sorted = await sortClipsByLength(step.folder, true);
+          if (sorted.kind === "ok" && sorted.report.long > 0)
+            sortedNote = sortSentence(sorted.report, true);
+        }
         if (out.kind === "problem") {
           setState({
             kind: "problem",
@@ -324,7 +364,11 @@ export function IphoneImport({
         return;
       }
       const clean = isClean(results);
-      setState({ kind: "done", lines: doneLines(results), clean });
+      setState({
+        kind: "done",
+        lines: [...doneLines(results), ...(sortedNote === "" ? [] : [sortedNote])],
+        clean,
+      });
       if (clean && !shared) {
         const at = startedAt.toISOString();
         setLast((l) => ({ ...l, [phone]: at }));
@@ -496,6 +540,15 @@ export function IphoneImport({
             Check first
           </button>
         )}
+        <button
+          type="button"
+          className="underline text-sm"
+          data-testid="phone-sort"
+          disabled={disabled || busy || !loaded || base === null || phone === ""}
+          onClick={() => void sortLength(true)}
+        >
+          Move long videos out of Short Clips
+        </button>
         <span className="text-xs text-muted" data-testid="phone-base">
           {base === null ? (
             "You'll choose where to keep everything the first time."
@@ -605,6 +658,11 @@ export function IphoneImport({
             open.
           </p>
         </div>
+      ) : null}
+      {state.kind === "sorted" ? (
+        <p className="text-sm" data-testid="phone-sorted">
+          {state.text}
+        </p>
       ) : null}
       {state.kind === "checked" ? (
         <p className="text-sm" data-testid="phone-checked">

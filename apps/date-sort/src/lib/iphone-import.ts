@@ -273,3 +273,31 @@ export function pickedSentence(count: number): string {
     ? "Tick the days to bring in. Nothing comes across from days you leave unticked."
     : `Bring in ${count === 1 ? "the 1 day" : `the ${count} days`} ticked.`;
 }
+
+/** What sorting by length did, in plain words. `apply` false = only counted. */
+export function sortSentence(
+  r: {
+    readonly looked: number;
+    readonly long: number;
+    readonly moved: number;
+    readonly conflicts: number;
+    readonly unreadable: number;
+  },
+  apply: boolean,
+): string {
+  if (r.long === 0)
+    return `Looked at ${n(r.looked)} ${r.looked === 1 ? "video" : "videos"}: all are short clips (3 minutes or less).${r.unreadable > 0 ? ` ${n(r.unreadable)} could not be read and were left alone.` : ""}`;
+  const base = apply
+    ? `${n(r.moved)} of ${n(r.long)} ${r.long === 1 ? "video is" : "videos are"} longer than 3 minutes, so ${r.moved === 1 ? "it was" : "they were"} moved from Short Clips to Game Footage (they are game recordings; GameCut can join them).`
+    : `${n(r.long)} ${r.long === 1 ? "video is" : "videos are"} longer than 3 minutes and would move from Short Clips to Game Footage.`;
+  const extra: string[] = [];
+  if (r.conflicts > 0)
+    extra.push(
+      `${n(r.conflicts)} ${r.conflicts === 1 ? "was" : "were"} left in place because Game Footage already has a file with that name`,
+    );
+  if (r.unreadable > 0)
+    extra.push(
+      `${n(r.unreadable)} could not be read and ${r.unreadable === 1 ? "was" : "were"} left alone`,
+    );
+  return extra.length > 0 ? `${base} ${extra.join("; ")}.` : base;
+}

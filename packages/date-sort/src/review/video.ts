@@ -380,3 +380,22 @@ export async function prepareClip(
     await rm(dir, { recursive: true, force: true }).catch(() => undefined);
   }
 }
+
+/** How long one video is, in seconds, or null when ffprobe cannot read it. */
+export async function probeSeconds(
+  tools: Tools,
+  file: string,
+  signal?: AbortSignal,
+): Promise<number | null> {
+  try {
+    const r = await run(
+      tools.ffprobe,
+      ["-v", "error", "-print_format", "json", "-show_format", "-show_streams", file],
+      signal,
+    );
+    if (r.code !== 0) return null;
+    return parseProbe(JSON.parse(r.stdout))?.durationSeconds ?? null;
+  } catch {
+    return null;
+  }
+}
