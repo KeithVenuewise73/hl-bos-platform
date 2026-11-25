@@ -511,7 +511,13 @@ async function iphoneChecks(page, work) {
   await fetch(`${BASE}/api/settings`, {
     method: "POST",
     headers: { "Content-Type": "application/json", Origin: BASE },
-    body: JSON.stringify({ iphoneFolder: keptPhotos, iphoneVideoFolder: keptVideos }),
+    body: JSON.stringify({
+      iphoneFolder: keptPhotos,
+      iphoneVideoFolder: keptVideos,
+      // The older all-days buttons are shown only for a phone marked "only for 5 Star".
+      iphonePhones: ["Test phone"],
+      iphoneWorkOnly: ["Test phone"],
+    }),
   });
   await page.reload();
   // Press a button and wait for its line to say Done (or a problem).
@@ -564,6 +570,9 @@ async function iphoneChecks(page, work) {
         characterData: true,
       });
     });
+    // The older buttons appear once the page has read its saved settings (the phone is marked
+    // "only for 5 Star"): wait for them, then open "More options".
+    await page.waitForSelector("[data-testid=iphone-more]", { state: "attached" });
     await page.evaluate(() => {
       const d = document.querySelector("[data-testid=iphone-more]");
       if (d) d.open = true;
@@ -633,6 +642,7 @@ async function iphoneChecks(page, work) {
     JSON.stringify({ secondPhotos, secondVideos }),
   );
   // "Check size first" only looks: it says what is still to come and copies nothing.
+  await page.waitForSelector("[data-testid=iphone-more]", { state: "attached" });
   await page.evaluate(() => {
     const d = document.querySelector("[data-testid=iphone-more]");
     if (d) d.open = true;

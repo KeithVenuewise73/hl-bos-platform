@@ -8,7 +8,9 @@
  *   - the first time it looks back 30 days; after a clean import, only a week (new since last time);
  *   - "Check first" asks for the same three but changes nothing;
  *   - a phone that cannot be found stops with plain words, and does not count as imported;
- *   - unticking game footage leaves it out; the old buttons are still under "More options".
+ *   - unticking game footage leaves it out; the old buttons are still under "More options";
+ *   - a phone shared with family (the default) shows its days first and brings in ONLY the ticked
+ *     ones: nothing is asked of it for a day left unticked, and the old all-days buttons are hidden.
  */
 const fs = require("node:fs");
 const os = require("node:os");
@@ -45,6 +47,18 @@ const check = (name, ok, detail) => {
 /** What the stand-in copy answers for one request. */
 function answer(body, mode) {
   if (mode === "none") return [{ type: "none" }];
+  if (body.list)
+    return [
+      {
+        type: "dates",
+        olderFolders: 1,
+        list: [
+          { d: "2026-11-20", p: 12, c: 0, g: 0, b: 3e7 },
+          { d: "2026-11-23", p: 0, c: 3, g: 1, b: 5e9 },
+          { d: "none", p: 0, c: 2, g: 0, b: 1e9 },
+        ],
+      },
+    ];
   const per = { clips: 3, photos: 5, games: 2 };
   const id =
     body.kind === "photos" ? "photos" : body.size === "large" ? "games" : "clips";
@@ -143,11 +157,6 @@ function answer(body, mode) {
       "the one button is there, with a box to name the phone",
       (await page.locator("[data-testid=phone-name]").count()) === 1,
     );
-    check(
-      "the old photo and video buttons are still there, under More options",
-      (await page.locator("[data-testid=iphone-more]").count()) === 1 &&
-        (await page.locator("[data-testid=iphone-photos-button]").count()) === 1,
-    );
     await page.click("[data-testid=phone-import-button]");
     await page.waitForSelector("[data-testid=phone-problem]");
     check(
@@ -196,7 +205,96 @@ function answer(body, mode) {
       { shown: await text("[data-testid=phone-base]"), saved: afterBase },
     );
 
+    console.log("\nA phone shared with family");
+    check(
+      "a new phone is shared: it says you pick the days",
+      /you pick the days/.test(await text("[data-testid=phone-shared-note]")),
+    );
+    check(
+      "the all-days buttons are hidden for a shared phone",
+      (await page.locator("[data-testid=iphone-more]").count()) === 0 &&
+        (await page.locator("[data-testid=iphone-photos-button]").count()) === 0,
+    );
+    check(
+      "the first button shows the days, and there is no Check first yet",
+      /Show the days on this phone/.test(
+        await text("[data-testid=phone-import-button]"),
+      ) && (await page.locator("[data-testid=phone-import-check]").count()) === 0,
+    );
+    requests.length = 0;
+    await page.click("[data-testid=phone-import-button]");
+    await page.waitForSelector("[data-testid=phone-days]");
+    check(
+      "showing the days only counts: one request, a list, no copy",
+      requests.length === 1 &&
+        requests[0].list === true &&
+        requests[0].kind === undefined,
+      requests,
+    );
+    const days = await text("[data-testid=phone-days]");
+    check(
+      "each day says what is on the phone",
+      /3 short clips, 1 game recording/.test(days) && /12 photos/.test(days),
+      days,
+    );
+    check(
+      "files with no date are listed but cannot be ticked",
+      /2 short clips.*no date from the phone/.test(
+        await text("[data-testid=day-none]"),
+      ) &&
+        (await page.locator("[data-testid=day-none]").count()) === 1 &&
+        (await page.locator("input[data-testid=day-none]").count()) === 0,
+    );
+    check(
+      "nothing is ticked to begin with",
+      (await page.locator("[data-testid^=day-20]:checked").count()) === 0,
+    );
+    requests.length = 0;
+    await page.click("[data-testid=phone-import-button]");
+    await page.waitForSelector("[data-testid=phone-problem]");
+    check(
+      "pressing Bring in with no day ticked asks for one and copies nothing",
+      /tick the days/.test(await text("[data-testid=phone-problem]")) &&
+        requests.length === 0,
+      requests,
+    );
+    await page.check("[data-testid=day-2026-11-23]");
+    await page.click("[data-testid=phone-import-button]");
+    await page.waitForSelector("[data-testid=phone-done]", { timeout: 60000 });
+    check(
+      "only the ticked day is asked of the phone, never 'every day'",
+      requests.length === 3 &&
+        requests.every(
+          (r) =>
+            JSON.stringify(r.dates) === JSON.stringify(["2026-11-23"]) &&
+            r.allDates === undefined &&
+            r.days === 30,
+        ),
+      requests,
+    );
+    check(
+      "a shared phone's import is not counted as 'last time' (an unticked day is not lost)",
+      Object.keys((await settings()).iphoneLast || {}).length === 0,
+    );
+    await page.check("[data-testid=phone-work-only]");
+    const marked = await until((s) => (s.iphoneWorkOnly || []).length === 1);
+    check(
+      "marking it 'only for 5 Star' is remembered",
+      marked.iphoneWorkOnly?.[0] === "Game phone 13 Pro",
+      marked,
+    );
+    check(
+      "then the old photo and video buttons are back under More options",
+      (await page.locator("[data-testid=iphone-more]").count()) === 1 &&
+        (await page.locator("[data-testid=iphone-photos-button]").count()) === 1,
+    );
+    check(
+      "and the main button is the one-press import again",
+      /Bring in everything new/.test(await text("[data-testid=phone-import-button]")),
+    );
+
     console.log("\nCheck first");
+    requests.length = 0;
     await page.click("[data-testid=phone-import-check]");
     await page.waitForSelector("[data-testid=phone-checked]");
     const checked = await text("[data-testid=phone-checked]");
@@ -215,7 +313,9 @@ function answer(body, mode) {
     check(
       "it asked for the same three steps, as a check only",
       requests.length === 3 &&
-        requests.every((r) => r.preview === true && r.days === 30),
+        requests.every(
+          (r) => r.preview === true && r.days === 30 && r.allDates === true,
+        ),
       requests,
     );
     check(

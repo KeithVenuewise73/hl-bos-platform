@@ -213,3 +213,63 @@ export function defaultBaseFolder(
   const candidate = `${trimmed.slice(0, cut)}${sepOf(trimmed)}Phone Imports`;
   return warning(candidate) === null ? candidate : null;
 }
+
+/** One day on the phone: how many photos, short clips and game recordings, and how big together. */
+export interface DayRow {
+  /** yyyy-MM-dd, or "none" when the phone gives these files no date. */
+  readonly d: string;
+  readonly p: number;
+  readonly c: number;
+  readonly g: number;
+  readonly b: number;
+}
+
+/** The day that stands for files the phone gives no date: never brought in. */
+export const NO_DATE = "none";
+
+const MONTHS = [
+  "Jan",
+  "Feb",
+  "Mar",
+  "Apr",
+  "May",
+  "Jun",
+  "Jul",
+  "Aug",
+  "Sep",
+  "Oct",
+  "Nov",
+  "Dec",
+];
+const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+
+/** "2026-11-23" -> "Mon, Nov 23, 2026". */
+export function dayLabel(d: string): string {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(d);
+  if (m === null) return d;
+  const at = new Date(Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3])));
+  return `${WEEKDAYS[at.getUTCDay()]}, ${MONTHS[at.getUTCMonth()]} ${at.getUTCDate()}, ${m[1]}`;
+}
+
+/** "3 short clips, 12 photos, 1 game recording (3.2 GB)": what is on the phone for that day. */
+export function dayContents(r: DayRow): string {
+  const bits: string[] = [];
+  if (r.c > 0) bits.push(`${n(r.c)} short ${r.c === 1 ? "clip" : "clips"}`);
+  if (r.g > 0) bits.push(`${n(r.g)} game ${r.g === 1 ? "recording" : "recordings"}`);
+  if (r.p > 0) bits.push(`${n(r.p)} ${r.p === 1 ? "photo" : "photos"}`);
+  return `${bits.join(", ")}${r.b > 0 ? ` (${sizeText(r.b)})` : ""}`;
+}
+
+/** Newest day first; the "no date" row last, and never offered to tick. */
+export function sortDays(rows: readonly DayRow[]): DayRow[] {
+  return [...rows].sort((a, b) =>
+    a.d === NO_DATE ? 1 : b.d === NO_DATE ? -1 : b.d.localeCompare(a.d),
+  );
+}
+
+/** What the "Bring in" button says for a shared phone, and whether it can be pressed. */
+export function pickedSentence(count: number): string {
+  return count === 0
+    ? "Tick the days to bring in. Nothing comes across from days you leave unticked."
+    : `Bring in ${count === 1 ? "the 1 day" : `the ${count} days`} ticked.`;
+}

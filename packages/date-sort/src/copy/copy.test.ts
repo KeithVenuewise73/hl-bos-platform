@@ -32,6 +32,7 @@ import {
   cleanLast,
   cleanPhoneName,
   cleanPhones,
+  cleanWorkOnly,
   loadSettings,
   saveSettings,
 } from "./settings";
@@ -555,6 +556,7 @@ describe("remembering the destination and event names", () => {
       iphoneBase: null,
       iphonePhones: [],
       iphoneLast: {},
+      iphoneWorkOnly: [],
     });
     await saveSettings(
       {
@@ -571,6 +573,7 @@ describe("remembering the destination and event names", () => {
       iphoneBase: null,
       iphonePhones: [],
       iphoneLast: {},
+      iphoneWorkOnly: [],
     });
   });
 
@@ -609,6 +612,10 @@ describe("remembering the named phones and when each was last brought in", () =>
         ["A", "B"],
       ),
     ).toEqual({ A: "2026-11-20T12:00:00.000Z" });
+  });
+  it("marks a phone 'only for 5 Star' only if it is a named phone; every other phone is shared", () => {
+    expect(cleanWorkOnly(["A", "Ghost", "a"], ["A", "B"])).toEqual(["A"]);
+    expect(cleanWorkOnly("A", ["A"])).toEqual([]);
   });
   it("saves and loads them with the other settings", async () => {
     const dir = join(work, "settings-phones");

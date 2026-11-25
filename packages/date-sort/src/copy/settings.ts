@@ -27,6 +27,11 @@ export interface Settings {
   readonly iphonePhones?: readonly string[];
   /** When each named phone was last brought in (ISO time), so the next time only asks for what is new. */
   readonly iphoneLast?: Readonly<Record<string, string>>;
+  /**
+   * Phones the owner has said are used for nothing but 5 Star. Every other phone is treated as shared
+   * with family: only the days the owner ticks are brought in from it.
+   */
+  readonly iphoneWorkOnly?: readonly string[];
 }
 
 /** A phone's name is a short plain label; it becomes a folder name, so nothing odd is kept. */
@@ -49,6 +54,11 @@ export function cleanPhones(raw: unknown): string[] {
     if (out.length >= 12) break;
   }
   return out;
+}
+
+/** The phones marked "only for 5 Star": only named phones count. */
+export function cleanWorkOnly(raw: unknown, phones: readonly string[]): string[] {
+  return cleanPhones(raw).filter((n) => phones.includes(n));
 }
 
 /** When each phone was last brought in: only real times, only for the named phones. */
@@ -102,6 +112,7 @@ export async function loadSettings(dir: string = settingsDir()): Promise<Setting
       iphoneBase?: unknown;
       iphonePhones?: unknown;
       iphoneLast?: unknown;
+      iphoneWorkOnly?: unknown;
     };
     const phones = cleanPhones(raw.iphonePhones);
     return {
@@ -113,6 +124,7 @@ export async function loadSettings(dir: string = settingsDir()): Promise<Setting
       iphoneBase: typeof raw.iphoneBase === "string" ? raw.iphoneBase : null,
       iphonePhones: phones,
       iphoneLast: cleanLast(raw.iphoneLast, phones),
+      iphoneWorkOnly: cleanWorkOnly(raw.iphoneWorkOnly, phones),
     };
   } catch {
     return {
@@ -123,6 +135,7 @@ export async function loadSettings(dir: string = settingsDir()): Promise<Setting
       iphoneBase: null,
       iphonePhones: [],
       iphoneLast: {},
+      iphoneWorkOnly: [],
     };
   }
 }

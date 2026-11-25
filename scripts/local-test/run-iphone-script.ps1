@@ -25,13 +25,15 @@ Copy-Item "$fx\jpg-all-three-differ.jpg" (Join-Path $months '202610_a\IMG_1000.J
 node --experimental-strip-types -e "import('./apps/date-sort/src/lib/iphone-script.ts').then(m => process.stdout.write(Buffer.from(m.IPHONE_SCRIPT, 'utf16le').toString('base64')))" > (Join-Path $T 'iphone.b64')
 $encoded = (Get-Content (Join-Path $T 'iphone.b64') -Raw).Trim()
 
-function Run($label, $source, $into = $dest, $kind = '', $days = '', $size = '', $split = '', $preview = '') {
+function Run($label, $source, $into = $dest, $kind = '', $days = '', $size = '', $split = '', $preview = '', $dates = '', $list = '') {
   $env:DS_DEST = $into
   $env:DS_KIND = $kind
   $env:DS_DAYS = $days
   $env:DS_SIZE = $size
   $env:DS_SPLIT_MB = $split
   $env:DS_PREVIEW = $preview
+  $env:DS_DATES = $dates
+  $env:DS_LISTDATES = $list
   $env:DS_TEST_SOURCE = $source
   $p = Start-Process powershell.exe -ArgumentList '-NoProfile', '-NonInteractive', '-STA', '-ExecutionPolicy', 'Bypass', '-EncodedCommand', $encoded `
     -RedirectStandardOutput (Join-Path $T "$label.out") -RedirectStandardError (Join-Path $T "$label.err") -PassThru -NoNewWindow
@@ -104,7 +106,36 @@ New-Item -ItemType Directory -Force $destDM | Out-Null
 $daysMonthRun = Run 'days-by-month' $daysPhone $destDM 'videos' '30'
 $daysMonthAll = Run 'days-by-month-all' $daysPhone (Join-Path $T 'kept\Days by month all') 'videos' ''
 
+# A phone shared with family: only the ticked days come across. Two videos, one dated on a
+# day in 2020 and one today; counting the days must not copy or create anything.
+$dayPhone = Join-Path $T 'fake-days\Apple iPhone'
+$daySrc = Join-Path $dayPhone 'Internal Storage\DCIM\100APPLE'
+New-Item -ItemType Directory -Force $daySrc | Out-Null
+Copy-Item "$fx\iphone-style.mov" (Join-Path $daySrc 'IMG_PERSONAL.MOV')
+Copy-Item "$fx\header-only.mp4" (Join-Path $daySrc 'IMG_GAME.MP4')
+Copy-Item "$fx\jpg-all-three-differ.jpg" (Join-Path $daySrc 'IMG_PHOTO.JPG')
+(Get-Item (Join-Path $daySrc 'IMG_PERSONAL.MOV')).LastWriteTime = [datetime]'2020-03-04 10:00:00'
+(Get-Item (Join-Path $daySrc 'IMG_PHOTO.JPG')).LastWriteTime = [datetime]'2020-03-04 11:00:00'
+(Get-Item (Join-Path $daySrc 'IMG_GAME.MP4')).LastWriteTime = [datetime]'2026-02-14 12:00:00'
+$destList = Join-Path $T 'kept\Days list (never made)'
+$listRun = Run 'days-list' $dayPhone $destList '' '' '' '' '' '' '1'
+$destPick = Join-Path $T 'kept\Days picked'
+New-Item -ItemType Directory -Force $destPick | Out-Null
+$pickRun = Run 'days-picked' $dayPhone $destPick '' '' '' '' '' '2026-02-14'
+$destNone = Join-Path $T 'kept\Days none picked'
+New-Item -ItemType Directory -Force $destNone | Out-Null
+$noneRun = Run 'days-none-match' $dayPhone $destNone '' '' '' '' '' '2019-01-01'
+
 $ok = $true
+$listed = @($listRun -split "`n" | Where-Object { $_ -match '"type":"dates"' })
+if ($listed.Count -ne 1) { Write-Host "counting the days did not report them: $listRun"; $ok = $false }
+elseif ($listed[0] -notmatch '"d":"2020-03-04"' -or $listed[0] -notmatch '"d":"2026-02-14"') { Write-Host "the days listed are wrong: $($listed[0])"; $ok = $false }
+if (Test-Path $destList) { Write-Host "counting the days created a folder"; $ok = $false }
+if ($listRun -match '"type":"file"') { Write-Host "counting the days copied a file"; $ok = $false }
+$got = (& { @(Get-ChildItem -Recurse -File $destPick | Where-Object { $_.FullName -notmatch '\.datesort-incoming' } | ForEach-Object { $_.Name }) -join ',' })
+if ($got -ne 'IMG_GAME.MP4') { Write-Host "only the ticked day should come across, got: [$got]"; $ok = $false }
+if ($pickRun -notmatch '"unpicked":2') { Write-Host "the two files from other days were not counted as left out: $pickRun"; $ok = $false }
+if (@(Get-ChildItem -Recurse -File $destNone | Where-Object { $_.FullName -notmatch '\.datesort-incoming' }).Count -ne 0) { Write-Host "a day nothing matches still copied files"; $ok = $false }
 if ((& { @(Get-ChildItem -Recurse -File $destDM | Where-Object { $_.FullName -notmatch '\.datesort-incoming' } | ForEach-Object { $_.Name }) -join ',' }) -ne 'IMG_NEW.MOV') { Write-Host "last 30 days did not skip the old month folder"; $ok = $false }
 if ($daysMonthRun -notmatch '"olderFolders":1') { Write-Host "the skipped old month was not counted: $daysMonthRun"; $ok = $false }
 if ($daysMonthRun -match [regex]::Escape($oldMonthName)) { Write-Host "the old month folder was read anyway"; $ok = $false }

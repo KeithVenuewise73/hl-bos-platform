@@ -114,13 +114,28 @@ export interface AllTotals {
 }
 
 /** The sentences shown when Send all has finished (or was stopped). */
-export function allDoneLines(t: AllTotals, stopped: boolean): string[] {
+export function allDoneLines(
+  t: AllTotals,
+  stopped: boolean,
+  /** How many short clips the scan found: they are sent from the date folders, not from the scan. */
+  scanClips = 0,
+): string[] {
   const lines: string[] = [
     `${stopped ? "Stopped." : "Finished."} ${t.daysDone.toLocaleString("en-US")} date${t.daysDone === 1 ? "" : "s"} done: ${photos(t.sent)} newly sent for review, ${photos(t.alreadyThere)} already there.`,
   ];
   if (t.clipsSent > 0 || t.clipsAlreadyThere > 0)
     lines.push(
       `Clips: ${t.clipsSent.toLocaleString("en-US")} newly sent, ${t.clipsAlreadyThere.toLocaleString("en-US")} already there.`,
+    );
+  if (
+    !stopped &&
+    scanClips > 0 &&
+    t.clipsSent === 0 &&
+    t.clipsAlreadyThere === 0 &&
+    t.clipsNeedTool === 0
+  )
+    lines.push(
+      `The scan found ${scanClips.toLocaleString("en-US")} short clip${scanClips === 1 ? "" : "s"}, but none were in the date folders on the drive, so none were sent. Press Copy all dates first (it puts the clips next to the photos), then send again.`,
     );
   if (t.clipsNeedTool > 0)
     lines.push(

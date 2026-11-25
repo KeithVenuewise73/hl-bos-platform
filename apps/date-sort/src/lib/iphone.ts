@@ -24,7 +24,14 @@ export function copyFromIphone(
   folder: string,
   kind: IphoneKind,
   days: number | null,
-  options: { readonly size: "all" | "small" | "large"; readonly preview: boolean },
+  options: {
+    readonly size: "all" | "small" | "large";
+    readonly preview: boolean;
+    /** Only files the phone dates on these days (yyyy-MM-dd). Empty = no day filter. */
+    readonly dates?: readonly string[];
+    /** Only count what the phone has for each day; copy and create nothing. */
+    readonly list?: boolean;
+  },
   onLine: (line: IphoneLine) => void,
   signal: AbortSignal,
 ): Promise<void> {
@@ -57,11 +64,13 @@ export function copyFromIphone(
         env: {
           ...inherited,
           DS_DEST: folder,
-          DS_KIND: kind,
+          DS_KIND: options.list === true ? "" : kind,
           DS_DAYS: days === null ? "" : String(days),
           DS_SIZE: options.size,
           DS_SPLIT_MB: String(SPLIT_MB),
           DS_PREVIEW: options.preview ? "1" : "",
+          DS_DATES: (options.dates ?? []).join(","),
+          DS_LISTDATES: options.list === true ? "1" : "",
           // Windows CI only: an ordinary folder standing in for the phone,
           // walked through the same Shell calls (no CI machine has an iPhone).
           // Set by the CI workflow when it starts DateSort; never by the page.
