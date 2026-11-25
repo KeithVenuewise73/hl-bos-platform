@@ -126,6 +126,15 @@ function answer(body, mode) {
     });
     const text = (sel) => page.locator(sel).first().innerText();
     const settings = () => fetch(`${BASE}/api/settings`).then((r) => r.json());
+    /** Wait (up to 15 s) for the saved settings to satisfy a test: a save finishes after the page moves on. */
+    const until = async (ok) => {
+      for (let i = 0; i < 60; i++) {
+        const s = await settings();
+        if (ok(s)) return s;
+        await new Promise((r) => setTimeout(r, 250));
+      }
+      return settings();
+    };
 
     console.log("\nNaming the phone");
     await page.goto(BASE);
@@ -153,9 +162,11 @@ function answer(body, mode) {
       "the name is saved and chosen",
       (await page.inputValue("[data-testid=phone-select]")) === "Game phone 13 Pro",
     );
+    const afterName = await until((s) => s.iphonePhones?.[0] === "Game phone 13 Pro");
     check(
       "it is remembered on this computer",
-      (await settings()).iphonePhones?.[0] === "Game phone 13 Pro",
+      afterName.iphonePhones?.[0] === "Game phone 13 Pro",
+      afterName,
     );
 
     // Where everything is kept (the Windows folder window is not available here).
@@ -164,14 +175,25 @@ function answer(body, mode) {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ iphoneBase: "D:\\Phone Imports" }),
     });
+    const afterBase = await until((s) => s.iphoneBase === "D:\\Phone Imports");
     await page.reload();
     await page.waitForSelector("[data-testid=phone-select]");
+    await page
+      .waitForFunction(
+        () =>
+          /Phone Imports/.test(
+            document.querySelector("[data-testid=phone-base]")?.textContent || "",
+          ),
+        null,
+        { timeout: 15000 },
+      )
+      .catch(() => undefined);
     check(
       "it says where this phone's files will be kept",
       /D:\\Phone Imports\\Game phone 13 Pro/.test(
         await text("[data-testid=phone-base]"),
       ),
-      await text("[data-testid=phone-base]"),
+      { shown: await text("[data-testid=phone-base]"), saved: afterBase },
     );
 
     console.log("\nCheck first");
