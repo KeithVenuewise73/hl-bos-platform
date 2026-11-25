@@ -92,7 +92,12 @@ export async function runStep(
         const line = buffered.slice(0, nl);
         buffered = buffered.slice(nl + 1);
         if (line.trim() === "") continue;
-        const m = JSON.parse(line) as IphonePageLine;
+        let m: IphonePageLine;
+        try {
+          m = JSON.parse(line) as IphonePageLine;
+        } catch {
+          continue; // one garbled line must not end the whole copy
+        }
         if (m.type === "waiting") {
           waiting = true;
           tell();
@@ -141,9 +146,10 @@ export async function runStep(
     return problem(
       "Copying from the iPhone stopped part-way (was it unplugged or locked?). Everything copied so far is complete; press the button again to finish the rest.",
     );
-  } catch {
+  } catch (e) {
+    const why = e instanceof Error ? `${e.name}: ${e.message}` : String(e);
     return problem(
-      "DateSort lost touch with this page. Press the button again; what is already copied is skipped.",
+      `DateSort lost touch with this page (${why.slice(0, 160)}). Press the button again; what is already copied is skipped.`,
     );
   }
 }

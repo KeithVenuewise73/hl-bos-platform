@@ -171,4 +171,21 @@ describe("one step of the import", () => {
     );
     expect(refused).toMatchObject({ kind: "problem", message: "Not so fast." });
   });
+
+  it("ignores one garbled line instead of giving up", async () => {
+    const text = `${JSON.stringify(found)}\nthis is not json\n${JSON.stringify({ type: "file", folder: "a", name: "b", result: "copied", bytes: 5 })}\n${JSON.stringify({ type: "done" })}\n`;
+    const f = (() => Promise.resolve(new Response(text))) as unknown as typeof fetch;
+    const out = await runStep(step, 30, false, () => undefined, f);
+    expect(out.kind).toBe("ok");
+    expect(out.result.copied).toBe(1);
+  });
+
+  it("says why when the connection fails", async () => {
+    const f = (() =>
+      Promise.reject(new TypeError("Failed to fetch"))) as unknown as typeof fetch;
+    const out = await runStep(step, 30, false, () => undefined, f);
+    expect(out.kind === "problem" && out.message).toMatch(
+      /lost touch with this page \(TypeError: Failed to fetch\)/,
+    );
+  });
 });
