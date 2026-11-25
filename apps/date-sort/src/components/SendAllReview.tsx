@@ -115,7 +115,13 @@ export function SendAllReview({
     setRunning(false);
     setLine("");
     void refreshReviewDays();
-    setFinished({ lines: allDoneLines(t, stopped) });
+    setFinished({
+      lines: allDoneLines(
+        t,
+        stopped,
+        days.reduce((n, d) => n + d.clips, 0),
+      ),
+    });
   }
 
   return (

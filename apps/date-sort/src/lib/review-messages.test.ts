@@ -147,3 +147,31 @@ describe("the on-5Star badge keeps photos and clips apart", () => {
     );
   });
 });
+
+describe("Send all, when the scan has clips that are not in the date folders", () => {
+  const none = {
+    daysDone: 6,
+    sent: 0,
+    alreadyThere: 3919,
+    largeAdded: 0,
+    failedPhotos: 0,
+    clipsSent: 0,
+    clipsAlreadyThere: 0,
+    clipsNeedTool: 0,
+    skippedDays: [],
+    problemDays: [],
+  };
+  it("says so, and what to press, instead of sounding like success", () => {
+    const text = allDoneLines(none, false, 96).join(" ");
+    expect(text).toMatch(/found 96 short clips, but none were in the date folders/);
+    expect(text).toMatch(/Copy all dates first/);
+  });
+  it("stays quiet when clips were sent, or the scan had none", () => {
+    expect(allDoneLines({ ...none, clipsSent: 3 }, false, 96).join(" ")).not.toMatch(
+      /none were in the date folders/,
+    );
+    expect(allDoneLines(none, false, 0).join(" ")).not.toMatch(
+      /none were in the date folders/,
+    );
+  });
+});
