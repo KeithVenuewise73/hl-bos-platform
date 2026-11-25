@@ -11,7 +11,8 @@ Add-Type -TypeDefinition (Get-Content -Raw $cs)
 
 $helper = Join-Path $PSScriptRoot 'fake-copy-error.ps1'
 function Start-Box($owned, $out, $ownerTitle = 'Copying...') {
-  $a = @('-NoProfile', '-STA', '-ExecutionPolicy', 'Bypass', '-File', $helper, '-Out', $out, '-OwnerTitle', $ownerTitle)
+  # The title has spaces: Start-Process does not quote array items, so quote it here.
+  $a = @('-NoProfile', '-STA', '-ExecutionPolicy', 'Bypass', '-File', $helper, '-Out', $out, '-OwnerTitle', ('"' + $ownerTitle + '"'))
   if ($owned) { $a += '-Owned' }
   Start-Process powershell.exe -ArgumentList $a -PassThru
 }
