@@ -88,6 +88,7 @@ export function SendAllReview({
           alreadyThere: t.alreadyThere + r.alreadyThere,
           largeAdded: t.largeAdded + r.largeAdded,
           failedPhotos: t.failedPhotos + r.failed.length,
+          failedReasons: [...(t.failedReasons ?? []), ...r.failed.map((f) => f.reason)],
           clipsSent: t.clipsSent + r.clipsSent,
           clipsAlreadyThere: t.clipsAlreadyThere + r.clipsAlreadyThere,
           clipsNeedTool: t.clipsNeedTool + r.videosNotSent,

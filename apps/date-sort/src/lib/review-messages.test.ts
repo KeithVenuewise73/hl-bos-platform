@@ -175,3 +175,28 @@ describe("Send all, when the scan has clips that are not in the date folders", (
     );
   });
 });
+
+describe("Send all names why files could not be sent", () => {
+  it("lists the reasons, a few at a time", () => {
+    const t = {
+      daysDone: 2,
+      sent: 0,
+      alreadyThere: 0,
+      largeAdded: 0,
+      failedPhotos: 7,
+      failedReasons: Array.from(
+        { length: 7 },
+        (_, i) => `IMG_${i}.MOV is 400 seconds long.`,
+      ),
+      clipsSent: 0,
+      clipsAlreadyThere: 0,
+      clipsNeedTool: 0,
+      skippedDays: [],
+      problemDays: [],
+    };
+    const text = allDoneLines(t, false).join("\n");
+    expect(text).toMatch(/• IMG_0\.MOV is 400 seconds long\./);
+    expect(text).toMatch(/• and 2 more/);
+    expect(text).not.toMatch(/IMG_6/);
+  });
+});
