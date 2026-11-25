@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  CLIP_MINUTES,
   sortSentence,
   ALL_CHOICES,
   checkSentence,
@@ -158,6 +159,13 @@ describe("where to suggest keeping everything", () => {
   });
 });
 
+describe("the clip length limit", () => {
+  it("is the same five minutes the clip sender uses", async () => {
+    const { MAX_CLIP_SECONDS } = await import("@hl-bos/date-sort/review");
+    expect(CLIP_MINUTES * 60).toBe(MAX_CLIP_SECONDS);
+  });
+});
+
 describe("sorting by length, in words", () => {
   const none = { looked: 40, long: 0, moved: 0, conflicts: 0, unreadable: 0 };
   it("says when everything is a short clip", () => {
@@ -165,7 +173,7 @@ describe("sorting by length, in words", () => {
   });
   it("says what moved, and that they are game recordings", () => {
     const text = sortSentence({ ...none, long: 11, moved: 11 }, true);
-    expect(text).toMatch(/11 of 11 videos are longer than 3 minutes/);
+    expect(text).toMatch(/11 of 11 videos are longer than 5 minutes/);
     expect(text).toMatch(/moved from Short Clips to Game Footage/);
   });
   it("says what would move when only checking, and mentions what was left alone", () => {

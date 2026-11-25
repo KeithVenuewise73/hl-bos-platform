@@ -28,7 +28,7 @@ function layout(name: string) {
   const games = join(work, name, "Game Footage");
   mkdirSync(join(clips, "202611_a"), { recursive: true });
   mkdirSync(join(clips, ".datesort-incoming"), { recursive: true });
-  for (const f of ["IMG_30.MOV", "IMG_179.MOV", "IMG_181.MOV", "IMG_4867.MOV"])
+  for (const f of ["IMG_30.MOV", "IMG_299.MOV", "IMG_301.MOV", "IMG_4867.MOV"])
     writeFileSync(join(clips, "202611_a", f), f);
   writeFileSync(join(clips, "202611_a", "IMG_bad.MOV"), "not a video");
   writeFileSync(join(clips, "202611_a", "notes.txt"), "ignored");
@@ -48,22 +48,22 @@ describe("sorting videos by length", () => {
     });
     expect(r.looked).toBe(5);
     expect(r.long.map((l) => l.path).sort()).toEqual([
-      "202611_a\\IMG_181.MOV",
+      "202611_a\\IMG_301.MOV",
       "202611_a\\IMG_4867.MOV",
     ]);
     expect(r.moved).toBe(0);
     expect(existsSync(games)).toBe(false);
     expect(readdirSync(join(clips, "202611_a")).sort()).toEqual([
-      "IMG_179.MOV",
-      "IMG_181.MOV",
+      "IMG_299.MOV",
       "IMG_30.MOV",
+      "IMG_301.MOV",
       "IMG_4867.MOV",
       "IMG_bad.MOV",
       "notes.txt",
     ]);
   });
 
-  it("moves only the videos longer than 180 seconds, keeping the month folder", async () => {
+  it("moves only the videos longer than 300 seconds, keeping the month folder", async () => {
     const { clips, games } = layout("move");
     const r = await sortByLength({
       clipsRoot: clips,
@@ -73,11 +73,11 @@ describe("sorting videos by length", () => {
     });
     expect(r.moved).toBe(2);
     expect(readdirSync(join(games, "202611_a")).sort()).toEqual([
-      "IMG_181.MOV",
+      "IMG_301.MOV",
       "IMG_4867.MOV",
     ]);
     expect(readdirSync(join(clips, "202611_a")).sort()).toEqual([
-      "IMG_179.MOV", // 179 s stays: a short clip
+      "IMG_299.MOV", // 299 s stays: a short clip
       "IMG_30.MOV",
       "IMG_bad.MOV", // unreadable: left alone
       "notes.txt",
@@ -100,7 +100,7 @@ describe("sorting videos by length", () => {
     expect(r.moved).toBe(1);
     expect(existsSync(join(clips, "202611_a", "IMG_4867.MOV"))).toBe(true);
     expect(readdirSync(join(games, "202611_a")).sort()).toEqual([
-      "IMG_181.MOV",
+      "IMG_301.MOV",
       "IMG_4867.MOV",
     ]);
   });
@@ -133,7 +133,7 @@ describe("with the real ffprobe, when this computer has it", () => {
     mkdirSync(join(clips, "202611_a"), { recursive: true });
     for (const [name, secs] of [
       ["short.mp4", 5],
-      ["whole-game.mp4", 200],
+      ["whole-game.mp4", 400],
     ] as const)
       execFileSync(tools.ffmpeg, [
         "-hide_banner",

@@ -212,8 +212,8 @@ Tests: `src/lib/since.test.ts`, `scripts/local-test/verify-since.cjs`.
 - **Needs ffmpeg**, the free program GameCut also uses. DateSort looks on the PATH and where
   Windows installers keep it (WinGet, Chocolatey, Scoop, Program Files). If it is missing
   the clips are left alone and the result says so in words. Photos still send.
-- **Limits.** Up to 180 seconds and 45 MB after converting (a bigger one is tried again
-  smaller). Longer recordings are named and skipped: use GameCut for a whole game.
+- **Limits.** Up to 5 minutes and 45 MB after converting (a bigger one is tried again
+  smaller, twice). Longer recordings are named and skipped: use GameCut for a whole game.
 - **Originals are only read.** The fingerprint is of the original, so a clip is never sent
   twice. Clips cannot be posted to Instagram/Facebook yet; the service refuses.
 - **The date badge** counts photos and clips separately ("On 5Star: all 10 photos. On 5Star: 1 of 4 clips.").

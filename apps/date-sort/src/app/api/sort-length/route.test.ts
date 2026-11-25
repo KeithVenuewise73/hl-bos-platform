@@ -4,7 +4,7 @@ import { join } from "node:path";
 import { afterAll, describe, expect, it, vi } from "vitest";
 
 vi.mock("@hl-bos/date-sort/review", () => ({
-  MAX_CLIP_SECONDS: 180,
+  MAX_CLIP_SECONDS: 300,
   findTools: () => Promise.resolve({ ffmpeg: "x", ffprobe: "y", tonemap: false }),
   probeSeconds: (_t: unknown, f: string) => Promise.resolve(/long/.test(f) ? 4867 : 30),
   sortByLength: async (o: {
