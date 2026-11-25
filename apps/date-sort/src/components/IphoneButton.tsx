@@ -241,7 +241,15 @@ function IphoneCopy({
       const res = await fetch("/api/iphone", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ folder: into, kind, days, size, preview }),
+        // These buttons are shown only for a phone marked "only for 5 Star", so every day is allowed.
+        body: JSON.stringify({
+          folder: into,
+          kind,
+          days,
+          size,
+          preview,
+          allDates: true,
+        }),
       });
       if (!res.ok || res.body === null) {
         const out = (await res.json().catch(() => ({}))) as { error?: string };
