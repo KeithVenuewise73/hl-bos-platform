@@ -564,6 +564,10 @@ async function iphoneChecks(page, work) {
         characterData: true,
       });
     });
+    await page.evaluate(() => {
+      const d = document.querySelector("[data-testid=iphone-more]");
+      if (d) d.open = true;
+    });
     await page.click(`[data-testid=iphone-${kind}-button]`);
     return finished(kind);
   };
@@ -629,6 +633,10 @@ async function iphoneChecks(page, work) {
     JSON.stringify({ secondPhotos, secondVideos }),
   );
   // "Check size first" only looks: it says what is still to come and copies nothing.
+  await page.evaluate(() => {
+    const d = document.querySelector("[data-testid=iphone-more]");
+    if (d) d.open = true;
+  });
   await page.click("[data-testid=iphone-videos-check]");
   const checkedText = await page
     .waitForSelector("[data-testid=iphone-videos-checked]", { timeout: 120_000 })

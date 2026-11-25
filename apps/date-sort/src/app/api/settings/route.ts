@@ -1,4 +1,10 @@
-import { cleanEventNames, loadSettings, saveSettings } from "@hl-bos/date-sort/copy";
+import {
+  cleanEventNames,
+  cleanLast,
+  cleanPhones,
+  loadSettings,
+  saveSettings,
+} from "@hl-bos/date-sort/copy";
 
 import { guard } from "@/lib/guard.ts";
 
@@ -38,6 +44,10 @@ export async function POST(request: Request): Promise<Response> {
     eventNames?: unknown;
     iphoneFolder?: unknown;
     iphoneVideoFolder?: unknown;
+    iphoneBase?: unknown;
+    iphonePhones?: unknown;
+    /** One phone's last import: { phone, at }. */
+    iphoneLastImport?: unknown;
   };
   const destination =
     typeof body.destination === "string" && body.destination.trim() !== ""
@@ -51,11 +61,19 @@ export async function POST(request: Request): Promise<Response> {
     typeof body.iphoneVideoFolder === "string" && body.iphoneVideoFolder.trim() !== ""
       ? body.iphoneVideoFolder.trim()
       : null;
+  const iphoneBase =
+    typeof body.iphoneBase === "string" && body.iphoneBase.trim() !== ""
+      ? body.iphoneBase.trim()
+      : null;
+  const last = body.iphoneLastImport as { phone?: unknown; at?: unknown } | undefined;
   if (
     destination === null &&
     body.eventNames === undefined &&
     iphoneFolder === null &&
-    iphoneVideoFolder === null
+    iphoneVideoFolder === null &&
+    iphoneBase === null &&
+    body.iphonePhones === undefined &&
+    last === undefined
   ) {
     return Response.json(
       { error: "Expected a folder or event names." },
@@ -64,6 +82,10 @@ export async function POST(request: Request): Promise<Response> {
   }
   await oneAtATime(async () => {
     const now = await loadSettings();
+    const phones =
+      body.iphonePhones === undefined
+        ? (now.iphonePhones ?? [])
+        : cleanPhones(body.iphonePhones);
     await saveSettings({
       destination: destination ?? now.destination,
       eventNames:
@@ -73,6 +95,16 @@ export async function POST(request: Request): Promise<Response> {
       // Every save keeps the iPhone folder, or a destination save would forget it.
       iphoneFolder: iphoneFolder ?? now.iphoneFolder ?? null,
       iphoneVideoFolder: iphoneVideoFolder ?? now.iphoneVideoFolder ?? null,
+      iphoneBase: iphoneBase ?? now.iphoneBase ?? null,
+      iphonePhones: phones,
+      iphoneLast: cleanLast(
+        last !== undefined &&
+          typeof last.phone === "string" &&
+          typeof last.at === "string"
+          ? { ...(now.iphoneLast ?? {}), [last.phone]: last.at }
+          : (now.iphoneLast ?? {}),
+        phones,
+      ),
     });
   });
   return Response.json({ ok: true });

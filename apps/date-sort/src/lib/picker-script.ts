@@ -20,6 +20,9 @@ export const DESTINATION_TITLE = "DateSort - choose where the date folders go";
 /** The window for choosing where the iPhone's photos are kept. */
 export const IPHONE_TITLE = "DateSort - choose where to keep the iPhone's photos";
 /** The window for choosing where the iPhone's videos are kept. */
+/** The window for choosing where the one-button phone import keeps everything. */
+export const IPHONE_BASE_TITLE =
+  "DateSort - choose where to keep everything brought in from the phones";
 export const IPHONE_VIDEOS_TITLE =
   "DateSort - choose where to keep the iPhone's videos";
 

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 
+import { IphoneImport } from "@/components/IphoneImport.tsx";
 import { count } from "@/lib/format.ts";
 import {
   durationText,
@@ -72,14 +73,22 @@ export function IphoneButton({
 }) {
   return (
     <div className="space-y-4 border-t border-line pt-3" data-testid="iphone">
-      <IphoneCopy kind="photos" disabled={disabled} onReady={onReady} />
-      <IphoneCopy kind="videos" disabled={disabled} onReady={onReady} />
-      <p className="text-xs text-muted">
-        Only copies: nothing on the iPhone is moved, changed or deleted. Once you have
-        checked everything is in its folder, delete it on the phone yourself. Photos and
-        videos use one cable, so if you press both, the second waits for the first and
-        starts by itself.
-      </p>
+      <IphoneImport disabled={disabled} onReady={onReady} />
+      <details data-testid="iphone-more">
+        <summary className="cursor-pointer text-sm text-muted">
+          More options: photos or videos separately, how far back, by size
+        </summary>
+        <div className="space-y-4 pt-3">
+          <IphoneCopy kind="photos" disabled={disabled} onReady={onReady} />
+          <IphoneCopy kind="videos" disabled={disabled} onReady={onReady} />
+          <p className="text-xs text-muted">
+            Only copies: nothing on the iPhone is moved, changed or deleted. Once you
+            have checked everything is in its folder, delete it on the phone yourself.
+            Photos and videos use one cable, so if you press both, the second waits for
+            the first and starts by itself.
+          </p>
+        </div>
+      </details>
     </div>
   );
 }

@@ -171,6 +171,28 @@ and only to a name nothing else has). The copy then finishes in it, and no photo
 copied twice. If a date already has two or more folders, DateSort copies nothing
 for that date and lists them, so you can keep one.
 
+## One-button phone import (built)
+
+Under the folder box, **Bring in everything new from this phone** brings in a plugged-in iPhone's
+short clips, photos and game footage in one press.
+
+- **Name the phone once** (for example "Game phone 13 Pro"). Windows calls every iPhone "Apple
+  iPhone", and two phones number their files alike, so each named phone gets its own folder:
+  `<base>\<phone>\Short Clips`, `\Photos` and `\Game Footage`. The base folder (suggested as
+  `Phone Imports` beside the old photos folder) is chosen once and remembered.
+- **Three steps, in order** (they use the same copy as the older buttons): short clips under 1 GB,
+  then photos, then game footage over 1 GB. Untick any of them.
+- **Only what is new.** The first time for a phone it looks back 30 days; afterwards it looks back
+  to the last clean import (plus a few days' slack, never under a week). Files already in the
+  folder are skipped. A failed or interrupted import does not move that date forward.
+- **Check first** says what is new, step by step, with sizes, and copies nothing.
+- **When it finishes** the short clips folder is scanned, ready for "Send for review". Game footage
+  stays on the drive for GameCut.
+- The older photo and video buttons (size, how far back, their own folders) are still there under
+  **More options**. Nothing on the phone is ever moved or deleted.
+- Tests: `src/lib/iphone-import*.test.ts`, and a real-browser check with a stand-in phone,
+  `scripts/local-test/verify-phone-import.cjs` (run on Windows in CI).
+
 ## Show dates from (built)
 
 A drop-down above the date cards limits what is shown to recent shooting dates: **All dates**,
