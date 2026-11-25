@@ -102,16 +102,26 @@ describe("the iPhone copy script", () => {
     expect(DIALOG_CSHARP).toContain('TitleOf(h) != "Error Copying File or Folder"');
     expect(DIALOG_CSHARP).toContain("GetWindow(h, 4)");
     expect(DIALOG_CSHARP).toContain('StartsWith("Copying")');
+    // Windows' progress window retitles itself as it works ("37% complete"): that and its
+    // window class are recognised too, so a box over a retitled window is not left open.
+    expect(DIALOG_CSHARP).toContain('EndsWith("% complete")');
+    expect(DIALOG_CSHARP).toContain('"OperationStatusWindow"');
     expect(DIALOG_CSHARP).toContain("owner == IntPtr.Zero");
     // Closing is WM_CLOSE (same as OK on a one-button box); nothing else is sent.
     expect(DIALOG_CSHARP.match(/PostMessage\(/g)).toHaveLength(2); // declaration + one call
     expect(DIALOG_CSHARP).toContain("0x0010");
+    // A watcher thread does the looking: Windows' copy call can wait for a click on the box and
+    // never return, so looking only between steps would wait with it.
+    expect(DIALOG_CSHARP).toContain("StartWatching");
+    expect(DIALOG_CSHARP).toContain("TakeMessage");
+    expect(IPHONE_SCRIPT).toContain("[DateSortDialogs]::StartWatching()");
+    expect(IPHONE_SCRIPT).toContain("[DateSortDialogs]::TakeMessage()");
     // Windows PowerShell 5.1's old compiler: no string interpolation, no newer syntax.
     expect(DIALOG_CSHARP).not.toMatch(/\$"|=>|\?\.|nameof/);
     // The script compiles it, only watches while a file is copying, reports
     // what the box said, and counts the file as failed right away.
     expect(IPHONE_SCRIPT).toContain("Add-Type -TypeDefinition @'");
-    expect(IPHONE_SCRIPT).toContain("[DateSortDialogs]::DismissCopyError()");
+    expect(IPHONE_SCRIPT).toContain("[DateSortDialogs]::TakeMessage()");
     expect(IPHONE_SCRIPT).toContain("type = 'dialog'");
     expect(
       parseIphoneLine('{"type":"dialog","folder":"a","name":"b","text":"c"}'),

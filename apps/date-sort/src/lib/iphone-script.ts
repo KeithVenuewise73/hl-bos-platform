@@ -64,6 +64,7 @@ public static class DateSortDialogs {
   [DllImport("user32.dll")] private static extern bool EnumWindows(EnumProc cb, IntPtr p);
   [DllImport("user32.dll")] private static extern bool EnumChildWindows(IntPtr parent, EnumProc cb, IntPtr p);
   [DllImport("user32.dll", CharSet = CharSet.Unicode)] private static extern int GetWindowText(IntPtr h, StringBuilder s, int n);
+  [DllImport("user32.dll", CharSet = CharSet.Unicode)] private static extern int GetClassName(IntPtr h, StringBuilder s, int n);
   [DllImport("user32.dll")] private static extern bool IsWindowVisible(IntPtr h);
   [DllImport("user32.dll")] private static extern IntPtr GetWindow(IntPtr h, uint cmd);
   [DllImport("user32.dll")] private static extern bool PostMessage(IntPtr h, uint msg, IntPtr w, IntPtr l);
@@ -72,6 +73,42 @@ public static class DateSortDialogs {
     GetWindowText(h, s, 512);
     return s.ToString();
   }
+  private static string ClassOf(IntPtr h) {
+    StringBuilder s = new StringBuilder(256);
+    GetClassName(h, s, 256);
+    return s.ToString();
+  }
+  /// Windows' own copy progress window. Its title changes as it works ("Copying...", "37% complete"),
+  /// so the title alone is not enough: its window class is "OperationStatusWindow".
+  private static bool IsCopyProgress(IntPtr owner) {
+    string t = TitleOf(owner);
+    if (t.StartsWith("Copying") || t.StartsWith("Moving")) return true;
+    if (t.EndsWith("% complete")) return true;
+    return ClassOf(owner) == "OperationStatusWindow";
+  }
+  /// While a box is open Windows' own copy call may not return at all (it waits for a click), so the
+  /// script cannot look for the box between steps. A watcher thread looks every quarter second instead,
+  /// closes the box, and leaves what it said here for the script to collect.
+  private static readonly System.Collections.Generic.Queue<string> said = new System.Collections.Generic.Queue<string>();
+  private static System.Threading.Thread watcher;
+  public static void StartWatching() {
+    if (watcher != null) return;
+    watcher = new System.Threading.Thread(delegate () {
+      while (true) {
+        try {
+          string t = DismissCopyError();
+          if (t != null) { lock (said) { said.Enqueue(t); } }
+        } catch (Exception) { }
+        System.Threading.Thread.Sleep(250);
+      }
+    });
+    watcher.IsBackground = true;
+    watcher.Start();
+  }
+  /// What the watcher closed, oldest first; null when it has closed nothing since last asked.
+  public static string TakeMessage() {
+    lock (said) { return said.Count > 0 ? said.Dequeue() : null; }
+  }
   /// Closes one such box if there is one; returns what it said, or null.
   public static string DismissCopyError() {
     string found = null;
@@ -79,15 +116,15 @@ public static class DateSortDialogs {
       if (found != null || !IsWindowVisible(h)) return true;
       if (TitleOf(h) != "Error Copying File or Folder") return true;
       IntPtr owner = GetWindow(h, 4); // GW_OWNER: the window the box belongs to
-      if (owner == IntPtr.Zero || !TitleOf(owner).StartsWith("Copying")) return true;
-      StringBuilder said = new StringBuilder();
+      if (owner == IntPtr.Zero || !IsCopyProgress(owner)) return true;
+      StringBuilder words = new StringBuilder();
       EnumChildWindows(h, delegate (IntPtr c, IntPtr q) {
         string t = TitleOf(c);
-        if (t.Length > 2) { if (said.Length > 0) said.Append(" "); said.Append(t); }
+        if (t.Length > 2) { if (words.Length > 0) words.Append(" "); words.Append(t); }
         return true;
       }, IntPtr.Zero);
       PostMessage(h, 0x0010, IntPtr.Zero, IntPtr.Zero); // WM_CLOSE: same as OK on this box
-      found = said.Length > 0 ? said.ToString() : "(Windows gave no words)";
+      found = words.Length > 0 ? words.ToString() : "(Windows gave no words)";
       return true;
     }, IntPtr.Zero);
     return found;
@@ -107,6 +144,9 @@ try {
 ${DIALOG_CSHARP}
 '@
   $canDismiss = $true
+  # Watched all the time by its own thread: Windows' copy call can sit waiting for a click on the
+  # error box, and a script that only looks between steps would wait with it.
+  [DateSortDialogs]::StartWatching()
 } catch { }
 try {
   $shell = New-Object -ComObject Shell.Application
@@ -274,7 +314,7 @@ try {
       # Windows' own error box over our copy window: close it, say what it said,
       # and count this file as failed now instead of waiting two minutes.
       if ($canDismiss) {
-        $boxText = [DateSortDialogs]::DismissCopyError()
+        $boxText = [DateSortDialogs]::TakeMessage()
         if ($boxText) {
           Say @{ type = 'dialog'; folder = $x.folder; name = $x.name; text = $boxText }
           break
