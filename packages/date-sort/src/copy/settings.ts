@@ -21,6 +21,52 @@ export interface Settings {
   readonly iphoneFolder?: string | null;
   /** Where the iPhone's VIDEOS are kept: its own folder, so the two never mix. */
   readonly iphoneVideoFolder?: string | null;
+  /** Where the one-button phone import keeps everything: a folder per phone inside it. */
+  readonly iphoneBase?: string | null;
+  /** The phones the owner has named ("Game phone 13 Pro"): Windows calls every one "Apple iPhone". */
+  readonly iphonePhones?: readonly string[];
+  /** When each named phone was last brought in (ISO time), so the next time only asks for what is new. */
+  readonly iphoneLast?: Readonly<Record<string, string>>;
+}
+
+/** A phone's name is a short plain label; it becomes a folder name, so nothing odd is kept. */
+export function cleanPhoneName(raw: unknown): string | null {
+  if (typeof raw !== "string") return null;
+  const n = raw.replace(/\s+/g, " ").trim();
+  return n.length >= 1 && n.length <= 40 && /^[A-Za-z0-9][A-Za-z0-9 ._()+-]*$/.test(n)
+    ? n.replace(/[. ]+$/, "")
+    : null;
+}
+
+/** The named phones: unique, at most 12. */
+export function cleanPhones(raw: unknown): string[] {
+  if (!Array.isArray(raw)) return [];
+  const out: string[] = [];
+  for (const r of raw) {
+    const n = cleanPhoneName(r);
+    if (n !== null && n !== "" && !out.some((o) => o.toLowerCase() === n.toLowerCase()))
+      out.push(n);
+    if (out.length >= 12) break;
+  }
+  return out;
+}
+
+/** When each phone was last brought in: only real times, only for the named phones. */
+export function cleanLast(
+  raw: unknown,
+  phones: readonly string[],
+): Record<string, string> {
+  const out: Record<string, string> = {};
+  if (raw === null || typeof raw !== "object") return out;
+  for (const [name, at] of Object.entries(raw as Record<string, unknown>)) {
+    if (
+      phones.includes(name) &&
+      typeof at === "string" &&
+      Number.isFinite(Date.parse(at))
+    )
+      out[name] = new Date(at).toISOString();
+  }
+  return out;
 }
 
 /** Only real dates and short names are kept from whatever is in the file. */
@@ -53,13 +99,20 @@ export async function loadSettings(dir: string = settingsDir()): Promise<Setting
       eventNames?: unknown;
       iphoneFolder?: unknown;
       iphoneVideoFolder?: unknown;
+      iphoneBase?: unknown;
+      iphonePhones?: unknown;
+      iphoneLast?: unknown;
     };
+    const phones = cleanPhones(raw.iphonePhones);
     return {
       destination: typeof raw.destination === "string" ? raw.destination : null,
       eventNames: cleanEventNames(raw.eventNames),
       iphoneFolder: typeof raw.iphoneFolder === "string" ? raw.iphoneFolder : null,
       iphoneVideoFolder:
         typeof raw.iphoneVideoFolder === "string" ? raw.iphoneVideoFolder : null,
+      iphoneBase: typeof raw.iphoneBase === "string" ? raw.iphoneBase : null,
+      iphonePhones: phones,
+      iphoneLast: cleanLast(raw.iphoneLast, phones),
     };
   } catch {
     return {
@@ -67,6 +120,9 @@ export async function loadSettings(dir: string = settingsDir()): Promise<Setting
       eventNames: {},
       iphoneFolder: null,
       iphoneVideoFolder: null,
+      iphoneBase: null,
+      iphonePhones: [],
+      iphoneLast: {},
     };
   }
 }

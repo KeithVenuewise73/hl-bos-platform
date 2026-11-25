@@ -43,6 +43,7 @@ on:
       - "scripts/control-center.bat"
       - "scripts/assets/**"
       - "scripts/local-test/verify-date-sort.cjs"
+      - "scripts/local-test/verify-phone-import.cjs"
       - "scripts/local-test/pick-folder-in-dialog.ps1"
       - ".github/workflows/date-sort-windows.yml"
       - "pnpm-lock.yaml"
@@ -62,6 +63,7 @@ on:
       - "scripts/control-center.bat"
       - "scripts/assets/**"
       - "scripts/local-test/verify-date-sort.cjs"
+      - "scripts/local-test/verify-phone-import.cjs"
       - "scripts/local-test/pick-folder-in-dialog.ps1"
       - ".github/workflows/date-sort-windows.yml"
   workflow_dispatch:
@@ -285,6 +287,12 @@ jobs:
           }
           taskkill /T /F /PID $bat.Id 2>$null | Out-Null
           exit $result
+
+      - name: One-button phone import (real browser, stand-in phone)
+        # The phone's copy itself is proven by the iPhone script check; this proves the button: it asks
+        # for short clips, photos and game footage in order, into one folder per phone, remembers the
+        # phone and when it was last brought in, and stops in plain words when no phone is found.
+        run: node scripts/local-test/verify-phone-import.cjs
 
       - name: DateSort.bat collects new work from GitHub when it starts
         # The checkout acts as its own stand-in GitHub: a change is committed

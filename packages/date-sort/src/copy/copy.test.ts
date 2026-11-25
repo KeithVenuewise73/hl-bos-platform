@@ -27,7 +27,14 @@ import type { ScannedPhoto } from "../report";
 import { scanFolder } from "../scan";
 import { copyDays, CopyError, folderPlanForDay } from "./copy-day";
 import { cleanEventName, folderName, isInside, planDay } from "./plan";
-import { cleanEventNames, loadSettings, saveSettings } from "./settings";
+import {
+  cleanEventNames,
+  cleanLast,
+  cleanPhoneName,
+  cleanPhones,
+  loadSettings,
+  saveSettings,
+} from "./settings";
 import { copyOneFile, PARTIAL_SUFFIX } from "./write-file";
 
 let work: string;
@@ -545,6 +552,9 @@ describe("remembering the destination and event names", () => {
       eventNames: {},
       iphoneFolder: null,
       iphoneVideoFolder: null,
+      iphoneBase: null,
+      iphonePhones: [],
+      iphoneLast: {},
     });
     await saveSettings(
       {
@@ -558,6 +568,9 @@ describe("remembering the destination and event names", () => {
       eventNames: { "2025-11-08": "Zac K" },
       iphoneFolder: null,
       iphoneVideoFolder: null,
+      iphoneBase: null,
+      iphonePhones: [],
+      iphoneLast: {},
     });
   });
 
@@ -571,5 +584,48 @@ describe("remembering the destination and event names", () => {
       }),
     ).toEqual({ "2025-11-08": "Zac K" });
     expect(cleanEventNames(null)).toEqual({});
+  });
+});
+
+describe("remembering the named phones and when each was last brought in", () => {
+  it("keeps only short plain names (they become folder names)", () => {
+    expect(cleanPhoneName("  Game   phone 13 Pro ")).toBe("Game phone 13 Pro");
+    expect(cleanPhoneName("16 Pro Max (clips)")).toBe("16 Pro Max (clips)");
+    expect(cleanPhoneName("")).toBeNull();
+    expect(cleanPhoneName("..\\evil")).toBeNull();
+    expect(cleanPhoneName("a/b")).toBeNull();
+    expect(cleanPhoneName("x".repeat(41))).toBeNull();
+    expect(cleanPhoneName(42)).toBeNull();
+  });
+  it("lists each name once, at most 12", () => {
+    expect(cleanPhones(["A", "a", "B", "bad/name", 7])).toEqual(["A", "B"]);
+    expect(cleanPhones(Array.from({ length: 20 }, (_, i) => `P${i}`))).toHaveLength(12);
+    expect(cleanPhones("nope")).toEqual([]);
+  });
+  it("keeps real times only, and only for named phones", () => {
+    expect(
+      cleanLast(
+        { A: "2026-11-20T12:00:00Z", B: "yesterday", C: "2026-11-01T00:00:00Z" },
+        ["A", "B"],
+      ),
+    ).toEqual({ A: "2026-11-20T12:00:00.000Z" });
+  });
+  it("saves and loads them with the other settings", async () => {
+    const dir = join(work, "settings-phones");
+    await saveSettings(
+      {
+        destination: null,
+        eventNames: {},
+        iphoneBase: "D:\\Phone Imports",
+        iphonePhones: ["Game phone 13 Pro", "Clips phone"],
+        iphoneLast: { "Clips phone": "2026-11-24T10:00:00.000Z" },
+      },
+      dir,
+    );
+    expect(await loadSettings(dir)).toMatchObject({
+      iphoneBase: "D:\\Phone Imports",
+      iphonePhones: ["Game phone 13 Pro", "Clips phone"],
+      iphoneLast: { "Clips phone": "2026-11-24T10:00:00.000Z" },
+    });
   });
 });

@@ -11,6 +11,7 @@ export async function POST(request: Request): Promise<Response> {
   const outcome = await browseForFolder(
     body.purpose === "destination" ||
       body.purpose === "iphone" ||
+      body.purpose === "iphone-base" ||
       body.purpose === "iphone-videos"
       ? body.purpose
       : "source",

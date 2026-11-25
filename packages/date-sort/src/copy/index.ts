@@ -6,7 +6,15 @@ export type { CopyProgress, CopyRequest, DayRequest, DayResult } from "./copy-da
 export { freeBytes } from "./free-space";
 export { cleanEventName, folderName, isInside, planDay } from "./plan";
 export type { PlannedCopy } from "./plan";
-export { cleanEventNames, loadSettings, saveSettings, settingsDir } from "./settings";
+export {
+  cleanEventNames,
+  cleanLast,
+  cleanPhoneName,
+  cleanPhones,
+  loadSettings,
+  saveSettings,
+  settingsDir,
+} from "./settings";
 export type { Settings } from "./settings";
 export { copyOneFile, folderNames, PARTIAL_SUFFIX } from "./write-file";
 export type { CopyOutcome } from "./write-file";

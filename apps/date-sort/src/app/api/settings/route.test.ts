@@ -68,4 +68,40 @@ describe("remembering the iPhone's folder", () => {
     expect(b.iphoneFolder).toBe("D:\\Seagate\\More Photos");
     expect(b.iphoneVideoFolder).toBe("D:\\Seagate\\iPhone Videos");
   });
+
+  it("remembers the named phones, the base folder and each phone's last import", async () => {
+    expect(
+      (
+        await post({
+          iphonePhones: ["Game phone 13 Pro", "Clips phone", "bad/name"],
+          iphoneBase: "D:\\Phone Imports",
+        })
+      ).status,
+    ).toBe(200);
+    expect(
+      (
+        await post({
+          iphoneLastImport: { phone: "Clips phone", at: "2026-11-24T10:00:00Z" },
+        })
+      ).status,
+    ).toBe(200);
+    // A later save of something else keeps all of it.
+    expect((await post({ destination: "D:\\Seagate\\Sorted" })).status).toBe(200);
+    const after = (await read()) as unknown as {
+      iphoneBase: string;
+      iphonePhones: string[];
+      iphoneLast: Record<string, string>;
+    };
+    expect(after.iphoneBase).toBe("D:\\Phone Imports");
+    expect(after.iphonePhones).toEqual(["Game phone 13 Pro", "Clips phone"]);
+    expect(after.iphoneLast).toEqual({ "Clips phone": "2026-11-24T10:00:00.000Z" });
+  });
+
+  it("ignores a last-import time for a phone that is not named", async () => {
+    await post({
+      iphoneLastImport: { phone: "Ghost phone", at: "2026-11-24T10:00:00Z" },
+    });
+    const after = (await read()) as unknown as { iphoneLast: Record<string, string> };
+    expect(Object.keys(after.iphoneLast)).toEqual(["Clips phone"]);
+  });
 });
