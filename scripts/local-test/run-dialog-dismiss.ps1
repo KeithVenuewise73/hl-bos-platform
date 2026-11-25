@@ -60,4 +60,20 @@ if ($touched) { Write-Host "FAIL: closed a box that does not belong to a copy wi
 if (Test-Path $out2) { Write-Host "FAIL: the unowned box was closed"; $ok = $false }
 if ($p2.HasExited) { Write-Host "FAIL: the unowned box's process ended"; $ok = $false } else { Write-Host "unowned box: still open, as it should be"; $p2.Kill() }
 
+# 3. The watcher: a box that appears while nothing is looking is closed all the same, and what it
+#    said is left to be collected (this is what happens while Windows' copy call waits for a click).
+$out3 = Join-Path $T 'box-watched.txt'; Remove-Item $out3 -ErrorAction SilentlyContinue
+[DateSortDialogs]::StartWatching()
+$p3 = Start-Box $true $out3
+$said3 = $null
+for ($i = 0; $i -lt 100 -and -not $said3; $i++) { Start-Sleep -Milliseconds 300; $said3 = [DateSortDialogs]::TakeMessage() }
+Write-Host "watched box: collected [$said3]"
+if (-not $said3) { Write-Host "FAIL: the watcher did not close the box and keep what it said"; $ok = $false }
+elseif ($said3 -notmatch 'requested value cannot be determined') { Write-Host "FAIL: the watcher did not keep the box's words"; $ok = $false }
+for ($i = 0; $i -lt 50 -and -not (Test-Path $out3); $i++) { Start-Sleep -Milliseconds 200 }
+if (-not (Test-Path $out3)) { Write-Host "FAIL: the watched box never closed"; $ok = $false } else { Write-Host "watched box result: $(Get-Content $out3)" }
+if (-not $p3.HasExited) { $p3.Kill() }
+$none = [DateSortDialogs]::TakeMessage()
+if ($none) { Write-Host "FAIL: a message was left over after collecting it: [$none]"; $ok = $false }
+
 if ($ok) { Write-Host "ALL GOOD"; exit 0 } else { exit 1 }
