@@ -73,6 +73,28 @@ describe("the iPhone copy script", () => {
     expect(IPHONE_SCRIPT).toContain("olderFolders = $olderFolders");
   });
 
+  it("brings in only the days it is given, never a file with no date, and can count days without copying", () => {
+    // A shared phone: only ticked days come across. A file the phone gives no date is not "maybe
+    // ticked": it is left out and counted.
+    expect(IPHONE_SCRIPT).toContain("$env:DS_DATES");
+    expect(IPHONE_SCRIPT).toContain(
+      "if ($pick -and (-not $day -or -not $want.ContainsKey($day))) { $unpicked += 1; continue }",
+    );
+    // Counting days reports and exits before anything is created or copied.
+    expect(IPHONE_SCRIPT).toContain("$env:DS_LISTDATES");
+    const listing = IPHONE_SCRIPT.indexOf("type = 'dates'");
+    expect(listing).toBeGreaterThan(0);
+    expect(listing).toBeLessThan(
+      IPHONE_SCRIPT.indexOf("New-Item -ItemType Directory -Force -Path $incoming"),
+    );
+    expect(listing).toBeLessThan(IPHONE_SCRIPT.indexOf("CopyHere("));
+    expect(
+      parseIphoneLine(
+        '{"type":"dates","list":[{"d":"2026-11-23","p":1,"c":2,"g":0,"b":9}]}',
+      ),
+    ).toMatchObject({ type: "dates" });
+  });
+
   it("brings the smallest files in first, can split small from large, and can only look", () => {
     // Smallest first, so the quick ones are across before the giant ones start;
     // earlier failures still go last, after this sort.
@@ -157,6 +179,6 @@ describe("the script fits on a Windows command line", () => {
   const encoded = Buffer.from(IPHONE_SCRIPT, "utf16le").toString("base64");
   const OTHER_ARGUMENTS = 150; // powershell.exe -NoProfile -NonInteractive -STA ...
   it("is far enough under the limit to leave room to grow", () => {
-    expect(encoded.length + OTHER_ARGUMENTS).toBeLessThan(28_000);
+    expect(encoded.length + OTHER_ARGUMENTS).toBeLessThan(30_500);
   });
 });

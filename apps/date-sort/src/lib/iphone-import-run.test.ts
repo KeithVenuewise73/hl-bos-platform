@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { importSteps, ALL_CHOICES } from "./iphone-import";
-import { NO_PHONE, runStep } from "./iphone-import-run";
+import { listDates, NO_PHONE, runStep } from "./iphone-import-run";
 
 const step = importSteps("D:\\P", "Ph", ALL_CHOICES)[0]!;
 
@@ -88,7 +88,40 @@ describe("one step of the import", () => {
       days: 12,
       size: "small",
       preview: true,
+      allDates: true,
     });
+  });
+
+  it("sends the ticked days of a shared phone, never the 'every day' flag", async () => {
+    let body: Record<string, unknown> = {};
+    const f = ((_u: string, init?: RequestInit) => {
+      body = JSON.parse(init?.body as string) as Record<string, unknown>;
+      return Promise.resolve(new Response(`${JSON.stringify({ type: "done" })}\n`));
+    }) as unknown as typeof fetch;
+    await runStep(step, 30, false, () => undefined, f, ["2026-11-22", "2026-11-23"]);
+    expect(body["dates"]).toEqual(["2026-11-22", "2026-11-23"]);
+    expect(body["allDates"]).toBeUndefined();
+  });
+
+  it("counts a shared phone's days without copying, whether one day or several", async () => {
+    const row = { d: "2026-11-23", p: 12, c: 3, g: 1, b: 5_000_000_000 };
+    const many = await listDates(
+      "D:\\P",
+      30,
+      streamOf([{ type: "dates", list: [row] }]),
+    );
+    expect(many).toEqual({ kind: "ok", rows: [row], olderFolders: 0 });
+    // PowerShell writes a lone row as an object, not a list.
+    const one = await listDates("D:\\P", 30, streamOf([{ type: "dates", list: row }]));
+    expect(one).toEqual({ kind: "ok", rows: [row], olderFolders: 0 });
+    let body: Record<string, unknown> = {};
+    const f = ((_u: string, init?: RequestInit) => {
+      body = JSON.parse(init?.body as string) as Record<string, unknown>;
+      return Promise.resolve(new Response(`${JSON.stringify({ type: "none" })}\n`));
+    }) as unknown as typeof fetch;
+    const none = await listDates("D:\\P", 30, f);
+    expect(none).toEqual({ kind: "problem", message: NO_PHONE });
+    expect(body).toEqual({ list: true, folder: "D:\\P", days: 30 });
   });
 
   it("ends a size check at 'previewed'", async () => {

@@ -2,6 +2,7 @@ import {
   cleanEventNames,
   cleanLast,
   cleanPhones,
+  cleanWorkOnly,
   loadSettings,
   saveSettings,
 } from "@hl-bos/date-sort/copy";
@@ -46,6 +47,8 @@ export async function POST(request: Request): Promise<Response> {
     iphoneVideoFolder?: unknown;
     iphoneBase?: unknown;
     iphonePhones?: unknown;
+    /** The phones that are used for nothing but 5 Star. */
+    iphoneWorkOnly?: unknown;
     /** One phone's last import: { phone, at }. */
     iphoneLastImport?: unknown;
   };
@@ -73,6 +76,7 @@ export async function POST(request: Request): Promise<Response> {
     iphoneVideoFolder === null &&
     iphoneBase === null &&
     body.iphonePhones === undefined &&
+    body.iphoneWorkOnly === undefined &&
     last === undefined
   ) {
     return Response.json(
@@ -97,6 +101,10 @@ export async function POST(request: Request): Promise<Response> {
       iphoneVideoFolder: iphoneVideoFolder ?? now.iphoneVideoFolder ?? null,
       iphoneBase: iphoneBase ?? now.iphoneBase ?? null,
       iphonePhones: phones,
+      iphoneWorkOnly: cleanWorkOnly(
+        body.iphoneWorkOnly === undefined ? now.iphoneWorkOnly : body.iphoneWorkOnly,
+        phones,
+      ),
       iphoneLast: cleanLast(
         last !== undefined &&
           typeof last.phone === "string" &&

@@ -57,14 +57,34 @@ export async function POST(request: Request): Promise<Response> {
     days?: unknown;
     size?: unknown;
     preview?: unknown;
+    /** The days to bring in (yyyy-MM-dd). */
+    dates?: unknown;
+    /** Only for a phone used for nothing but 5 Star: bring in every day. */
+    allDates?: unknown;
+    /** Count what the phone has, day by day; nothing is copied. */
+    list?: unknown;
   };
-  if (body.kind !== "photos" && body.kind !== "videos") {
+  const list = body.list === true;
+  if (!list && body.kind !== "photos" && body.kind !== "videos") {
     return Response.json(
       { error: "Choose whether to bring in photos or videos." },
       { status: 400 },
     );
   }
-  const kind: IphoneKind = body.kind;
+  const kind: IphoneKind = body.kind === "photos" ? "photos" : "videos";
+  // Nothing comes off a phone unless the request names the days, or says outright that this phone
+  // is only for 5 Star. A request with neither is refused: no silent "everything".
+  const dates = Array.isArray(body.dates)
+    ? body.dates.filter(
+        (d): d is string => typeof d === "string" && /^\d{4}-\d{2}-\d{2}$/.test(d),
+      )
+    : [];
+  if (!list && dates.length === 0 && body.allDates !== true) {
+    return Response.json(
+      { error: "Choose which days to bring in from the phone first." },
+      { status: 400 },
+    );
+  }
   const days = parseDays(body.days);
   const size = body.size === "small" || body.size === "large" ? body.size : "all";
   const preview = body.preview === true;
@@ -153,7 +173,7 @@ export async function POST(request: Request): Promise<Response> {
             folder,
             kind,
             days,
-            { size, preview },
+            { size, preview: preview || list, dates, list },
             watch,
             stop.signal,
           );

@@ -24,6 +24,11 @@
  * separate folders, so each has its own .datesort-incoming and its own list of
  * earlier failures.
  *
+ * DS_DATES, when given, is a comma list of days (2026-11-23): only files the phone dates on one of
+ * those days come across, and a file with no date from the phone is never brought in. DS_LISTDATES=1
+ * only counts what the phone has for each day and reports it (nothing is copied or created). This is
+ * how a phone also used for family photos is kept out of the drive: only the days ticked come across.
+ *
  * DS_SIZE is "all", "small" or "large": small is up to DS_SPLIT_MB (1 GB if
  * not given), large is over it. Files are always brought in smallest first, so
  * a day's worth of short clips is across long before the giant ones start, and
@@ -200,6 +205,12 @@ try {
   if ($splitMb -le 0) { $splitMb = 1024 }
   $split = [int64]$splitMb * 1048576
   $held = 0
+  $want = @{}
+  foreach ($d in ([string]$env:DS_DATES -split ',')) { if ($d) { $want[$d] = $true } }
+  $pick = $want.Count -gt 0
+  $list = $env:DS_LISTDATES -eq '1'
+  $tally = @{}
+  $unpicked = 0
   $files = New-Object System.Collections.ArrayList
   foreach ($sub in @($root.Items())) {
     # Newer iPhones name their folders by month (202510_a). A month that ended before the
@@ -222,20 +233,35 @@ try {
       if (-not $name) { $name = $f.Name }
       if ($kind -eq 'videos' -and $name -notmatch $videoExt) { continue }
       if ($kind -eq 'photos' -and $name -notmatch $photoExt) { continue }
-      if ($cutoff) {
-        $when = $null
-        try { $when = [datetime]$f.ModifyDate } catch { }
-        if ($when -and $when.Year -gt 1980 -and $when -lt $cutoff) { $older += 1; continue }
-      }
+      if ($list -and $name -notmatch $videoExt -and $name -notmatch $photoExt) { continue }
+      $when = $null
+      try { $when = [datetime]$f.ModifyDate } catch { }
+      $day = $null
+      if ($when -and $when.Year -gt 1980) { $day = $when.ToString('yyyy-MM-dd') }
+      if ($cutoff -and $when -and $when.Year -gt 1980 -and $when -lt $cutoff) { $older += 1; continue }
+      if ($pick -and (-not $day -or -not $want.ContainsKey($day))) { $unpicked += 1; continue }
       # FolderItem.Size is 0 for files on an iPhone; the Size column Explorer shows
       # is the System.Size property, so ask for that and fall back to .Size.
       $sz = [int64]0
       try { $sz = [int64]$f.ExtendedProperty('System.Size') } catch { }
       if ($sz -le 0) { try { $sz = [int64]$f.Size } catch { } }
+      if ($list) {
+        $k = if ($name -match $photoExt) { 'p' } elseif ($sz -gt $split) { 'g' } else { 'c' }
+        $t = if ($day) { $day } else { 'none' }
+        if (-not $tally.ContainsKey($t)) { $tally[$t] = @{ p = 0; c = 0; g = 0; b = [int64]0 } }
+        $tally[$t][$k] += 1
+        $tally[$t].b += $sz
+        continue
+      }
       if ($size -eq 'small' -and $sz -gt $split) { $held += 1; continue }
       if ($size -eq 'large' -and $sz -le $split) { $held += 1; continue }
       [void]$files.Add([pscustomobject]@{ folder = $sub.Name; item = $f; name = $name; size = $sz })
     }
+  }
+  if ($list) {
+    $rows = @($tally.Keys | Sort-Object | ForEach-Object { @{ d = $_; p = $tally[$_].p; c = $tally[$_].c; g = $tally[$_].g; b = $tally[$_].b } })
+    Say @{ type = 'dates'; list = $rows; olderFolders = $olderFolders }
+    exit 0
   }
   # Smallest first: the quick ones are across before the big ones begin.
   $files = @($files | Sort-Object -Property size)
@@ -250,7 +276,7 @@ try {
   }
   $todo = 0; $todoBytes = [int64]0
   foreach ($x in $files) { if (-not (Have $x)) { $todo += 1; $todoBytes += $x.size } }
-  Say @{ type = 'found'; device = $device; total = $files.Count; bytes = $bytes; older = $older; olderFolders = $olderFolders; held = $held; todo = $todo; todoBytes = $todoBytes }
+  Say @{ type = 'found'; device = $device; total = $files.Count; bytes = $bytes; older = $older; olderFolders = $olderFolders; held = $held; unpicked = $unpicked; todo = $todo; todoBytes = $todoBytes }
   if ($env:DS_PREVIEW -eq '1') { Say @{ type = 'previewed' }; exit 0 }
 
   $incoming = Join-Path $dest '.datesort-incoming'
@@ -375,6 +401,22 @@ export type IphoneLine =
       readonly seen?: string;
     }
   | { readonly type: "looking"; readonly folder: string; readonly sofar: number }
+  /**
+   * "Show dates": what the phone has, day by day (only counted; nothing copied). `d` is the day the
+   * phone gives the file (yyyy-MM-dd), or "none" when it gives no date; p photos, c short clips,
+   * g long game recordings, b bytes.
+   */
+  | {
+      readonly type: "dates";
+      readonly list: readonly {
+        readonly d: string;
+        readonly p: number;
+        readonly c: number;
+        readonly g: number;
+        readonly b: number;
+      }[];
+      readonly olderFolders?: number;
+    }
   | {
       readonly type: "found";
       readonly device: string;
@@ -386,6 +428,8 @@ export type IphoneLine =
       readonly olderFolders?: number;
       /** Left out because of the size choice (the other half, for another time). */
       readonly held?: number;
+      /** Left out because its date is not one the person ticked (or the phone gave no date). */
+      readonly unpicked?: number;
       /** Not in the folder yet, and how big they are together. */
       readonly todo?: number;
       readonly todoBytes?: number;
@@ -449,6 +493,7 @@ export function parseIphoneLine(line: string): IphoneLine | null {
       case "none":
       case "locked":
       case "looking":
+      case "dates":
       case "found":
       case "file":
       case "done":

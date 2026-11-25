@@ -97,6 +97,16 @@ describe("remembering the iPhone's folder", () => {
     expect(after.iphoneLast).toEqual({ "Clips phone": "2026-11-24T10:00:00.000Z" });
   });
 
+  it("remembers which phones are only for 5 Star, and nothing else counts as one", async () => {
+    expect(
+      (await post({ iphoneWorkOnly: ["Game phone 13 Pro", "Ghost phone"] })).status,
+    ).toBe(200);
+    // A save of something else keeps it.
+    expect((await post({ destination: "D:\\Seagate\\Sorted2" })).status).toBe(200);
+    const after = (await read()) as unknown as { iphoneWorkOnly: string[] };
+    expect(after.iphoneWorkOnly).toEqual(["Game phone 13 Pro"]);
+  });
+
   it("ignores a last-import time for a phone that is not named", async () => {
     await post({
       iphoneLastImport: { phone: "Ghost phone", at: "2026-11-24T10:00:00Z" },

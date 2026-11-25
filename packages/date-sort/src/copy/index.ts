@@ -11,6 +11,7 @@ export {
   cleanLast,
   cleanPhoneName,
   cleanPhones,
+  cleanWorkOnly,
   loadSettings,
   saveSettings,
   settingsDir,

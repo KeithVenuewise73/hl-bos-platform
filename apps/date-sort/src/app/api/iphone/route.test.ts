@@ -13,6 +13,8 @@ interface Call {
   days: number | null;
   size: string;
   preview: boolean;
+  dates?: string[];
+  list?: boolean;
 }
 const calls: Call[] = [];
 const order: string[] = [];
@@ -24,7 +26,7 @@ vi.mock("@/lib/iphone.ts", () => ({
     folder: string,
     kind: string,
     days: number | null,
-    options: { size: string; preview: boolean },
+    options: { size: string; preview: boolean; dates?: string[]; list?: boolean },
     onLine: (l: { type: string }) => void,
   ) => {
     calls.push({ folder, kind, days, ...options });
@@ -53,7 +55,7 @@ const press = (body: unknown, signal?: AbortSignal) =>
     new Request("http://127.0.0.1:4604/api/iphone", {
       method: "POST",
       headers: local,
-      body: JSON.stringify(body),
+      body: JSON.stringify({ allDates: true, ...(body as object) }),
       ...(signal ? { signal } : {}),
     }),
   );
@@ -98,6 +100,52 @@ describe("bringing in the iPhone's photos and videos", () => {
     await lines(d);
     expect(calls.map((x) => x.days)).toEqual([30, null, null, 7]);
     expect(calls.slice(0, 3).every((x) => x.kind === "photos")).toBe(true);
+  });
+
+  it("refuses to bring in anything unless days are named or the phone is marked 5 Star only", async () => {
+    calls.length = 0;
+    const post = (body: unknown) =>
+      POST(
+        new Request("http://127.0.0.1:4604/api/iphone", {
+          method: "POST",
+          headers: local,
+          body: JSON.stringify(body),
+        }),
+      );
+    for (const body of [
+      { folder: "D:\\V", kind: "videos" },
+      { folder: "D:\\V", kind: "videos", dates: [] },
+      { folder: "D:\\V", kind: "videos", dates: ["yesterday", "*", 7] },
+      { folder: "D:\\V", kind: "videos", allDates: "yes" },
+    ]) {
+      const res = await post(body);
+      expect(res.status).toBe(400);
+    }
+    expect(calls).toHaveLength(0); // the phone was never asked for a single file
+    const ok = await post({
+      folder: "D:\\V",
+      kind: "videos",
+      dates: ["2026-11-23", "bad"],
+    });
+    expect(ok.status).toBe(200);
+    await open("videos");
+    await lines(ok);
+    expect(calls.at(-1)?.dates).toEqual(["2026-11-23"]); // only the real day is passed on
+  });
+
+  it("counts the phone's days without a kind, and without copying", async () => {
+    calls.length = 0;
+    const res = await POST(
+      new Request("http://127.0.0.1:4604/api/iphone", {
+        method: "POST",
+        headers: local,
+        body: JSON.stringify({ list: true, folder: "D:\\V", days: 30 }),
+      }),
+    );
+    expect(res.status).toBe(200);
+    await open("videos");
+    await lines(res);
+    expect(calls.at(-1)?.list).toBe(true);
   });
 
   it("passes the size choice and the check-only request, and ignores nonsense", async () => {

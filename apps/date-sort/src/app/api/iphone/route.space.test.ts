@@ -69,7 +69,7 @@ const press = (body: unknown) =>
     new Request("http://127.0.0.1:4604/api/iphone", {
       method: "POST",
       headers: local,
-      body: JSON.stringify(body),
+      body: JSON.stringify({ allDates: true, ...(body as object) }),
     }),
   );
 interface Line {

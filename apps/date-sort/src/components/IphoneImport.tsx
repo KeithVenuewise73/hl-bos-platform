@@ -1,23 +1,30 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 
 import {
   ALL_CHOICES,
   checkSentence,
   defaultBaseFolder,
+  dayContents,
+  dayLabel,
   doneLines,
+  FIRST_TIME_DAYS,
   importSteps,
   isClean,
   liveLine,
   lookBackDays,
   lookBackSentence,
+  NO_DATE,
   phoneFolders,
+  pickedSentence,
+  sortDays,
   type ImportChoices,
+  type DayRow,
   type ImportStep,
   type StepResult,
 } from "@/lib/iphone-import.ts";
-import { runStep, type StepProgress } from "@/lib/iphone-import-run.ts";
+import { listDates, runStep, type StepProgress } from "@/lib/iphone-import-run.ts";
 import { secondsLeft } from "@/lib/iphone-progress.ts";
 import { folderWarning } from "@/lib/iphone-space.ts";
 
@@ -26,6 +33,7 @@ interface Settings {
   iphoneBase?: string | null;
   iphonePhones?: string[];
   iphoneLast?: Record<string, string>;
+  iphoneWorkOnly?: string[];
 }
 
 type State =
@@ -39,6 +47,7 @@ type State =
       readonly progress: StepProgress | null;
       readonly preview: boolean;
     }
+  | { readonly kind: "counting" }
   | { readonly kind: "checked"; readonly text: string }
   | {
       readonly kind: "done";
@@ -69,9 +78,12 @@ async function save(body: Record<string, unknown>): Promise<void> {
 export function IphoneImport({
   disabled,
   onReady,
+  workOnlyExtra,
 }: {
   disabled: boolean;
   onReady: (folder: string) => void;
+  /** Shown only for a phone used for nothing but 5 Star (the older all-days buttons). */
+  workOnlyExtra?: ReactNode;
 }) {
   const [loaded, setLoaded] = useState(false);
   const [base, setBase] = useState<string | null>(null);
@@ -79,6 +91,11 @@ export function IphoneImport({
   const [phones, setPhones] = useState<string[]>([]);
   const [last, setLast] = useState<Record<string, string>>({});
   const [phone, setPhone] = useState<string>("");
+  const [workOnly, setWorkOnly] = useState<string[]>([]);
+  // A shared phone: the days it has, and which of them were ticked.
+  const [dayRows, setDayRows] = useState<readonly DayRow[] | null>(null);
+  const [olderMonths, setOlderMonths] = useState(0);
+  const [ticked, setTicked] = useState<ReadonlySet<string>>(new Set());
   const [adding, setAdding] = useState(false);
   const [newName, setNewName] = useState("");
   const [choices, setChoices] = useState<ImportChoices>(ALL_CHOICES);
@@ -94,6 +111,7 @@ export function IphoneImport({
         const lastMap = s.iphoneLast ?? {};
         setPhones(names);
         setLast(lastMap);
+        setWorkOnly(s.iphoneWorkOnly ?? []);
         const recent = [...names].sort(
           (a, b) => Date.parse(lastMap[b] ?? "0") - Date.parse(lastMap[a] ?? "0"),
         )[0];
@@ -175,6 +193,48 @@ export function IphoneImport({
     await save({ iphonePhones: next });
   }
 
+  async function markWorkOnly(on: boolean) {
+    const next = on
+      ? [...workOnly.filter((p) => p !== phone), phone]
+      : workOnly.filter((p) => p !== phone);
+    setWorkOnly(next);
+    setDayRows(null);
+    setTicked(new Set());
+    setState({ kind: "idle" });
+    await save({ iphoneWorkOnly: next });
+  }
+
+  /** A shared phone: count what it has, day by day. Nothing is copied. */
+  async function showDays() {
+    if (running.current) return;
+    if (phone === "") {
+      setState({
+        kind: "problem",
+        message:
+          "Tell DateSort which phone this is first (for example Game phone 13 Pro).",
+        lines: [],
+      });
+      return;
+    }
+    const into = base ?? (await chooseBase());
+    if (into === null) return;
+    running.current = true;
+    setState({ kind: "counting" });
+    try {
+      const out = await listDates(into, FIRST_TIME_DAYS);
+      if (out.kind === "problem") {
+        setState({ kind: "problem", message: out.message, lines: [] });
+        return;
+      }
+      setDayRows(sortDays(out.rows));
+      setOlderMonths(out.olderFolders);
+      setTicked(new Set());
+      setState({ kind: "idle" });
+    } finally {
+      running.current = false;
+    }
+  }
+
   async function bringIn(preview: boolean) {
     if (running.current) return;
     if (phone === "") {
@@ -192,6 +252,17 @@ export function IphoneImport({
       await save({ iphoneBase: into });
       setSuggested(false);
     }
+    const shared = !workOnly.includes(phone);
+    const pick = shared ? [...ticked] : null;
+    if (shared && (pick?.length ?? 0) === 0) {
+      setState({
+        kind: "problem",
+        message:
+          "This phone is shared, so tick the days to bring in first. Nothing comes across from a day you leave unticked.",
+        lines: [],
+      });
+      return;
+    }
     const steps = importSteps(into, phone, choices);
     if (steps.length === 0) {
       setState({
@@ -203,7 +274,8 @@ export function IphoneImport({
     }
     running.current = true;
     const startedAt = new Date();
-    const days = lookBackDays(last[phone], startedAt);
+    // A shared phone is always asked about the same month, so a day left unticked is not lost.
+    const days = shared ? FIRST_TIME_DAYS : lookBackDays(last[phone], startedAt);
     const results: StepResult[] = [];
     try {
       for (const [index, step] of steps.entries()) {
@@ -217,16 +289,22 @@ export function IphoneImport({
           preview,
         });
         const began = Date.now();
-        const out = await runStep(step, days, preview, (progress) =>
-          setState({
-            kind: "running",
-            step,
-            index,
-            total: steps.length,
-            startedAt: began,
-            progress,
-            preview,
-          }),
+        const out = await runStep(
+          step,
+          days,
+          preview,
+          (progress) =>
+            setState({
+              kind: "running",
+              step,
+              index,
+              total: steps.length,
+              startedAt: began,
+              progress,
+              preview,
+            }),
+          fetch,
+          pick,
         );
         results.push(out.result);
         if (out.kind === "problem") {
@@ -241,13 +319,13 @@ export function IphoneImport({
       if (preview) {
         setState({
           kind: "checked",
-          text: `${lookBackSentence(last[phone], days)} ${checkSentence(results)}`,
+          text: `${shared ? `Only the ${pick?.length ?? 0} ticked ${pick?.length === 1 ? "day" : "days"}.` : lookBackSentence(last[phone], days)} ${checkSentence(results)}`,
         });
         return;
       }
       const clean = isClean(results);
       setState({ kind: "done", lines: doneLines(results), clean });
-      if (clean) {
+      if (clean && !shared) {
         const at = startedAt.toISOString();
         setLast((l) => ({ ...l, [phone]: at }));
         await save({ iphoneLastImport: { phone, at } });
@@ -264,7 +342,9 @@ export function IphoneImport({
     }
   }
 
-  const busy = state.kind === "running";
+  const busy = state.kind === "running" || state.kind === "counting";
+  const isWorkOnly = phone !== "" && workOnly.includes(phone);
+  const needDays = !isWorkOnly && dayRows === null;
   const warn = base !== null ? folderWarning(base, "videos") : null;
   const tick = (key: keyof ImportChoices, v: boolean) =>
     setChoices((c) => ({ ...c, [key]: v }));
@@ -314,7 +394,12 @@ export function IphoneImport({
               value={phone}
               onChange={(e) => {
                 if (e.target.value === ADD) setAdding(true);
-                else setPhone(e.target.value);
+                else {
+                  setPhone(e.target.value);
+                  setDayRows(null);
+                  setTicked(new Set());
+                  setState({ kind: "idle" });
+                }
               }}
             >
               {phones.map((p) => (
@@ -327,6 +412,26 @@ export function IphoneImport({
           </label>
         )}
       </div>
+      {phone !== "" && !adding ? (
+        <div className="space-y-1 text-sm" data-testid="phone-sharing">
+          <label className="flex items-center gap-1">
+            <input
+              type="checkbox"
+              data-testid="phone-work-only"
+              checked={isWorkOnly}
+              disabled={busy}
+              onChange={(e) => void markWorkOnly(e.target.checked)}
+            />
+            This phone is used only for 5 Star
+          </label>
+          {isWorkOnly ? null : (
+            <p className="text-xs text-muted" data-testid="phone-shared-note">
+              Shared phone: you pick the days to bring in, so personal photos and videos
+              stay on the phone and never reach the drive.
+            </p>
+          )}
+        </div>
+      ) : null}
       <div
         className="flex flex-wrap items-center gap-4 text-sm"
         data-testid="phone-choices"
@@ -368,21 +473,29 @@ export function IphoneImport({
           className="btn-ghost"
           data-testid="phone-import-button"
           disabled={disabled || busy || !loaded}
-          onClick={() => void bringIn(false)}
+          onClick={() => void (needDays ? showDays() : bringIn(false))}
         >
-          {busy
-            ? "Bringing in from the phone…"
-            : "Bring in everything new from this phone"}
+          {state.kind === "counting"
+            ? "Counting what is on the phone…"
+            : busy
+              ? "Bringing in from the phone…"
+              : needDays
+                ? "Show the days on this phone"
+                : isWorkOnly
+                  ? "Bring in everything new from this phone"
+                  : "Bring in the ticked days"}
         </button>
-        <button
-          type="button"
-          className="underline text-sm"
-          data-testid="phone-import-check"
-          disabled={disabled || busy || !loaded}
-          onClick={() => void bringIn(true)}
-        >
-          Check first
-        </button>
+        {needDays ? null : (
+          <button
+            type="button"
+            className="underline text-sm"
+            data-testid="phone-import-check"
+            disabled={disabled || busy || !loaded}
+            onClick={() => void bringIn(true)}
+          >
+            Check first
+          </button>
+        )}
         <span className="text-xs text-muted" data-testid="phone-base">
           {base === null ? (
             "You'll choose where to keep everything the first time."
@@ -407,6 +520,61 @@ export function IphoneImport({
           )}
         </span>
       </div>
+      {!isWorkOnly && dayRows !== null ? (
+        <div className="space-y-2" data-testid="phone-days">
+          <p className="text-sm">
+            {dayRows.length === 0
+              ? "Nothing from the last 30 days was found on this phone."
+              : "Tick only the days you shot for 5 Star. Days you leave unticked are not copied."}
+          </p>
+          {dayRows.map((r) =>
+            r.d === NO_DATE ? (
+              <p key={r.d} className="text-xs text-muted" data-testid="day-none">
+                {dayContents(r)} have no date from the phone, so they are never brought
+                in.
+              </p>
+            ) : (
+              <label key={r.d} className="flex items-start gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  data-testid={`day-${r.d}`}
+                  checked={ticked.has(r.d)}
+                  disabled={busy}
+                  onChange={(e) =>
+                    setTicked((t) => {
+                      const next = new Set(t);
+                      if (e.target.checked) next.add(r.d);
+                      else next.delete(r.d);
+                      return next;
+                    })
+                  }
+                />
+                <span>
+                  <span className="font-medium">{dayLabel(r.d)}</span>
+                  <span className="text-muted"> · {dayContents(r)}</span>
+                </span>
+              </label>
+            ),
+          )}
+          {olderMonths > 0 ? (
+            <p className="text-xs text-muted">
+              Older months on the phone are not shown. Only the last 30 days are.
+            </p>
+          ) : null}
+          <p className="text-xs text-muted" data-testid="phone-picked">
+            {pickedSentence(ticked.size)}{" "}
+            <button
+              type="button"
+              className="underline"
+              disabled={busy}
+              onClick={() => void showDays()}
+            >
+              Count again
+            </button>
+          </p>
+        </div>
+      ) : null}
+      {isWorkOnly ? workOnlyExtra : null}
       {warn !== null ? (
         <p className="text-sm text-amber-500" data-testid="phone-base-warning">
           {warn}
