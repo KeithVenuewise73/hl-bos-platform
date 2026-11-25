@@ -97,6 +97,8 @@ export interface AllTotals {
   readonly alreadyThere: number;
   readonly largeAdded: number;
   readonly failedPhotos: number;
+  /** Why each one could not be sent, in the page's own words (file name and reason). */
+  readonly failedReasons?: readonly string[];
   readonly clipsSent: number;
   readonly clipsAlreadyThere: number;
   /** Clips left unsent because the free video tool (ffmpeg) is missing. */
@@ -146,6 +148,11 @@ export function allDoneLines(
   if (t.failedPhotos > 0)
     lines.push(
       `${photos(t.failedPhotos)} could not be sent. Send those dates again to retry just them.`,
+    );
+  for (const why of (t.failedReasons ?? []).slice(0, 5)) lines.push(`• ${why}`);
+  if ((t.failedReasons ?? []).length > 5)
+    lines.push(
+      `• and ${(t.failedReasons ?? []).length - 5} more. Each date's card lists its own.`,
     );
   if (t.skippedDays.length > 0)
     lines.push(
