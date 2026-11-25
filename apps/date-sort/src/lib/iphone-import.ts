@@ -286,10 +286,10 @@ export function sortSentence(
   apply: boolean,
 ): string {
   if (r.long === 0)
-    return `Looked at ${n(r.looked)} ${r.looked === 1 ? "video" : "videos"}: all are short clips (3 minutes or less).${r.unreadable > 0 ? ` ${n(r.unreadable)} could not be read and were left alone.` : ""}`;
+    return `Looked at ${n(r.looked)} ${r.looked === 1 ? "video" : "videos"}: all are short clips (${CLIP_MINUTES} minutes or less).${r.unreadable > 0 ? ` ${n(r.unreadable)} could not be read and were left alone.` : ""}`;
   const base = apply
-    ? `${n(r.moved)} of ${n(r.long)} ${r.long === 1 ? "video is" : "videos are"} longer than 3 minutes, so ${r.moved === 1 ? "it was" : "they were"} moved from Short Clips to Game Footage (they are game recordings; GameCut can join them).`
-    : `${n(r.long)} ${r.long === 1 ? "video is" : "videos are"} longer than 3 minutes and would move from Short Clips to Game Footage.`;
+    ? `${n(r.moved)} of ${n(r.long)} ${r.long === 1 ? "video is" : "videos are"} longer than ${CLIP_MINUTES} minutes, so ${r.moved === 1 ? "it was" : "they were"} moved from Short Clips to Game Footage (they are game recordings; GameCut can join them).`
+    : `${n(r.long)} ${r.long === 1 ? "video is" : "videos are"} longer than ${CLIP_MINUTES} minutes and would move from Short Clips to Game Footage.`;
   const extra: string[] = [];
   if (r.conflicts > 0)
     extra.push(
@@ -301,3 +301,6 @@ export function sortSentence(
     );
   return extra.length > 0 ? `${base} ${extra.join("; ")}.` : base;
 }
+
+/** A video longer than this is a game recording, not a clip (the same limit the clip sender uses). */
+export const CLIP_MINUTES = 5;

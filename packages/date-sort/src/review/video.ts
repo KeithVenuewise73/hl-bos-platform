@@ -11,9 +11,9 @@
  * making, removed when the clip is done.
  *
  * The rules a clip must meet are written here, not guessed:
- *   - up to MAX_CLIP_SECONDS long (these are plays and shifts, not whole games: GameCut is for those);
+ *   - up to MAX_CLIP_SECONDS long, 5 minutes (these are plays and shifts, not whole games: GameCut is for those);
  *   - the converted file must fit MAX_CLIP_BYTES (the website takes 50 MB): if the first try is too
- *     big it is converted again smaller, and if that is still too big the clip is left out, with the reason.
+ *     big it is converted again smaller (twice), and if that is still too big the clip is left out, with the reason.
  */
 
 import { spawn } from "node:child_process";
@@ -25,7 +25,7 @@ import sharp from "sharp";
 
 import { hashOf, type ReviewCandidate } from "./prepare";
 
-export const MAX_CLIP_SECONDS = 180;
+export const MAX_CLIP_SECONDS = 300;
 export const MAX_CLIP_BYTES = 45 * 1024 * 1024;
 
 export class ClipError extends Error {}
@@ -203,10 +203,14 @@ export function parseProbe(json: unknown): ClipFacts | null {
 
 // --- converting ------------------------------------------------------------------------------------
 
-/** First try, then a smaller second try when the file came out too big. */
+/**
+ * First try, then smaller tries when the file came out too big. The last one is small enough that a
+ * clip of the longest allowed length (5 minutes) fits: 900 kbit/s x 300 s is about 34 MB.
+ */
 const TRIES = [
-  { edge: 1920, crf: 26, maxrate: "6M" },
-  { edge: 1280, crf: 30, maxrate: "2500k" },
+  { edge: 1920, crf: 26, maxrate: "6M", bufsize: "12M" },
+  { edge: 1280, crf: 30, maxrate: "2500k", bufsize: "5000k" },
+  { edge: 960, crf: 36, maxrate: "900k", bufsize: "1800k" },
 ] as const;
 
 /** The ffmpeg arguments for one conversion. Pure, so the rules are tested without a video. */
@@ -214,7 +218,7 @@ export function transcodeArgs(
   input: string,
   output: string,
   facts: ClipFacts,
-  tryNo: 0 | 1,
+  tryNo: 0 | 1 | 2,
   tonemap: boolean,
 ): string[] {
   const t = TRIES[tryNo];
@@ -243,7 +247,7 @@ export function transcodeArgs(
     "-maxrate",
     t.maxrate,
     "-bufsize",
-    t.maxrate.endsWith("M") ? `${Number(t.maxrate.slice(0, -1)) * 2}M` : "5000k",
+    t.bufsize,
     "-pix_fmt",
     "yuv420p",
     "-profile:v",
@@ -308,7 +312,7 @@ export async function prepareClip(
   if (facts === null) throw new ClipError(`${file} could not be read as a video.`);
   if (facts.durationSeconds > MAX_CLIP_SECONDS)
     throw new ClipError(
-      `${file} is ${Math.round(facts.durationSeconds)} seconds long. Clips for the game page are up to ${MAX_CLIP_SECONDS} seconds; use GameCut for a whole game.`,
+      `${file} is ${Math.round(facts.durationSeconds)} seconds long. Clips for the game page are up to ${MAX_CLIP_SECONDS / 60} minutes; use GameCut for a whole game.`,
     );
 
   const notes: string[] = [];
@@ -320,7 +324,7 @@ export async function prepareClip(
   try {
     const out = join(dir, "clip.mp4");
     let video: Buffer | null = null;
-    for (const tryNo of [0, 1] as const) {
+    for (const tryNo of [0, 1, 2] as const) {
       const r = await run(
         tools.ffmpeg,
         transcodeArgs(input, out, facts, tryNo, tools.tonemap),

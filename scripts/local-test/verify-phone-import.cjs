@@ -383,7 +383,7 @@ function answer(body, mode) {
         sortRequests[0].apply === true &&
         sortRequests[0].clipsFolder ===
           "D:\\Phone Imports\\Game phone 13 Pro\\Short Clips" &&
-        /3 of 3 videos are longer than 3 minutes/.test(done),
+        /3 of 3 videos are longer than 5 minutes/.test(done),
       { sortRequests, done },
     );
     check(

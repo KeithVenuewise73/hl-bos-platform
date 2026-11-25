@@ -13,6 +13,8 @@ import {
   ffmpegCandidates,
   ffprobeBeside,
   findTools,
+  MAX_CLIP_BYTES,
+  MAX_CLIP_SECONDS,
   parseProbe,
   prepareClip,
   transcodeArgs,
@@ -120,6 +122,16 @@ describe("the conversion rules", () => {
     expect(a).toContain("-an");
     expect(a).not.toContain("aac");
   });
+  it("has a third, smaller try that fits the longest allowed clip under the website's limit", () => {
+    const third = transcodeArgs("in.mov", "out.mp4", facts, 2, false).join(" ");
+    expect(third).toMatch(/min\(960/);
+    expect(third).toMatch(/-maxrate 900k -bufsize 1800k/);
+    // 900 kbit/s of video + 128 kbit/s of sound for MAX_CLIP_SECONDS stays under MAX_CLIP_BYTES
+    expect(((900 + 128) * 1000 * MAX_CLIP_SECONDS) / 8).toBeLessThan(MAX_CLIP_BYTES);
+  });
+  it("allows clips up to five minutes", () => {
+    expect(MAX_CLIP_SECONDS).toBe(300);
+  });
   it("converts HDR colours only when ffmpeg can", () => {
     const hdr = { ...facts, hdr: true };
     expect(transcodeArgs("i", "o", hdr, 0, true).join(" ")).toMatch(/tonemap/);
@@ -222,7 +234,7 @@ describe.skipIf(tools === null)("with a real ffmpeg", () => {
       "-f",
       "lavfi",
       "-i",
-      "color=c=blue:size=160x90:rate=1:duration=200",
+      "color=c=blue:size=160x90:rate=1:duration=400",
       "-c:v",
       "libx264",
       "-pix_fmt",
@@ -231,7 +243,7 @@ describe.skipIf(tools === null)("with a real ffmpeg", () => {
     ]);
     const [cand] = (await listForReview(dir)).clips;
     await expect(prepareClip(dir, cand!, t)).rejects.toThrow(
-      /up to 180 seconds; use GameCut/,
+      /up to 5 minutes; use GameCut/,
     );
   }, 60_000);
 
