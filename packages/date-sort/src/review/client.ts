@@ -96,12 +96,21 @@ const CHUNK = 10;
 
 /** Waits (ms) before each retry of a failed request: three retries. */
 const RETRY_DELAYS_MS = [2_000, 6_000, 15_000] as const;
+/**
+ * Statuses that mean a passing problem somewhere between here and the website's storage: the server
+ * (500, 502, 504), a request that timed out or was rate-limited (408, 429), and the proxy in front
+ * of the storage answering "unknown error" or "unreachable" (520 to 524). 503 is not here: the
+ * service answers it when the review area is not switched on, which trying again cannot change.
+ */
+const RETRY_STATUSES: readonly number[] = [
+  500, 502, 504, 408, 429, 520, 521, 522, 523, 524,
+];
 /** One request that has not answered in this long is given up on and tried again. */
 const ATTEMPT_TIMEOUT_MS = 60_000;
 
 /**
  * A fetch that tries again when the website or its storage has a passing
- * problem: no answer, a dropped connection, or a 500, 502 or 504. Everything
+ * problem: no answer, a dropped connection, or a 500, 502, 504, 408, 429 or 520 to 524. Everything
  * DateSort sends is safe to repeat (uploads overwrite, commits skip what is
  * already there). A refusal that will not change by trying again (401, 409,
  * 503, anything 4xx) is returned at once. Stopping the send stops the retries.
@@ -122,7 +131,7 @@ export function withRetry(
       };
       try {
         const res = await fetchImpl(input, attemptInit);
-        if (last || ![500, 502, 504].includes(res.status)) return res;
+        if (last || !RETRY_STATUSES.includes(res.status)) return res;
       } catch (e) {
         if (last || signal?.aborted === true) throw e;
       }

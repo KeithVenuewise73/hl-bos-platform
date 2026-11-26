@@ -478,6 +478,18 @@ describe("retrying a passing problem", () => {
     expect(calls).toBe(3);
   });
 
+  it("tries again after the 520 the website's file storage once answered mid-send (and its relatives)", async () => {
+    for (const status of [520, 521, 522, 523, 524, 408, 429, 500, 502]) {
+      let calls = 0;
+      const f = withRetry(
+        () => Promise.resolve(++calls < 2 ? fail(status) : ok()),
+        [1, 1],
+      );
+      expect((await f("https://x.test/a")).status).toBe(200);
+      expect(calls).toBe(2);
+    }
+  });
+
   it("tries again after a dropped connection, then gives up after the last retry", async () => {
     let calls = 0;
     const f = withRetry(() => {
