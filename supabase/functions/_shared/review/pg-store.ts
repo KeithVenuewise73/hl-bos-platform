@@ -56,7 +56,9 @@ export function pgStore(sql: any): ReviewStore {
       return [
         ...(await sql`select f.name as name, coalesce(f.sport, '') as sport, t.name as team,
                              (count(p.id) filter (where p.video_path is null))::int as photos,
-                             (count(p.id) filter (where p.video_path is not null))::int as clips
+                             (count(p.id) filter (where p.video_path is not null))::int as clips,
+                             to_char(min(p.taken_at), 'HH24:MI') as first_at,
+                             to_char(max(p.taken_at), 'HH24:MI') as last_at
                         from review.folders f
                         left join review.teams t on t.id = f.team_id
                         left join review.photos p on p.folder_id = f.id

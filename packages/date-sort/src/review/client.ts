@@ -650,6 +650,9 @@ export interface SiteGame {
   readonly team: string | null;
   readonly photos: number;
   readonly clips: number;
+  /** When the game's first and last item were taken, "HH:MM" (24 hours); null when it holds none. */
+  readonly firstAt: string | null;
+  readonly lastAt: string | null;
 }
 
 /**
@@ -676,5 +679,7 @@ export async function reviewGames(
       team: typeof g["team"] === "string" ? g["team"] : null,
       photos: Number(g["photos"] ?? 0),
       clips: Number(g["clips"] ?? 0),
+      firstAt: typeof g["first_at"] === "string" ? g["first_at"] : null,
+      lastAt: typeof g["last_at"] === "string" ? g["last_at"] : null,
     }));
 }
