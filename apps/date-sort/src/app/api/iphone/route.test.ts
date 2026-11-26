@@ -3,6 +3,8 @@
  * folders. They must not refuse each other: the second press waits for the
  * first, says so, and then runs by itself. The same button twice is refused.
  */
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { describe, expect, it, vi } from "vitest";
 
 vi.mock("server-only", () => ({}));
@@ -15,6 +17,7 @@ interface Call {
   preview: boolean;
   dates?: string[];
   list?: boolean;
+  alsoIn?: string;
 }
 const calls: Call[] = [];
 const order: string[] = [];
@@ -26,7 +29,13 @@ vi.mock("@/lib/iphone.ts", () => ({
     folder: string,
     kind: string,
     days: number | null,
-    options: { size: string; preview: boolean; dates?: string[]; list?: boolean },
+    options: {
+      size: string;
+      preview: boolean;
+      dates?: string[];
+      list?: boolean;
+      alsoIn?: string;
+    },
     onLine: (l: { type: string }) => void,
   ) => {
     calls.push({ folder, kind, days, ...options });
@@ -131,6 +140,27 @@ describe("bringing in the iPhone's photos and videos", () => {
     await open("videos");
     await lines(ok);
     expect(calls.at(-1)?.dates).toEqual(["2026-11-23"]); // only the real day is passed on
+  });
+
+  it("counts Game Footage as already brought in when copying into Short Clips, and only then", async () => {
+    calls.length = 0;
+    for (const folder of [
+      join(tmpdir(), "P", "Short Clips"),
+      join(tmpdir(), "P", "Photos"),
+    ]) {
+      const res = await POST(
+        new Request("http://127.0.0.1:4604/api/iphone", {
+          method: "POST",
+          headers: local,
+          body: JSON.stringify({ folder, kind: "videos", allDates: true }),
+        }),
+      );
+      expect(res.status).toBe(200);
+      await open("videos");
+      await lines(res);
+    }
+    expect(calls[0]?.alsoIn).toBe(join(tmpdir(), "P", "Game Footage"));
+    expect(calls[1]?.alsoIn).toBeUndefined();
   });
 
   it("counts the phone's days without a kind, and without copying", async () => {
