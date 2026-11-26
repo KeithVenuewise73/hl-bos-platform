@@ -31,6 +31,8 @@ export function copyFromIphone(
     readonly dates?: readonly string[];
     /** Only count what the phone has for each day; copy and create nothing. */
     readonly list?: boolean;
+    /** A second folder whose files count as already brought in (Game Footage, for Short Clips). */
+    readonly alsoIn?: string;
   },
   onLine: (line: IphoneLine) => void,
   signal: AbortSignal,
@@ -71,6 +73,7 @@ export function copyFromIphone(
           DS_PREVIEW: options.preview ? "1" : "",
           DS_DATES: (options.dates ?? []).join(","),
           DS_LISTDATES: options.list === true ? "1" : "",
+          DS_ALSO: options.alsoIn ?? "",
           // Windows CI only: an ordinary folder standing in for the phone,
           // walked through the same Shell calls (no CI machine has an iPhone).
           // Set by the CI workflow when it starts DateSort; never by the page.

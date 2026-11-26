@@ -25,7 +25,7 @@ Copy-Item "$fx\jpg-all-three-differ.jpg" (Join-Path $months '202610_a\IMG_1000.J
 node --experimental-strip-types -e "import('./apps/date-sort/src/lib/iphone-script.ts').then(m => process.stdout.write(Buffer.from(m.IPHONE_SCRIPT, 'utf16le').toString('base64')))" > (Join-Path $T 'iphone.b64')
 $encoded = (Get-Content (Join-Path $T 'iphone.b64') -Raw).Trim()
 
-function Run($label, $source, $into = $dest, $kind = '', $days = '', $size = '', $split = '', $preview = '', $dates = '', $list = '') {
+function Run($label, $source, $into = $dest, $kind = '', $days = '', $size = '', $split = '', $preview = '', $dates = '', $list = '', $also = '') {
   $env:DS_DEST = $into
   $env:DS_KIND = $kind
   $env:DS_DAYS = $days
@@ -34,6 +34,7 @@ function Run($label, $source, $into = $dest, $kind = '', $days = '', $size = '',
   $env:DS_PREVIEW = $preview
   $env:DS_DATES = $dates
   $env:DS_LISTDATES = $list
+  $env:DS_ALSO = $also
   $env:DS_TEST_SOURCE = $source
   $p = Start-Process powershell.exe -ArgumentList '-NoProfile', '-NonInteractive', '-STA', '-ExecutionPolicy', 'Bypass', '-EncodedCommand', $encoded `
     -RedirectStandardOutput (Join-Path $T "$label.out") -RedirectStandardError (Join-Path $T "$label.err") -PassThru -NoNewWindow
@@ -126,7 +127,16 @@ $destNone = Join-Path $T 'kept\Days none picked'
 New-Item -ItemType Directory -Force $destNone | Out-Null
 $noneRun = Run 'days-none-match' $dayPhone $destNone '' '' '' '' '' '2019-01-01'
 
+# A video moved from Short Clips to Game Footage must not be copied into Short Clips again: files in
+# the second folder (DS_ALSO, laid out the same way) count as already brought in.
+$destAlso = Join-Path $T 'kept\Moved elsewhere'
+New-Item -ItemType Directory -Force $destAlso | Out-Null
+$alsoRun = Run 'also-folder' $phone $destAlso 'videos' '' '' '' '' '' '' $dest
+
 $ok = $true
+if ($alsoRun -match '"result":"copied"') { Write-Host "a file already in the second folder was copied again: $alsoRun"; $ok = $false }
+if ($alsoRun -notmatch '"result":"already"') { Write-Host "files in the second folder were not counted as already there: $alsoRun"; $ok = $false }
+if (@(Get-ChildItem -Recurse -File $destAlso | Where-Object { $_.FullName -notmatch '\.datesort-incoming' }).Count -ne 0) { Write-Host "something was copied although the second folder had it"; $ok = $false }
 $listed = @($listRun -split "`n" | Where-Object { $_ -match '"type":"dates"' })
 if ($listed.Count -ne 1) { Write-Host "counting the days did not report them: $listRun"; $ok = $false }
 elseif ($listed[0] -notmatch '"d":"2020-03-04"' -or $listed[0] -notmatch '"d":"2026-02-14"') { Write-Host "the days listed are wrong: $($listed[0])"; $ok = $false }

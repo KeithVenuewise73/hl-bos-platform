@@ -24,6 +24,9 @@
  * separate folders, so each has its own .datesort-incoming and its own list of
  * earlier failures.
  *
+ * DS_ALSO, when given, is a second folder (laid out the same way) whose files count as already
+ * brought in: a long video moved out of Short Clips into Game Footage is not copied again.
+ *
  * DS_DATES, when given, is a comma list of days (2026-11-23): only files the phone dates on one of
  * those days come across, and a file with no date from the phone is never brought in. DS_LISTDATES=1
  * only counts what the phone has for each day and reports it (nothing is copied or created). This is
@@ -156,6 +159,7 @@ ${DIALOG_CSHARP}
 try {
   $shell = New-Object -ComObject Shell.Application
   $dest = $env:DS_DEST
+  $also = [string]$env:DS_ALSO
   if ($env:DS_TEST_SOURCE) {
     # A folder standing in for the phone: <it>\Internal Storage\DCIM\...
     $dev = $shell.NameSpace($env:DS_TEST_SOURCE).Self
@@ -271,6 +275,7 @@ try {
   function Have($x) {
     $d = Join-Path $dest $x.folder
     if (Test-Path -LiteralPath (Join-Path $d $x.name)) { return $true }
+    if ($also -and (Test-Path -LiteralPath (Join-Path (Join-Path $also $x.folder) $x.name))) { return $true }
     if ($x.name -match '^(.*)\.heic$') { return (Test-Path -LiteralPath (Join-Path $d ($Matches[1] + '.JPG'))) }
     return $false
   }
@@ -308,6 +313,11 @@ try {
     # photos already converted: IMG_0044.HEIC arrives as IMG_0044.JPG.
     $converted = $null
     if ($x.name -match '^(.*)\.heic$') { $converted = $Matches[1] + '.JPG' }
+    if ($also -and (Test-Path -LiteralPath (Join-Path (Join-Path $also $x.folder) $x.name))) {
+      $pending.Remove($key)
+      Say @{ type = 'file'; folder = $x.folder; name = $x.name; result = 'already' }
+      continue
+    }
     if (Test-Path -LiteralPath $target) {
       $len = (Get-Item -LiteralPath $target).Length
       # Smaller than the phone's file: an earlier copy cut short (before

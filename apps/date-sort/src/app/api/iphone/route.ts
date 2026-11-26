@@ -1,3 +1,5 @@
+import { basename, dirname, join } from "node:path";
+
 import { guard } from "@/lib/guard.ts";
 import { freeBytes } from "@/lib/free-space.ts";
 import { copyFromIphone } from "@/lib/iphone.ts";
@@ -89,6 +91,12 @@ export async function POST(request: Request): Promise<Response> {
   const size = body.size === "small" || body.size === "large" ? body.size : "all";
   const preview = body.preview === true;
   const folder = typeof body.folder === "string" ? body.folder.trim() : "";
+  // A long video moved from Short Clips to Game Footage must not be copied into Short Clips again:
+  // for a Short Clips folder, the Game Footage folder beside it counts as already brought in.
+  const alsoIn =
+    basename(folder) === "Short Clips"
+      ? join(dirname(folder), "Game Footage")
+      : undefined;
   if (!/^[A-Za-z]:[\\/]|^\\\\|^\//.test(folder)) {
     return Response.json(
       { error: `Choose the folder to keep the iPhone's ${kind} in first.` },
@@ -173,7 +181,13 @@ export async function POST(request: Request): Promise<Response> {
             folder,
             kind,
             days,
-            { size, preview: preview || list, dates, list },
+            {
+              size,
+              preview: preview || list,
+              dates,
+              list,
+              ...(alsoIn === undefined ? {} : { alsoIn }),
+            },
             watch,
             stop.signal,
           );

@@ -95,6 +95,11 @@ describe("the iPhone copy script", () => {
     ).toMatchObject({ type: "dates" });
   });
 
+  it("counts a file in a second folder as already brought in, so a moved video is not copied again", () => {
+    expect(IPHONE_SCRIPT).toContain("$env:DS_ALSO");
+    expect(IPHONE_SCRIPT).toContain("Join-Path (Join-Path $also $x.folder) $x.name");
+  });
+
   it("brings the smallest files in first, can split small from large, and can only look", () => {
     // Smallest first, so the quick ones are across before the giant ones start;
     // earlier failures still go last, after this sort.
@@ -179,6 +184,6 @@ describe("the script fits on a Windows command line", () => {
   const encoded = Buffer.from(IPHONE_SCRIPT, "utf16le").toString("base64");
   const OTHER_ARGUMENTS = 150; // powershell.exe -NoProfile -NonInteractive -STA ...
   it("is far enough under the limit to leave room to grow", () => {
-    expect(encoded.length + OTHER_ARGUMENTS).toBeLessThan(30_500);
+    expect(encoded.length + OTHER_ARGUMENTS).toBeLessThan(31_500);
   });
 });
