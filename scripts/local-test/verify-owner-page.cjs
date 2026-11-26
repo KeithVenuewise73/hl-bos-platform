@@ -1244,6 +1244,23 @@ async function api(route, body, headers) {
         /^3 ticked/.test(await page.locator("[data-testid=tick-count]").innerText()),
       );
       await page.click("button:has-text('Untick all')");
+      // Approve everything: a folder with nothing waiting must not open on an empty "Waiting" list.
+      await page.click("button:has-text('Approve all 8 waiting')");
+      await page.waitForSelector("text=Approved the remaining 8");
+      await page.click("button.pr-tab:has-text('Folders')");
+      await page
+        .locator(".pr-card", { hasText: "Mixed game" })
+        .locator("button:has-text('Open'), button:has-text('Review')")
+        .first()
+        .click();
+      await page.waitForSelector("[data-testid=kind-tabs]");
+      check(
+        "a folder with nothing waiting opens on All (not an empty Waiting list)",
+        (await page
+          .locator(".pr-chip", { hasText: "All" })
+          .getAttribute("aria-pressed")) === "true" &&
+          (await page.locator(".pr-tile").count()) === 3,
+      );
       await page.click("button.pr-tab:has-text('Folders')");
     }
 
