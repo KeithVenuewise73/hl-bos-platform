@@ -145,19 +145,33 @@ export function pgStore(sql: any): ReviewStore {
     },
     async deleteFolder(folder) {
       // Only a folder with no photo in it; one that has any is refused, so no photo is ever lost.
-      const gone = await sql`delete from review.folders f
-        where f.id = ${folder}::uuid
-          and not exists (select 1 from review.photos p where p.folder_id = f.id)
-        returning f.id`;
-      if (gone.length === 0) {
-        const there =
-          await sql`select 1 from review.folders where id = ${folder}::uuid`;
-        throw plain(
-          there.length > 0
-            ? "that folder still has photos in it: move them to another folder first"
-            : "that folder was not found",
-        );
-      }
+      //
+      // A photo keeps the SEND (batch) it arrived in, and a batch belongs to the folder it was sent
+      // to. Deleting a folder deletes its batches and, through them, every photo of those sends even
+      // when the photo was moved to another folder since. So first hand each such batch to the folder
+      // that now holds its photos; only then can the folder go without taking anything with it.
+      await sql.begin(async (tx: any) => {
+        await tx`update review.batches b set folder_id = x.fid
+          from (select distinct on (p.batch_id) p.batch_id, p.folder_id as fid
+                  from review.photos p
+                  join review.batches bb on bb.id = p.batch_id
+                 where bb.folder_id = ${folder}::uuid and p.folder_id <> ${folder}::uuid
+                 order by p.batch_id, p.created_at) x
+         where b.id = x.batch_id`;
+        const gone = await tx`delete from review.folders f
+          where f.id = ${folder}::uuid
+            and not exists (select 1 from review.photos p where p.folder_id = f.id)
+          returning f.id`;
+        if (gone.length === 0) {
+          const there =
+            await tx`select 1 from review.folders where id = ${folder}::uuid`;
+          throw plain(
+            there.length > 0
+              ? "that folder still has photos in it: move them to another folder first"
+              : "that folder was not found",
+          );
+        }
+      });
     },
     async deletePhotos(ids) {
       // Never an approved photo, and never one that is on the public page.
