@@ -166,8 +166,19 @@ jobs:
       # The real local Supabase stack. A bare postgres:17 service container has
       # no auth.uid() and no anon/authenticated/service_role roles, so RLS tests
       # against it would pass while proving nothing.
+      # `supabase start` sometimes fails before running anything because a port on the runner is
+      # already taken ("failed to bind host port 0.0.0.0:54322", seen twice in one day on pull
+      # requests that did not touch the database). Nothing about the code is wrong then, so stop
+      # whatever half-started and try again, up to three times.
       - name: Start Supabase
-        run: supabase start
+        run: |
+          for attempt in 1 2 3; do
+            if supabase start; then exit 0; fi
+            echo "supabase start failed (attempt $attempt of 3); cleaning up and trying again" >&2
+            supabase stop --no-backup || true
+            sleep 10
+          done
+          exit 1
 
       # Proves the set applies cleanly from an empty database, in order.
       # This is what catches ordering breakage and non-idempotent DDL.
