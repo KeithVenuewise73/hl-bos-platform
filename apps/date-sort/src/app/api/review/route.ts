@@ -1,7 +1,10 @@
 import {
   gameNameFor,
   loadReview,
+  reviewGames,
   ReviewError,
+  sameGame,
+  type SiteGame,
   sendForReview,
   type SendProgress,
   type SendResult,
@@ -17,6 +20,17 @@ export type ReviewLine =
   | { type: "progress"; progress: SendProgress }
   | { type: "done"; result: SendResult }
   | { type: "error"; message: string; sent: number };
+
+/** What DateSort answers (409) when a day's name matches none of the games the website already has for it. */
+export interface NeedChoice {
+  readonly needChoice: true;
+  readonly day: string;
+  /** The name the date card would have used. */
+  readonly typed: string;
+  readonly sport: string;
+  readonly games: readonly SiteGame[];
+  readonly error: string;
+}
 
 /** One send at a time: two at once would both hash and upload the same photos. */
 let busy = false;
@@ -44,6 +58,10 @@ export async function POST(request: Request): Promise<Response> {
   const body = (await request.json().catch(() => ({}))) as {
     day?: unknown;
     eventName?: unknown;
+    /** The person chose a game the website already has: its exact name and sport. */
+    join?: unknown;
+    /** The person chose to start a new game with the typed name. */
+    asNew?: unknown;
   };
   const day =
     typeof body.day === "string" && /^\d{4}-\d{2}-\d{2}$/.test(body.day)
@@ -77,6 +95,56 @@ export async function POST(request: Request): Promise<Response> {
       { error: "Photos are already being sent. Wait for that to finish." },
       { status: 409 },
     );
+
+  // Which website game do these join? A date can already hold a game under a slightly different
+  // name (typed another day, or a clips-only folder). Never start a second one silently, and
+  // never merge silently either: when the name matches none, ask.
+  let gameName = gameNameFor(found.name || eventName, day);
+  let gameSport = found.sport;
+  if (body.asNew !== true) {
+    let games: SiteGame[];
+    try {
+      games = await reviewGames(settings.serviceUrl, settings.key, day, (u, i) =>
+        fetch(u, i),
+      );
+    } catch {
+      return Response.json(
+        {
+          error:
+            "Could not check which games the website already has for this date, so nothing was sent. Try again in a moment.",
+        },
+        { status: 502 },
+      );
+    }
+    const j = body.join as { name?: unknown; sport?: unknown } | undefined;
+    const joined =
+      j !== undefined && typeof j.name === "string"
+        ? games.find((g) =>
+            sameGame(g, {
+              name: j.name as string,
+              sport: typeof j.sport === "string" ? j.sport : "",
+            }),
+          )
+        : undefined;
+    if (joined !== undefined) {
+      // Only a game the website really has for this date (it may have been renamed since).
+      gameName = joined.name;
+      gameSport = joined.sport;
+    } else {
+      const mine = { name: gameName, sport: gameSport };
+      if (games.length > 0 && !games.some((g) => sameGame(g, mine))) {
+        const need: NeedChoice = {
+          needChoice: true,
+          day,
+          typed: gameName,
+          sport: gameSport,
+          games,
+          error: "The website already has a game for this date under another name.",
+        };
+        return Response.json(need, { status: 409 });
+      }
+    }
+  }
   busy = true;
 
   const encoder = new TextEncoder();
@@ -94,11 +162,7 @@ export async function POST(request: Request): Promise<Response> {
       try {
         const result = await sendForReview({
           folder: found.folder,
-          game: {
-            name: gameNameFor(found.name || eventName, day),
-            sport: found.sport,
-            date: day,
-          },
+          game: { name: gameName, sport: gameSport, date: day },
           serviceUrl,
           key,
           fetch: (url, init) => fetch(url, init),

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { gameNameFor } from "./game-name";
+import { gameNameFor, sameGame } from "./game-name";
 
 describe("the name a folder gets on the website", () => {
   it("keeps a typed name, trimmed", () => {
@@ -18,5 +18,25 @@ describe("the name a folder gets on the website", () => {
 
   it("still gives a name for an odd date", () => {
     expect(gameNameFor("", "not-a-date")).toBe("Photos from not-a-date");
+  });
+});
+
+describe("sameGame", () => {
+  it("ignores capitals and spaces around the name and sport", () => {
+    expect(
+      sameGame(
+        { name: " West Seneca Volleyball ", sport: "Volleyball" },
+        { name: "west seneca volleyball", sport: "volleyball" },
+      ),
+    ).toBe(true);
+  });
+  it("is not the same game with a different name or sport", () => {
+    expect(
+      sameGame(
+        { name: "volleyball", sport: "Football" },
+        { name: "volleyball", sport: "Volleyball" },
+      ),
+    ).toBe(false);
+    expect(sameGame({ name: "A", sport: "" }, { name: "B", sport: "" })).toBe(false);
   });
 });

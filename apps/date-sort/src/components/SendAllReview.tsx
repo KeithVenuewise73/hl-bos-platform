@@ -3,9 +3,11 @@
 import { useEffect, useRef, useState } from "react";
 
 import type { CopyState } from "@/components/CopyPanel.tsx";
-import { allDoneLines, type AllTotals } from "@/lib/review-messages.ts";
+import { allDoneLines, resultLines, type AllTotals } from "@/lib/review-messages.ts";
 import { refreshReviewDays, useReviewDays } from "@/lib/review-days.ts";
-import { sendDay } from "@/lib/send-day.ts";
+import type { NeedChoice } from "@/app/api/review/route.ts";
+import { GameChoice } from "@/components/GameChoice.tsx";
+import { sendDay, type GameAnswer } from "@/lib/send-day.ts";
 
 type Status = { configured: boolean; connected: boolean } | null;
 
@@ -43,6 +45,10 @@ export function SendAllReview({
   const [totals, setTotals] = useState<AllTotals>(EMPTY);
   const [finished, setFinished] = useState<{ lines: string[] } | null>(null);
   const [fatal, setFatal] = useState<string | null>(null);
+  // Dates whose name matches none of the website's games for that day: held, never sent until answered.
+  const [asking, setAsking] = useState<NeedChoice[]>([]);
+  const [answered, setAnswered] = useState<Record<string, string>>({});
+  const [answering, setAnswering] = useState<string | null>(null);
   const abort = useRef<AbortController | null>(null);
 
   useEffect(() => {
@@ -62,6 +68,8 @@ export function SendAllReview({
     setRunning(true);
     setFinished(null);
     setFatal(null);
+    setAsking([]);
+    setAnswered({});
     let t: AllTotals = EMPTY;
     setTotals(t);
     const ordered = days.map((d) => d.day).sort(); // oldest first
@@ -93,6 +101,8 @@ export function SendAllReview({
           clipsAlreadyThere: t.clipsAlreadyThere + r.clipsAlreadyThere,
           clipsNeedTool: t.clipsNeedTool + r.videosNotSent,
         };
+      } else if (out.kind === "choose") {
+        setAsking((a) => [...a, out.need]);
       } else if (out.kind === "skip") {
         t = { ...t, skippedDays: [...t.skippedDays, { day, reason: out.message }] };
       } else if (out.message === "Stopped.") {
@@ -123,6 +133,26 @@ export function SendAllReview({
         days.reduce((n, d) => n + d.clips, 0),
       ),
     });
+  }
+
+  async function answer(need: NeedChoice, a: GameAnswer) {
+    setAnswering(need.day);
+    const out = await sendDay(
+      need.day,
+      copy.names[need.day] ?? "",
+      () => undefined,
+      undefined,
+      a,
+    );
+    setAnswering(null);
+    setAnswered((m) => ({
+      ...m,
+      [need.day]:
+        out.kind === "done"
+          ? `${need.day}: sent. ${resultLines(out.result).join(" ")}`
+          : `${need.day}: ${out.kind === "choose" ? out.need.error : out.message}`,
+    }));
+    void refreshReviewDays();
   }
 
   return (
@@ -184,6 +214,30 @@ export function SendAllReview({
         <p className="text-sm text-bad" data-testid="send-all-error">
           {fatal}
         </p>
+      ) : null}
+      {asking.length > 0 ? (
+        <div className="space-y-3 text-sm" data-testid="send-all-asking">
+          <p className="font-semibold">
+            {asking.length === 1
+              ? "1 date was held back until you say which game it joins."
+              : `${asking.length} dates were held back until you say which game each joins.`}{" "}
+            Nothing was sent for {asking.length === 1 ? "it" : "them"}.
+          </p>
+          {asking.map((need) =>
+            answered[need.day] !== undefined ? (
+              <p key={need.day} data-testid="send-all-answered">
+                {answered[need.day]}
+              </p>
+            ) : (
+              <GameChoice
+                key={need.day}
+                need={need}
+                disabled={answering !== null}
+                onAnswer={(a) => void answer(need, a)}
+              />
+            ),
+          )}
+        </div>
       ) : null}
       {finished !== null ? (
         <div className="space-y-1 text-sm" data-testid="send-all-result">

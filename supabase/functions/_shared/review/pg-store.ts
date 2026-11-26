@@ -52,6 +52,19 @@ export function pgStore(sql: any): ReviewStore {
                        order by f.event_date`),
       ] as never;
     },
+    async gamesOn(date) {
+      return [
+        ...(await sql`select f.name as name, coalesce(f.sport, '') as sport, t.name as team,
+                             (count(p.id) filter (where p.video_path is null))::int as photos,
+                             (count(p.id) filter (where p.video_path is not null))::int as clips
+                        from review.folders f
+                        left join review.teams t on t.id = f.team_id
+                        left join review.photos p on p.folder_id = f.id
+                       where f.event_date = ${date}::date
+                       group by f.id, t.name
+                       order by (count(p.id)) desc, f.name`),
+      ] as never;
+    },
     async knownHashes(hashes) {
       const r = await sql`select file_hash from review.photos
         where file_hash = any(${hashes}::text[])`;

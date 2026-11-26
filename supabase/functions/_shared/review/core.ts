@@ -226,6 +226,16 @@ export interface ReviewStore {
       rejected: number;
     }[]
   >;
+  /** The games (folders) the website already holds for one date, for DateSort's "which game?" choice. */
+  gamesOn(date: string): Promise<
+    {
+      name: string;
+      sport: string;
+      team: string | null;
+      photos: number;
+      clips: number;
+    }[]
+  >;
   folders(): Promise<FolderRow[]>;
   folderPhotos(
     folder: string,
@@ -780,6 +790,14 @@ async function publisher(
     // Which dates already have photos and clips in review (any state), so DateSort can say so on
     // each date. Photos and clips are counted apart: a clip is never a photo.
     return json(req, 200, { days: await deps.store.statusDays() });
+  }
+  if (route === "/review/games") {
+    // Read only: which games does the website already hold on this date? DateSort asks before
+    // sending, so a day's photos and clips join the game that is already there instead of
+    // starting a second one with a slightly different name.
+    const date = text(b["date"]);
+    if (!DAY.test(date)) return json(req, 400, { error: "date must be YYYY-MM-DD." });
+    return json(req, 200, { games: await deps.store.gamesOn(date) });
   }
   const batch = text(b["batch_id"]);
   if (!UUID.test(batch)) return json(req, 400, { error: "batch_id must be a uuid." });

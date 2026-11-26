@@ -29,3 +29,12 @@ export function gameNameFor(name: string, day: string): string {
     ? `Photos from ${month} ${Number(m[3])}, ${m[1]}`
     : `Photos from ${day}`.slice(0, 200);
 }
+
+/** The website treats two games as the same when name, sport and date match, ignoring capitals. */
+export function sameGame(
+  a: { name: string; sport: string },
+  b: { name: string; sport: string },
+): boolean {
+  const n = (t: string) => t.trim().toLowerCase();
+  return n(a.name) === n(b.name) && n(a.sport) === n(b.sport);
+}
