@@ -1086,7 +1086,11 @@ async function api(route, body, headers) {
       const order = await pg1
         .locator("[data-testid^=group-]")
         .evaluateAll((els) => els.map((e) => e.getAttribute("data-testid")));
-      check("Videos are listed first, then Photos", order.join() === "group-clips,group-photos", order.join());
+      check(
+        "Videos are listed first, then Photos",
+        order.join() === "group-clips,group-photos",
+        order.join(),
+      );
       check(
         "the Videos section shows 24 of 30 and the Photos section 60 of 130 (not everything at once)",
         (await pg1.locator("[data-testid=grid-clips] .tp-tile").count()) === 24 &&
@@ -1094,25 +1098,37 @@ async function api(route, body, headers) {
       );
       check(
         "section titles count them (Videos (30), Photos (130))",
-        /Videos \(30\)/.test(await pg1.locator("[data-testid=group-clips] h3").innerText()) &&
-          /Photos \(130\)/.test(await pg1.locator("[data-testid=group-photos] h3").innerText()),
+        /Videos \(30\)/.test(
+          await pg1.locator("[data-testid=group-clips] h3").innerText(),
+        ) &&
+          /Photos \(130\)/.test(
+            await pg1.locator("[data-testid=group-photos] h3").innerText(),
+          ),
       );
       check(
         "numbered pages: 2 for the videos, 3 for the photos",
         (await pg1.locator("[data-testid=pager-clips] .tp-pg").count()) === 4 &&
           (await pg1.locator("[data-testid=pager-photos] .tp-pg").count()) === 5,
       );
-      await pg1.locator("[data-testid=pager-photos]").getByRole("button", { name: "Page 3" }).click();
+      await pg1
+        .locator("[data-testid=pager-photos]")
+        .getByRole("button", { name: "Page 3" })
+        .click();
       check(
         "page 3 of Photos shows the last 10",
         (await pg1.locator("[data-testid=grid-photos] .tp-tile").count()) === 10 &&
-          (await pg1.locator("[data-testid=pager-photos] .tp-pg-on").innerText()) === "3",
+          (await pg1.locator("[data-testid=pager-photos] .tp-pg-on").innerText()) ===
+            "3",
       );
       check(
         "turning the Photos page leaves the Videos page alone",
         (await pg1.locator("[data-testid=grid-clips] .tp-tile").count()) === 24,
       );
-      await pg1.locator("[data-testid=pager-clips]").getByRole("button", { name: "Next page" }).first().click();
+      await pg1
+        .locator("[data-testid=pager-clips]")
+        .getByRole("button", { name: "Next page" })
+        .first()
+        .click();
       check(
         "Next on Videos goes to page 2 (6 clips)",
         (await pg1.locator("[data-testid=grid-clips] .tp-tile").count()) === 6,
@@ -1126,18 +1142,29 @@ async function api(route, body, headers) {
       );
       await pg1.keyboard.press("Escape");
       // a shared link to a photo on page 3 opens that page and that photo
-      await pg1.goto(base + "/team.html?team=paging-team&game=paging-game&photo=fake-p-125", {
-        waitUntil: "domcontentloaded",
-      });
+      await pg1.goto(
+        base + "/team.html?team=paging-team&game=paging-game&photo=fake-p-125",
+        {
+          waitUntil: "domcontentloaded",
+        },
+      );
       await pg1.waitForSelector(".tp-lb:not([hidden])");
       check(
         "a shared link to a photo on page 3 opens it, and the Photos list is on page 3",
         /IMG_0125/.test(await pg1.locator(".tp-cap").innerText()) &&
-          (await pg1.locator("[data-testid=pager-photos] .tp-pg-on").innerText()) === "3",
+          (await pg1.locator("[data-testid=pager-photos] .tp-pg-on").innerText()) ===
+            "3",
         await pg1.locator(".tp-cap").innerText(),
       );
-      await pg1.screenshot({ path: path.join(os.tmpdir(), "paging.png"), fullPage: false });
-      check("no page errors on the paged game", pgErr.length === 0, JSON.stringify(pgErr));
+      await pg1.screenshot({
+        path: path.join(os.tmpdir(), "paging.png"),
+        fullPage: false,
+      });
+      check(
+        "no page errors on the paged game",
+        pgErr.length === 0,
+        JSON.stringify(pgErr),
+      );
       await pg1.context().close();
     }
 
