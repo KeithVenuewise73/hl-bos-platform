@@ -189,6 +189,21 @@ function world(over: Partial<ReviewDeps> = {}) {
         },
       ]);
     },
+    gamesOn(date) {
+      return Promise.resolve(
+        date === "2026-10-24"
+          ? [
+              {
+                name: "Varsity vs Wheatfield",
+                sport: "Hockey",
+                team: "Cazenovia Chiefs",
+                photos: 1,
+                clips: 0,
+              },
+            ]
+          : [],
+      );
+    },
     knownHashes(hashes) {
       calls.push("known:" + hashes.length);
       return Promise.resolve(hashes.filter((h) => h === H1));
@@ -2377,6 +2392,50 @@ Deno.test(
     const stranger = await out(
       await handle(
         post("/review/status", {}, { "x-review-publisher-key": "wrong" }),
+        w.deps,
+      ),
+    );
+    assertEquals(stranger.status, 401, "nobody else may ask");
+  },
+);
+
+Deno.test(
+  "which games does the website hold on a date: read only, for the connected DateSort alone",
+  async () => {
+    const w = world();
+    w.setPublisher(KEY_SHA);
+    const ok = await out(
+      await handle(post("/review/games", { date: "2026-10-24" }, asPublisher), w.deps),
+    );
+    assertEquals(ok.status, 200);
+    assertEquals(
+      ok.json["games"],
+      [
+        {
+          name: "Varsity vs Wheatfield",
+          sport: "Hockey",
+          team: "Cazenovia Chiefs",
+          photos: 1,
+          clips: 0,
+        },
+      ],
+      "the game that date already has, with what it holds",
+    );
+    const none = await out(
+      await handle(post("/review/games", { date: "2026-01-01" }, asPublisher), w.deps),
+    );
+    assertEquals(none.json["games"], [], "a date with nothing says so");
+    const bad = await out(
+      await handle(post("/review/games", { date: "tomorrow" }, asPublisher), w.deps),
+    );
+    assertEquals(bad.status, 400, "a date must be a date");
+    const stranger = await out(
+      await handle(
+        post(
+          "/review/games",
+          { date: "2026-10-24" },
+          { "x-review-publisher-key": "wrong" },
+        ),
         w.deps,
       ),
     );

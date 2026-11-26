@@ -125,6 +125,26 @@ function startService() {
           })),
         });
       }
+      if (url.pathname === "/review/games") {
+        const per = new Map();
+        state.batches.forEach((b, i) => {
+          if (b.label.date !== body.date) return;
+          const k = `${b.label.name}|${b.label.sport ?? ""}`;
+          const n = [...state.known.values()].filter(
+            (p) => p.batch === `b${i + 1}`,
+          ).length;
+          const g = per.get(k) ?? {
+            name: b.label.name,
+            sport: b.label.sport ?? "",
+            team: null,
+            photos: 0,
+            clips: 0,
+          };
+          g.photos += n;
+          per.set(k, g);
+        });
+        return json({ games: [...per.values()] });
+      }
       if (url.pathname === "/review/large") {
         for (const it of body.items) state.large.add(it.hash);
         return json({ attached: body.items.length });
@@ -421,6 +441,37 @@ function startService() {
     await day2.locator("[data-testid=event-name]").fill("Hockey - JV vs Lockport");
     await day2.locator("[data-testid=create-folder]").click();
     await day2.locator("[data-testid=card-result]").waitFor({ timeout: 120_000 });
+    console.log("\nA date the website already holds under another name");
+    // The website already has a game on 2026-10-25 with a different name (typed another day).
+    svc.state.batches.push({
+      label: { name: "JV vs Lockport Playoff", sport: "Hockey", date: "2026-10-25" },
+      folder: "earlier",
+      counts: { photos: 0, videos: 0 },
+      hashes: [],
+    });
+    const heldBefore = svc.state.known.size;
+    await page.click("[data-testid=send-all-button]");
+    await page.locator("[data-testid=send-all-asking]").waitFor({ timeout: 120_000 });
+    const asking = await page.locator("[data-testid=send-all-asking]").innerText();
+    check(
+      "the date is held back with a question naming the game the website has, and nothing is sent for it",
+      /1 date was held back/.test(asking) &&
+        /JV vs Lockport Playoff/.test(asking) &&
+        /different game: start a new one called/.test(asking) &&
+        svc.state.known.size === heldBefore,
+      asking,
+    );
+    if (SHOTS) await page.screenshot({ path: path.join(SHOTS, "game-choice.png") });
+    await page.locator("[data-testid=game-choice-send]").click();
+    await page.locator("[data-testid=send-all-answered]").waitFor({ timeout: 120_000 });
+    const lastBatch = svc.state.batches[svc.state.batches.length - 1];
+    check(
+      "choosing the existing game sends the 2 photos into that game, not a new one",
+      lastBatch.label.name === "JV vs Lockport Playoff" &&
+        lastBatch.label.sport === "Hockey" &&
+        svc.state.known.size === heldBefore + 2,
+      JSON.stringify(lastBatch.label),
+    );
     await page.click("[data-testid=send-all-button]");
     await page.waitForFunction(
       () =>
@@ -432,8 +483,8 @@ function startService() {
     );
     const all2 = await page.locator("[data-testid=send-all-result]").innerText();
     check(
-      "after Create Folder, Send all sends the new date and skips what is already there",
-      /2 dates done: 2 photos newly sent for review, 4 photos already there/.test(
+      "Send all again does not ask twice: the choice is remembered, and nothing is sent twice",
+      /2 dates done: 0 photos newly sent for review, 6 photos already there/.test(
         all2,
       ) &&
         svc.state.known.size === 6 &&

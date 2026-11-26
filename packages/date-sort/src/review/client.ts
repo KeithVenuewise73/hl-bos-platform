@@ -642,3 +642,39 @@ export async function reviewKnown(
   }
   return known;
 }
+
+/** One game the website already holds for a date. */
+export interface SiteGame {
+  readonly name: string;
+  readonly sport: string;
+  readonly team: string | null;
+  readonly photos: number;
+  readonly clips: number;
+}
+
+/**
+ * Which games does the website already hold on this date? Read only. Throws when the website
+ * cannot be asked: the caller must not guess, because sending under a slightly different name
+ * would start a second game for the same day.
+ */
+export async function reviewGames(
+  base: string,
+  key: string,
+  date: string,
+  fetchImpl: Fetch,
+): Promise<SiteGame[]> {
+  const net = withRetry(fetchImpl);
+  const out = await call(net, base, key, "/review/games", { date }, 0);
+  const games = Array.isArray(out["games"])
+    ? (out["games"] as Record<string, unknown>[])
+    : [];
+  return games
+    .filter((g) => typeof g["name"] === "string")
+    .map((g) => ({
+      name: String(g["name"]),
+      sport: typeof g["sport"] === "string" ? g["sport"] : "",
+      team: typeof g["team"] === "string" ? g["team"] : null,
+      photos: Number(g["photos"] ?? 0),
+      clips: Number(g["clips"] ?? 0),
+    }));
+}
