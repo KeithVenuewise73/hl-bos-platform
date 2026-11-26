@@ -199,6 +199,8 @@ function world(over: Partial<ReviewDeps> = {}) {
                 team: "Cazenovia Chiefs",
                 photos: 1,
                 clips: 0,
+                first_at: "14:43",
+                last_at: "15:25",
               },
             ]
           : [],
@@ -2417,9 +2419,11 @@ Deno.test(
           team: "Cazenovia Chiefs",
           photos: 1,
           clips: 0,
+          first_at: "14:43",
+          last_at: "15:25",
         },
       ],
-      "the game that date already has, with what it holds",
+      "the game that date already has, with what it holds and when it was taken",
     );
     const none = await out(
       await handle(post("/review/games", { date: "2026-01-01" }, asPublisher), w.deps),

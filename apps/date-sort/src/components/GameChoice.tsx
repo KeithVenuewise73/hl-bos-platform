@@ -3,7 +3,7 @@
 import { useState } from "react";
 
 import type { NeedChoice } from "@/app/api/review/route.ts";
-import { choiceQuestion, gameLine } from "@/lib/game-choice.ts";
+import { CLOCK_HINT, choiceQuestion, gameLine } from "@/lib/game-choice.ts";
 import type { GameAnswer } from "@/lib/send-day.ts";
 
 /**
@@ -52,6 +52,9 @@ export function GameChoice({
         />
         <span>A different game: start a new one called &ldquo;{need.typed}&rdquo;</span>
       </label>
+      <p className="text-muted" data-testid="game-choice-hint">
+        {CLOCK_HINT}
+      </p>
       <button
         type="button"
         className="btn-ghost w-full"

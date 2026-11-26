@@ -9,6 +9,9 @@ export interface ChoiceGame {
   readonly team: string | null;
   readonly photos: number;
   readonly clips: number;
+  /** "HH:MM" (24 hours) of the first and last item taken, or null. */
+  readonly firstAt?: string | null;
+  readonly lastAt?: string | null;
 }
 
 const n = (x: number, w: string) =>
@@ -23,10 +26,38 @@ export function holds(g: ChoiceGame): string {
   return parts.length === 0 ? "nothing yet" : parts.join(" and ");
 }
 
-/** One line for an existing game: name, then team and contents. */
-export function gameLine(g: ChoiceGame): string {
-  return `${g.name}${g.team !== null ? ` (${g.team})` : ""} — ${holds(g)}`;
+/** "2:43 PM" from "14:43"; null when it is not a time. */
+function clock(hhmm: string): { text: string; pm: boolean } | null {
+  const m = /^(\d{1,2}):(\d{2})$/.exec(hhmm);
+  if (!m) return null;
+  const h = Number(m[1]);
+  if (h > 23) return null;
+  return { text: `${h % 12 === 0 ? 12 : h % 12}:${m[2]}`, pm: h >= 12 };
 }
+
+/** "2:43 to 3:25 PM", "11:50 AM to 1:10 PM", or "" when the game has no times. */
+export function timeSpan(
+  first: string | null | undefined,
+  last: string | null | undefined,
+): string {
+  const a = first ? clock(first) : null;
+  const b = last ? clock(last) : null;
+  if (!a || !b) return "";
+  const mer = (c: { pm: boolean }) => (c.pm ? "PM" : "AM");
+  return a.pm === b.pm
+    ? `${a.text} to ${b.text} ${mer(b)}`
+    : `${a.text} ${mer(a)} to ${b.text} ${mer(b)}`;
+}
+
+/** One line for an existing game: name, then team, contents and when it was taken. */
+export function gameLine(g: ChoiceGame): string {
+  const span = timeSpan(g.firstAt, g.lastAt);
+  return `${g.name}${g.team !== null ? ` (${g.team})` : ""} — ${holds(g)}${span === "" ? "" : `, taken ${span}`}`;
+}
+
+/** A reminder under the choices: a camera's clock can be set wrong. */
+export const CLOCK_HINT =
+  "A camera's clock can be set wrong (even 12 hours off), so compare the length of time and the order as well as the hour.";
 
 /** The question above the choices. */
 export function choiceQuestion(

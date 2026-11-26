@@ -139,8 +139,16 @@ function startService() {
             team: null,
             photos: 0,
             clips: 0,
+            first_at: null,
+            last_at: null,
           };
           g.photos += n;
+          for (const p of state.known.values()) {
+            if (p.batch !== `b${i + 1}` || !p.taken_at) continue;
+            const t = String(p.taken_at).slice(11, 16);
+            if (!g.first_at || t < g.first_at) g.first_at = t;
+            if (!g.last_at || t > g.last_at) g.last_at = t;
+          }
           per.set(k, g);
         });
         return json({ games: [...per.values()] });
@@ -458,6 +466,7 @@ function startService() {
       /1 date was held back/.test(asking) &&
         /JV vs Lockport Playoff/.test(asking) &&
         /different game: start a new one called/.test(asking) &&
+        /clock can be set wrong/.test(asking) &&
         svc.state.known.size === heldBefore,
       asking,
     );

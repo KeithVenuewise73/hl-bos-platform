@@ -234,6 +234,9 @@ export interface ReviewStore {
       team: string | null;
       photos: number;
       clips: number;
+      /** When the first and last item of the game were taken, "HH:MM" (24 hours), or null when it holds none. */
+      first_at: string | null;
+      last_at: string | null;
     }[]
   >;
   folders(): Promise<FolderRow[]>;
