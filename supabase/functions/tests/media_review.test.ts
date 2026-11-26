@@ -212,8 +212,11 @@ function world(over: Partial<ReviewDeps> = {}) {
       };
       return Promise.resolve([f]);
     },
-    folderPhotos(folder, status, limit, offset) {
-      calls.push(`photos:${folder}:${status}:${limit}:${offset}`);
+    folderPhotos(folder, status, limit, offset, kind = "all") {
+      calls.push(
+        `photos:${folder}:${status}:${limit}:${offset}` +
+          (kind === "all" ? "" : `:${kind}`),
+      );
       const p: PhotoRow = {
         id: P1,
         filename: "IMG_1.JPG",
@@ -2218,6 +2221,28 @@ Deno.test(
     );
     assertEquals(photos[0]!["video"], false, "a photo is not a clip");
     assertEquals(photos[0]!["video_url"], null, "and has no clip link");
+
+    // The owner page's Videos and Photos tabs: the kind is passed to the store, and nonsense is refused.
+    w.calls.length = 0;
+    for (const kind of ["video", "photo"]) {
+      const r = await handle(
+        post("/owner/photos", { folder: FOLDER, kind }, asOwner),
+        w.deps,
+      );
+      assertEquals(r.status, 200, `kind ${kind} is accepted`);
+    }
+    assertEquals(
+      w.calls
+        .filter((c: string) => c.startsWith("photos:"))
+        .map((c: string) => c.split(":").pop()),
+      ["video", "photo"],
+      "the kind reaches the store",
+    );
+    const badKind = await handle(
+      post("/owner/photos", { folder: FOLDER, kind: "everything" }, asOwner),
+      w.deps,
+    );
+    assertEquals(badKind.status, 400, "an unknown kind is refused");
 
     w.pub.wanted = [
       {

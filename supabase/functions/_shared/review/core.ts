@@ -42,6 +42,10 @@ export interface FolderRow {
   approved: number;
   rejected: number;
   same_day: number;
+  /** How many of those are short video clips, by state (the rest are photos). */
+  clips_waiting?: number;
+  clips_approved?: number;
+  clips_rejected?: number;
 }
 
 export interface PhotoRow {
@@ -228,6 +232,8 @@ export interface ReviewStore {
     status: string,
     limit: number,
     offset: number,
+    /** Only clips ("video"), only photos ("photo"), or both ("all", the default). */
+    kind?: "all" | "video" | "photo",
   ): Promise<PhotoRow[]>;
   decide(ids: string[], status: Status, reason: string, by: string): Promise<number>;
   approveWaiting(folder: string, by: string): Promise<number>;
@@ -987,9 +993,13 @@ async function owner(req: Request, route: string, deps: ReviewDeps): Promise<Res
     if (!UUID.test(folder)) return json(req, 400, { error: "folder must be a uuid." });
     if (!["waiting", "approved", "rejected", "all"].includes(status))
       return json(req, 400, { error: "status is waiting, approved, rejected or all." });
+    const kindRaw = text(b["kind"]) || "all";
+    if (!["all", "video", "photo"].includes(kindRaw))
+      return json(req, 400, { error: "kind is all, video or photo." });
+    const kind = kindRaw as "all" | "video" | "photo";
     const limit = Math.min(Math.max(num(b["limit"], PAGE), 1), 200);
     const offset = Math.max(num(b["offset"], 0), 0);
-    const rows = await deps.store.folderPhotos(folder, status, limit, offset);
+    const rows = await deps.store.folderPhotos(folder, status, limit, offset, kind);
     const urls = await deps.files.signedUrls(
       rows.flatMap((p) =>
         p.video_path
