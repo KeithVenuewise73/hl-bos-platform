@@ -2,7 +2,7 @@
 // `postgres` (porsager) tagged-template client, so the deployed function and a
 // local integration run share exactly this code.
 // deno-lint-ignore-file no-explicit-any
-import type { ReviewStore } from "./core.ts";
+import type { FolderRow, ReviewStore } from "./core.ts";
 
 /** The publisher's registered fingerprint (null until DateSort connects). */
 export async function publisherFingerprint(sql: any): Promise<string | null> {
@@ -68,13 +68,46 @@ export function pgStore(sql: any): ReviewStore {
       return Number(r[0]?.n ?? 0);
     },
     async folders() {
-      return [
+      const rows = [
         ...(await sql`select id, name, sport, to_char(event_date, 'YYYY-MM-DD') as event_date,
                              team_id, team_name, waiting::int, approved::int, rejected::int, same_day::int
                         from review.folders_overview()`),
       ];
+      // How many of each folder's items are short clips, so the owner page can offer a Videos tab.
+      const clips: any[] = await sql`select folder_id::text as id,
+                                     count(*) filter (where status = 'waiting')::int as w,
+                                     count(*) filter (where status = 'approved')::int as a,
+                                     count(*) filter (where status = 'rejected')::int as r
+                                from review.photos
+                               where video_path is not null
+                               group by folder_id`;
+      const byId = new Map(clips.map((c: any) => [String(c.id), c]));
+      return rows.map((f) => {
+        const c = byId.get(String(f.id));
+        return {
+          ...f,
+          clips_waiting: Number(c?.w ?? 0),
+          clips_approved: Number(c?.a ?? 0),
+          clips_rejected: Number(c?.r ?? 0),
+        };
+      }) as FolderRow[];
     },
-    async folderPhotos(folder, status, limit, offset) {
+    async folderPhotos(folder, status, limit, offset, kind = "all") {
+      if (kind !== "all") {
+        // Same listing as review.folder_items, narrowed to clips or to photos.
+        return [
+          ...(await sql`select id, filename, to_char(taken_at, 'YYYY-MM-DD"T"HH24:MI:SS') as taken_at,
+                               date_estimated, width, height, flags, status, reason,
+                               web_path, thumb_path, (count(*) over ())::int as total,
+                               video_path, duration_seconds::float8
+                          from review.photos
+                         where folder_id = ${folder}::uuid
+                           and (${status} = 'all' or status = ${status})
+                           and ((${kind} = 'video') = (video_path is not null))
+                         order by taken_at nulls last, filename, id
+                         limit ${Math.min(Math.max(limit, 1), 200)} offset ${Math.max(offset, 0)}`),
+        ];
+      }
       return [
         ...(await sql`select id, filename, to_char(taken_at, 'YYYY-MM-DD"T"HH24:MI:SS') as taken_at,
                              date_estimated, width, height, flags, status, reason,

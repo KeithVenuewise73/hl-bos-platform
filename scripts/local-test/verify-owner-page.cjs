@@ -1110,6 +1110,140 @@ async function api(route, body, headers) {
             (await page.locator("[data-testid=clip-play]").getAttribute("href")) ?? "",
           ),
       );
+      check(
+        "a folder with only clips has no tabs (nothing to switch between)",
+        (await page.locator("[data-testid=kind-tabs]").count()) === 0,
+      );
+      await page.click("button.pr-tab:has-text('Folders')");
+    }
+
+    console.log("\nA folder with videos and photos: Videos tab first, then Photos");
+    {
+      const photoHashes = Array.from({ length: 5 }, (_, i) => sha("mixed-photo-" + i));
+      const clipHashes = Array.from({ length: 3 }, (_, i) => sha("mixed-clip-" + i));
+      const b = await api(
+        "/review/batch",
+        {
+          label: { name: "Mixed game", sport: "Volleyball", date: "2026-11-08" },
+          folder: "mixed",
+          counts: { photos: 5, videos: 3 },
+          hashes: [...photoHashes, ...clipHashes],
+        },
+        pub,
+      );
+      await api(
+        "/review/uploads",
+        {
+          batch_id: b.json.batch_id,
+          files: [
+            ...photoHashes.flatMap((h) => [
+              { hash: h, kind: "web" },
+              { hash: h, kind: "thumb" },
+            ]),
+            ...clipHashes.flatMap((h) => [
+              { hash: h, kind: "web" },
+              { hash: h, kind: "thumb" },
+              { hash: h, kind: "video" },
+            ]),
+          ],
+        },
+        pub,
+      );
+      await api(
+        "/review/commit",
+        {
+          batch_id: b.json.batch_id,
+          photos: [
+            ...photoHashes.map((h, i) => ({
+              hash: h,
+              filename: `P${i}.JPG`,
+              taken_at: `2026-11-08T12:0${i}:00`,
+              width: 2400,
+              height: 1600,
+              sharpness: 100,
+              brightness: 100,
+              flags: [],
+              web_bytes: 1000 + i,
+            })),
+            ...clipHashes.map((h, i) => ({
+              hash: h,
+              kind: "video",
+              filename: `C${i}.MOV`,
+              taken_at: `2026-11-08T13:0${i}:00`,
+              width: 1920,
+              height: 1080,
+              flags: [],
+              web_bytes: 1000,
+              video_bytes: 9000,
+              duration: 20 + i,
+            })),
+          ],
+        },
+        pub,
+      );
+      await page.click("button.pr-tab:has-text('Folders')");
+      await page.waitForSelector("text=Mixed game");
+      await page
+        .locator(".pr-card", { hasText: "Mixed game" })
+        .locator("button:has-text('Review')")
+        .click();
+      await page.waitForSelector("[data-testid=kind-tabs]");
+      const tab = (k) => page.locator(`[data-testid=tab-${k}]`);
+      check(
+        "two tabs: Videos 3 and Photos 5, with Videos first",
+        (await tab("video").innerText()).trim() === "Videos 3" &&
+          (await tab("photo").innerText()).trim() === "Photos 5" &&
+          (
+            await page.locator("[data-testid=kind-tabs] button").first().innerText()
+          ).startsWith("Videos"),
+      );
+      check(
+        "the Videos tab is the one showing, and it lists only the 3 clips",
+        (await tab("video").getAttribute("aria-pressed")) === "true" &&
+          (await page.locator(".pr-tile").count()) === 3 &&
+          (await page.locator("[data-testid=clip-badge]").count()) === 3,
+      );
+      check(
+        "the Waiting count follows the tab (3 clips waiting)",
+        /Waiting 3/.test(
+          await page.locator(".pr-chip", { hasText: "Waiting" }).innerText(),
+        ),
+      );
+      await tab("photo").click();
+      await page.waitForFunction(
+        () => document.querySelectorAll(".pr-tile").length === 5,
+        null,
+        { timeout: 15000 },
+      );
+      check(
+        "the Photos tab lists only the 5 photos, none with a play badge",
+        (await tab("photo").getAttribute("aria-pressed")) === "true" &&
+          (await page.locator("[data-testid=clip-badge]").count()) === 0,
+      );
+      check(
+        "the Waiting count follows the tab (5 photos waiting)",
+        /Waiting 5/.test(
+          await page.locator(".pr-chip", { hasText: "Waiting" }).innerText(),
+        ),
+      );
+      // Tick the photos, then switch tabs: the tick belongs to the tab it was made in.
+      await page.locator(".pr-tile").first().click();
+      await tab("video").click();
+      await page.waitForFunction(
+        () => document.querySelectorAll("[data-testid=clip-badge]").length === 3,
+        null,
+        { timeout: 15000 },
+      );
+      check(
+        "switching tab clears what was ticked (nothing is acted on by accident)",
+        /^0 ticked/.test(await page.locator("[data-testid=tick-count]").innerText()),
+      );
+      await page.click("button:has-text('Tick all on this page')");
+      check(
+        "Tick all on the Videos tab ticks the 3 clips",
+        /^3 ticked/.test(await page.locator("[data-testid=tick-count]").innerText()),
+      );
+      await page.click("button:has-text('Untick all')");
       await page.click("button.pr-tab:has-text('Folders')");
     }
 
