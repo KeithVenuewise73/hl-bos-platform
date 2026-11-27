@@ -165,6 +165,7 @@ describe("the iPhone copy script", () => {
 
   it("reads its own output lines and ignores anything else", () => {
     expect(parseIphoneLine('{"type":"none"}')).toEqual({ type: "none" });
+    expect(parseIphoneLine('{"type":"many"}')).toEqual({ type: "many" });
     expect(
       parseIphoneLine(
         '{"type":"file","folder":"100APPLE","name":"IMG_0042.MOV","result":"copied","bytes":12}\r',

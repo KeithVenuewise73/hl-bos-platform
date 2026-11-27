@@ -306,6 +306,13 @@ function IphoneCopy({
               message:
                 "No iPhone found. Plug it in with its cable, unlock it, and tap Trust if it asks, then press the button again.",
             });
+          } else if (m.type === "many") {
+            ended = true;
+            setState({
+              kind: "problem",
+              message:
+                "Two phones are plugged in, and DateSort can't tell which one you mean. Unplug one of them, then press the button again.",
+            });
           } else if (m.type === "locked") {
             ended = true;
             setState({
