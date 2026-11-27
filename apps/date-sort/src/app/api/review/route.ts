@@ -62,6 +62,8 @@ export async function POST(request: Request): Promise<Response> {
     join?: unknown;
     /** The person chose to start a new game with the typed name. */
     asNew?: unknown;
+    /** Send only the photos or only the clips of the folder. */
+    only?: unknown;
   };
   const day =
     typeof body.day === "string" && /^\d{4}-\d{2}-\d{2}$/.test(body.day)
@@ -69,6 +71,7 @@ export async function POST(request: Request): Promise<Response> {
       : null;
   if (day === null) return Response.json({ error: "No date chosen." }, { status: 400 });
   const eventName = typeof body.eventName === "string" ? body.eventName.trim() : "";
+  const only = body.only === "photos" || body.only === "clips" ? body.only : undefined;
 
   const settings = await loadReview();
   if (settings.serviceUrl === null) {
@@ -167,6 +170,7 @@ export async function POST(request: Request): Promise<Response> {
           key,
           fetch: (url, init) => fetch(url, init),
           signal: request.signal,
+          ...(only !== undefined ? { only } : {}),
           onProgress: (progress) => send({ type: "progress", progress }),
         });
         send({ type: "done", result });

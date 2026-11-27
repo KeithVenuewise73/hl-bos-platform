@@ -471,6 +471,28 @@ function startService() {
       asking,
     );
     if (SHOTS) await page.screenshot({ path: path.join(SHOTS, "game-choice.png") });
+    check(
+      "the question also offers to send only the photos or only the clips",
+      /only the photos/.test(
+        await page.locator("[data-testid=game-choice-only]").innerText(),
+      ) &&
+        /only the clips/.test(
+          await page.locator("[data-testid=game-choice-only]").innerText(),
+        ),
+    );
+    // Only the clips of a folder that has none: nothing is sent, and it says so in words.
+    await page.locator("[data-testid=game-choice-only-clips]").check();
+    await page.locator("[data-testid=game-choice-send]").click();
+    await page.locator("[data-testid=send-all-answered]").waitFor({ timeout: 120_000 });
+    const noClips = await page.locator("[data-testid=send-all-answered]").innerText();
+    check(
+      "choosing only the clips of a folder without clips sends nothing and says so",
+      /no clips in that folder/.test(noClips) && svc.state.known.size === heldBefore,
+      noClips,
+    );
+    // Ask again, and this time send everything (the default).
+    await page.click("[data-testid=send-all-button]");
+    await page.locator("[data-testid=send-all-asking]").waitFor({ timeout: 120_000 });
     await page.locator("[data-testid=game-choice-send]").click();
     await page.locator("[data-testid=send-all-answered]").waitFor({ timeout: 120_000 });
     const lastBatch = svc.state.batches[svc.state.batches.length - 1];

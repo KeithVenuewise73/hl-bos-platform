@@ -7,7 +7,7 @@ import { allDoneLines, resultLines, type AllTotals } from "@/lib/review-messages
 import { refreshReviewDays, useReviewDays } from "@/lib/review-days.ts";
 import type { NeedChoice } from "@/app/api/review/route.ts";
 import { GameChoice } from "@/components/GameChoice.tsx";
-import { sendDay, type GameAnswer } from "@/lib/send-day.ts";
+import { sendDay, type GameAnswer, type SendKind } from "@/lib/send-day.ts";
 
 type Status = { configured: boolean; connected: boolean } | null;
 
@@ -135,7 +135,7 @@ export function SendAllReview({
     });
   }
 
-  async function answer(need: NeedChoice, a: GameAnswer) {
+  async function answer(need: NeedChoice, a: GameAnswer, only: SendKind) {
     setAnswering(need.day);
     const out = await sendDay(
       need.day,
@@ -143,6 +143,7 @@ export function SendAllReview({
       () => undefined,
       undefined,
       a,
+      only,
     );
     setAnswering(null);
     setAnswered((m) => ({
@@ -233,7 +234,7 @@ export function SendAllReview({
                 key={need.day}
                 need={need}
                 disabled={answering !== null}
-                onAnswer={(a) => void answer(need, a)}
+                onAnswer={(a, only) => void answer(need, a, only)}
               />
             ),
           )}

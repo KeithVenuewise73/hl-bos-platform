@@ -7,7 +7,7 @@ import type { NeedChoice } from "@/app/api/review/route.ts";
 import { GameChoice } from "@/components/GameChoice.tsx";
 import { dayStatus, resultLines } from "@/lib/review-messages.ts";
 import { refreshReviewDays, useReviewDays } from "@/lib/review-days.ts";
-import { sendDay, type GameAnswer } from "@/lib/send-day.ts";
+import { sendDay, type GameAnswer, type SendKind } from "@/lib/send-day.ts";
 
 type Status = { configured: boolean; connected: boolean } | null;
 type State =
@@ -64,7 +64,7 @@ export function CardReview({
     }
   }
 
-  async function send(answer?: GameAnswer) {
+  async function send(answer?: GameAnswer, only?: SendKind) {
     setState({ kind: "working", line: "Starting…" });
     const out = await sendDay(
       day,
@@ -72,6 +72,7 @@ export function CardReview({
       (line) => setState({ kind: "working", line }),
       undefined,
       answer,
+      only,
     );
     if (out.kind === "done") {
       setState({ kind: "done", lines: resultLines(out.result) });
@@ -155,7 +156,7 @@ export function CardReview({
         <p className="text-muted">{state.line}</p>
       ) : null}
       {state.kind === "choose" ? (
-        <GameChoice need={state.need} onAnswer={(a) => void send(a)} />
+        <GameChoice need={state.need} onAnswer={(a, only) => void send(a, only)} />
       ) : null}
       {state.kind === "done" ? (
         <div className="space-y-1" data-testid="review-result">
