@@ -266,6 +266,26 @@ function answer(body, mode) {
       "nothing is ticked to begin with",
       (await page.locator("[data-testid^=day-20]:checked").count()) === 0,
     );
+    check(
+      "a shared phone offers how far back to look, starting at 30 days",
+      (await page.locator("[data-testid=phone-lookback]").inputValue()) === "30",
+    );
+    await page.selectOption("[data-testid=phone-lookback]", "90");
+    check(
+      "choosing a longer stretch clears the list (it belongs to the old stretch)",
+      (await page.locator("[data-testid=phone-days]").count()) === 0,
+    );
+    requests.length = 0;
+    await page.click("[data-testid=phone-import-button]");
+    await page.waitForSelector("[data-testid=phone-days]");
+    check(
+      "the list is asked for 90 days, and still copies nothing",
+      requests.length === 1 && requests[0].list === true && requests[0].days === 90,
+      requests,
+    );
+    await page.selectOption("[data-testid=phone-lookback]", "30");
+    await page.click("[data-testid=phone-import-button]");
+    await page.waitForSelector("[data-testid=phone-days]");
     requests.length = 0;
     await page.click("[data-testid=phone-import-button]");
     await page.waitForSelector("[data-testid=phone-problem]");
