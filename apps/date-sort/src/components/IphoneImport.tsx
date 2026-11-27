@@ -82,6 +82,15 @@ async function save(body: Record<string, unknown>): Promise<void> {
  * game footage are copied into a folder for that phone, only what is new since last time, then the
  * short clips are scanned ready to send to 5Star. The phone is only read.
  */
+/** How far back a shared phone can be asked about: days and the words for them. */
+const LOOKBACK_CHOICES: ReadonlyArray<readonly [number, string]> = [
+  [30, "Last 30 days"],
+  [60, "Last 60 days"],
+  [90, "Last 90 days"],
+  [183, "Last 6 months"],
+  [365, "Last year"],
+];
+
 export function IphoneImport({
   disabled,
   onReady,
@@ -102,6 +111,8 @@ export function IphoneImport({
   // A shared phone: the days it has, and which of them were ticked.
   const [dayRows, setDayRows] = useState<readonly DayRow[] | null>(null);
   const [olderMonths, setOlderMonths] = useState(0);
+  // How far back a shared phone is asked about (days); a day left unticked is never lost.
+  const [sharedDays, setSharedDays] = useState(FIRST_TIME_DAYS);
   const [ticked, setTicked] = useState<ReadonlySet<string>>(new Set());
   const [adding, setAdding] = useState(false);
   const [newName, setNewName] = useState("");
@@ -228,7 +239,7 @@ export function IphoneImport({
     running.current = true;
     setState({ kind: "counting" });
     try {
-      const out = await listDates(into, FIRST_TIME_DAYS);
+      const out = await listDates(into, sharedDays);
       if (out.kind === "problem") {
         setState({ kind: "problem", message: out.message, lines: [] });
         return;
@@ -307,8 +318,8 @@ export function IphoneImport({
     }
     running.current = true;
     const startedAt = new Date();
-    // A shared phone is always asked about the same month, so a day left unticked is not lost.
-    const days = shared ? FIRST_TIME_DAYS : lookBackDays(last[phone], startedAt);
+    // A shared phone is asked about the same stretch of days as the list showed.
+    const days = shared ? sharedDays : lookBackDays(last[phone], startedAt);
     const results: StepResult[] = [];
     let sortedNote = "";
     try {
@@ -469,10 +480,33 @@ export function IphoneImport({
             This phone is used only for 5 Star
           </label>
           {isWorkOnly ? null : (
-            <p className="text-xs text-muted" data-testid="phone-shared-note">
-              Shared phone: you pick the days to bring in, so personal photos and videos
-              stay on the phone and never reach the drive.
-            </p>
+            <>
+              <p className="text-xs text-muted" data-testid="phone-shared-note">
+                Shared phone: you pick the days to bring in, so personal photos and
+                videos stay on the phone and never reach the drive.
+              </p>
+              <label className="flex items-center gap-2 text-sm">
+                How far back to look
+                <select
+                  className="rounded border border-line bg-transparent px-2 py-1 text-sm"
+                  data-testid="phone-lookback"
+                  value={sharedDays}
+                  disabled={busy}
+                  onChange={(e) => {
+                    setSharedDays(Number(e.target.value));
+                    // The list belongs to the stretch it was made for: ask again.
+                    setDayRows(null);
+                    setTicked(new Set());
+                  }}
+                >
+                  {LOOKBACK_CHOICES.map(([n, label]) => (
+                    <option key={n} value={n}>
+                      {label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            </>
           )}
         </div>
       ) : null}
@@ -577,7 +611,7 @@ export function IphoneImport({
         <div className="space-y-2" data-testid="phone-days">
           <p className="text-sm">
             {dayRows.length === 0
-              ? "Nothing from the last 30 days was found on this phone."
+              ? `Nothing from the last ${sharedDays} days was found on this phone.`
               : "Tick only the days you shot for 5 Star. Days you leave unticked are not copied."}
           </p>
           {dayRows.map((r) =>
@@ -611,7 +645,8 @@ export function IphoneImport({
           )}
           {olderMonths > 0 ? (
             <p className="text-xs text-muted">
-              Older months on the phone are not shown. Only the last 30 days are.
+              Older months on the phone are not shown. Only the last {sharedDays} days
+              are.
             </p>
           ) : null}
           <p className="text-xs text-muted" data-testid="phone-picked">
