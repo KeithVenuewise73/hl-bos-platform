@@ -640,6 +640,30 @@ describe("short clips", () => {
     ]);
   });
 
+  it("can send only the clips, or only the photos, of a folder that holds both", async () => {
+    const dir = await clipDay();
+    const svc = service();
+    const clipsOnly = await run(dir, svc, {
+      findTools: () => Promise.resolve(tools),
+      makeClip,
+      only: "clips",
+    });
+    expect(clipsOnly.sent).toBe(0);
+    expect(clipsOnly.clipsSent).toBe(1);
+    expect([...svc.known.values()].filter((k) => k.kind !== "video")).toHaveLength(0);
+    const photosOnly = await run(dir, svc, {
+      findTools: () => Promise.resolve(tools),
+      makeClip,
+      only: "photos",
+    });
+    expect(photosOnly.sent).toBe(1);
+    expect(photosOnly.clipsSent).toBe(0);
+    expect(photosOnly.clipsAlreadyThere).toBe(0);
+    await expect(run(await dayFolder(1), service(), { only: "clips" })).rejects.toThrow(
+      /no clips in that folder/,
+    );
+  });
+
   it("names a clip that could not be converted and carries on", async () => {
     const dir = await clipDay();
     const r = await run(dir, service(), {

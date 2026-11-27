@@ -236,6 +236,8 @@ export interface SendOptions {
   readonly fetch: Fetch;
   readonly onProgress?: (p: SendProgress) => void;
   readonly signal?: AbortSignal;
+  /** Send only the photos, or only the clips, of the folder (the other kind waits for another send). */
+  readonly only?: "photos" | "clips";
   /** Waits before each retry of a failed request (tests use short ones). */
   readonly retryDelaysMs?: readonly number[];
   /** Tests only: where ffmpeg is, and how a clip is made ready. */
@@ -264,11 +266,13 @@ export async function sendForReview(o: SendOptions): Promise<SendResult> {
     if (o.signal?.aborted === true) throw new ReviewError("Stopped.");
     throw e;
   }
-  const photos = listing.photos;
-  const clips = listing.clips;
+  const photos = o.only === "clips" ? [] : listing.photos;
+  const clips = o.only === "photos" ? [] : listing.clips;
   if (photos.length === 0 && clips.length === 0)
     throw new ReviewError(
-      "There are no photos or clips in that folder to send for review.",
+      o.only === undefined
+        ? "There are no photos or clips in that folder to send for review."
+        : `There are no ${o.only} in that folder to send for review.`,
     );
 
   // Fingerprint every original, to ask what the website already has.
@@ -318,7 +322,10 @@ export async function sendForReview(o: SendOptions): Promise<SendResult> {
     {
       label: o.game,
       folder: o.folder.split(/[\\/]/).filter(Boolean).pop() ?? "",
-      counts: { photos: photos.length, videos: listing.videos },
+      counts: {
+        photos: photos.length,
+        videos: o.only === "photos" ? 0 : listing.videos,
+      },
       hashes: [...hashes.keys(), ...clipHashes.keys()],
     },
     0,

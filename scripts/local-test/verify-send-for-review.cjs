@@ -471,6 +471,16 @@ function startService() {
       asking,
     );
     if (SHOTS) await page.screenshot({ path: path.join(SHOTS, "game-choice.png") });
+    check(
+      "the question also offers to send only the photos or only the clips",
+      /only the photos/.test(
+        await page.locator("[data-testid=game-choice-only]").innerText(),
+      ) &&
+        /only the clips/.test(
+          await page.locator("[data-testid=game-choice-only]").innerText(),
+        ),
+    );
+    await page.locator("[data-testid=game-choice-only-photos]").check();
     await page.locator("[data-testid=game-choice-send]").click();
     await page.locator("[data-testid=send-all-answered]").waitFor({ timeout: 120_000 });
     const lastBatch = svc.state.batches[svc.state.batches.length - 1];

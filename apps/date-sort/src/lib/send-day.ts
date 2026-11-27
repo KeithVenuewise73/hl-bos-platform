@@ -12,6 +12,9 @@ export type DayOutcome =
   | { readonly kind: "choose"; readonly need: NeedChoice }
   | { readonly kind: "error"; readonly message: string };
 
+/** Send only one kind of what is in the folder (undefined: everything). */
+export type SendKind = "photos" | "clips" | undefined;
+
 /** The person's answer to "which game?": join one the website has, or start a new one. */
 export type GameAnswer =
   | { readonly join: { readonly name: string; readonly sport: string } }
@@ -19,9 +22,11 @@ export type GameAnswer =
 
 /** The game a date was last joined to, remembered in this browser so Send all does not ask again. */
 const KEY = "datesort.joinedGame.";
-function remembered(day: string): GameAnswer | undefined {
+function remembered(day: string, only: SendKind): GameAnswer | undefined {
   try {
-    const v = JSON.parse(localStorage.getItem(KEY + day) ?? "null") as {
+    const v = JSON.parse(
+      localStorage.getItem(KEY + day + (only ? `|${only}` : "")) ?? "null",
+    ) as {
       name?: unknown;
       sport?: unknown;
     } | null;
@@ -32,9 +37,13 @@ function remembered(day: string): GameAnswer | undefined {
     return undefined;
   }
 }
-function remember(day: string, answer: GameAnswer): void {
+function remember(day: string, answer: GameAnswer, only: SendKind): void {
   try {
-    if ("join" in answer) localStorage.setItem(KEY + day, JSON.stringify(answer.join));
+    if ("join" in answer)
+      localStorage.setItem(
+        KEY + day + (only ? `|${only}` : ""),
+        JSON.stringify(answer.join),
+      );
   } catch {
     // private browsing: it will just ask again
   }
@@ -50,12 +59,18 @@ export async function sendDay(
   onLine: (line: string) => void,
   signal?: AbortSignal,
   answer?: GameAnswer,
+  only?: SendKind,
 ): Promise<DayOutcome> {
   try {
     const res = await fetch("/api/review", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ day, eventName, ...(answer ?? remembered(day) ?? {}) }),
+      body: JSON.stringify({
+        day,
+        eventName,
+        ...(answer ?? remembered(day, only) ?? {}),
+        ...(only ? { only } : {}),
+      }),
       ...(signal ? { signal } : {}),
     });
     if (!res.ok || res.body === null) {
@@ -88,7 +103,7 @@ export async function sendDay(
         else outcome = { kind: "error", message: m.message };
       }
     }
-    if (outcome?.kind === "done" && answer !== undefined) remember(day, answer);
+    if (outcome?.kind === "done" && answer !== undefined) remember(day, answer, only);
     return (
       outcome ?? {
         kind: "error",
