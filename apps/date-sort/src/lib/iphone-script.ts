@@ -240,6 +240,8 @@ try {
       if ($list -and $name -notmatch $videoExt -and $name -notmatch $photoExt) { continue }
       $when = $null
       try { $when = [datetime]$f.ModifyDate } catch { }
+      # An iPhone may give no ModifyDate here though Explorer shows the date: ask as Explorer does.
+      if (-not $when -or $when.Year -le 1980) { try { $when = [datetime]$f.ExtendedProperty('System.DateModified') } catch { } }
       $day = $null
       if ($when -and $when.Year -gt 1980) { $day = $when.ToString('yyyy-MM-dd') }
       if ($cutoff -and $when -and $when.Year -gt 1980 -and $when -lt $cutoff) { $older += 1; continue }
