@@ -1,9 +1,9 @@
 import type { ReactNode } from "react";
 
 export const metadata = {
-  title: "Herman Legacy Digital — AI-powered business transformation",
+  title: "Herman Legacy Digital — websites, marketing and practical technology",
   description:
-    "Herman Legacy Digital helps organizations improve visibility, operations, customer acquisition, and growth through AI-powered business transformation.",
+    "Herman Legacy Digital helps businesses improve their online presence, attract customers and operate more efficiently through websites, marketing and practical technology.",
 };
 
 // Nonce-based CSP (see middleware.ts) is incompatible with static prerendering:

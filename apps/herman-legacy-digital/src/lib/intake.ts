@@ -92,10 +92,6 @@ export function validateIntake(input: IntakeInput): ValidationResult {
   return { ok: true, errors: [], lead };
 }
 
-export type IntakeOutcome =
-  | { status: "received"; ref: string; nextStep: string; persisted: boolean }
-  | { status: "invalid"; errors: string[] };
-
 /** The honest next step for a valid submission. Never claims an assessment ran. */
 export function nextStepFor(kind: IntakeKind): string {
   return kind === "visibility_assessment"

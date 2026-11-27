@@ -1,5 +1,5 @@
 import { ContentPage, Section, Grid, Card } from "@/components/ui";
-import { PAGES, FOCUS_MARKETS } from "@/lib/content";
+import { PAGES, FOCUS_MARKETS, PORTFOLIO_NOTE } from "@/lib/content";
 import { industrySolutions } from "@/lib/public-data";
 
 export const dynamic = "force-dynamic";
@@ -9,6 +9,7 @@ export default function IndustriesPage() {
   const lineFor = (m: string) => FOCUS_MARKETS.find((f) => f.name === m)?.line ?? "";
   return (
     <ContentPage copy={PAGES["industries"]!}>
+      <p style={{ fontSize: 13.5, color: "#5b6672" }}>{PORTFOLIO_NOTE}</p>
       {groups.map((g) => (
         <Section key={g.market} heading={g.market}>
           <p style={{ fontSize: 13.5, color: "#5b6672", marginTop: -4 }}>
