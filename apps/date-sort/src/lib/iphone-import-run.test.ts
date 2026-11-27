@@ -1,7 +1,13 @@
 import { describe, expect, it } from "vitest";
 
 import { importSteps, ALL_CHOICES } from "./iphone-import";
-import { listDates, NO_PHONE, runStep, sortClipsByLength } from "./iphone-import-run";
+import {
+  listDates,
+  NO_PHONE,
+  runStep,
+  sortClipsByLength,
+  TWO_PHONES,
+} from "./iphone-import-run";
 
 const step = importSteps("D:\\P", "Ph", ALL_CHOICES)[0]!;
 
@@ -145,6 +151,16 @@ describe("one step of the import", () => {
       streamOf([{ type: "none" }]),
     );
     expect(none).toMatchObject({ kind: "problem", message: NO_PHONE });
+    const many = await runStep(
+      step,
+      30,
+      false,
+      () => undefined,
+      streamOf([{ type: "many" }]),
+    );
+    expect(many).toMatchObject({ kind: "problem", message: TWO_PHONES });
+    const manyList = await listDates("D:\\P", 30, streamOf([{ type: "many" }]));
+    expect(manyList).toEqual({ kind: "problem", message: TWO_PHONES });
     const locked = await runStep(
       step,
       30,

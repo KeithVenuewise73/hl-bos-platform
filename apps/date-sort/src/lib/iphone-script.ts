@@ -165,7 +165,9 @@ try {
     $dev = $shell.NameSpace($env:DS_TEST_SOURCE).Self
   } else {
     $pc = $shell.NameSpace(17)
-    $dev = @($pc.Items() | Where-Object { $_.Name -match 'iPhone|iPad' }) | Select-Object -First 1
+    $devs = @($pc.Items() | Where-Object { $_.Name -match 'iPhone|iPad' })
+    if ($devs.Count -gt 1) { Say @{ type = 'many' }; exit 0 }
+    $dev = $devs | Select-Object -First 1
   }
   if (-not $dev) { Say @{ type = 'none' }; exit 0 }
   $device = $dev.Name
@@ -406,6 +408,8 @@ export const IPHONE_SCRIPT = squeezePowerShell(IPHONE_SCRIPT_SOURCE);
 
 export type IphoneLine =
   | { readonly type: "none" }
+  /** More than one iPhone or iPad is plugged in: DateSort cannot tell which one is meant. */
+  | { readonly type: "many" }
   | {
       readonly type: "locked";
       readonly device: string;
@@ -503,6 +507,7 @@ export function parseIphoneLine(line: string): IphoneLine | null {
     const o = JSON.parse(line.trim()) as { type?: unknown };
     switch (o.type) {
       case "none":
+      case "many":
       case "locked":
       case "looking":
       case "dates":

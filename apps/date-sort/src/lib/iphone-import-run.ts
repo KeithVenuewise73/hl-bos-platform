@@ -25,6 +25,10 @@ export type StepOutcome =
   /** Stopped, with the reason in plain words; what was copied so far is kept. */
   | { readonly kind: "problem"; readonly message: string; readonly result: StepResult };
 
+/** Two phones on one computer: DateSort reads one phone at a time, so it will not guess which. */
+export const TWO_PHONES =
+  "Two phones are plugged in, and DateSort can't tell which one you mean. Unplug one of them, then press the button again.";
+
 export const NO_PHONE =
   "No iPhone found. Plug it in with its cable, unlock it, and tap Trust if it asks, then press the button again.";
 
@@ -106,6 +110,8 @@ export async function runStep(
           tell();
         } else if (m.type === "none") {
           return problem(NO_PHONE);
+        } else if (m.type === "many") {
+          return problem(TWO_PHONES);
         } else if (m.type === "locked") {
           return problem(
             `${m.device} is connected but its files can't be seen yet. Unlock it and tap Trust (then enter its passcode), then press the button again.`,
@@ -204,6 +210,7 @@ export async function listDates(
           continue;
         }
         if (m.type === "none") return problem(NO_PHONE);
+        if (m.type === "many") return problem(TWO_PHONES);
         if (m.type === "locked")
           return problem(
             `${m.device} is connected but its files can't be seen yet. Unlock it and tap Trust (then enter its passcode), then try again.`,
