@@ -14,6 +14,9 @@ Factory readiness.
   recommendations are advisory (`authoritative` fixed false); the CEO decision is
   the only authoritative act. No fabricated opportunities, scores, or ARR.
 - **V2-1 scope:** no external connectors, no autonomous Factory work. The
-  `vstudio` migration (0029) is written but **unapplied** pending CEO approval.
+  `vstudio` migration (0029) is **applied** to HL-BOS Core (6 tables, all empty;
+  see `.hlbos/audits/2026-08-13-hlvs-master-audit.md`). The app is built and
+  passes typecheck, tests and build, but is **not yet deployed**; it needs the
+  Supabase URL/publishable key and a `VSTUDIO_TENANT_ID` set at deploy time.
 
 See `docs/products/hlvs-v2/` for the architecture, reuse matrix, and V2-1 reports.
