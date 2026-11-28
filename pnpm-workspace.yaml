@@ -22,6 +22,10 @@ catalog:
   # TS 7 would silently break type-aware linting. See dependency-policy.md.
   typescript: "6.0.3"
 
+  # tsx runs TypeScript scripts (e.g. Venture Studio discovery sweeps) without a
+  # build step. Dev-only; never shipped in an app bundle.
+  tsx: "4.21.0"
+
   # --- Framework ----------------------------------------------------------
   next: "16.2.10"
   react: "19.2.7"
